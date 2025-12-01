@@ -1,0 +1,148 @@
+#version 460
+
+
+#define CHUNK_SIZE 32
+
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = CHUNK_SIZE) in; // 8*8*8 = 512 threads
+
+layout(std430, set = 0, binding = 0) readonly buffer MaskData {
+	uint blockCounter;
+	uint faceMasks[];
+};
+
+layout(std430, set = 1, binding = 0) buffer FaceData {
+	uint faceData[];
+};
+
+layout(std430, set = 1, binding = 1) buffer ClaimedData {
+	uint claimed[];
+};
+
+struct DrawCommand
+{
+	uint vertex_count;
+	uint instance_count;
+	uint first_vertex;
+	uint first_instance;
+};
+
+layout(std430, set = 1, binding = 2) buffer DrawCmd {
+	coherent DrawCommand commands[];
+};
+
+layout(std140, set = 2, binding = 0) uniform Params {
+	ivec4 data0;
+
+#define chunkID data0.x
+#define vertexBufferOffset data0.y
+};
+
+
+ivec3 getSliceCoord(ivec2 uv, int slice, int axis)
+{
+	ivec3 coord =
+		axis == 0 ? ivec3(slice, uv.y, uv.x) :
+		axis == 1 ? ivec3(uv.x, slice, uv.y) :
+		axis == 2 ? ivec3(uv, slice) :
+		ivec3(0, 0, 0);
+	return coord;
+}
+
+bool isFacePresent(ivec3 coord, int faceIdx)
+{
+	uint idx = coord.x + coord.y * CHUNK_SIZE + coord.z * CHUNK_SIZE * CHUNK_SIZE;
+	uint faceMask = faceMasks[idx] >> 8;
+	uint faceBit = 1 << faceIdx;
+	bool facePresent = (faceMask & faceBit) != 0;
+	return facePresent;
+}
+
+bool isClaimed(ivec2 uv, int slice, int faceIdx)
+{
+	uint idx = uv.x + uv.y * CHUNK_SIZE + faceIdx * CHUNK_SIZE * CHUNK_SIZE;
+	uint claimedBits = claimed[idx];
+	bool isClaimed = (claimedBits & (1 << slice)) != 0;
+	return isClaimed;
+}
+
+uint getBlock(ivec3 coord)
+{
+	uint idx = coord.x + coord.y * CHUNK_SIZE + coord.z * CHUNK_SIZE * CHUNK_SIZE;
+	uint block = faceMasks[idx] & 0xFF;
+	return block;
+}
+
+uint encodeFaceData(int x, int y, int z, int w, int h, int face, uint block)
+{
+	uint data = 0;
+	data |= x;
+	data |= (y << 5);
+	data |= (z << 10);
+	data |= ((w - 1) << 15);
+	data |= ((h - 1) << 20);
+	data |= (face << 25);
+	data |= ((block - 1) << 28);
+
+	return data;
+}
+
+void main()
+{
+	ivec3 gid = ivec3(gl_GlobalInvocationID);
+	int slice = gid.z % CHUNK_SIZE;
+	int faceIdx = gid.z / CHUNK_SIZE;
+	int axis = faceIdx / 2;
+	
+	for (int y = 0; y < CHUNK_SIZE; y++)
+	{
+		for (int x = 0; x < CHUNK_SIZE; x++)
+		{
+			ivec2 uv = ivec2(x, y);
+			ivec3 coord = getSliceCoord(uv, slice, axis);
+			
+			if (!isFacePresent(coord, faceIdx) || isClaimed(uv, slice, faceIdx))
+				continue;
+
+			int w = 1, h = 1;
+			for (int xx = uv.x + 1; xx < CHUNK_SIZE; xx++)
+			{
+				ivec3 nextCoord = getSliceCoord(ivec2(xx, uv.y), slice, axis);
+				if (!isFacePresent(nextCoord, faceIdx) || isClaimed(ivec2(xx, uv.y), slice, faceIdx)) // || block not the same
+					break;
+				w++;
+			}
+			for (int yy = uv.y + 1; yy < CHUNK_SIZE; yy++)
+			{
+				bool rowMatches = true;
+				for (int xx = uv.x; xx < uv.x + w; xx++)
+				{
+					ivec3 nextCoord = getSliceCoord(ivec2(xx, yy), slice, axis);
+					if (!isFacePresent(nextCoord, faceIdx) || isClaimed(ivec2(xx, yy), slice, faceIdx)) // || block not the same
+					{
+						rowMatches = false;
+						break;
+					}
+				}
+				if (!rowMatches)
+					break;
+				h++;
+			}
+
+			for (int yy = uv.y; yy < uv.y + h; yy++)
+			{
+				for (int xx = uv.x; xx < uv.x + w; xx++)
+				{
+					int idx = xx + yy * CHUNK_SIZE + faceIdx * CHUNK_SIZE * CHUNK_SIZE;
+					atomicOr(claimed[idx], 1 << slice);
+				}
+			}
+
+			uint block = getBlock(coord);
+
+			uint idx = atomicAdd(commands[chunkID].instance_count, 1);
+			uint face = encodeFaceData(coord.x, coord.y, coord.z, w, h, faceIdx, block);
+			faceData[vertexBufferOffset + idx] = face;
+		}
+	}
+}
