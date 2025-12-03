@@ -7,6 +7,7 @@
 #include "Application.h"
 
 #include "utils/BumpAllocator.h"
+#include "utils/HashMap.h"
 
 
 #define Kilobytes(x) ((x) * 1024LL)
@@ -15,10 +16,19 @@
 #define Terabytes(x) (Gigabytes(x) * 1024LL)
 
 
-extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory * memory, AppState * appState, int argc, char** argv);
-extern "C" __declspec(dllexport) void AppDestroy(GameMemory * memory, AppState * appState, SDL_AppResult result);
-extern "C" __declspec(dllexport) SDL_AppResult AppOnEvent(GameMemory * memory, AppState * appState, SDL_Event * event);
-extern "C" __declspec(dllexport) void AppIterate(GameMemory * memory, AppState * appState);
+static GameMemory memory;
+static HashMap<void*, uint64_t, 1000> platformAllocations;
+
+static SDL_malloc_func defaultMalloc;
+static SDL_calloc_func defaultCalloc;
+static SDL_realloc_func defaultRealloc;
+static SDL_free_func defaultFree;
+
+
+extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, AppState* appState, int argc, char** argv);
+extern "C" __declspec(dllexport) void AppDestroy(GameMemory* memory, AppState* appState, SDL_AppResult result);
+extern "C" __declspec(dllexport) SDL_AppResult AppOnEvent(GameMemory* memory, AppState* appState, SDL_Event* event);
+extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* appState);
 
 
 SDL_Time GetWriteTime(const char* path)
@@ -35,7 +45,8 @@ SDL_Time GetWriteTime(const char* path)
 
 static void CompileResources()
 {
-	system("D:\\Dev\\Rainfall\\RainfallResourceCompiler\\bin\\x64\\Release\\RainfallResourceCompiler.exe " PROJECT_PATH "\\res res png ogg vsh fsh csh glsl vert frag comp ttf rfs gltf");
+	int result = system("D:\\Dev\\Rainfall\\RainfallResourceCompiler\\bin\\x64\\Release\\RainfallResourceCompiler.exe " PROJECT_PATH "\\res res png ogg vsh fsh csh glsl vert frag comp ttf rfs gltf glb");
+	SDL_assert(result == 0);
 }
 
 static void InitPlatformCallbacks(PlatformCallbacks* callbacks)
@@ -43,9 +54,63 @@ static void InitPlatformCallbacks(PlatformCallbacks* callbacks)
 	callbacks->compileResources = CompileResources;
 }
 
+void* SDLmalloc(size_t size)
+{
+	memory.platformMemoryUsage += size;
+	memory.platformAllocationCount++;
+	void* mem = defaultMalloc(size);
+	HashMapAdd(&platformAllocations, mem, size);
+	return mem;
+}
+
+void* SDLcalloc(size_t nmemb, size_t size)
+{
+	memory.platformMemoryUsage += nmemb * size;
+	memory.platformAllocationCount++;
+	void* mem = defaultCalloc(nmemb, size);
+	HashMapAdd(&platformAllocations, mem, nmemb * size);
+	return mem;
+}
+
+void* SDLrealloc(void* mem, size_t size)
+{
+	if (!mem)
+		return SDL_malloc(size);
+	else if (!size)
+	{
+		SDL_free(mem);
+		return nullptr;
+	}
+
+	void* newMem = defaultRealloc(mem, size);
+	if (newMem == mem)
+	{
+		uint64_t* memsize = HashMapGet(&platformAllocations, mem);
+		memory.platformMemoryUsage += size - *memsize;
+		*memsize = size;
+	}
+	else
+	{
+		uint64_t* memsize = HashMapRemove(&platformAllocations, mem);
+		memory.platformMemoryUsage += size - *memsize;
+		HashMapAdd(&platformAllocations, newMem, size);
+	}
+	return newMem;
+}
+
+void SDLfree(void* mem)
+{
+	defaultFree(mem);
+	uint64_t* memsize = HashMapRemove(&platformAllocations, mem);
+	memory.platformMemoryUsage -= *memsize;
+	memory.platformAllocationCount--;
+}
+
 int main(int argc, char** argv)
 {
-	GameMemory memory = {};
+	InitHashMap(&platformAllocations);
+
+	memory = {};
 	memory.constantMemorySize = Gigabytes(2);
 	memory.transientMemorySize = Megabytes(256);
 
@@ -59,6 +124,11 @@ int main(int argc, char** argv)
 
 	AppState* appState = (AppState*)(BumpAllocatorMalloc(&memory.constantAllocator, sizeof(AppState)));
 	InitPlatformCallbacks(&appState->platformCallbacks);
+
+#if _DEBUG
+	SDL_GetOriginalMemoryFunctions(&defaultMalloc, &defaultCalloc, &defaultRealloc, &defaultFree);
+	SDL_SetMemoryFunctions(SDLmalloc, SDLcalloc, SDLrealloc, SDLfree);
+#endif
 
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS))
 	{

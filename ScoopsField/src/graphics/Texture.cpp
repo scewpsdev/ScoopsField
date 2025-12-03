@@ -4,8 +4,9 @@
 
 #include "TextureFormat.h"
 
-#include "io/Image.h"
-#include "io/BinaryReader.h"
+#include "file/Image.h"
+
+#include "utils/BinaryReader.h"
 
 #include <SDL3/SDL.h>
 
@@ -49,6 +50,7 @@ static void LoadKTX11Header(BinaryReader& reader, TextureInfo* info)
 
 Texture* LoadTexture(const char* path, SDL_GPUCommandBuffer* cmdBuffer)
 {
+	// TODO free memory
 	size_t fileSize;
 	void* data = SDL_LoadFile(path, &fileSize);
 
@@ -76,6 +78,8 @@ Texture* LoadTexture(const char* path, SDL_GPUCommandBuffer* cmdBuffer)
 		return nullptr;
 	}
 
+	SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
+
 	SDL_GPUTransferBufferCreateInfo transferBufferInfo = {};
 	transferBufferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
 	transferBufferInfo.size = imageSize;
@@ -85,8 +89,6 @@ Texture* LoadTexture(const char* path, SDL_GPUCommandBuffer* cmdBuffer)
 	void* textureTransferPtr = SDL_MapGPUTransferBuffer(device, transferBuffer, false);
 	SDL_memcpy(textureTransferPtr, textureData, imageSize);
 	SDL_UnmapGPUTransferBuffer(device, transferBuffer);
-
-	SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
 
 	SDL_GPUTextureTransferInfo location = {};
 	location.transfer_buffer = transferBuffer;

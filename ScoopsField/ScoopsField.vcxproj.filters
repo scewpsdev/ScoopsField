@@ -27,9 +27,6 @@
     <ClCompile Include="src\graphics\IndirectBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\graphics\InstanceBuffer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\graphics\RenderTarget.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -48,10 +45,7 @@
     <ClCompile Include="src\graphics\VertexBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\io\BinaryReader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\io\Image.cpp">
+    <ClCompile Include="src\utils\BinaryReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\math\Math.cpp">
@@ -66,7 +60,7 @@
     <ClCompile Include="src\math\Vector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\renderer\Renderer2D.cpp">
+    <ClCompile Include="src\renderer\DebugTextRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\renderer\ScreenQuad.cpp">
@@ -90,6 +84,12 @@
     <ClCompile Include="src\renderer\Renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\model\Mesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\file\Image.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\graphics\GraphicsPipeline.h">
@@ -99,9 +99,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\graphics\IndirectBuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\graphics\InstanceBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\graphics\RenderTarget.h">
@@ -125,13 +122,10 @@
     <ClInclude Include="src\graphics\VertexBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\io\BinaryReader.h">
+    <ClInclude Include="src\utils\BinaryReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\io\Image.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\io\StringView.h">
+    <ClInclude Include="src\utils\StringView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\Gradient.h">
@@ -149,7 +143,7 @@
     <ClInclude Include="src\math\Vector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\renderer\Renderer2D.h">
+    <ClInclude Include="src\renderer\DebugTextRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\renderer\ScreenQuad.h">
@@ -194,5 +188,29 @@
     <ClInclude Include="src\renderer\Renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\model\Mesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\Shape.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\file\Image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\shaders\clear_buffer.comp" />
+    <None Include="res\shaders\lighting\directional_light.frag" />
+    <None Include="res\shaders\lighting\directional_light.vert" />
+    <None Include="res\shaders\screenquad.frag" />
+    <None Include="res\shaders\screenquad.vert" />
+    <None Include="res\shaders\sprite.frag" />
+    <None Include="res\shaders\sprite.vert" />
+    <None Include="res\shaders\glyph.frag" />
+    <None Include="res\shaders\glyph.vert" />
+    <None Include="res\shaders\mesh.frag" />
+    <None Include="res\shaders\mesh.vert" />
+    <None Include="res\shaders\lighting\point_light.frag" />
+    <None Include="res\shaders\lighting\point_light.vert" />
   </ItemGroup>
 </Project>

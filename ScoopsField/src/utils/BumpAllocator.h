@@ -9,6 +9,7 @@ struct BumpAllocator
 	uint8_t* buffer;
 	uint64_t capacity;
 	uint64_t offset;
+	int count;
 };
 
 
@@ -16,6 +17,8 @@ inline void InitBumpAllocator(BumpAllocator* allocator, uint8_t* buffer, uint64_
 {
 	allocator->buffer = buffer;
 	allocator->capacity = capacity;
+	allocator->offset = 0;
+	allocator->count = 0;
 }
 
 inline void ResetBumpAllocator(BumpAllocator* allocator)
@@ -24,6 +27,7 @@ inline void ResetBumpAllocator(BumpAllocator* allocator)
 //	SDL_memset4(allocator->buffer, 0, (allocator->offset + 3) / 4);
 //#endif
 	allocator->offset = 0;
+	allocator->count = 0;
 }
 
 inline uint8_t* BumpAllocatorMalloc(BumpAllocator* allocator, size_t size)
@@ -32,6 +36,7 @@ inline uint8_t* BumpAllocatorMalloc(BumpAllocator* allocator, size_t size)
 	{
 		uint8_t* ptr = &allocator->buffer[allocator->offset];
 		allocator->offset += (size * 4 + 3) / 4;
+		allocator->count++;
 		return ptr;
 	}
 	return nullptr;
@@ -44,6 +49,7 @@ inline uint8_t* BumpAllocatorCalloc(BumpAllocator* allocator, size_t num, size_t
 		uint8_t* ptr = &allocator->buffer[allocator->offset];
 		SDL_memset(ptr, 0, num * size);
 		allocator->offset += (num * size * 4 + 3) / 4;
+		allocator->count++;
 		return ptr;
 	}
 	return nullptr;

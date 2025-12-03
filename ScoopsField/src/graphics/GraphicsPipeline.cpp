@@ -39,6 +39,8 @@ void ReloadGraphicsPipeline(GraphicsPipeline* pipeline)
 	createInfo.primitive_type = pipelineInfo->primitiveType;
 
 	createInfo.rasterizer_state.cull_mode = pipelineInfo->cullMode;
+	createInfo.rasterizer_state.fill_mode = pipelineInfo->fillMode;
+	createInfo.rasterizer_state.front_face = pipelineInfo->frontFace;
 
 	createInfo.target_info.num_color_targets = pipeline->pipelineInfo.numColorTargets;
 	createInfo.target_info.color_target_descriptions = pipeline->pipelineInfo.colorTargets;
@@ -47,8 +49,8 @@ void ReloadGraphicsPipeline(GraphicsPipeline* pipeline)
 	createInfo.target_info.depth_stencil_format = pipelineInfo->depthFormat;
 
 	createInfo.depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS;
-	createInfo.depth_stencil_state.enable_depth_test = pipelineInfo->hasDepthTarget;
-	createInfo.depth_stencil_state.enable_depth_write = pipelineInfo->hasDepthTarget;
+	createInfo.depth_stencil_state.enable_depth_test = pipelineInfo->hasDepthTarget && pipelineInfo->depthTest;
+	createInfo.depth_stencil_state.enable_depth_write = pipelineInfo->hasDepthTarget && pipelineInfo->depthWrite;
 
 	createInfo.vertex_input_state.num_vertex_attributes = pipeline->pipelineInfo.numAttributes;
 	createInfo.vertex_input_state.vertex_attributes = pipeline->pipelineInfo.attributes;
@@ -66,6 +68,8 @@ GraphicsPipelineInfo CreateGraphicsPipelineInfo(Shader* shader, int numVertexBuf
 	pipelineInfo.shader = shader;
 	pipelineInfo.primitiveType = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
 	pipelineInfo.cullMode = SDL_GPU_CULLMODE_BACK;
+	pipelineInfo.fillMode = SDL_GPU_FILLMODE_FILL;
+	pipelineInfo.frontFace = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
 
 	pipelineInfo.numColorTargets = 1;
 	pipelineInfo.colorTargets[0].format = SDL_GetGPUSwapchainTextureFormat(device, window);
@@ -79,6 +83,8 @@ GraphicsPipelineInfo CreateGraphicsPipelineInfo(Shader* shader, int numVertexBuf
 
 	pipelineInfo.hasDepthTarget = true;
 	pipelineInfo.depthFormat = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+	pipelineInfo.depthTest = true;
+	pipelineInfo.depthWrite = true;
 
 	for (int i = 0; i < numVertexBuffers; i++)
 		pipelineInfo.numAttributes += vertexLayouts[i].numAttributes;

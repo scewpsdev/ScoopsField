@@ -1,15 +1,24 @@
 #include "graphics/VertexBuffer.h"
 
+#include "model/Mesh.h"
+
 #include "math/Vector.h"
 
 
-void GameInit()
+extern SDL_GPUDevice* device;
+
+
+void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	InitRenderer(&game->renderer, width, height);
+	InitRenderer(&game->renderer, width, height, cmdBuffer);
+
+	game->mesh = LoadMesh("res/models/monkey.glb.bin", cmdBuffer);
 
 	game->cameraPosition = vec3(0, 16, 32);
 	//game->cameraPitch = -0.4f * PI;
 	//game->cameraYaw = 0.25f * PI;
+	game->cameraNear = 0.1f;
+	game->cameraFar = 1000;
 
 	game->mouseLocked = true;
 }
@@ -35,11 +44,13 @@ void GameUpdate()
 	}
 	*/
 
+	Quaternion cameraRotation = Quaternion::FromAxisAngle(vec3::Up, game->cameraYaw) * Quaternion::FromAxisAngle(vec3::Right, game->cameraPitch);
+
 	vec3 delta = vec3::Zero;
-	if (app->keys[SDL_SCANCODE_A]) delta += game->cameraRotation.left();
-	if (app->keys[SDL_SCANCODE_D]) delta += game->cameraRotation.right();
-	if (app->keys[SDL_SCANCODE_S]) delta += game->cameraRotation.back();
-	if (app->keys[SDL_SCANCODE_W]) delta += game->cameraRotation.forward();
+	if (app->keys[SDL_SCANCODE_A]) delta += cameraRotation.left();
+	if (app->keys[SDL_SCANCODE_D]) delta += cameraRotation.right();
+	if (app->keys[SDL_SCANCODE_S]) delta += cameraRotation.back();
+	if (app->keys[SDL_SCANCODE_W]) delta += cameraRotation.forward();
 	if (app->keys[SDL_SCANCODE_SPACE]) delta += vec3::Up;
 	if (app->keys[SDL_SCANCODE_LCTRL]) delta += vec3::Down;
 
@@ -61,11 +72,16 @@ void GameUpdate()
 		game->cameraYaw -= app->mouseDelta.x * 0.001f;
 		game->cameraPitch -= app->mouseDelta.y * 0.001f;
 	}
-
-	game->cameraRotation = Quaternion::FromAxisAngle(vec3::Up, game->cameraYaw) * Quaternion::FromAxisAngle(vec3::Right, game->cameraPitch);
 }
 
 void GameRender(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	RenderScene(&game->renderer, game, cmdBuffer);
+	RenderMesh(&game->renderer, game->mesh, mat4::Identity);
+	RenderLight(&game->renderer, vec3(0, 2, 0), vec3(1, 0.5f, 1));
+
+	mat4 projection = mat4::Perspective(90 * Deg2Rad, width / (float)height, game->cameraNear, game->cameraFar);
+	Quaternion invCameraRotation = Quaternion::FromAxisAngle(vec3::Right, -game->cameraPitch) * Quaternion::FromAxisAngle(vec3::Up, -game->cameraYaw);
+	mat4 view = mat4::Rotate(invCameraRotation) * mat4::Translate(-game->cameraPosition);
+
+	RendererShow(&game->renderer, projection, view, game->cameraNear, game->cameraFar, cmdBuffer);
 }

@@ -2,8 +2,10 @@
 
 #include "StringView.h"
 
-#include <string>
-#include <vector>
+#include "math/Vector.h"
+#include "math/Matrix.h"
+
+#include <SDL3/SDL.h>
 
 
 struct BinaryReader
@@ -30,6 +32,8 @@ struct BinaryReader
 	char* ReadUTF16(int offset);
 	long long ReadInt64(int offset);
 	long long ReadInt64();
+	unsigned long long ReadUInt64(int offset);
+	unsigned long long ReadUInt64();
 	int ReadInt32(int offset);
 	int ReadInt32();
 	unsigned int ReadUInt32(int offset);
@@ -46,14 +50,15 @@ struct BinaryReader
 	float ReadShortNorm();
 	bool ReadBoolean();
 	bool ReadBoolean(int offset);
-	//vec2 ReadVector2();
-	//vec3 ReadVector3();
-	//vec4 ReadVector4();
-	//vec3 ReadByteNormXYZ();
-	//vec4 ReadByteNormXYZW();
-	//vec3 ReadSByteNormZYX();
-	//vec3 ReadShortNormXYZ();
-	//vec4 ReadShortNormXYZW();
+	vec2 ReadVector2();
+	vec3 ReadVector3();
+	vec4 ReadVector4();
+	vec3 ReadByteNormXYZ();
+	vec4 ReadByteNormXYZW();
+	vec3 ReadSByteNormZYX();
+	vec3 ReadShortNormXYZ();
+	vec4 ReadShortNormXYZW();
+	mat4 ReadMatrix4();
 	//Color ReadBGRA();
 	//Color ReadARGB();
 	//VertexColor ReadFloatRGBA();
@@ -65,27 +70,27 @@ struct BinaryReader
 	//List<unsigned short> ReadUInt16List(int offset, int count);
 	//List<unsigned char> ReadBytes(int offset, int count);
 	//List<unsigned char> ReadBytes(int count);
-	void ReadBytes(char* dst, int count);
+	void ReadBytes(void* dst, int count);
 
 	char AssertChar(char c);
-	std::string AssertASCII(const std::string& str);
+	//std::string AssertASCII(const std::string& str);
 	int AssertInt32(int i);
 	int AssertInt32(int* selection, int num, int& value);
-	int AssertInt32(const std::vector<int>& selection);
+	//int AssertInt32(const std::vector<int>& selection);
 	unsigned int AssertUInt32(unsigned int i);
 	short AssertInt16(short s);
 	unsigned char AssertByte(unsigned char c);
 	unsigned char AssertByte(unsigned char* selection, int num, unsigned char& value);
-	unsigned char AssertByte(const std::vector<unsigned char>& selection);
+	//unsigned char AssertByte(const std::vector<unsigned char>& selection);
 	float AssertFloat(float f);
 	bool AssertBoolean(bool b);
 	char AssertPattern(int length, char pattern);
 
 	template <typename T>
-	T Read()
+	void Read(T* value)
 	{
-		T t = *((T*)&this->buffer[this->pos]);
-		this->pos += sizeof(T);
-		return t;
+		SDL_assert(pos + sizeof(T) <= length);
+		SDL_memcpy(value, &buffer[pos], sizeof(T));
+		pos += sizeof(T);
 	}
 };

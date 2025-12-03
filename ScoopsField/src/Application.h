@@ -9,7 +9,6 @@
 
 #include "graphics/VertexBuffer.h"
 #include "graphics/IndexBuffer.h"
-#include "graphics/InstanceBuffer.h"
 #include "graphics/IndirectBuffer.h"
 #include "graphics/StorageBuffer.h"
 #include "graphics/TransferBuffer.h"
@@ -18,8 +17,10 @@
 #include "graphics/RenderTarget.h"
 #include "graphics/GraphicsPipeline.h"
 
-#include "renderer/Renderer2D.h"
 #include "renderer/Renderer.h"
+#include "renderer/DebugTextRenderer.h"
+
+#include "model/Mesh.h"
 
 #include "math/Math.h"
 #include "math/Vector.h"
@@ -31,7 +32,7 @@
 #include "utils/Pool.h"
 
 
-#define PROJECT_PATH "D:\\Dev\\Snowfall\\ScoopsField"
+#define PROJECT_PATH "D:\\Dev\\ScoopsField\\ScoopsField"
 
 
 struct GameMemory
@@ -44,6 +45,9 @@ struct GameMemory
 
 	BumpAllocator constantAllocator;
 	BumpAllocator transientAllocator;
+
+	uint64_t platformMemoryUsage;
+	int platformAllocationCount;
 };
 
 struct PlatformCallbacks
@@ -60,10 +64,6 @@ struct GraphicsState
 #define MAX_INDEX_BUFFERS 1024
 	IndexBuffer indexBuffers[MAX_INDEX_BUFFERS];
 	int numIndexBuffers;
-
-#define MAX_INSTANCE_BUFFERS 256
-	InstanceBuffer instanceBuffers[MAX_INSTANCE_BUFFERS];
-	int numInstanceBuffers;
 
 #define MAX_INDIRECT_BUFFERS 16
 	IndirectBuffer indirectBuffers[MAX_INDIRECT_BUFFERS];
@@ -99,9 +99,11 @@ struct GameState
 	bool mouseLocked;
 	vec3 cameraPosition;
 	float cameraPitch, cameraYaw;
-	Quaternion cameraRotation;
+	float cameraNear, cameraFar;
 
 	Renderer renderer;
+
+	Mesh* mesh;
 };
 
 struct AppState
@@ -129,4 +131,6 @@ struct AppState
 	GraphicsState graphics;
 	ResourceState resourceState;
 	GameState game;
+
+	DebugTextRenderer debugTextRenderer;
 };

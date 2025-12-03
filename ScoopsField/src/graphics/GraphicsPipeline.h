@@ -11,6 +11,8 @@ struct GraphicsPipelineInfo
 	Shader* shader;
 	SDL_GPUPrimitiveType primitiveType;
 	SDL_GPUCullMode cullMode;
+	SDL_GPUFillMode fillMode;
+	SDL_GPUFrontFace frontFace;
 
 #define MAX_PIPELINE_COLOR_TARGETS 8
 	int numColorTargets;
@@ -18,6 +20,8 @@ struct GraphicsPipelineInfo
 
 	bool hasDepthTarget;
 	SDL_GPUTextureFormat depthFormat;
+	bool depthTest;
+	bool depthWrite;
 
 #define MAX_PIPELINE_VERTEX_ATTRIBUTES 8
 	int numAttributes;

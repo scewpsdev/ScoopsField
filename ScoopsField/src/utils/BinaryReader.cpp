@@ -1,12 +1,5 @@
 #include "BinaryReader.h"
 
-#include <SDL3/SDL_assert.h>
-
-#include <string.h>
-#include <string>
-#include <locale>
-#include <codecvt>
-
 
 BinaryReader::BinaryReader(unsigned char* buffer, int length)
 {
@@ -63,6 +56,7 @@ StringView BinaryReader::ReadShiftJIS()
 	return value;
 }
 
+/*
 static char* UTF16ToString(const char* ptr, int length)
 {
 	std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> conversion;
@@ -95,6 +89,7 @@ char* BinaryReader::ReadUTF16(int offset)
 
 	return UTF16ToString(start, length);
 }
+*/
 
 long long BinaryReader::ReadInt64(int offset)
 {
@@ -117,6 +112,18 @@ long long BinaryReader::ReadInt64()
 {
 	long long i = ReadInt64(this->pos);
 	this->pos += sizeof(long long);
+	return i;
+}
+
+unsigned long long BinaryReader::ReadUInt64(int offset)
+{
+	return (unsigned long long)ReadInt64(offset);
+}
+
+unsigned long long BinaryReader::ReadUInt64()
+{
+	unsigned long long i = ReadUInt64(this->pos);
+	this->pos += sizeof(unsigned long long);
 	return i;
 }
 
@@ -218,7 +225,6 @@ float BinaryReader::ReadShortNorm()
 	return ReadInt16() / 32767.0f;
 }
 
-/*
 vec2 BinaryReader::ReadVector2()
 {
 	float x = ReadFloat();
@@ -285,6 +291,14 @@ vec4 BinaryReader::ReadShortNormXYZW()
 	return vec4(x, y, z, w);
 }
 
+mat4 BinaryReader::ReadMatrix4()
+{
+	mat4 m;
+	ReadBytes(&m, sizeof(m));
+	return m;
+}
+
+/*
 Color BinaryReader::ReadBGRA()
 {
 	char b = ReadByte();
@@ -402,10 +416,10 @@ List<unsigned char> BinaryReader::ReadBytes(int count)
 }
 */
 
-void BinaryReader::ReadBytes(char* dst, int count)
+void BinaryReader::ReadBytes(void* dst, int count)
 {
-	memcpy(dst, &this->buffer[this->pos], count);
-	this->pos += count;
+	SDL_memcpy(dst, &buffer[pos], count);
+	pos += count;
 }
 
 bool BinaryReader::ReadBoolean()
@@ -431,6 +445,7 @@ char BinaryReader::AssertChar(char c)
 	return value;
 }
 
+/*
 std::string BinaryReader::AssertASCII(const std::string& str)
 {
 	int len = (int)str.length();
@@ -441,6 +456,7 @@ std::string BinaryReader::AssertASCII(const std::string& str)
 	}
 	return str;
 }
+*/
 
 int BinaryReader::AssertInt32(int i)
 {
@@ -461,6 +477,7 @@ int BinaryReader::AssertInt32(int* selection, int num, int& value)
 	return 0;
 }
 
+/*
 int BinaryReader::AssertInt32(const std::vector<int>& selection)
 {
 	int value = ReadInt32();
@@ -472,6 +489,7 @@ int BinaryReader::AssertInt32(const std::vector<int>& selection)
 	SDL_assert(false);
 	return 0;
 }
+*/
 
 unsigned int BinaryReader::AssertUInt32(unsigned int i)
 {
@@ -506,6 +524,7 @@ unsigned char BinaryReader::AssertByte(unsigned char* selection, int num, unsign
 	return 0;
 }
 
+/*
 unsigned char BinaryReader::AssertByte(const std::vector<unsigned char>& selection)
 {
 	unsigned char value = ReadByte();
@@ -517,6 +536,7 @@ unsigned char BinaryReader::AssertByte(const std::vector<unsigned char>& selecti
 	SDL_assert(false);
 	return 0;
 }
+*/
 
 float BinaryReader::AssertFloat(float f)
 {

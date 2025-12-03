@@ -41,45 +41,16 @@ static const uint32_t vertexElementFormatSizes[SDL_GPU_VERTEXELEMENTFORMAT_HALF4
 
 
 extern SDL_GPUDevice* device;
+extern SDL_GPUCommandBuffer* cmdBuffer;
 extern GraphicsState* graphics;
 
 
-VertexBuffer* CreateVertexBuffer(int numVertices, const VertexBufferLayout* layout, SDL_GPUBufferUsageFlags usageFlags, const uint8_t* data, uint32_t size, SDL_GPUCommandBuffer* cmdBuffer)
+VertexBuffer* CreateVertexBuffer(int numVertices, const VertexBufferLayout* layout, SDL_GPUBufferUsageFlags usageFlags)
 {
 	SDL_GPUBufferCreateInfo bufferInfo = {};
 	bufferInfo.size = numVertices * GetVertexPitch(layout);
 	bufferInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX | usageFlags;
 	SDL_GPUBuffer* buffer = SDL_CreateGPUBuffer(device, &bufferInfo);
-
-	if (data)
-	{
-		SDL_GPUTransferBufferCreateInfo transferInfo = {};
-		transferInfo.size = size;
-		transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-		SDL_GPUTransferBuffer* transferBuffer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
-
-		SDL_assert(size <= bufferInfo.size);
-
-		void* vertexData = SDL_MapGPUTransferBuffer(device, transferBuffer, false);
-		SDL_memcpy(vertexData, data, size);
-		SDL_UnmapGPUTransferBuffer(device, transferBuffer);
-
-		SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
-
-		SDL_GPUTransferBufferLocation location = {};
-		location.transfer_buffer = transferBuffer;
-		location.offset = 0;
-
-		SDL_GPUBufferRegion region = {};
-		region.buffer = buffer;
-		region.size = size;
-		region.offset = 0;
-
-		SDL_UploadToGPUBuffer(copyPass, &location, &region, false);
-		SDL_EndGPUCopyPass(copyPass);
-
-		SDL_ReleaseGPUTransferBuffer(device, transferBuffer);
-	}
 
 	SDL_assert(graphics->numVertexBuffers < MAX_VERTEX_BUFFERS);
 
@@ -96,14 +67,8 @@ void DestroyVertexBuffer(VertexBuffer* vertexBuffer)
 	SDL_ReleaseGPUBuffer(device, vertexBuffer->buffer);
 }
 
-void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, uint8_t* data, uint32_t size, SDL_GPUTransferBuffer* transferBuffer, bool cycleTransferBuffer, SDL_GPUCommandBuffer* cmdBuffer)
+void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, uint32_t size, SDL_GPUTransferBuffer* transferBuffer, SDL_GPUCopyPass* copyPass)
 {
-	void* mappedBuffer = SDL_MapGPUTransferBuffer(device, transferBuffer, cycleTransferBuffer);
-	SDL_memcpy(mappedBuffer, data, size);
-	SDL_UnmapGPUTransferBuffer(device, transferBuffer);
-
-	SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
-
 	SDL_GPUTransferBufferLocation location = {};
 	location.transfer_buffer = transferBuffer;
 	location.offset = 0;
@@ -116,6 +81,29 @@ void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, uint8_t* da
 	SDL_assert(offset + size <= vertexBuffer->numVertices * GetVertexPitch(&vertexBuffer->layout));
 
 	SDL_UploadToGPUBuffer(copyPass, &location, &region, false);
+}
+
+void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, const uint8_t* data, uint32_t size, SDL_GPUCopyPass* copyPass)
+{
+	SDL_GPUTransferBufferCreateInfo transferInfo = {};
+	transferInfo.size = size;
+	transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+	SDL_GPUTransferBuffer* transferBuffer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
+	void* mapped = SDL_MapGPUTransferBuffer(device, transferBuffer, false);
+	SDL_memcpy(mapped, data, size);
+	SDL_UnmapGPUTransferBuffer(device, transferBuffer);
+
+	UpdateVertexBuffer(vertexBuffer, offset, size, transferBuffer, copyPass);
+
+	SDL_ReleaseGPUTransferBuffer(device, transferBuffer);
+}
+
+void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, const uint8_t* data, uint32_t size, SDL_GPUCommandBuffer* cmdBuffer)
+{
+	SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
+
+	UpdateVertexBuffer(vertexBuffer, offset, data, size, copyPass);
+
 	SDL_EndGPUCopyPass(copyPass);
 }
 

@@ -3,6 +3,7 @@
 #include "Vector.h"
 #include "Quaternion.h"
 #include "Matrix.h"
+#include "Shape.h"
 
 #include <SDL3/SDL.h>
 
@@ -11,12 +12,9 @@
 #define Deg2Rad (PI / 180.0f)
 #define Rad2Deg (180.0f / PI)
 
-
-struct AABB
-{
-	vec3 min;
-	vec3 max;
-};
+#define COLOR_WHITE 0xFFFFFFFF
+#define COLOR_BLACK 0xFF000000
+#define COLOR_TRANSPARENT 0x0
 
 
 inline int ipow(int base, int exp)
@@ -80,6 +78,6 @@ template<typename T>
 inline T max(T a, T b) { return a > b ? a : b; }
 
 vec3 RandomPointOnSphere(struct Random& random);
-AABB TransformBoundingBox(const AABB& localBox, const Matrix& transform);
-ivec2 WorldToScreenSpace(const vec3& p, const Matrix& vp, int displayWidth, int displayHeight);
+AABB TransformBoundingBox(const AABB& localBox, const mat4& transform);
+ivec2 WorldToScreenSpace(const vec3& p, const mat4& vp, int displayWidth, int displayHeight);
 vec4 ARGBToVector(uint32_t argb);

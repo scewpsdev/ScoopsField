@@ -90,7 +90,7 @@ inline VALUE_TYPE* HashMapAdd(HashMap<KEY_TYPE, VALUE_TYPE, CAPACITY>* map, cons
 }
 
 template<typename KEY_TYPE, typename VALUE_TYPE, int CAPACITY>
-inline bool HashMapRemove(HashMap<KEY_TYPE, VALUE_TYPE, CAPACITY>* map, const KEY_TYPE& key)
+inline VALUE_TYPE* HashMapRemove(HashMap<KEY_TYPE, VALUE_TYPE, CAPACITY>* map, const KEY_TYPE& key)
 {
 	int idx = hash(key) % CAPACITY;
 	int firstIdx = idx;
@@ -98,18 +98,18 @@ inline bool HashMapRemove(HashMap<KEY_TYPE, VALUE_TYPE, CAPACITY>* map, const KE
 	{
 		SlotState state = map->slots[idx].state;
 		if (state == SLOT_EMPTY)
-			return false;
+			return nullptr;
 		else if (state == SLOT_USED && map->slots[idx].key == key)
 		{
 			map->slots[idx].state = SLOT_TOMBSTONE;
 			map->numUsedSlots--;
 			map->numTombstones++;
-			return true;
+			return &map->slots[idx].value;
 		}
 
 		idx = (idx + 1) % CAPACITY;
 		if (idx == firstIdx)
-			return false;
+			return nullptr;
 	}
 }
 

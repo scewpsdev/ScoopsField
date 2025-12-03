@@ -52,7 +52,7 @@ vec3 RandomPointOnSphere(Random& random)
 	return p.normalized();
 }
 
-AABB TransformBoundingBox(const AABB& localBox, const Matrix& transform)
+AABB TransformBoundingBox(const AABB& localBox, const mat4& transform)
 {
 	vec3 size = localBox.max - localBox.min;
 	vec3 corners[] =
@@ -87,7 +87,7 @@ AABB TransformBoundingBox(const AABB& localBox, const Matrix& transform)
 	return worldSpaceBox;
 }
 
-ivec2 WorldToScreenSpace(const vec3& p, const Matrix& vp, int displayWidth, int displayHeight)
+ivec2 WorldToScreenSpace(const vec3& p, const mat4& vp, int displayWidth, int displayHeight)
 {
 	vec4 clipSpacePosition = vp * vec4(p, 1.0f);
 	vec3 ndcSpacePosition = clipSpacePosition.xyz / clipSpacePosition.w;

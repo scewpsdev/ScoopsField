@@ -2,11 +2,10 @@
 
 #include "Math.h"
 
-#include <math.h>
-#include <string.h>
+#include <SDL3/SDL.h>
 
 
-Matrix::Matrix() :
+mat4::mat4() :
 	m00(1.0f), m10(0.0f), m20(0.0f), m30(0.0f),
 	m01(0.0f), m11(1.0f), m21(0.0f), m31(0.0f),
 	m02(0.0f), m12(0.0f), m22(1.0f), m32(0.0f),
@@ -14,7 +13,7 @@ Matrix::Matrix() :
 {
 }
 
-Matrix::Matrix(float diagonal) :
+mat4::mat4(float diagonal) :
 	m00(diagonal), m10(0.0f), m20(0.0f), m30(0.0f),
 	m01(0.0f), m11(diagonal), m21(0.0f), m31(0.0f),
 	m02(0.0f), m12(0.0f), m22(diagonal), m32(0.0f),
@@ -22,7 +21,7 @@ Matrix::Matrix(float diagonal) :
 {
 }
 
-Matrix::Matrix(const vec4& col0, const vec4& col1, const vec4& col2, const vec4& col3)
+mat4::mat4(const vec4& col0, const vec4& col1, const vec4& col2, const vec4& col3)
 {
 	columns[0] = col0;
 	columns[1] = col1;
@@ -30,17 +29,17 @@ Matrix::Matrix(const vec4& col0, const vec4& col1, const vec4& col2, const vec4&
 	columns[3] = col3;
 }
 
-Matrix::Matrix(const float elements[16])
+mat4::mat4(const float elements[16])
 {
 	memcpy(this->elements, elements, sizeof(this->elements));
 }
 
-vec3 Matrix::translation() const
+vec3 mat4::translation() const
 {
 	return this->columns[3].xyz;
 }
 
-vec3 Matrix::scale() const
+vec3 mat4::scale() const
 {
 	float x = sqrtf(this->m00 * this->m00 + this->m01 * this->m01 + this->m02 * this->m02);
 	float y = sqrtf(this->m10 * this->m10 + this->m11 * this->m11 + this->m12 * this->m12);
@@ -48,7 +47,7 @@ vec3 Matrix::scale() const
 	return vec3(x, y, z);
 }
 
-static Quaternion ExtractRotation(Matrix matrix, const vec3& scale)
+static Quaternion ExtractRotation(mat4 matrix, const vec3& scale)
 {
 	float sx = 1.0f / scale.x;
 	float sy = 1.0f / scale.y;
@@ -70,21 +69,21 @@ static Quaternion ExtractRotation(Matrix matrix, const vec3& scale)
 	return Quaternion(x, y, z, width).normalized();
 }
 
-Quaternion Matrix::rotation() const
+Quaternion mat4::rotation() const
 {
 	return ExtractRotation(*this, scale());
 }
 
-void Matrix::decompose(vec3& translation, Quaternion& rotation, vec3& scale) const
+void mat4::decompose(vec3& translation, Quaternion& rotation, vec3& scale) const
 {
 	translation = this->translation();
 	scale = this->scale();
 	rotation = ExtractRotation(*this, scale);
 }
 
-float Matrix::determinant() const
+float mat4::determinant() const
 {
-	const Matrix& m = *this;
+	const mat4& m = *this;
 	return
 		m.elements[3] * m.elements[6] * m.elements[9] * m.elements[12] - m.elements[2] * m.elements[7] * m.elements[9] * m.elements[12] - m.elements[3] * m.elements[5] * m.elements[10] * m.elements[12] + m.elements[1] * m.elements[7] * m.elements[10] * m.elements[12] +
 		m.elements[2] * m.elements[5] * m.elements[11] * m.elements[12] - m.elements[1] * m.elements[6] * m.elements[11] * m.elements[12] - m.elements[3] * m.elements[6] * m.elements[8] * m.elements[13] + m.elements[2] * m.elements[7] * m.elements[8] * m.elements[13] +
@@ -94,10 +93,10 @@ float Matrix::determinant() const
 		m.elements[2] * m.elements[4] * m.elements[9] * m.elements[15] - m.elements[0] * m.elements[6] * m.elements[9] * m.elements[15] - m.elements[1] * m.elements[4] * m.elements[10] * m.elements[15] + m.elements[0] * m.elements[5] * m.elements[10] * m.elements[15];
 }
 
-Matrix Matrix::inverted() const
+mat4 mat4::inverted() const
 {
-	const Matrix& m = *this;
-	Matrix result;
+	const mat4& m = *this;
+	mat4 result;
 
 	float f = 1.0f / determinant();
 	result.elements[0] = (m.elements[6] * m.elements[11] * m.elements[13] - m.elements[7] * m.elements[10] * m.elements[13] + m.elements[7] * m.elements[9] * m.elements[14] - m.elements[5] * m.elements[11] * m.elements[14] - m.elements[6] * m.elements[9] * m.elements[15] + m.elements[5] * m.elements[10] * m.elements[15]) * f;
@@ -120,19 +119,19 @@ Matrix Matrix::inverted() const
 	return result;
 }
 
-vec4& Matrix::operator[](int column)
+vec4& mat4::operator[](int column)
 {
 	return columns[column];
 }
 
-const vec4& Matrix::operator[](int column) const
+const vec4& mat4::operator[](int column) const
 {
 	return columns[column];
 }
 
-Matrix Matrix::Translate(const vec4& v)
+mat4 mat4::Translate(const vec4& v)
 {
-	Matrix matrix = Identity;
+	mat4 matrix = Identity;
 	matrix.m30 = v.x;
 	matrix.m31 = v.y;
 	matrix.m32 = v.z;
@@ -140,9 +139,9 @@ Matrix Matrix::Translate(const vec4& v)
 	return matrix;
 }
 
-Matrix Matrix::Translate(float x, float y, float z, float w)
+mat4 mat4::Translate(float x, float y, float z, float w)
 {
-	Matrix matrix = Identity;
+	mat4 matrix = Identity;
 	matrix.m30 = x;
 	matrix.m31 = y;
 	matrix.m32 = z;
@@ -150,27 +149,27 @@ Matrix Matrix::Translate(float x, float y, float z, float w)
 	return matrix;
 }
 
-Matrix Matrix::Translate(const vec3& v)
+mat4 mat4::Translate(const vec3& v)
 {
-	Matrix matrix = Identity;
+	mat4 matrix = Identity;
 	matrix.m30 = v.x;
 	matrix.m31 = v.y;
 	matrix.m32 = v.z;
 	return matrix;
 }
 
-Matrix Matrix::Translate(float x, float y, float z)
+mat4 mat4::Translate(float x, float y, float z)
 {
-	Matrix matrix = Identity;
+	mat4 matrix = Identity;
 	matrix.m30 = x;
 	matrix.m31 = y;
 	matrix.m32 = z;
 	return matrix;
 }
 
-Matrix Matrix::Rotate(const Quaternion& q)
+mat4 mat4::Rotate(const Quaternion& q)
 {
-	Matrix matrix = Identity;
+	mat4 matrix = Identity;
 
 	matrix.m00 = 1.0f - 2.0f * q.y * q.y - 2.0f * q.z * q.z;
 	matrix.m01 = 2.0f * q.x * q.y + 2.0f * q.z * q.w;
@@ -195,9 +194,34 @@ Matrix Matrix::Rotate(const Quaternion& q)
 	return matrix;
 }
 
-Matrix Matrix::Scale(const vec3& v)
+mat4 mat4::Rotate(const vec3& axis, float angle)
 {
-	Matrix matrix = Identity;
+	mat4 matrix = {};
+
+	float s = SDL_sinf(angle);
+	float c = SDL_cosf(angle);
+	float oc = 1 - c;
+
+	matrix.m00 = oc * axis.x * axis.x + c;
+	matrix.m01 = oc * axis.x * axis.y + axis.z * s;
+	matrix.m02 = oc * axis.z * axis.x - axis.y * s;
+
+	matrix.m10 = oc * axis.x * axis.y - axis.z * s;
+	matrix.m11 = oc * axis.y * axis.y + c;
+	matrix.m12 = oc * axis.y * axis.z + axis.x * s;
+
+	matrix.m20 = oc * axis.z * axis.x + axis.y * s;
+	matrix.m21 = oc * axis.y * axis.z - axis.x * s;
+	matrix.m22 = oc * axis.z * axis.z + c;
+
+	matrix.m33 = 1.0f;
+
+	return matrix;
+}
+
+mat4 mat4::Scale(const vec3& v)
+{
+	mat4 matrix = Identity;
 	matrix.m00 = v.x;
 	matrix.m11 = v.y;
 	matrix.m22 = v.z;
@@ -205,16 +229,16 @@ Matrix Matrix::Scale(const vec3& v)
 	return matrix;
 }
 
-Matrix Matrix::Transform(const vec3& position, const Quaternion& rotation, const vec3& scale)
+mat4 mat4::Transform(const vec3& position, const Quaternion& rotation, const vec3& scale)
 {
-	return Matrix::Translate(position) * Matrix::Rotate(rotation) * Matrix::Scale(scale);
+	return mat4::Translate(position) * mat4::Rotate(rotation) * mat4::Scale(scale);
 }
 
-Matrix Matrix::Perspective(float fovy, float aspect, float near, float far)
+mat4 mat4::Perspective(float fovy, float aspect, float near, float far)
 {
 	// TODO homogenous depth check
 
-	Matrix matrix = Identity;
+	mat4 matrix = Identity;
 
 	float y = 1.0f / tanf(0.5f * fovy);
 	float x = y / aspect;
@@ -230,9 +254,9 @@ Matrix Matrix::Perspective(float fovy, float aspect, float near, float far)
 	return matrix;
 }
 
-Matrix Matrix::Orthographic(float left, float right, float bottom, float top, float near, float far)
+mat4 mat4::Orthographic(float left, float right, float bottom, float top, float near, float far)
 {
-	Matrix matrix = Identity;
+	mat4 matrix = Identity;
 
 	matrix[0][0] = 2.0f / (right - left);
 	matrix[1][1] = 2.0f / (top - bottom);
@@ -245,17 +269,17 @@ Matrix Matrix::Orthographic(float left, float right, float bottom, float top, fl
 	return matrix;
 }
 
-const Matrix Matrix::Identity = Matrix(1.0f);
+const mat4 mat4::Identity = mat4(1.0f);
 
-vec4 mul(const Matrix& left, const vec4& right)
+vec4 mul(const mat4& left, const vec4& right)
 {
-	Matrix rightMatrix = Matrix::Translate(right);
+	mat4 rightMatrix = mat4::Translate(right);
 	return (left * rightMatrix)[3];
 }
 
-Matrix operator*(const Matrix& left, const Matrix& right)
+mat4 operator*(const mat4& left, const mat4& right)
 {
-	Matrix result = {};
+	mat4 result = {};
 
 	result.elements[0] = left.elements[0] * right.elements[0] + left.elements[4] * right.elements[1] + left.elements[8] * right.elements[2] + left.elements[12] * right.elements[3];
 	result.elements[1] = left.elements[1] * right.elements[0] + left.elements[5] * right.elements[1] + left.elements[9] * right.elements[2] + left.elements[13] * right.elements[3];
@@ -277,7 +301,7 @@ Matrix operator*(const Matrix& left, const Matrix& right)
 	return result;
 }
 
-vec4 operator*(const Matrix& a, const vec4& b)
+vec4 operator*(const mat4& a, const vec4& b)
 {
 	vec4 result;
 
@@ -289,7 +313,7 @@ vec4 operator*(const Matrix& a, const vec4& b)
 	return result;
 }
 
-vec3 operator*(const Matrix& a, const vec3& b)
+vec3 operator*(const mat4& a, const vec3& b)
 {
 	vec3 result;
 
@@ -300,19 +324,19 @@ vec3 operator*(const Matrix& a, const vec3& b)
 	return result;
 }
 
-bool operator==(const Matrix& a, const Matrix& b)
+bool operator==(const mat4& a, const mat4& b)
 {
 	return memcmp(a.elements, b.elements, 16 * sizeof(float)) == 0;
 }
 
-bool operator!=(const Matrix& a, const Matrix& b)
+bool operator!=(const mat4& a, const mat4& b)
 {
 	return memcmp(a.elements, b.elements, 16 * sizeof(float)) != 0;
 }
 
-void GetFrustumPlanes(const Matrix& pv, vec4 planes[6])
+void GetFrustumPlanes(const mat4& pv, vec4 planes[6])
 {
-	Matrix matrix = pv;
+	mat4 matrix = pv;
 
 	// Left clipping plane
 	planes[0].elements[0] = matrix.m03 + matrix.m00;

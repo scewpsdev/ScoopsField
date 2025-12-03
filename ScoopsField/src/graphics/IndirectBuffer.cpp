@@ -18,7 +18,7 @@ IndirectBuffer* CreateIndirectBuffer(int maxDrawCommands, bool indexed, SDL_GPUB
 	bufferInfo.usage = SDL_GPU_BUFFERUSAGE_INDIRECT | usage;
 	SDL_GPUBuffer* buffer = SDL_CreateGPUBuffer(device, &bufferInfo);
 
-	SDL_assert(graphics->numInstanceBuffers < MAX_INSTANCE_BUFFERS);
+	SDL_assert(graphics->numIndirectBuffers < MAX_INDIRECT_BUFFERS);
 
 	IndirectBuffer* indirectBuffer = &graphics->indirectBuffers[graphics->numIndirectBuffers++];
 	indirectBuffer->maxDrawCommands = maxDrawCommands;

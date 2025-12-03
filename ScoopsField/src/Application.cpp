@@ -7,6 +7,7 @@
 GameMemory* memory;
 AppState* app;
 GraphicsState* graphics;
+ResourceState* resource;
 GameState* game;
 
 SDL_Window* window;
@@ -16,10 +17,38 @@ int width, height;
 float deltaTime;
 int fps;
 float avgMs;
-uint64_t memoryUsage;
-uint64_t transientMemoryUsage;
 
 SDL_GPUTexture* swapchain = nullptr;
+
+
+void DebugTextEx(int x, int y, const char* txt, int len, uint32_t color, uint32_t bgcolor)
+{
+	DebugTextRendererSubmit(&app->debugTextRenderer, x, y, txt, len, color, bgcolor);
+}
+
+void DebugText(int x, int y, uint32_t color, uint32_t bgcolor, const char* fmt, ...)
+{
+	static char buffer[256];
+
+	va_list args;
+	va_start(args, fmt);
+	int len = SDL_vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+
+	DebugTextEx(x, y, buffer, len, color, bgcolor);
+}
+
+void DebugText(int x, int y, const char* fmt, ...)
+{
+	static char buffer[256];
+
+	va_list args;
+	va_start(args, fmt);
+	int len = SDL_vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+
+	DebugTextEx(x, y, buffer, len, 0xFFFFFFFF, 0);
+}
 
 
 #include "game/Game.cpp"
@@ -28,16 +57,17 @@ SDL_GPUTexture* swapchain = nullptr;
 extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, AppState* appState, int argc, char** argv)
 {
 	::memory = memory;
-	app = (AppState*)memory->constantMemory;
+	app = appState;
 	graphics = &app->graphics;
+	resource = &app->resourceState;
 	game = &app->game;
 	window = app->window;
 	device = app->device;
 
 	SDL_GetWindowSizeInPixels(window, &width, &height);
 
-	if (appState->platformCallbacks.compileResources)
-		appState->platformCallbacks.compileResources();
+	if (app->platformCallbacks.compileResources)
+		app->platformCallbacks.compileResources();
 
 	app->lastFrame = SDL_GetTicksNS();
 	app->lastSecond = SDL_GetTicksNS();
@@ -47,7 +77,13 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, AppSt
 
 	SDL_GetMouseState(&app->lastMousePosition.x, &app->lastMousePosition.y);
 
-	GameInit();
+	SDL_GPUCommandBuffer* cmdBuffer = SDL_AcquireGPUCommandBuffer(device);
+
+	InitDebugTextRenderer(&app->debugTextRenderer, 1000, cmdBuffer);
+
+	GameInit(cmdBuffer);
+
+	SDL_SubmitGPUCommandBuffer(cmdBuffer);
 
 	return SDL_APP_CONTINUE;
 }
@@ -65,8 +101,9 @@ extern "C" __declspec(dllexport) void AppDestroy(GameMemory* memory, AppState* a
 	SDL_Log("Shutting down...");
 
 	::memory = memory;
-	app = (AppState*)memory->constantMemory;
+	app = appState;
 	graphics = &app->graphics;
+	resource = &app->resourceState;
 	game = &app->game;
 	window = app->window;
 	device = app->device;
@@ -86,11 +123,32 @@ extern "C" __declspec(dllexport) SDL_AppResult AppOnEvent(GameMemory* memory, Ap
 	return SDL_APP_CONTINUE;
 }
 
+static void RenderDebugStats()
+{
+	uint64_t memoryUsage = memory->constantAllocator.offset;
+	uint64_t transientMemoryUsage = memory->transientAllocator.offset;
+
+	char memoryUsageStr[16];
+	MemoryString(memoryUsageStr, 16, memoryUsage);
+
+	char transientMemoryUsageStr[16];
+	MemoryString(transientMemoryUsageStr, 16, transientMemoryUsage);
+
+	char platformMemoryUsageStr[16];
+	MemoryString(platformMemoryUsageStr, 16, memory->platformMemoryUsage);
+
+	DebugText(0, 0, COLOR_WHITE, COLOR_BLACK, "%d fps, %.3f ms", fps, avgMs);
+	DebugText(0, 1, COLOR_WHITE, COLOR_BLACK, "platform %s, %d allocations", platformMemoryUsageStr, memory->platformAllocationCount);
+	DebugText(0, 2, COLOR_WHITE, COLOR_BLACK, "constant %s, %d allocations", memoryUsageStr, memory->constantAllocator.count);
+	DebugText(0, 3, COLOR_WHITE, COLOR_BLACK, "transient %s, %d allocations", transientMemoryUsageStr, memory->transientAllocator.count);
+}
+
 extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* appState)
 {
 	::memory = memory;
-	app = (AppState*)memory->constantMemory;
+	app = appState;
 	graphics = &app->graphics;
+	resource = &app->resourceState;
 	game = &app->game;
 	window = app->window;
 	device = app->device;
@@ -106,20 +164,6 @@ extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* a
 
 		app->frameCounter = 0;
 		app->lastSecond = app->now;
-
-		char memoryUsageStr[16];
-		MemoryString(memoryUsageStr, 16, memoryUsage);
-
-		char transientMemoryUsageStr[16];
-		MemoryString(transientMemoryUsageStr, 16, transientMemoryUsage);
-
-		char systemMemoryUsageStr[16];
-		MemoryString(systemMemoryUsageStr, 16, (uint64_t)SDL_GetSystemRAM() * 1024 * 1024);
-
-		SDL_Log("%d fps, %.3f ms | %s, %s, %s", fps, avgMs, memoryUsageStr, transientMemoryUsageStr, systemMemoryUsageStr);
-
-		memoryUsage = 0;
-		transientMemoryUsage = 0;
 	}
 
 	app->keys = SDL_GetKeyboardState(&app->numKeys);
@@ -131,16 +175,18 @@ extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* a
 	Uint32 swapchainWidth, swapchainHeight;
 	SDL_WaitAndAcquireGPUSwapchainTexture(cmdBuffer, app->window, &swapchain, &swapchainWidth, &swapchainHeight);
 
+	DebugTextRendererBegin(&app->debugTextRenderer);
+	RenderDebugStats();
+
 	GameUpdate();
 	GameRender(cmdBuffer);
+
+	DebugTextRendererEnd(&app->debugTextRenderer, width, height, cmdBuffer);
 
 	SDL_SubmitGPUCommandBuffer(cmdBuffer);
 	swapchain = nullptr;
 
 	app->frameCounter++;
-
-	memoryUsage = max(memoryUsage, memory->constantAllocator.offset);
-	transientMemoryUsage = max(transientMemoryUsage, memory->transientAllocator.offset);
 
 	app->lastFrame = app->now;
 

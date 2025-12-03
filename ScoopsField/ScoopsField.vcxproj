@@ -138,6 +138,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\file\Image.cpp" />
     <ClCompile Include="src\game\Game.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -145,22 +146,21 @@
     <ClCompile Include="src\graphics\GraphicsPipeline.cpp" />
     <ClCompile Include="src\graphics\IndexBuffer.cpp" />
     <ClCompile Include="src\graphics\IndirectBuffer.cpp" />
-    <ClCompile Include="src\graphics\InstanceBuffer.cpp" />
     <ClCompile Include="src\graphics\RenderTarget.cpp" />
     <ClCompile Include="src\graphics\Shader.cpp" />
     <ClCompile Include="src\graphics\StorageBuffer.cpp" />
     <ClCompile Include="src\graphics\Texture.cpp" />
     <ClCompile Include="src\graphics\TransferBuffer.cpp" />
     <ClCompile Include="src\graphics\VertexBuffer.cpp" />
-    <ClCompile Include="src\io\BinaryReader.cpp" />
-    <ClCompile Include="src\io\Image.cpp" />
+    <ClCompile Include="src\utils\BinaryReader.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\math\Math.cpp" />
     <ClCompile Include="src\math\Matrix.cpp" />
     <ClCompile Include="src\math\Quaternion.cpp" />
     <ClCompile Include="src\math\Vector.cpp" />
+    <ClCompile Include="src\model\Mesh.cpp" />
     <ClCompile Include="src\renderer\Renderer.cpp" />
-    <ClCompile Include="src\renderer\Renderer2D.cpp" />
+    <ClCompile Include="src\renderer\DebugTextRenderer.cpp" />
     <ClCompile Include="src\renderer\ScreenQuad.cpp" />
     <ClCompile Include="src\Resource.cpp" />
     <ClCompile Include="src\utils\Hash.cpp" />
@@ -168,10 +168,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Application.h" />
+    <ClInclude Include="src\file\Image.h" />
     <ClInclude Include="src\graphics\GraphicsPipeline.h" />
     <ClInclude Include="src\graphics\IndexBuffer.h" />
     <ClInclude Include="src\graphics\IndirectBuffer.h" />
-    <ClInclude Include="src\graphics\InstanceBuffer.h" />
     <ClInclude Include="src\graphics\RenderTarget.h" />
     <ClInclude Include="src\graphics\Shader.h" />
     <ClInclude Include="src\graphics\StorageBuffer.h" />
@@ -179,16 +179,17 @@
     <ClInclude Include="src\graphics\TextureFormat.h" />
     <ClInclude Include="src\graphics\TransferBuffer.h" />
     <ClInclude Include="src\graphics\VertexBuffer.h" />
-    <ClInclude Include="src\io\BinaryReader.h" />
-    <ClInclude Include="src\io\Image.h" />
-    <ClInclude Include="src\io\StringView.h" />
+    <ClInclude Include="src\math\Shape.h" />
+    <ClInclude Include="src\utils\BinaryReader.h" />
+    <ClInclude Include="src\utils\StringView.h" />
     <ClInclude Include="src\math\Gradient.h" />
     <ClInclude Include="src\math\Math.h" />
     <ClInclude Include="src\math\Matrix.h" />
     <ClInclude Include="src\math\Quaternion.h" />
     <ClInclude Include="src\math\Vector.h" />
+    <ClInclude Include="src\model\Mesh.h" />
     <ClInclude Include="src\renderer\Renderer.h" />
-    <ClInclude Include="src\renderer\Renderer2D.h" />
+    <ClInclude Include="src\renderer\DebugTextRenderer.h" />
     <ClInclude Include="src\renderer\ScreenQuad.h" />
     <ClInclude Include="src\Resource.h" />
     <ClInclude Include="src\utils\BumpAllocator.h" />
@@ -206,6 +207,21 @@
     <ProjectReference Include="..\..\..\Repositories\SDL3-main\VisualC\SDL\SDL.vcxproj">
       <Project>{81ce8daf-ebb2-4761-8e45-b71abcca8c68}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\shaders\clear_buffer.comp" />
+    <None Include="res\shaders\glyph.frag" />
+    <None Include="res\shaders\glyph.vert" />
+    <None Include="res\shaders\lighting\directional_light.frag" />
+    <None Include="res\shaders\lighting\directional_light.vert" />
+    <None Include="res\shaders\lighting\point_light.frag" />
+    <None Include="res\shaders\lighting\point_light.vert" />
+    <None Include="res\shaders\mesh.frag" />
+    <None Include="res\shaders\mesh.vert" />
+    <None Include="res\shaders\screenquad.frag" />
+    <None Include="res\shaders\screenquad.vert" />
+    <None Include="res\shaders\sprite.frag" />
+    <None Include="res\shaders\sprite.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
