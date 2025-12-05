@@ -174,7 +174,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	DepthAttachmentInfo hdrDepthInfo = {};
 	hdrDepthInfo.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
 	hdrDepthInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
-	hdrDepthInfo.storeOp = SDL_GPU_STOREOP_STORE;
+	hdrDepthInfo.storeOp = SDL_GPU_STOREOP_DONT_CARE;
 	hdrDepthInfo.clearDepth = 1;
 
 	renderer->hdrTarget = CreateRenderTarget(width, height, 1, &hdrTargetInfo, &hdrDepthInfo);
