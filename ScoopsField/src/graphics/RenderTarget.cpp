@@ -22,7 +22,7 @@ RenderTarget* CreateRenderTarget(int width, int height, int numColorAttachments,
 		SDL_GPUTextureCreateInfo textureInfo = {};
 		textureInfo.type = SDL_GPU_TEXTURETYPE_2D;          /**< The base dimensionality of the texture. */
 		textureInfo.format = colorAttachmentInfos[i].format;      /**< The pixel format of the texture. */
-		textureInfo.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | (colorAttachmentInfos[i].storeOp == SDL_GPU_STOREOP_DONT_CARE ? 0 : SDL_GPU_TEXTUREUSAGE_SAMPLER);   /**< How the texture is intended to be used by the client. */
+		textureInfo.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | colorAttachmentInfos[i].usage | (colorAttachmentInfos[i].storeOp == SDL_GPU_STOREOP_DONT_CARE ? 0 : SDL_GPU_TEXTUREUSAGE_SAMPLER);   /**< How the texture is intended to be used by the client. */
 		textureInfo.width = width;                     /**< The width of the texture. */
 		textureInfo.height = height;                    /**< The height of the texture. */
 		textureInfo.layer_count_or_depth = 1;      /**< The layer count or depth of the texture. This value is treated as a layer count on 2D array textures, and as a depth value on 3D textures. */
@@ -41,7 +41,7 @@ RenderTarget* CreateRenderTarget(int width, int height, int numColorAttachments,
 		SDL_GPUTextureCreateInfo textureInfo = {};
 		textureInfo.type = SDL_GPU_TEXTURETYPE_2D;
 		textureInfo.format = depthAttachmentInfo->format;
-		textureInfo.usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET | (depthAttachmentInfo->storeOp == SDL_GPU_STOREOP_DONT_CARE ? 0 : SDL_GPU_TEXTUREUSAGE_SAMPLER);
+		textureInfo.usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET | depthAttachmentInfo->usage | (depthAttachmentInfo->storeOp == SDL_GPU_STOREOP_DONT_CARE ? 0 : SDL_GPU_TEXTUREUSAGE_SAMPLER);
 		textureInfo.width = width;
 		textureInfo.height = height;
 		textureInfo.layer_count_or_depth = 1;

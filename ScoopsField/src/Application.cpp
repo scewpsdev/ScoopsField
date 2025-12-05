@@ -15,6 +15,7 @@ SDL_GPUDevice* device;
 
 int width, height;
 float deltaTime;
+float gameTime;
 int fps;
 float avgMs;
 
@@ -155,6 +156,7 @@ extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* a
 
 	app->now = SDL_GetTicksNS();
 	deltaTime = (app->now - app->lastFrame) / 1e9f;
+	gameTime += deltaTime;
 
 	if (app->now - app->lastSecond >= 1e9)
 	{

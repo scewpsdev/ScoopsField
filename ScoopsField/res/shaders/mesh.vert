@@ -1,5 +1,7 @@
 #version 460
 
+#include "common.shader"
+
 layout (location = 0) in vec3 a_position;
 layout (location = 1) in vec3 a_normal;
 
@@ -17,5 +19,5 @@ void main()
 	gl_Position = u_projectionViewModel * vec4(a_position, 1);
 
 	v_normal = a_normal;
-	v_color = vec3(0.5);
+	v_color = SRGBToLinear(vec3(0.5));
 }

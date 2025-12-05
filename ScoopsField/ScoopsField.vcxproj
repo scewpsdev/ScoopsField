@@ -210,6 +210,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\clear_buffer.comp" />
+    <None Include="res\shaders\common.shader" />
+    <None Include="res\shaders\copy_depth.frag" />
+    <None Include="res\shaders\copy_depth.vert" />
+    <None Include="res\shaders\tonemapping.frag" />
+    <None Include="res\shaders\tonemapping.vert" />
     <None Include="res\shaders\glyph.frag" />
     <None Include="res\shaders\glyph.vert" />
     <None Include="res\shaders\lighting\directional_light.frag" />
@@ -218,8 +223,6 @@
     <None Include="res\shaders\lighting\point_light.vert" />
     <None Include="res\shaders\mesh.frag" />
     <None Include="res\shaders\mesh.vert" />
-    <None Include="res\shaders\screenquad.frag" />
-    <None Include="res\shaders\screenquad.vert" />
     <None Include="res\shaders\sprite.frag" />
     <None Include="res\shaders\sprite.vert" />
   </ItemGroup>

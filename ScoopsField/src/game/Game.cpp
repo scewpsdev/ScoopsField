@@ -14,7 +14,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 
 	game->mesh = LoadMesh("res/models/monkey.glb.bin", cmdBuffer);
 
-	game->cameraPosition = vec3(0, 16, 32);
+	game->cameraPosition = vec3(0, 1, 3);
 	//game->cameraPitch = -0.4f * PI;
 	//game->cameraYaw = 0.25f * PI;
 	game->cameraNear = 0.1f;
@@ -56,7 +56,7 @@ void GameUpdate()
 
 	if (delta.lengthSquared() > 0)
 	{
-		float speed = app->keys[SDL_SCANCODE_LSHIFT] ? 100.0f : app->keys[SDL_SCANCODE_LALT] ? 10.0f : 40.0f;
+		float speed = app->keys[SDL_SCANCODE_LSHIFT] ? 20.0f : app->keys[SDL_SCANCODE_LALT] ? 3.0f : 10.0f;
 		vec3 velocity = delta.normalized() * speed;
 		vec3 displacement = velocity * deltaTime;
 		game->cameraPosition += displacement;
@@ -77,7 +77,8 @@ void GameUpdate()
 void GameRender(SDL_GPUCommandBuffer* cmdBuffer)
 {
 	RenderMesh(&game->renderer, game->mesh, mat4::Identity);
-	RenderLight(&game->renderer, vec3(0, 2, 0), vec3(1, 0.5f, 1));
+	RenderLight(&game->renderer, Quaternion::FromAxisAngle(vec3::Up, gameTime * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1));
+	RenderLight(&game->renderer, Quaternion::FromAxisAngle(vec3::Right, gameTime * PI * 0.7f) * vec3(2, 2, 0), vec3(0.5f, 1, 0.5f));
 
 	mat4 projection = mat4::Perspective(90 * Deg2Rad, width / (float)height, game->cameraNear, game->cameraFar);
 	Quaternion invCameraRotation = Quaternion::FromAxisAngle(vec3::Right, -game->cameraPitch) * Quaternion::FromAxisAngle(vec3::Up, -game->cameraYaw);

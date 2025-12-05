@@ -48,7 +48,7 @@ void ReloadGraphicsPipeline(GraphicsPipeline* pipeline)
 	createInfo.target_info.has_depth_stencil_target = pipelineInfo->hasDepthTarget;
 	createInfo.target_info.depth_stencil_format = pipelineInfo->depthFormat;
 
-	createInfo.depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS;
+	createInfo.depth_stencil_state.compare_op = pipelineInfo->compareOp;
 	createInfo.depth_stencil_state.enable_depth_test = pipelineInfo->hasDepthTarget && pipelineInfo->depthTest;
 	createInfo.depth_stencil_state.enable_depth_write = pipelineInfo->hasDepthTarget && pipelineInfo->depthWrite;
 
@@ -61,41 +61,53 @@ void ReloadGraphicsPipeline(GraphicsPipeline* pipeline)
 	pipeline->pipeline = SDL_CreateGPUGraphicsPipeline(device, &createInfo);
 }
 
-GraphicsPipelineInfo CreateGraphicsPipelineInfo(Shader* shader, int numVertexBuffers, const VertexBufferLayout* vertexLayouts)
+GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, Shader* shader, RenderTarget* renderTarget, int numVertexBuffers, const VertexBufferLayout* const* vertexLayouts)
 {
 	GraphicsPipelineInfo pipelineInfo = {};
 
 	pipelineInfo.shader = shader;
-	pipelineInfo.primitiveType = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
-	pipelineInfo.cullMode = SDL_GPU_CULLMODE_BACK;
+	pipelineInfo.primitiveType = primitiveType;
+	pipelineInfo.cullMode = cullMode;
+
 	pipelineInfo.fillMode = SDL_GPU_FILLMODE_FILL;
 	pipelineInfo.frontFace = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
 
-	pipelineInfo.numColorTargets = 1;
-	pipelineInfo.colorTargets[0].format = SDL_GetGPUSwapchainTextureFormat(device, window);
-	pipelineInfo.colorTargets[0].blend_state.enable_blend = true;
-	pipelineInfo.colorTargets[0].blend_state.color_blend_op = SDL_GPU_BLENDOP_ADD;
-	pipelineInfo.colorTargets[0].blend_state.alpha_blend_op = SDL_GPU_BLENDOP_ADD;
-	pipelineInfo.colorTargets[0].blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
-	pipelineInfo.colorTargets[0].blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-	pipelineInfo.colorTargets[0].blend_state.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
-	pipelineInfo.colorTargets[0].blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+	if (renderTarget)
+	{
+		pipelineInfo.numColorTargets = renderTarget->numColorAttachments;
+		for (int i = 0; i < renderTarget->numColorAttachments; i++)
+		{
+			pipelineInfo.colorTargets[i].format = renderTarget->colorAttachmentInfos[i].format;
+			CreateBlendStateOpaque(&pipelineInfo.colorTargets[i].blend_state);
+		}
 
-	pipelineInfo.hasDepthTarget = true;
-	pipelineInfo.depthFormat = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
-	pipelineInfo.depthTest = true;
-	pipelineInfo.depthWrite = true;
+		pipelineInfo.hasDepthTarget = renderTarget->hasDepthAttachment;
+		pipelineInfo.depthFormat = renderTarget->depthAttachmentInfo.format;
+		pipelineInfo.depthTest = true;
+		pipelineInfo.depthWrite = true;
+	}
+	else
+	{
+		pipelineInfo.numColorTargets = 1;
+		pipelineInfo.colorTargets[0].format = SDL_GetGPUSwapchainTextureFormat(device, window);
+		CreateBlendStateOpaque(&pipelineInfo.colorTargets[0].blend_state);
+
+		pipelineInfo.hasDepthTarget = false;
+		pipelineInfo.depthFormat = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+		pipelineInfo.depthTest = true;
+		pipelineInfo.depthWrite = true;
+	}
 
 	for (int i = 0; i < numVertexBuffers; i++)
-		pipelineInfo.numAttributes += vertexLayouts[i].numAttributes;
+		pipelineInfo.numAttributes += vertexLayouts[i]->numAttributes;
 
 	int attributeIdx = 0;
 	for (int i = 0; i < numVertexBuffers; i++)
 	{
 		uint32_t offset = 0;
-		for (int j = 0; j < vertexLayouts[i].numAttributes; j++)
+		for (int j = 0; j < vertexLayouts[i]->numAttributes; j++)
 		{
-			const VertexAttribute* attribute = &vertexLayouts[i].attributes[j];
+			const VertexAttribute* attribute = &vertexLayouts[i]->attributes[j];
 			pipelineInfo.attributes[attributeIdx].buffer_slot = i;
 			pipelineInfo.attributes[attributeIdx].location = attribute->location;
 			pipelineInfo.attributes[attributeIdx].format = attribute->format;
@@ -110,9 +122,9 @@ GraphicsPipelineInfo CreateGraphicsPipelineInfo(Shader* shader, int numVertexBuf
 	for (int i = 0; i < numVertexBuffers; i++)
 	{
 		pipelineInfo.bufferDescriptions[i].slot = i;
-		pipelineInfo.bufferDescriptions[i].input_rate = vertexLayouts[i].perInstance ? SDL_GPU_VERTEXINPUTRATE_INSTANCE : SDL_GPU_VERTEXINPUTRATE_VERTEX;
+		pipelineInfo.bufferDescriptions[i].input_rate = vertexLayouts[i]->perInstance ? SDL_GPU_VERTEXINPUTRATE_INSTANCE : SDL_GPU_VERTEXINPUTRATE_VERTEX;
 		pipelineInfo.bufferDescriptions[i].instance_step_rate = 0;
-		pipelineInfo.bufferDescriptions[i].pitch = GetVertexPitch(&vertexLayouts[i]);
+		pipelineInfo.bufferDescriptions[i].pitch = GetVertexPitch(vertexLayouts[i]);
 	}
 
 	return pipelineInfo;

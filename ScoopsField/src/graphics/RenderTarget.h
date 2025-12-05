@@ -10,6 +10,7 @@ struct ColorAttachmentInfo
 	SDL_GPUTextureFormat format;
 	SDL_GPULoadOp loadOp;
 	SDL_GPUStoreOp storeOp;
+	SDL_GPUTextureUsageFlags usage;
 	vec4 clearColor;
 };
 
@@ -18,6 +19,7 @@ struct DepthAttachmentInfo
 	SDL_GPUTextureFormat format;
 	SDL_GPULoadOp loadOp;
 	SDL_GPUStoreOp storeOp;
+	SDL_GPUTextureUsageFlags usage;
 	float clearDepth;
 };
 

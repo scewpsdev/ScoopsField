@@ -3,6 +3,13 @@
 #include "Application.h"
 
 
+struct LightInstanceData
+{
+	vec4 positionRadius;
+	vec4 color;
+};
+
+
 static const vec3 cubeVertices[8] = {
 	vec3(-1), vec3(1, -1, -1), vec3(-1, -1, 1), vec3(1, -1, 1),
 	vec3(-1, 1, -1), vec3(1, 1, -1), vec3(-1, 1, 1), vec3(1, 1, 1),
@@ -60,6 +67,93 @@ static RenderTarget* CreateGBuffer(int width, int height)
 	return CreateRenderTarget(width, height, GBUFFER_COLOR_ATTACHMENTS, colorAttachments, &depthAttachment);
 }
 
+static GraphicsPipeline* CreateGeometryPipeline(Renderer* renderer)
+{
+	GraphicsPipelineInfo pipelineInfo = {};
+
+	pipelineInfo.shader = renderer->defaultShader;
+	pipelineInfo.primitiveType = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+	pipelineInfo.cullMode = SDL_GPU_CULLMODE_BACK;
+
+	pipelineInfo.numColorTargets = renderer->gbuffer->numColorAttachments;
+	for (int i = 0; i < pipelineInfo.numColorTargets; i++)
+	{
+		pipelineInfo.colorTargets[i].format = renderer->gbuffer->colorAttachmentInfos[i].format;
+		CreateBlendStateOpaque(&pipelineInfo.colorTargets[i].blend_state);
+	}
+
+	pipelineInfo.hasDepthTarget = true;
+	pipelineInfo.depthFormat = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+
+	pipelineInfo.numAttributes = 2;
+	pipelineInfo.attributes[0] = {};
+	pipelineInfo.attributes[0].buffer_slot = 0;
+	pipelineInfo.attributes[0].location = 0;
+	pipelineInfo.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	pipelineInfo.attributes[0].offset = 0;
+	pipelineInfo.attributes[1] = {};
+	pipelineInfo.attributes[1].buffer_slot = 1;
+	pipelineInfo.attributes[1].location = 1;
+	pipelineInfo.attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	pipelineInfo.attributes[1].offset = 0;
+
+	pipelineInfo.numVertexBuffers = 2;
+	pipelineInfo.bufferDescriptions[0].slot = 0;
+	pipelineInfo.bufferDescriptions[0].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
+	pipelineInfo.bufferDescriptions[0].instance_step_rate = 0;
+	pipelineInfo.bufferDescriptions[0].pitch = GetVertexFormatSize(pipelineInfo.attributes[0].format);
+	pipelineInfo.bufferDescriptions[1].slot = 1;
+	pipelineInfo.bufferDescriptions[1].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
+	pipelineInfo.bufferDescriptions[1].instance_step_rate = 0;
+	pipelineInfo.bufferDescriptions[1].pitch = GetVertexFormatSize(pipelineInfo.attributes[1].format);
+
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
+static GraphicsPipeline* CreateCopyDepthPipeline(Renderer* renderer)
+{
+	VertexBufferLayout* bufferLayout = &renderer->screenQuad.vertexBuffer->layout;
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->copyDepthShader, renderer->hdrTarget, 1, &bufferLayout);
+
+	//pipelineInfo.numColorTargets = 0;
+	//pipelineInfo.depthTest = false;
+	//pipelineInfo.depthWrite = true;
+
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
+static GraphicsPipeline* CreateDirectionalLightPipeline(Renderer* renderer)
+{
+	VertexBufferLayout* bufferLayout = &renderer->screenQuad.vertexBuffer->layout;
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->directionalLightShader, renderer->hdrTarget, 1, &bufferLayout);
+
+	CreateBlendStateAddPremultiplied(&pipelineInfo.colorTargets[0].blend_state);
+
+	pipelineInfo.depthWrite = false;
+
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
+static GraphicsPipeline* CreatePointLightPipeline(Renderer* renderer)
+{
+	VertexBufferLayout* bufferLayouts[2] = { &renderer->cubeVertexBuffer->layout, &renderer->pointLightInstanceBuffer->layout };
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_FRONT, renderer->pointLightShader, renderer->hdrTarget, 2, bufferLayouts);
+
+	CreateBlendStateAddPremultiplied(&pipelineInfo.colorTargets[0].blend_state);
+
+	pipelineInfo.depthWrite = false;
+	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER_OR_EQUAL;
+
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
+static GraphicsPipeline* CreateTonemappingPipeline(Renderer* renderer)
+{
+	VertexBufferLayout* bufferLayout = &renderer->screenQuad.vertexBuffer->layout;
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->tonemappingShader, nullptr, 1, &bufferLayout);
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
 void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	renderer->width = width;
@@ -71,125 +165,21 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->depthTexture = CreateDepthTarget(width, height);
 	renderer->gbuffer = CreateGBuffer(width, height);
 
-	renderer->defaultShader = LoadGraphicsShader("res/shaders/mesh.vert.bin", "res/shaders/mesh.frag.bin");
+	ColorAttachmentInfo hdrTargetInfo = {};
+	hdrTargetInfo.format = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
+	hdrTargetInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
+	hdrTargetInfo.storeOp = SDL_GPU_STOREOP_STORE;
+	hdrTargetInfo.clearColor = { 0, 0, 0, 0 };
 
-	{
-		GraphicsPipelineInfo pipelineInfo = {};
+	DepthAttachmentInfo hdrDepthInfo = {};
+	hdrDepthInfo.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+	hdrDepthInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
+	hdrDepthInfo.storeOp = SDL_GPU_STOREOP_STORE;
+	hdrDepthInfo.clearDepth = 1;
 
-		pipelineInfo.shader = renderer->defaultShader;
-		pipelineInfo.primitiveType = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
-		pipelineInfo.cullMode = SDL_GPU_CULLMODE_BACK;
+	renderer->hdrTarget = CreateRenderTarget(width, height, 1, &hdrTargetInfo, &hdrDepthInfo);
 
-		pipelineInfo.numColorTargets = renderer->gbuffer->numColorAttachments;
-		for (int i = 0; i < pipelineInfo.numColorTargets; i++)
-		{
-			pipelineInfo.colorTargets[i].format = renderer->gbuffer->colorAttachmentInfos[i].format;
-			pipelineInfo.colorTargets[i].blend_state.enable_blend = false;
-		}
-
-		pipelineInfo.hasDepthTarget = true;
-		pipelineInfo.depthFormat = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
-
-		pipelineInfo.numAttributes = 2;
-		pipelineInfo.attributes[0] = {};
-		pipelineInfo.attributes[0].buffer_slot = 0;
-		pipelineInfo.attributes[0].location = 0;
-		pipelineInfo.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-		pipelineInfo.attributes[0].offset = 0;
-		pipelineInfo.attributes[1] = {};
-		pipelineInfo.attributes[1].buffer_slot = 1;
-		pipelineInfo.attributes[1].location = 1;
-		pipelineInfo.attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-		pipelineInfo.attributes[1].offset = 0;
-
-		pipelineInfo.numVertexBuffers = 2;
-		pipelineInfo.bufferDescriptions[0].slot = 0;
-		pipelineInfo.bufferDescriptions[0].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
-		pipelineInfo.bufferDescriptions[0].instance_step_rate = 0;
-		pipelineInfo.bufferDescriptions[0].pitch = GetVertexFormatSize(pipelineInfo.attributes[0].format);
-		pipelineInfo.bufferDescriptions[1].slot = 1;
-		pipelineInfo.bufferDescriptions[1].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
-		pipelineInfo.bufferDescriptions[1].instance_step_rate = 0;
-		pipelineInfo.bufferDescriptions[1].pitch = GetVertexFormatSize(pipelineInfo.attributes[1].format);
-
-		renderer->geometryPipeline = CreateGraphicsPipeline(&pipelineInfo);
-	}
-
-	renderer->directionalLightShader = LoadGraphicsShader("res/shaders/lighting/directional_light.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
-
-	{
-		GraphicsPipelineInfo pipelineInfo = {};
-
-		pipelineInfo.shader = renderer->directionalLightShader;
-		pipelineInfo.primitiveType = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
-		pipelineInfo.cullMode = SDL_GPU_CULLMODE_BACK;
-
-		pipelineInfo.numColorTargets = 1;
-		pipelineInfo.colorTargets[0].format = SDL_GetGPUSwapchainTextureFormat(device, window);
-		pipelineInfo.colorTargets[0].blend_state.enable_blend = false;
-
-		pipelineInfo.numAttributes = 1;
-		pipelineInfo.attributes[0] = {};
-		pipelineInfo.attributes[0].buffer_slot = 0;
-		pipelineInfo.attributes[0].location = 0;
-		pipelineInfo.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
-		pipelineInfo.attributes[0].offset = 0;
-
-		pipelineInfo.numVertexBuffers = 1;
-		pipelineInfo.bufferDescriptions[0].slot = 0;
-		pipelineInfo.bufferDescriptions[0].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
-		pipelineInfo.bufferDescriptions[0].instance_step_rate = 0;
-		pipelineInfo.bufferDescriptions[0].pitch = GetVertexFormatSize(pipelineInfo.attributes[0].format);
-
-		renderer->directionalLightPipeline = CreateGraphicsPipeline(&pipelineInfo);
-	}
-
-	renderer->pointLightShader = LoadGraphicsShader("res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
-
-	{
-		GraphicsPipelineInfo pipelineInfo = {};
-
-		pipelineInfo.shader = renderer->pointLightShader;
-		pipelineInfo.primitiveType = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
-		pipelineInfo.cullMode = SDL_GPU_CULLMODE_BACK;
-
-		pipelineInfo.numColorTargets = 1;
-		pipelineInfo.colorTargets[0].format = SDL_GetGPUSwapchainTextureFormat(device, window);
-		pipelineInfo.colorTargets[0].blend_state.enable_blend = false;
-
-		pipelineInfo.depthWrite = false;
-
-		pipelineInfo.numAttributes = 3;
-		pipelineInfo.attributes[0] = {};
-		pipelineInfo.attributes[0].buffer_slot = 0;
-		pipelineInfo.attributes[0].offset = 0;
-		pipelineInfo.attributes[0].location = 0;
-		pipelineInfo.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-		pipelineInfo.attributes[1] = {};
-		pipelineInfo.attributes[1].buffer_slot = 1;
-		pipelineInfo.attributes[1].offset = 0;
-		pipelineInfo.attributes[1].location = 1;
-		pipelineInfo.attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-		pipelineInfo.attributes[2] = {};
-		pipelineInfo.attributes[2].buffer_slot = 1;
-		pipelineInfo.attributes[2].offset = sizeof(vec3);
-		pipelineInfo.attributes[2].location = 2;
-		pipelineInfo.attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-
-		pipelineInfo.numVertexBuffers = 2;
-		pipelineInfo.bufferDescriptions[0].slot = 0;
-		pipelineInfo.bufferDescriptions[0].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
-		pipelineInfo.bufferDescriptions[0].instance_step_rate = 0;
-		pipelineInfo.bufferDescriptions[0].pitch = GetVertexFormatSize(pipelineInfo.attributes[0].format);
-		pipelineInfo.bufferDescriptions[1].slot = 1;
-		pipelineInfo.bufferDescriptions[1].input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE;
-		pipelineInfo.bufferDescriptions[1].instance_step_rate = 0;
-		pipelineInfo.bufferDescriptions[1].pitch = sizeof(LightDrawData);
-
-		renderer->pointLightPipeline = CreateGraphicsPipeline(&pipelineInfo);
-	}
-
-	SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
+	InitScreenQuad(&renderer->screenQuad, cmdBuffer);
 
 	VertexBufferLayout cubeLayout = {};
 	cubeLayout.numAttributes = 1;
@@ -198,27 +188,35 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	cubeLayout.perInstance = false;
 
 	renderer->cubeVertexBuffer = CreateVertexBuffer(8, &cubeLayout, 0);
-	UpdateVertexBuffer(renderer->cubeVertexBuffer, 0, (const uint8_t*)cubeVertices, sizeof(cubeVertices), copyPass);
+	UpdateVertexBuffer(renderer->cubeVertexBuffer, 0, (const uint8_t*)cubeVertices, sizeof(cubeVertices), cmdBuffer);
 
 	renderer->cubeIndexBuffer = CreateIndexBuffer(36, SDL_GPU_INDEXELEMENTSIZE_16BIT);
-	UpdateIndexBuffer(renderer->cubeIndexBuffer, 0, (const uint8_t*)cubeIndices, sizeof(cubeIndices), copyPass);
+	UpdateIndexBuffer(renderer->cubeIndexBuffer, 0, (const uint8_t*)cubeIndices, sizeof(cubeIndices), cmdBuffer);
 
 	VertexBufferLayout pointLightInstanceLayout = {};
 	pointLightInstanceLayout.numAttributes = 2;
 	pointLightInstanceLayout.attributes[0].location = 1;
-	pointLightInstanceLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	pointLightInstanceLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
 	pointLightInstanceLayout.attributes[1].location = 2;
-	pointLightInstanceLayout.attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	pointLightInstanceLayout.attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
 	pointLightInstanceLayout.perInstance = true;
 
 	renderer->pointLightInstanceBuffer = CreateVertexBuffer(MAX_POINT_LIGHT_DRAWS, &pointLightInstanceLayout, 0);
 
-	renderer->pointLightInstanceTransferBuffer = CreateTransferBuffer(MAX_POINT_LIGHT_DRAWS * sizeof(LightDrawData), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
+	renderer->pointLightInstanceTransferBuffer = CreateTransferBuffer(MAX_POINT_LIGHT_DRAWS * sizeof(LightInstanceData), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
 	MapTransferBuffer(renderer->pointLightInstanceTransferBuffer);
 
-	InitScreenQuad(&renderer->screenQuad, copyPass);
+	renderer->defaultShader = LoadGraphicsShader("res/shaders/mesh.vert.bin", "res/shaders/mesh.frag.bin");
+	renderer->copyDepthShader = LoadGraphicsShader("res/shaders/copy_depth.vert.bin", "res/shaders/copy_depth.frag.bin");
+	renderer->directionalLightShader = LoadGraphicsShader("res/shaders/lighting/directional_light.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
+	renderer->pointLightShader = LoadGraphicsShader("res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
+	renderer->tonemappingShader = LoadGraphicsShader("res/shaders/tonemapping.vert.bin", "res/shaders/tonemapping.frag.bin");
 
-	SDL_EndGPUCopyPass(copyPass);
+	renderer->geometryPipeline = CreateGeometryPipeline(renderer);
+	renderer->copyDepthPipeline = CreateCopyDepthPipeline(renderer);
+	renderer->directionalLightPipeline = CreateDirectionalLightPipeline(renderer);
+	renderer->pointLightPipeline = CreatePointLightPipeline(renderer);
+	renderer->tonemappingPipeline = CreateTonemappingPipeline(renderer);
 
 	SDL_GPUSamplerCreateInfo samplerInfo = {};
 	renderer->defaultSampler = SDL_CreateGPUSampler(device, &samplerInfo);
@@ -304,6 +302,19 @@ static void SubmitMesh(Mesh* mesh, const mat4& transform, const mat4& pv, SDL_GP
 	SDL_DrawGPUIndexedPrimitives(renderPass, mesh->indexCount, 1, 0, 0, 0);
 }
 
+static float CalculateLightRadius(vec3 color)
+{
+	return 3;
+}
+
+// TODO
+// render meshes front to back
+// frustum culling
+// stencil for light volumes
+// mesh occlusion culling
+// light occlusion culling
+// mesh instancing
+
 void RendererShow(Renderer* renderer, mat4 projection, mat4 view, float near, float far, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	mat4 pv = projection * view;
@@ -327,26 +338,40 @@ void RendererShow(Renderer* renderer, mat4 projection, mat4 view, float near, fl
 
 	// lighting pass
 	{
-		SDL_GPUColorTargetInfo colorTarget = {};
-		colorTarget.clear_color = { 0.4f, 0.4f, 1.0f, 1.0f };
-		colorTarget.load_op = SDL_GPU_LOADOP_CLEAR;
-		colorTarget.store_op = SDL_GPU_STOREOP_STORE;
-		colorTarget.texture = swapchain;
+		// update point light data
+		SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
+		LightInstanceData* instanceData = (LightInstanceData*)renderer->pointLightInstanceTransferBuffer->mapped;
+		for (int i = 0; i < renderer->pointLights.size; i++)
+		{
+			vec3 position = renderer->pointLights[i].position;
+			vec3 color = renderer->pointLights[i].color;
+			instanceData[i].positionRadius = vec4(position, CalculateLightRadius(color));
+			instanceData[i].color = vec4(color, 0);
+		}
+		UpdateVertexBuffer(renderer->pointLightInstanceBuffer, 0, renderer->pointLights.size * sizeof(LightInstanceData), renderer->pointLightInstanceTransferBuffer->buffer, copyPass);
+		SDL_EndGPUCopyPass(copyPass); copyPass = nullptr;
 
-		SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(cmdBuffer, &colorTarget, 1, nullptr);
+
+		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->hdrTarget, cmdBuffer);
+
+		// copy depth
+		{
+			SDL_BindGPUGraphicsPipeline(renderPass, renderer->copyDepthPipeline->pipeline);
+
+			RenderScreenQuad(&renderer->screenQuad, renderPass, 1, &renderer->gbuffer->depthAttachment, renderer->defaultSampler, cmdBuffer);
+		}
 
 		// directional lights
+		if (false)
 		{
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->directionalLightPipeline->pipeline);
 
 			struct UniformData
 			{
-				vec4 cameraParams;
 				vec4 lightDirection;
 				vec4 lightColor;
 			};
 			UniformData uniforms = {};
-			uniforms.cameraParams = vec4(near, far, 0, 0);
 			uniforms.lightDirection = vec4(-vec3(1, 2, 0.5).normalized(), 0);
 			uniforms.lightColor = vec4(1, 1, 1, 0);
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
@@ -361,11 +386,6 @@ void RendererShow(Renderer* renderer, mat4 projection, mat4 view, float near, fl
 
 		// point lights
 		{
-			SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
-			SDL_memcpy(renderer->pointLightInstanceTransferBuffer->mapped, renderer->pointLights.buffer, renderer->pointLights.size * sizeof(LightDrawData));
-			UpdateVertexBuffer(renderer->pointLightInstanceBuffer, 0, renderer->pointLights.size * sizeof(LightDrawData), renderer->pointLightInstanceTransferBuffer->buffer, copyPass);
-			SDL_EndGPUCopyPass(copyPass); copyPass = nullptr;
-
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->pointLightPipeline->pipeline);
 
 			SDL_GPUBufferBinding vertexBindings[2];
@@ -384,6 +404,18 @@ void RendererShow(Renderer* renderer, mat4 projection, mat4 view, float near, fl
 
 			SDL_BindGPUIndexBuffer(renderPass, &indexBinding, renderer->cubeIndexBuffer->elementSize);
 
+			SDL_PushGPUVertexUniformData(cmdBuffer, 0, &pv, sizeof(pv));
+
+			struct UniformData
+			{
+				mat4 projectionViewInv;
+				vec4 viewTexel;
+			};
+			UniformData uniforms = {};
+			uniforms.projectionViewInv = pv.inverted();
+			uniforms.viewTexel = vec4(1.0f / renderer->hdrTarget->width, 1.0f / renderer->hdrTarget->height, 0, 0);
+			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+
 			SDL_GPUTextureSamplerBinding textureBindings[MAX_COLOR_ATTACHMENTS + 1];
 			for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
 			{
@@ -395,9 +427,28 @@ void RendererShow(Renderer* renderer, mat4 projection, mat4 view, float near, fl
 
 			SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, renderer->gbuffer->numColorAttachments + 1);
 
-			SDL_DrawGPUPrimitives(renderPass, renderer->cubeIndexBuffer->numIndices, renderer->pointLightInstanceBuffer->numVertices, 0, 0);
+			SDL_DrawGPUIndexedPrimitives(renderPass, renderer->cubeIndexBuffer->numIndices, renderer->pointLights.size, 0, 0, 0);
 		}
 
 		SDL_EndGPURenderPass(renderPass);
 	}
+
+	// tonemapping
+	{
+		SDL_GPUColorTargetInfo colorTarget = {};
+		colorTarget.load_op = SDL_GPU_LOADOP_DONT_CARE;
+		colorTarget.store_op = SDL_GPU_STOREOP_STORE;
+		colorTarget.texture = swapchain;
+
+		SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(cmdBuffer, &colorTarget, 1, nullptr);
+
+		SDL_BindGPUGraphicsPipeline(renderPass, renderer->tonemappingPipeline->pipeline);
+
+		RenderScreenQuad(&renderer->screenQuad, renderPass, 1, &renderer->hdrTarget->colorAttachments[0], renderer->defaultSampler, cmdBuffer);
+
+		SDL_EndGPURenderPass(renderPass);
+	}
+
+	renderer->meshes.clear();
+	renderer->pointLights.clear();
 }

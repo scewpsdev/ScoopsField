@@ -43,6 +43,11 @@ struct Renderer
 #define MAX_MESH_DRAWS 1024
 	List<MeshDrawData, MAX_MESH_DRAWS> meshes;
 
+	RenderTarget* hdrTarget;
+
+	Shader* copyDepthShader;
+	GraphicsPipeline* copyDepthPipeline;
+
 	Shader* directionalLightShader;
 	GraphicsPipeline* directionalLightPipeline;
 
@@ -55,6 +60,9 @@ struct Renderer
 
 #define MAX_POINT_LIGHT_DRAWS 256
 	List<LightDrawData, MAX_POINT_LIGHT_DRAWS> pointLights;
+
+	Shader* tonemappingShader;
+	GraphicsPipeline* tonemappingPipeline;
 
 	ScreenQuad screenQuad;
 	SDL_GPUSampler* defaultSampler;

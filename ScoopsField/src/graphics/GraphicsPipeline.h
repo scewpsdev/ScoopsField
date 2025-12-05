@@ -4,6 +4,7 @@
 
 #include "VertexBuffer.h"
 #include "Shader.h"
+#include "RenderTarget.h"
 
 
 struct GraphicsPipelineInfo
@@ -20,8 +21,9 @@ struct GraphicsPipelineInfo
 
 	bool hasDepthTarget;
 	SDL_GPUTextureFormat depthFormat;
-	bool depthTest;
-	bool depthWrite;
+	bool depthTest = true;
+	bool depthWrite = true;
+	SDL_GPUCompareOp compareOp = SDL_GPU_COMPAREOP_LESS;
 
 #define MAX_PIPELINE_VERTEX_ATTRIBUTES 8
 	int numAttributes;
@@ -43,4 +45,37 @@ GraphicsPipeline* CreateGraphicsPipeline(const GraphicsPipelineInfo* pipelineInf
 void DestroyGraphicsPipeline(GraphicsPipeline* pipeline);
 
 void ReloadGraphicsPipeline(GraphicsPipeline* pipeline);
-GraphicsPipelineInfo CreateGraphicsPipelineInfo(Shader* shader, int numVertexBuffers, const VertexBufferLayout* vertexLayouts);
+
+GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, Shader* shader, RenderTarget* renderTarget, int numVertexBuffers, const VertexBufferLayout* const* vertexLayouts);
+
+
+inline void CreateBlendStateOpaque(SDL_GPUColorTargetBlendState* blendState)
+{
+	blendState->enable_blend = false;
+}
+
+inline void CreateBlendStateAlpha(SDL_GPUColorTargetBlendState* blendState)
+{
+	blendState->enable_blend = true;
+
+	blendState->src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+	blendState->dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+	blendState->color_blend_op = SDL_GPU_BLENDOP_ADD;
+
+	blendState->src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
+	blendState->dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+	blendState->alpha_blend_op = SDL_GPU_BLENDOP_ADD;
+}
+
+inline void CreateBlendStateAddPremultiplied(SDL_GPUColorTargetBlendState* blendState)
+{
+	blendState->enable_blend = true;
+
+	blendState->src_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
+	blendState->dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
+	blendState->color_blend_op = SDL_GPU_BLENDOP_ADD;
+
+	blendState->src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+	blendState->dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+	blendState->alpha_blend_op = SDL_GPU_BLENDOP_ADD;
+}
