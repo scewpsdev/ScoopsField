@@ -110,13 +110,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)lib\include\;$(ProjectDir)src\;D:\Repositories\SDL3-main\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)src\spirv_cross\;D:\Repositories\SDL3-main\include\</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)lib\$(Configuration);$(ProjectDir)lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL3_shadercross-static.lib;dxcompiler.lib;spirv-cross-cd.lib;spirv-cross-cored.lib;spirv-cross-cppd.lib;spirv-cross-glsld.lib;spirv-cross-hlsld.lib;spirv-cross-msld.lib;spirv-cross-reflectd.lib;spirv-cross-utild.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -127,13 +129,19 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)lib\include\;$(ProjectDir)src\;D:\Repositories\SDL3-main\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)src\spirv_cross\;D:\Repositories\SDL3-main\include\</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)lib\$(Configuration);$(ProjectDir)lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL3_shadercross-static.lib;dxcompiler.lib;spirv-cross-c.lib;spirv-cross-core.lib;spirv-cross-cpp.lib;spirv-cross-glsl.lib;spirv-cross-hlsl.lib;spirv-cross-msl.lib;spirv-cross-reflect.lib;spirv-cross-util.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -152,6 +160,18 @@
     <ClCompile Include="src\graphics\Texture.cpp" />
     <ClCompile Include="src\graphics\TransferBuffer.cpp" />
     <ClCompile Include="src\graphics\VertexBuffer.cpp" />
+    <ClCompile Include="src\SDL3_shadercross\SDL_shadercross.c" />
+    <ClCompile Include="src\spirv_cross\spirv_cfg.cpp" />
+    <ClCompile Include="src\spirv_cross\spirv_cpp.cpp" />
+    <ClCompile Include="src\spirv_cross\spirv_cross.cpp" />
+    <ClCompile Include="src\spirv_cross\spirv_cross_c.cpp" />
+    <ClCompile Include="src\spirv_cross\spirv_cross_parsed_ir.cpp" />
+    <ClCompile Include="src\spirv_cross\spirv_cross_util.cpp" />
+    <ClCompile Include="src\spirv_cross\spirv_glsl.cpp" />
+    <ClCompile Include="src\spirv_cross\spirv_hlsl.cpp" />
+    <ClCompile Include="src\spirv_cross\spirv_msl.cpp" />
+    <ClCompile Include="src\spirv_cross\spirv_parser.cpp" />
+    <ClCompile Include="src\spirv_cross\spirv_reflect.cpp" />
     <ClCompile Include="src\utils\BinaryReader.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\math\Math.cpp" />
@@ -180,6 +200,24 @@
     <ClInclude Include="src\graphics\TransferBuffer.h" />
     <ClInclude Include="src\graphics\VertexBuffer.h" />
     <ClInclude Include="src\math\Shape.h" />
+    <ClInclude Include="src\SDL3_shadercross\SDL_shadercross.h" />
+    <ClInclude Include="src\spirv_cross\GLSL.std.450.h" />
+    <ClInclude Include="src\spirv_cross\spirv.h" />
+    <ClInclude Include="src\spirv_cross\spirv.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_cfg.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_common.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_cpp.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_cross.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_cross_c.h" />
+    <ClInclude Include="src\spirv_cross\spirv_cross_containers.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_cross_error_handling.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_cross_parsed_ir.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_cross_util.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_glsl.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_hlsl.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_msl.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_parser.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_reflect.hpp" />
     <ClInclude Include="src\utils\BinaryReader.h" />
     <ClInclude Include="src\utils\StringView.h" />
     <ClInclude Include="src\math\Gradient.h" />
