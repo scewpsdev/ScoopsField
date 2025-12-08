@@ -18,6 +18,7 @@ float deltaTime;
 float gameTime;
 int fps;
 float avgMs;
+int allocationsPerFrame;
 
 SDL_GPUTexture* swapchain = nullptr;
 
@@ -77,6 +78,9 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, AppSt
 	app->lastKeys = (bool*)BumpAllocatorCalloc(&memory->constantAllocator, app->numKeys, sizeof(bool));
 
 	SDL_GetMouseState(&app->lastMousePosition.x, &app->lastMousePosition.y);
+
+	if (!InitAudio(&app->audio))
+		return SDL_APP_FAILURE;
 
 	SDL_GPUCommandBuffer* cmdBuffer = SDL_AcquireGPUCommandBuffer(device);
 
@@ -139,7 +143,7 @@ static void RenderDebugStats()
 	MemoryString(platformMemoryUsageStr, 16, memory->platformMemoryUsage);
 
 	DebugText(0, 0, COLOR_WHITE, COLOR_BLACK, "%d fps, %.3f ms", fps, avgMs);
-	DebugText(0, 1, COLOR_WHITE, COLOR_BLACK, "platform %s, %d allocations", platformMemoryUsageStr, memory->platformAllocationCount);
+	DebugText(0, 1, COLOR_WHITE, COLOR_BLACK, "platform %s, %d allocations, %d per frame", platformMemoryUsageStr, memory->platformAllocationCount, allocationsPerFrame);
 	DebugText(0, 2, COLOR_WHITE, COLOR_BLACK, "constant %s, %d allocations", memoryUsageStr, memory->constantAllocator.count);
 	DebugText(0, 3, COLOR_WHITE, COLOR_BLACK, "transient %s, %d allocations", transientMemoryUsageStr, memory->transientAllocator.count);
 }
@@ -157,6 +161,9 @@ extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* a
 	app->now = SDL_GetTicksNS();
 	deltaTime = (app->now - app->lastFrame) / 1e9f;
 	gameTime += deltaTime;
+
+	allocationsPerFrame = memory->platformAllocationsPerFrame;
+	memory->platformAllocationsPerFrame = 0;
 
 	if (app->now - app->lastSecond >= 1e9)
 	{

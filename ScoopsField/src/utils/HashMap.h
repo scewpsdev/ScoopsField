@@ -49,9 +49,16 @@ inline void InitHashMap(HashMap<KEY_TYPE, VALUE_TYPE, CAPACITY>* map)
 }
 
 template<typename KEY_TYPE, typename VALUE_TYPE, int CAPACITY>
+inline bool HashMapHasSlot(HashMap<KEY_TYPE, VALUE_TYPE, CAPACITY>* map)
+{
+	return map->numUsedSlots + map->numTombstones < CAPACITY;
+}
+
+template<typename KEY_TYPE, typename VALUE_TYPE, int CAPACITY>
 inline VALUE_TYPE* HashMapAdd(HashMap<KEY_TYPE, VALUE_TYPE, CAPACITY>* map, const KEY_TYPE& key, const VALUE_TYPE& value)
 {
-	SDL_assert(map->numUsedSlots + map->numTombstones < CAPACITY);
+	if (map->numUsedSlots + map->numTombstones == CAPACITY)
+		return nullptr;
 
 	int idx = hash(key) % CAPACITY;
 	int firstTombstone = INT32_MAX;
@@ -98,7 +105,6 @@ inline VALUE_TYPE* HashMapRemove(HashMap<KEY_TYPE, VALUE_TYPE, CAPACITY>* map, c
 		SlotState state = map->slots[idx].state;
 		if (state == SLOT_EMPTY)
 		{
-			SDL_assert(false);
 			return nullptr;
 		}
 		else if (state == SLOT_USED && map->slots[idx].key == key)
@@ -113,7 +119,6 @@ inline VALUE_TYPE* HashMapRemove(HashMap<KEY_TYPE, VALUE_TYPE, CAPACITY>* map, c
 
 		if (idx == firstIdx)
 		{
-			SDL_assert(false);
 			return nullptr;
 		}
 	}

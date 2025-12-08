@@ -35,6 +35,7 @@ struct Mesh
 	VertexBuffer* positionBuffer;
 	VertexBuffer* normalBuffer;
 	VertexBuffer* weightsBuffer;
+	VertexBuffer* texcoordBuffer;
 	IndexBuffer* indexBuffer;
 
 	int skeletonID;
@@ -141,7 +142,5 @@ struct Model
 	int numAnimations;
 };
 
-
-void InitMesh(Mesh* mesh, int vertexCount, const vec3* positions, const vec3* normals, int indexCount, const uint8_t* indices, SDL_GPUIndexElementSize indexElementSize, SDL_GPUCommandBuffer* cmdBuffer);
 
 void LoadModel(Model* model, const char* path, SDL_GPUCommandBuffer* cmdBuffer);

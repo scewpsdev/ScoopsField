@@ -20,6 +20,8 @@
 #include "renderer/Renderer.h"
 #include "renderer/DebugTextRenderer.h"
 
+#include "audio/Audio.h"
+
 #include "model/Model.h"
 #include "model/Animation.h"
 
@@ -49,6 +51,7 @@ struct GameMemory
 
 	uint64_t platformMemoryUsage;
 	int platformAllocationCount;
+	int platformAllocationsPerFrame;
 };
 
 struct PlatformCallbacks
@@ -131,6 +134,7 @@ struct AppState
 	SDL_MouseButtonFlags lastMouseButtons;
 
 	GraphicsState graphics;
+	AudioState audio;
 	ResourceState resourceState;
 	GameState game;
 

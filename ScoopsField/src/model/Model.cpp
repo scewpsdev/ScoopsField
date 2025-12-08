@@ -14,7 +14,7 @@ extern GameMemory* memory;
 extern ResourceState* resource;
 
 
-void InitMesh(Mesh* mesh, int vertexCount, const vec3* positions, const vec3* normals, const vec4* weights, int indexCount, const uint8_t* indices, SDL_GPUIndexElementSize indexElementSize, SDL_GPUCommandBuffer* cmdBuffer)
+void InitMesh(Mesh* mesh, int vertexCount, const vec3* positions, const vec3* normals, const vec4* weights, const vec2* texcoords, int indexCount, const uint8_t* indices, SDL_GPUIndexElementSize indexElementSize, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	mesh->vertexCount = vertexCount;
 	mesh->indexCount = indexCount;
@@ -56,6 +56,17 @@ void InitMesh(Mesh* mesh, int vertexCount, const vec3* positions, const vec3* no
 		UpdateVertexBuffer(mesh->weightsBuffer, 0, (const uint8_t*)weights, vertexCount * 2 * sizeof(vec4), copyPass);
 	}
 
+	if (texcoords)
+	{
+		VertexBufferLayout texcoordLayout = {};
+		texcoordLayout.numAttributes = 1;
+		texcoordLayout.attributes[0].location = 4;
+		texcoordLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+
+		mesh->texcoordBuffer = CreateVertexBuffer(vertexCount, &texcoordLayout, 0);
+		UpdateVertexBuffer(mesh->texcoordBuffer, 0, (const uint8_t*)texcoords, vertexCount * sizeof(vec2), copyPass);
+	}
+
 	if (indices)
 	{
 		mesh->indexBuffer = CreateIndexBuffer(indexCount, indexElementSize);
@@ -78,6 +89,7 @@ static void ReadMesh(Mesh* mesh, BinaryReader& reader, SDL_GPUCommandBuffer* cmd
 
 	vec3* positions = nullptr, * normals = nullptr;
 	vec4* weights = nullptr;
+	vec2* texcoords = nullptr;
 
 	if (hasPositions)
 	{
@@ -95,7 +107,10 @@ static void ReadMesh(Mesh* mesh, BinaryReader& reader, SDL_GPUCommandBuffer* cmd
 		reader.Skip(vertexCount * sizeof(vec3));
 
 	if (hasTexCoords)
-		reader.Skip(vertexCount * sizeof(vec2));
+	{
+		texcoords = (vec2*)BumpAllocatorMalloc(&memory->transientAllocator, vertexCount * sizeof(vec2));
+		reader.ReadBytes(texcoords, vertexCount * sizeof(vec2));
+	}
 
 	if (hasVertexColors)
 		reader.Skip(vertexCount * sizeof(uint32_t));
@@ -128,7 +143,7 @@ static void ReadMesh(Mesh* mesh, BinaryReader& reader, SDL_GPUCommandBuffer* cmd
 	Sphere boundingSphere;
 	reader.Read(&boundingSphere);
 
-	InitMesh(mesh, vertexCount, positions, normals, weights, indexCount, indices, indexElementSize, cmdBuffer);
+	InitMesh(mesh, vertexCount, positions, normals, weights, texcoords, indexCount, indices, indexElementSize, cmdBuffer);
 }
 
 static Texture* ReadTexture(BinaryReader& reader, const char* scenePath, SDL_GPUCommandBuffer* cmdBuffer)
@@ -168,7 +183,6 @@ static Texture* ReadTexture(BinaryReader& reader, const char* scenePath, SDL_GPU
 			TextureInfo info = {};
 			int channels;
 			uint8_t* textureData = stbi_load_from_memory(data, width, &info.width, &info.height, &channels, 4);
-			uint8_t* textureDataBGRA = stbi__convert_format(textureData, channels, 4, info.width, info.height);
 			uint32_t size = info.width * info.height * 4;
 
 			info.depth = 1;
@@ -177,15 +191,16 @@ static Texture* ReadTexture(BinaryReader& reader, const char* scenePath, SDL_GPU
 			info.numFaces = 1;
 			info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 
-			Texture* texture = LoadTextureFromData(textureDataBGRA, size, &info, cmdBuffer);
+			Texture* texture = LoadTextureFromData(textureData, size, &info, cmdBuffer);
 
-			stbi_image_free(textureDataBGRA);
+			stbi_image_free(textureData);
 
 			return texture;
 		}
 		else
 		{
 			SDL_assert(false);
+			return nullptr;
 		}
 	}
 	else

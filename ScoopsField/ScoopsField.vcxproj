@@ -108,9 +108,9 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WITH_SDL3;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)src\spirv_cross\;D:\Repositories\SDL3-main\include\;D:\Repositories\SDL3-main\src\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)include\;$(ProjectDir)include\spirv_cross\;$(ProjectDir)include\soloud\;D:\Repositories\SDL3-main\include\;D:\Repositories\SDL3-main\src\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -127,9 +127,9 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WITH_SDL3;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)src\spirv_cross\;D:\Repositories\SDL3-main\include\;D:\Repositories\SDL3-main\src\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)include\;$(ProjectDir)include\spirv_cross\;$(ProjectDir)include\soloud\;D:\Repositories\SDL3-main\include\;D:\Repositories\SDL3-main\src\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -146,10 +146,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\audio\Audio.cpp" />
     <ClCompile Include="src\file\Image.cpp" />
     <ClCompile Include="src\game\Game.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\graphics\GraphicsPipeline.cpp" />
     <ClCompile Include="src\graphics\IndexBuffer.cpp" />
@@ -160,9 +160,84 @@
     <ClCompile Include="src\graphics\Texture.cpp" />
     <ClCompile Include="src\graphics\TransferBuffer.cpp" />
     <ClCompile Include="src\graphics\VertexBuffer.cpp" />
+    <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\math\Math.cpp" />
+    <ClCompile Include="src\math\Matrix.cpp" />
+    <ClCompile Include="src\math\Quaternion.cpp" />
+    <ClCompile Include="src\math\Vector.cpp" />
     <ClCompile Include="src\model\Animation.cpp" />
     <ClCompile Include="src\model\AnimationCache.cpp" />
+    <ClCompile Include="src\model\Model.cpp" />
+    <ClCompile Include="src\renderer\DebugTextRenderer.cpp" />
+    <ClCompile Include="src\renderer\Renderer.cpp" />
+    <ClCompile Include="src\renderer\ScreenQuad.cpp" />
+    <ClCompile Include="src\Resource.cpp" />
     <ClCompile Include="src\SDL3_shadercross\SDL_shadercross.c" />
+    <ClCompile Include="src\soloud\audiosource\ay\chipplayer.cpp" />
+    <ClCompile Include="src\soloud\audiosource\ay\sndbuffer.cpp" />
+    <ClCompile Include="src\soloud\audiosource\ay\sndchip.cpp" />
+    <ClCompile Include="src\soloud\audiosource\ay\sndrender.cpp" />
+    <ClCompile Include="src\soloud\audiosource\ay\soloud_ay.cpp" />
+    <ClCompile Include="src\soloud\audiosource\monotone\soloud_monotone.cpp" />
+    <ClCompile Include="src\soloud\audiosource\noise\soloud_noise.cpp" />
+    <ClCompile Include="src\soloud\audiosource\openmpt\soloud_openmpt.cpp" />
+    <ClCompile Include="src\soloud\audiosource\openmpt\soloud_openmpt_dll.c" />
+    <ClCompile Include="src\soloud\audiosource\sfxr\soloud_sfxr.cpp" />
+    <ClCompile Include="src\soloud\audiosource\speech\darray.cpp" />
+    <ClCompile Include="src\soloud\audiosource\speech\klatt.cpp" />
+    <ClCompile Include="src\soloud\audiosource\speech\resonator.cpp" />
+    <ClCompile Include="src\soloud\audiosource\speech\soloud_speech.cpp" />
+    <ClCompile Include="src\soloud\audiosource\speech\tts.cpp" />
+    <ClCompile Include="src\soloud\audiosource\tedsid\sid.cpp" />
+    <ClCompile Include="src\soloud\audiosource\tedsid\soloud_tedsid.cpp" />
+    <ClCompile Include="src\soloud\audiosource\tedsid\ted.cpp" />
+    <ClCompile Include="src\soloud\audiosource\vic\soloud_vic.cpp" />
+    <ClCompile Include="src\soloud\audiosource\vizsn\soloud_vizsn.cpp" />
+    <ClCompile Include="src\soloud\audiosource\wav\dr_impl.cpp" />
+    <ClCompile Include="src\soloud\audiosource\wav\soloud_wav.cpp" />
+    <ClCompile Include="src\soloud\audiosource\wav\soloud_wavstream.cpp" />
+    <ClCompile Include="src\soloud\audiosource\wav\stb_impl.cpp" />
+    <ClCompile Include="src\soloud\audiosource\wav\stb_vorbis.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\soloud\backend\sdl3_static\soloud_sdl3_static.cpp" />
+    <ClCompile Include="src\soloud\backend\sdl\soloud_sdl1.cpp" />
+    <ClCompile Include="src\soloud\backend\sdl\soloud_sdl1_dll.c" />
+    <ClCompile Include="src\soloud\backend\sdl\soloud_sdl2.cpp" />
+    <ClCompile Include="src\soloud\backend\sdl\soloud_sdl2_dll.c" />
+    <ClCompile Include="src\soloud\backend\sdl\soloud_sdl3.cpp" />
+    <ClCompile Include="src\soloud\backend\sdl\soloud_sdl3_dll.c" />
+    <ClCompile Include="src\soloud\core\soloud.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_audiosource.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_bus.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_core_3d.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_core_basicops.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_core_faderops.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_core_filterops.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_core_getters.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_core_setters.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_core_voicegroup.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_core_voiceops.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_fader.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_fft.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_fft_lut.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_file.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_filter.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_misc.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_queue.cpp" />
+    <ClCompile Include="src\soloud\core\soloud_thread.cpp" />
+    <ClCompile Include="src\soloud\filter\soloud_bassboostfilter.cpp" />
+    <ClCompile Include="src\soloud\filter\soloud_biquadresonantfilter.cpp" />
+    <ClCompile Include="src\soloud\filter\soloud_dcremovalfilter.cpp" />
+    <ClCompile Include="src\soloud\filter\soloud_duckfilter.cpp" />
+    <ClCompile Include="src\soloud\filter\soloud_echofilter.cpp" />
+    <ClCompile Include="src\soloud\filter\soloud_eqfilter.cpp" />
+    <ClCompile Include="src\soloud\filter\soloud_fftfilter.cpp" />
+    <ClCompile Include="src\soloud\filter\soloud_flangerfilter.cpp" />
+    <ClCompile Include="src\soloud\filter\soloud_freeverbfilter.cpp" />
+    <ClCompile Include="src\soloud\filter\soloud_lofifilter.cpp" />
+    <ClCompile Include="src\soloud\filter\soloud_robotizefilter.cpp" />
+    <ClCompile Include="src\soloud\filter\soloud_waveshaperfilter.cpp" />
     <ClCompile Include="src\spirv_cross\spirv_cfg.cpp" />
     <ClCompile Include="src\spirv_cross\spirv_cpp.cpp" />
     <ClCompile Include="src\spirv_cross\spirv_cross.cpp" />
@@ -175,21 +250,12 @@
     <ClCompile Include="src\spirv_cross\spirv_parser.cpp" />
     <ClCompile Include="src\spirv_cross\spirv_reflect.cpp" />
     <ClCompile Include="src\utils\BinaryReader.cpp" />
-    <ClCompile Include="src\Main.cpp" />
-    <ClCompile Include="src\math\Math.cpp" />
-    <ClCompile Include="src\math\Matrix.cpp" />
-    <ClCompile Include="src\math\Quaternion.cpp" />
-    <ClCompile Include="src\math\Vector.cpp" />
-    <ClCompile Include="src\model\Model.cpp" />
-    <ClCompile Include="src\renderer\Renderer.cpp" />
-    <ClCompile Include="src\renderer\DebugTextRenderer.cpp" />
-    <ClCompile Include="src\renderer\ScreenQuad.cpp" />
-    <ClCompile Include="src\Resource.cpp" />
     <ClCompile Include="src\utils\Hash.cpp" />
     <ClCompile Include="src\utils\Simplex.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Application.h" />
+    <ClInclude Include="src\audio\Audio.h" />
     <ClInclude Include="src\file\Image.h" />
     <ClInclude Include="src\graphics\GraphicsPipeline.h" />
     <ClInclude Include="src\graphics\IndexBuffer.h" />
@@ -201,11 +267,33 @@
     <ClInclude Include="src\graphics\TextureFormat.h" />
     <ClInclude Include="src\graphics\TransferBuffer.h" />
     <ClInclude Include="src\graphics\VertexBuffer.h" />
+    <ClInclude Include="src\math\Gradient.h" />
+    <ClInclude Include="src\math\Math.h" />
+    <ClInclude Include="src\math\Matrix.h" />
+    <ClInclude Include="src\math\Quaternion.h" />
     <ClInclude Include="src\math\Shape.h" />
+    <ClInclude Include="src\math\Vector.h" />
     <ClInclude Include="src\model\Animation.h" />
     <ClInclude Include="src\model\AnimationCache.h" />
-    <ClInclude Include="src\SDL3_shadercross\SDL_shadercross.h" />
-    <ClInclude Include="src\spirv_cross\GLSL.std.450.h" />
+    <ClInclude Include="src\model\Model.h" />
+    <ClInclude Include="src\renderer\DebugTextRenderer.h" />
+    <ClInclude Include="src\renderer\Renderer.h" />
+    <ClInclude Include="src\renderer\ScreenQuad.h" />
+    <ClInclude Include="src\Resource.h" />
+    <ClInclude Include="src\soloud\audiosource\ay\chipplayer.h" />
+    <ClInclude Include="src\soloud\audiosource\ay\sndbuffer.h" />
+    <ClInclude Include="src\soloud\audiosource\ay\sndchip.h" />
+    <ClInclude Include="src\soloud\audiosource\ay\sndrender.h" />
+    <ClInclude Include="src\soloud\audiosource\speech\darray.h" />
+    <ClInclude Include="src\soloud\audiosource\speech\klatt.h" />
+    <ClInclude Include="src\soloud\audiosource\speech\resonator.h" />
+    <ClInclude Include="src\soloud\audiosource\speech\tts.h" />
+    <ClInclude Include="src\soloud\audiosource\tedsid\sid.h" />
+    <ClInclude Include="src\soloud\audiosource\tedsid\ted.h" />
+    <ClInclude Include="src\soloud\audiosource\wav\dr_flac.h" />
+    <ClInclude Include="src\soloud\audiosource\wav\dr_mp3.h" />
+    <ClInclude Include="src\soloud\audiosource\wav\dr_wav.h" />
+    <ClInclude Include="src\soloud\audiosource\wav\stb_vorbis.h" />
     <ClInclude Include="src\spirv_cross\spirv.h" />
     <ClInclude Include="src\spirv_cross\spirv.hpp" />
     <ClInclude Include="src\spirv_cross\spirv_cfg.hpp" />
@@ -223,17 +311,6 @@
     <ClInclude Include="src\spirv_cross\spirv_parser.hpp" />
     <ClInclude Include="src\spirv_cross\spirv_reflect.hpp" />
     <ClInclude Include="src\utils\BinaryReader.h" />
-    <ClInclude Include="src\utils\StringView.h" />
-    <ClInclude Include="src\math\Gradient.h" />
-    <ClInclude Include="src\math\Math.h" />
-    <ClInclude Include="src\math\Matrix.h" />
-    <ClInclude Include="src\math\Quaternion.h" />
-    <ClInclude Include="src\math\Vector.h" />
-    <ClInclude Include="src\model\Model.h" />
-    <ClInclude Include="src\renderer\Renderer.h" />
-    <ClInclude Include="src\renderer\DebugTextRenderer.h" />
-    <ClInclude Include="src\renderer\ScreenQuad.h" />
-    <ClInclude Include="src\Resource.h" />
     <ClInclude Include="src\utils\BumpAllocator.h" />
     <ClInclude Include="src\utils\Hash.h" />
     <ClInclude Include="src\utils\HashMap.h" />
@@ -242,7 +319,9 @@
     <ClInclude Include="src\utils\Queue.h" />
     <ClInclude Include="src\utils\Random.h" />
     <ClInclude Include="src\utils\Simplex.h" />
+    <ClInclude Include="src\utils\stb_image.h" />
     <ClInclude Include="src\utils\StringUtils.h" />
+    <ClInclude Include="src\utils\StringView.h" />
     <ClInclude Include="src\utils\uint128_t.h" />
   </ItemGroup>
   <ItemGroup>
@@ -268,6 +347,7 @@
     <None Include="res\shaders\mesh.vert" />
     <None Include="res\shaders\sprite.frag" />
     <None Include="res\shaders\sprite.vert" />
+    <None Include="src\soloud\audiosource\speech\Elements.def" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

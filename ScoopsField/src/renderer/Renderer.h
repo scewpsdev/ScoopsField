@@ -22,8 +22,9 @@
 struct MeshDrawData
 {
 	Mesh* mesh;
-	mat4 transform;
+	Material* material;
 	SkeletonState* skeleton;
+	mat4 transform;
 };
 
 struct LightDrawData
@@ -47,8 +48,10 @@ struct Renderer
 #define MAX_POINT_LIGHT_DRAWS 256
 	List<LightDrawData, MAX_POINT_LIGHT_DRAWS> pointLights;
 
-	VertexBufferLayout meshLayout[2];
-	VertexBufferLayout animatedLayout[3];
+#define NUM_MESH_BUFFER_LAYOUTS 3
+	VertexBufferLayout meshLayout[NUM_MESH_BUFFER_LAYOUTS];
+#define NUM_ANIMATED_MESH_BUFFER_LAYOUTS 4
+	VertexBufferLayout animatedLayout[NUM_ANIMATED_MESH_BUFFER_LAYOUTS];
 
 	VertexBuffer* cubeVertexBuffer;
 	IndexBuffer* cubeIndexBuffer;
@@ -80,7 +83,6 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 void DestroyRenderer(Renderer* renderer);
 void ResizeRenderer(Renderer* renderer, int width, int height);
 
-void RenderMesh(Renderer* renderer, Mesh* mesh, SkeletonState* skeleton, mat4 transform);
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform);
 void RenderLight(Renderer* renderer, vec3 position, vec3 color);
 

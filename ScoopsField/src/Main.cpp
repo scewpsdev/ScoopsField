@@ -17,7 +17,7 @@
 
 
 static GameMemory memory;
-static HashMap<void*, uint64_t, 1000> platformAllocations;
+static HashMap<void*, uint64_t, 4000> platformAllocations;
 
 static SDL_malloc_func defaultMalloc;
 static SDL_calloc_func defaultCalloc;
@@ -58,8 +58,10 @@ void* SDLmalloc(size_t size)
 {
 	memory.platformMemoryUsage += size;
 	memory.platformAllocationCount++;
+	memory.platformAllocationsPerFrame++;
 	void* mem = defaultMalloc(size);
-	HashMapAdd(&platformAllocations, mem, size);
+	if (HashMapHasSlot(&platformAllocations))
+		HashMapAdd(&platformAllocations, mem, size);
 	return mem;
 }
 
@@ -68,7 +70,8 @@ void* SDLcalloc(size_t nmemb, size_t size)
 	memory.platformMemoryUsage += nmemb * size;
 	memory.platformAllocationCount++;
 	void* mem = defaultCalloc(nmemb, size);
-	HashMapAdd(&platformAllocations, mem, nmemb * size);
+	if (HashMapHasSlot(&platformAllocations))
+		HashMapAdd(&platformAllocations, mem, nmemb * size);
 	return mem;
 }
 
@@ -85,15 +88,19 @@ void* SDLrealloc(void* mem, size_t size)
 	void* newMem = defaultRealloc(mem, size);
 	if (newMem == mem)
 	{
-		uint64_t* memsize = HashMapGet(&platformAllocations, mem);
-		memory.platformMemoryUsage += size - *memsize;
-		*memsize = size;
+		if (uint64_t* memsize = HashMapGet(&platformAllocations, mem))
+		{
+			memory.platformMemoryUsage += size - *memsize;
+			*memsize = size;
+		}
 	}
 	else
 	{
-		uint64_t* memsize = HashMapRemove(&platformAllocations, mem);
-		memory.platformMemoryUsage += size - *memsize;
-		HashMapAdd(&platformAllocations, newMem, size);
+		if (uint64_t* memsize = HashMapRemove(&platformAllocations, mem))
+		{
+			memory.platformMemoryUsage += size - *memsize;
+			HashMapAdd(&platformAllocations, newMem, size);
+		}
 	}
 	return newMem;
 }
@@ -101,9 +108,11 @@ void* SDLrealloc(void* mem, size_t size)
 void SDLfree(void* mem)
 {
 	defaultFree(mem);
-	uint64_t* memsize = HashMapRemove(&platformAllocations, mem);
-	memory.platformMemoryUsage -= *memsize;
-	memory.platformAllocationCount--;
+	if (uint64_t* memsize = HashMapRemove(&platformAllocations, mem))
+	{
+		memory.platformMemoryUsage -= *memsize;
+		memory.platformAllocationCount--;
+	}
 }
 
 int main(int argc, char** argv)
@@ -181,6 +190,15 @@ int main(int argc, char** argv)
 	SDL_Log("Loading game code\n");
 
 	SDL_AppResult result = AppInit(&memory, appState, argc, argv);
+	if (result == SDL_APP_FAILURE)
+	{
+		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Failed to initialize application");
+		return 1;
+	}
+	else if (result == SDL_APP_SUCCESS)
+	{
+		return 0;
+	}
 
 	if (!SDL_ShowWindow(window))
 	{
@@ -191,23 +209,22 @@ int main(int argc, char** argv)
 	SDL_Log("Initialization complete");
 
 
-	if (result == SDL_APP_CONTINUE)
+	SDL_assert(result == SDL_APP_CONTINUE);
+
+	bool running = true;
+	while (running)
 	{
-		bool running = true;
-		while (running)
+		SDL_Event event = {};
+		while (SDL_PollEvent(&event))
 		{
-			SDL_Event event = {};
-			while (SDL_PollEvent(&event))
-			{
-				SDL_AppResult result = AppOnEvent(&memory, appState, &event);
-				if (result != SDL_APP_CONTINUE)
-					running = false;
-			}
-
-			AppIterate(&memory, appState);
-
-			ResetBumpAllocator(&memory.transientAllocator);
+			SDL_AppResult result = AppOnEvent(&memory, appState, &event);
+			if (result != SDL_APP_CONTINUE)
+				running = false;
 		}
+
+		AppIterate(&memory, appState);
+
+		ResetBumpAllocator(&memory.transientAllocator);
 	}
 
 	AppDestroy(&memory, appState, result);

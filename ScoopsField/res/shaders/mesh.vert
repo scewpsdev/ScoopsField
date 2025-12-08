@@ -1,12 +1,11 @@
 #version 460
 
-#include "common.shader"
-
 layout (location = 0) in vec3 a_position;
 layout (location = 1) in vec3 a_normal;
+layout (location = 4) in vec2 a_texcoord;
 
 layout (location = 0) out vec3 v_normal;
-layout (location = 1) out vec3 v_color;
+layout (location = 1) out vec2 v_texcoord;
 
 
 layout(std140, set = 1, binding = 0) uniform UniformBlock {
@@ -22,5 +21,5 @@ void main()
 	vec4 worldNormal = u_model * vec4(a_normal, 0);
 
 	v_normal = worldNormal.xyz;
-	v_color = SRGBToLinear(vec3(0.5));
+	v_texcoord = a_texcoord;
 }
