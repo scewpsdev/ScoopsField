@@ -1,6 +1,6 @@
 #include "graphics/VertexBuffer.h"
 
-#include "model/Mesh.h"
+#include "model/Model.h"
 
 #include "math/Vector.h"
 
@@ -12,7 +12,11 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 {
 	InitRenderer(&game->renderer, width, height, cmdBuffer);
 
-	game->mesh = LoadMesh("res/models/monkey.glb.bin", cmdBuffer);
+	InitAnimationCache(&resource->animationCache);
+
+	//game->mesh = LoadMesh("res/models/monkey.glb.bin", cmdBuffer);
+	LoadModel(&game->model, "res/models/Fox.glb.bin", cmdBuffer);
+	InitAnimationState(&game->modelAnim, &game->model);
 
 	game->cameraPosition = vec3(0, 1, 3);
 	//game->cameraPitch = -0.4f * PI;
@@ -72,11 +76,13 @@ void GameUpdate()
 		game->cameraYaw -= app->mouseDelta.x * 0.001f;
 		game->cameraPitch -= app->mouseDelta.y * 0.001f;
 	}
+
+	AnimateModel(&game->model, &game->modelAnim, &game->model.animations[2], gameTime);
 }
 
 void GameRender(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	RenderMesh(&game->renderer, game->mesh, mat4::Identity);
+	RenderModel(&game->renderer, &game->model, &game->modelAnim, mat4::Scale(0.01f));
 	RenderLight(&game->renderer, Quaternion::FromAxisAngle(vec3::Up, gameTime * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1));
 	RenderLight(&game->renderer, Quaternion::FromAxisAngle(vec3::Right, gameTime * PI * 0.7f) * vec3(2, 2, 0), vec3(0.5f, 1, 0.5f));
 

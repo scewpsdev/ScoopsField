@@ -9,6 +9,6 @@ layout (location = 1) out vec3 out_color;
 
 void main()
 {
-	out_normal = vec4(v_normal, 1);
+	out_normal = vec4(normalize(v_normal), 1);
 	out_color = v_color;
 }

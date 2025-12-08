@@ -46,7 +46,7 @@ void DestroyGraphicsPipeline(GraphicsPipeline* pipeline);
 
 void ReloadGraphicsPipeline(GraphicsPipeline* pipeline);
 
-GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, Shader* shader, RenderTarget* renderTarget, int numVertexBuffers, const VertexBufferLayout* const* vertexLayouts);
+GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, Shader* shader, RenderTarget* renderTarget, int numVertexBuffers, const VertexBufferLayout* vertexLayouts);
 
 
 inline void CreateBlendStateOpaque(SDL_GPUColorTargetBlendState* blendState)

@@ -20,7 +20,8 @@
 #include "renderer/Renderer.h"
 #include "renderer/DebugTextRenderer.h"
 
-#include "model/Mesh.h"
+#include "model/Model.h"
+#include "model/Animation.h"
 
 #include "math/Math.h"
 #include "math/Vector.h"
@@ -103,7 +104,8 @@ struct GameState
 
 	Renderer renderer;
 
-	Mesh* mesh;
+	Model model;
+	AnimationState modelAnim;
 };
 
 struct AppState

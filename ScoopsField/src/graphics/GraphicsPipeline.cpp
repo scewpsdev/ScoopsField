@@ -61,7 +61,7 @@ void ReloadGraphicsPipeline(GraphicsPipeline* pipeline)
 	pipeline->pipeline = SDL_CreateGPUGraphicsPipeline(device, &createInfo);
 }
 
-GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, Shader* shader, RenderTarget* renderTarget, int numVertexBuffers, const VertexBufferLayout* const* vertexLayouts)
+GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, Shader* shader, RenderTarget* renderTarget, int numVertexBuffers, const VertexBufferLayout* vertexLayouts)
 {
 	GraphicsPipelineInfo pipelineInfo = {};
 
@@ -99,15 +99,15 @@ GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveTy
 	}
 
 	for (int i = 0; i < numVertexBuffers; i++)
-		pipelineInfo.numAttributes += vertexLayouts[i]->numAttributes;
+		pipelineInfo.numAttributes += vertexLayouts[i].numAttributes;
 
 	int attributeIdx = 0;
 	for (int i = 0; i < numVertexBuffers; i++)
 	{
 		uint32_t offset = 0;
-		for (int j = 0; j < vertexLayouts[i]->numAttributes; j++)
+		for (int j = 0; j < vertexLayouts[i].numAttributes; j++)
 		{
-			const VertexAttribute* attribute = &vertexLayouts[i]->attributes[j];
+			const VertexAttribute* attribute = &vertexLayouts[i].attributes[j];
 			pipelineInfo.attributes[attributeIdx].buffer_slot = i;
 			pipelineInfo.attributes[attributeIdx].location = attribute->location;
 			pipelineInfo.attributes[attributeIdx].format = attribute->format;
@@ -122,9 +122,9 @@ GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveTy
 	for (int i = 0; i < numVertexBuffers; i++)
 	{
 		pipelineInfo.bufferDescriptions[i].slot = i;
-		pipelineInfo.bufferDescriptions[i].input_rate = vertexLayouts[i]->perInstance ? SDL_GPU_VERTEXINPUTRATE_INSTANCE : SDL_GPU_VERTEXINPUTRATE_VERTEX;
+		pipelineInfo.bufferDescriptions[i].input_rate = vertexLayouts[i].perInstance ? SDL_GPU_VERTEXINPUTRATE_INSTANCE : SDL_GPU_VERTEXINPUTRATE_VERTEX;
 		pipelineInfo.bufferDescriptions[i].instance_step_rate = 0;
-		pipelineInfo.bufferDescriptions[i].pitch = GetVertexPitch(vertexLayouts[i]);
+		pipelineInfo.bufferDescriptions[i].pitch = GetVertexPitch(&vertexLayouts[i]);
 	}
 
 	return pipelineInfo;

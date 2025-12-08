@@ -13,13 +13,13 @@ struct List
 
 	T& operator[](int idx)
 	{
-		SDL_assert(idx < size);
+		SDL_assert(idx >= 0 && idx < size);
 		return buffer[idx];
 	}
 
 	const T& operator[](int idx) const
 	{
-		SDL_assert(idx < size);
+		SDL_assert(idx >= 0 && idx < size);
 		return buffer[idx];
 	}
 
@@ -37,7 +37,7 @@ struct List
 
 	void removeAt(int idx)
 	{
-		SDL_assert(idx < size);
+		SDL_assert(idx >= 0 && idx < size);
 		for (int i = idx; i < size - 1; i++)
 			buffer[i] = buffer[i + 1];
 		size--;
@@ -46,7 +46,7 @@ struct List
 	void insert(int idx, const T& element)
 	{
 		SDL_assert(size < CAPACITY);
-		SDL_assert(idx < size);
+		SDL_assert(idx >= 0 && idx < size);
 		resize(size + 1);
 		for (int i = size - 1; i >= idx + 1; i--)
 			buffer[i] = buffer[i - 1];

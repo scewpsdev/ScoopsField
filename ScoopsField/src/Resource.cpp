@@ -59,3 +59,23 @@ bool FileHasChanged(const char* path)
 	}
 	return false;
 }
+
+StringView GetDirectory(const char* path)
+{
+	const char* slash = max(SDL_strrchr(path, '/'), SDL_strrchr(path, '\\'));
+	int length = slash ? (int)(slash - path) : 0;
+	return StringView{ slash ? path : nullptr, length };
+}
+
+void GetAbsolutePath(char* str, int maxLen, const char* relativePath, const char* relativeTo)
+{
+	StringView directory = GetDirectory(relativeTo);
+	SDL_snprintf(str, maxLen, "%.*s/%s", directory.buffer ? directory.length : 1, directory.buffer ? directory.buffer : ".", relativePath);
+}
+
+void GetRelativePath(char* str, int maxLen, const char* absolutePath, const char* relativeTo)
+{
+	StringView directory = GetDirectory(relativeTo);
+	const char* relativePath = directory.buffer ? absolutePath + directory.length + 1 : absolutePath;
+	SDL_snprintf(str, maxLen, "%s", relativePath);
+}

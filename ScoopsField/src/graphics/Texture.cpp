@@ -115,6 +115,61 @@ Texture* LoadTexture(const char* path, SDL_GPUCommandBuffer* cmdBuffer)
 	return texture;
 }
 
+Texture* LoadTextureFromData(const uint8_t* data, uint32_t size, const TextureInfo* info, SDL_GPUCommandBuffer* cmdBuffer)
+{
+	SDL_GPUTextureCreateInfo textureInfo = {};
+	textureInfo.format = info->format;
+	textureInfo.width = info->width;
+	textureInfo.height = info->height;
+	textureInfo.layer_count_or_depth = info->depth > 1 ? info->depth : info->numLayers;
+	textureInfo.num_levels = info->numMips;
+	textureInfo.type = info->depth > 1 ? SDL_GPU_TEXTURETYPE_3D : info->numLayers > 1 && info->numFaces == 1 ? SDL_GPU_TEXTURETYPE_2D_ARRAY : info->numFaces > 1 ? SDL_GPU_TEXTURETYPE_CUBE : info->numLayers > 1 && info->numFaces > 1 ? SDL_GPU_TEXTURETYPE_CUBE_ARRAY : SDL_GPU_TEXTURETYPE_2D;
+	textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+
+	SDL_GPUTexture* handle = SDL_CreateGPUTexture(device, &textureInfo);
+	if (!handle)
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_GPU, "Failed to create texture: %s", SDL_GetError());
+		return nullptr;
+	}
+
+	SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
+
+	SDL_GPUTransferBufferCreateInfo transferBufferInfo = {};
+	transferBufferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+	transferBufferInfo.size = size;
+
+	SDL_GPUTransferBuffer* transferBuffer = SDL_CreateGPUTransferBuffer(device, &transferBufferInfo);
+
+	void* textureTransferPtr = SDL_MapGPUTransferBuffer(device, transferBuffer, false);
+	SDL_memcpy(textureTransferPtr, data, size);
+	SDL_UnmapGPUTransferBuffer(device, transferBuffer);
+
+	SDL_GPUTextureTransferInfo location = {};
+	location.transfer_buffer = transferBuffer;
+	location.offset = 0;
+
+	SDL_GPUTextureRegion region = {};
+	region.texture = handle;
+	region.w = info->width;
+	region.h = info->height;
+	region.d = info->depth;
+
+	SDL_UploadToGPUTexture(copyPass, &location, &region, false);
+
+	SDL_ReleaseGPUTransferBuffer(device, transferBuffer);
+
+	SDL_EndGPUCopyPass(copyPass);
+
+	SDL_assert(graphics->numTextures < MAX_TEXTURES);
+
+	Texture* texture = &graphics->textures[graphics->numTextures++];
+	texture->handle = handle;
+	texture->info = *info;
+
+	return texture;
+}
+
 void DestroyTexture(Texture* texture)
 {
 	SDL_ReleaseGPUTexture(device, texture->handle);

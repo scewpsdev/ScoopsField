@@ -69,51 +69,19 @@ static RenderTarget* CreateGBuffer(int width, int height)
 
 static GraphicsPipeline* CreateGeometryPipeline(Renderer* renderer)
 {
-	GraphicsPipelineInfo pipelineInfo = {};
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->defaultShader, renderer->gbuffer, 2, renderer->meshLayout);
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
 
-	pipelineInfo.shader = renderer->defaultShader;
-	pipelineInfo.primitiveType = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
-	pipelineInfo.cullMode = SDL_GPU_CULLMODE_BACK;
-
-	pipelineInfo.numColorTargets = renderer->gbuffer->numColorAttachments;
-	for (int i = 0; i < pipelineInfo.numColorTargets; i++)
-	{
-		pipelineInfo.colorTargets[i].format = renderer->gbuffer->colorAttachmentInfos[i].format;
-		CreateBlendStateOpaque(&pipelineInfo.colorTargets[i].blend_state);
-	}
-
-	pipelineInfo.hasDepthTarget = true;
-	pipelineInfo.depthFormat = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
-
-	pipelineInfo.numAttributes = 2;
-	pipelineInfo.attributes[0] = {};
-	pipelineInfo.attributes[0].buffer_slot = 0;
-	pipelineInfo.attributes[0].location = 0;
-	pipelineInfo.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-	pipelineInfo.attributes[0].offset = 0;
-	pipelineInfo.attributes[1] = {};
-	pipelineInfo.attributes[1].buffer_slot = 1;
-	pipelineInfo.attributes[1].location = 1;
-	pipelineInfo.attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-	pipelineInfo.attributes[1].offset = 0;
-
-	pipelineInfo.numVertexBuffers = 2;
-	pipelineInfo.bufferDescriptions[0].slot = 0;
-	pipelineInfo.bufferDescriptions[0].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
-	pipelineInfo.bufferDescriptions[0].instance_step_rate = 0;
-	pipelineInfo.bufferDescriptions[0].pitch = GetVertexFormatSize(pipelineInfo.attributes[0].format);
-	pipelineInfo.bufferDescriptions[1].slot = 1;
-	pipelineInfo.bufferDescriptions[1].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
-	pipelineInfo.bufferDescriptions[1].instance_step_rate = 0;
-	pipelineInfo.bufferDescriptions[1].pitch = GetVertexFormatSize(pipelineInfo.attributes[1].format);
-
+static GraphicsPipeline* CreateAnimatedPipeline(Renderer* renderer)
+{
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->animatedShader, renderer->gbuffer, 3, renderer->animatedLayout);
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
 static GraphicsPipeline* CreateCopyDepthPipeline(Renderer* renderer)
 {
-	VertexBufferLayout* bufferLayout = &renderer->screenQuad.vertexBuffer->layout;
-	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->copyDepthShader, renderer->hdrTarget, 1, &bufferLayout);
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->copyDepthShader, renderer->hdrTarget, 1, &renderer->screenQuad.vertexBuffer->layout);
 
 	//pipelineInfo.numColorTargets = 0;
 	//pipelineInfo.depthTest = false;
@@ -124,8 +92,7 @@ static GraphicsPipeline* CreateCopyDepthPipeline(Renderer* renderer)
 
 static GraphicsPipeline* CreateDirectionalLightPipeline(Renderer* renderer)
 {
-	VertexBufferLayout* bufferLayout = &renderer->screenQuad.vertexBuffer->layout;
-	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->directionalLightShader, renderer->hdrTarget, 1, &bufferLayout);
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->directionalLightShader, renderer->hdrTarget, 1, &renderer->screenQuad.vertexBuffer->layout);
 
 	CreateBlendStateAddPremultiplied(&pipelineInfo.colorTargets[0].blend_state);
 
@@ -136,7 +103,7 @@ static GraphicsPipeline* CreateDirectionalLightPipeline(Renderer* renderer)
 
 static GraphicsPipeline* CreatePointLightPipeline(Renderer* renderer)
 {
-	VertexBufferLayout* bufferLayouts[2] = { &renderer->cubeVertexBuffer->layout, &renderer->pointLightInstanceBuffer->layout };
+	VertexBufferLayout bufferLayouts[2] = { renderer->cubeVertexBuffer->layout, renderer->pointLightInstanceBuffer->layout };
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_FRONT, renderer->pointLightShader, renderer->hdrTarget, 2, bufferLayouts);
 
 	CreateBlendStateAddPremultiplied(&pipelineInfo.colorTargets[0].blend_state);
@@ -149,8 +116,7 @@ static GraphicsPipeline* CreatePointLightPipeline(Renderer* renderer)
 
 static GraphicsPipeline* CreateTonemappingPipeline(Renderer* renderer)
 {
-	VertexBufferLayout* bufferLayout = &renderer->screenQuad.vertexBuffer->layout;
-	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->tonemappingShader, nullptr, 1, &bufferLayout);
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->tonemappingShader, nullptr, 1, &renderer->screenQuad.vertexBuffer->layout);
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
@@ -178,6 +144,25 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	hdrDepthInfo.clearDepth = 1;
 
 	renderer->hdrTarget = CreateRenderTarget(width, height, 1, &hdrTargetInfo, &hdrDepthInfo);
+
+	renderer->meshLayout[0].numAttributes = 1;
+	renderer->meshLayout[0].attributes[0].location = 0;
+	renderer->meshLayout[0].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	renderer->meshLayout[1].numAttributes = 1;
+	renderer->meshLayout[1].attributes[0].location = 1;
+	renderer->meshLayout[1].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+
+	renderer->animatedLayout[0].numAttributes = 1;
+	renderer->animatedLayout[0].attributes[0].location = 0;
+	renderer->animatedLayout[0].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	renderer->animatedLayout[1].numAttributes = 1;
+	renderer->animatedLayout[1].attributes[0].location = 1;
+	renderer->animatedLayout[1].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	renderer->animatedLayout[2].numAttributes = 2;
+	renderer->animatedLayout[2].attributes[0].location = 2;
+	renderer->animatedLayout[2].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	renderer->animatedLayout[2].attributes[1].location = 3;
+	renderer->animatedLayout[2].attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
 
 	InitScreenQuad(&renderer->screenQuad, cmdBuffer);
 
@@ -207,12 +192,14 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	MapTransferBuffer(renderer->pointLightInstanceTransferBuffer);
 
 	renderer->defaultShader = LoadGraphicsShader("res/shaders/mesh.vert.bin", "res/shaders/mesh.frag.bin");
+	renderer->animatedShader = LoadGraphicsShader("res/shaders/mesh_animated.vert.bin", "res/shaders/mesh.frag.bin");
 	renderer->copyDepthShader = LoadGraphicsShader("res/shaders/copy_depth.vert.bin", "res/shaders/copy_depth.frag.bin");
 	renderer->directionalLightShader = LoadGraphicsShader("res/shaders/lighting/directional_light.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
 	renderer->pointLightShader = LoadGraphicsShader("res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
 	renderer->tonemappingShader = LoadGraphicsShader("res/shaders/tonemapping.vert.bin", "res/shaders/tonemapping.frag.bin");
 
 	renderer->geometryPipeline = CreateGeometryPipeline(renderer);
+	renderer->animatedPipeline = CreateAnimatedPipeline(renderer);
 	renderer->copyDepthPipeline = CreateCopyDepthPipeline(renderer);
 	renderer->directionalLightPipeline = CreateDirectionalLightPipeline(renderer);
 	renderer->pointLightPipeline = CreatePointLightPipeline(renderer);
@@ -220,6 +207,11 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 
 	SDL_GPUSamplerCreateInfo samplerInfo = {};
 	renderer->defaultSampler = SDL_CreateGPUSampler(device, &samplerInfo);
+
+	SDL_GPUBufferCreateInfo emptyBufferInfo = {};
+	emptyBufferInfo.size = 4;
+	emptyBufferInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
+	renderer->emptyBuffer = SDL_CreateGPUBuffer(device, &emptyBufferInfo);
 }
 
 void DestroyRenderer(Renderer* renderer)
@@ -257,12 +249,25 @@ void ResizeRenderer(Renderer* renderer, int width, int height)
 	renderer->gbuffer = CreateGBuffer(width, height);
 }
 
-void RenderMesh(Renderer* renderer, Mesh* mesh, mat4 transform)
+void RenderMesh(Renderer* renderer, Mesh* mesh, SkeletonState* skeleton, mat4 transform)
 {
 	MeshDrawData data = {};
 	data.mesh = mesh;
 	data.transform = transform;
-	renderer->meshes.add(data);
+	data.skeleton = skeleton;
+
+	if (skeleton)
+		renderer->animatedMeshes.add(data);
+	else
+		renderer->meshes.add(data);
+}
+
+void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform)
+{
+	for (int i = 0; i < model->numMeshes; i++)
+	{
+		RenderMesh(renderer, &model->meshes[i], &animation->skeletons[i], transform);
+	}
 }
 
 void RenderLight(Renderer* renderer, vec3 position, vec3 color)
@@ -273,17 +278,30 @@ void RenderLight(Renderer* renderer, vec3 position, vec3 color)
 	renderer->pointLights.add(data);
 }
 
-static void SubmitMesh(Mesh* mesh, const mat4& transform, const mat4& pv, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
+static void SubmitMesh(Renderer* renderer, Mesh* mesh, SkeletonState* skeleton, const mat4& transform, const mat4& pv, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
 {
-	SDL_GPUBufferBinding vertexBindings[2];
-	vertexBindings[0] = {};
-	vertexBindings[0].buffer = mesh->positionBuffer->buffer;
-	vertexBindings[0].offset = 0;
-	vertexBindings[1] = {};
-	vertexBindings[1].buffer = mesh->normalBuffer->buffer;
-	vertexBindings[1].offset = 0;
+	if (skeleton)
+	{
+		SDL_GPUBufferBinding vertexBindings[3] = {};
+		vertexBindings[0].buffer = mesh->positionBuffer ? mesh->positionBuffer->buffer : renderer->emptyBuffer;
+		vertexBindings[0].offset = 0;
+		vertexBindings[1].buffer = mesh->normalBuffer ? mesh->normalBuffer->buffer : renderer->emptyBuffer;
+		vertexBindings[1].offset = 0;
+		vertexBindings[2].buffer = mesh->weightsBuffer ? mesh->weightsBuffer->buffer : renderer->emptyBuffer;
+		vertexBindings[2].offset = 0;
 
-	SDL_BindGPUVertexBuffers(renderPass, 0, vertexBindings, 2);
+		SDL_BindGPUVertexBuffers(renderPass, 0, vertexBindings, 3);
+	}
+	else
+	{
+		SDL_GPUBufferBinding vertexBindings[2] = {};
+		vertexBindings[0].buffer = mesh->positionBuffer ? mesh->positionBuffer->buffer : renderer->emptyBuffer;
+		vertexBindings[0].offset = 0;
+		vertexBindings[1].buffer = mesh->normalBuffer ? mesh->normalBuffer->buffer : renderer->emptyBuffer;
+		vertexBindings[1].offset = 0;
+
+		SDL_BindGPUVertexBuffers(renderPass, 0, vertexBindings, 2);
+	}
 
 	SDL_GPUBufferBinding indexBinding = {};
 	indexBinding.buffer = mesh->indexBuffer->buffer;
@@ -291,13 +309,35 @@ static void SubmitMesh(Mesh* mesh, const mat4& transform, const mat4& pv, SDL_GP
 
 	SDL_BindGPUIndexBuffer(renderPass, &indexBinding, mesh->indexBuffer->elementSize);
 
-	struct UniformData
+	if (skeleton)
 	{
-		mat4 projectionViewModel;
-	};
-	UniformData uniforms = {};
-	uniforms.projectionViewModel = pv * transform;
-	SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+		struct UniformData
+		{
+			mat4 projectionViewModel;
+			mat4 model;
+			mat4 boneTransforms[MAX_BONES];
+		};
+		UniformData uniforms = {};
+		uniforms.projectionViewModel = pv * transform;
+		uniforms.model = transform;
+
+		SDL_memcpy(uniforms.boneTransforms, skeleton->boneTransforms, skeleton->numBones * sizeof(mat4));
+
+		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+	}
+	else
+	{
+		struct UniformData
+		{
+			mat4 projectionViewModel;
+			mat4 model;
+		};
+		UniformData uniforms = {};
+		uniforms.projectionViewModel = pv * transform;
+		uniforms.model = transform;
+
+		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+	}
 
 	SDL_DrawGPUIndexedPrimitives(renderPass, mesh->indexCount, 1, 0, 0, 0);
 }
@@ -330,7 +370,17 @@ void RendererShow(Renderer* renderer, mat4 projection, mat4 view, float near, fl
 
 		for (int i = 0; i < renderer->meshes.size; i++)
 		{
-			SubmitMesh(renderer->meshes[i].mesh, renderer->meshes[i].transform, pv, renderPass, cmdBuffer);
+			SubmitMesh(renderer, renderer->meshes[i].mesh, nullptr, renderer->meshes[i].transform, pv, renderPass, cmdBuffer);
+		}
+
+		SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
+
+		for (int i = 0; i < renderer->animatedMeshes.size; i++)
+		{
+			Mesh* mesh = renderer->animatedMeshes[i].mesh;
+			SkeletonState* skeleton = renderer->animatedMeshes[i].skeleton;
+			const mat4& transform = renderer->animatedMeshes[i].transform;
+			SubmitMesh(renderer, mesh, skeleton, transform, pv, renderPass, cmdBuffer);
 		}
 
 		SDL_EndGPURenderPass(renderPass);
@@ -362,7 +412,6 @@ void RendererShow(Renderer* renderer, mat4 projection, mat4 view, float near, fl
 		}
 
 		// directional lights
-		if (false)
 		{
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->directionalLightPipeline->pipeline);
 
@@ -450,5 +499,6 @@ void RendererShow(Renderer* renderer, mat4 projection, mat4 view, float near, fl
 	}
 
 	renderer->meshes.clear();
+	renderer->animatedMeshes.clear();
 	renderer->pointLights.clear();
 }

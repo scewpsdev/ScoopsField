@@ -110,7 +110,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)src\spirv_cross\;D:\Repositories\SDL3-main\include\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)src\spirv_cross\;D:\Repositories\SDL3-main\include\;D:\Repositories\SDL3-main\src\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -129,7 +129,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)src\spirv_cross\;D:\Repositories\SDL3-main\include\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)src\spirv_cross\;D:\Repositories\SDL3-main\include\;D:\Repositories\SDL3-main\src\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -160,6 +160,8 @@
     <ClCompile Include="src\graphics\Texture.cpp" />
     <ClCompile Include="src\graphics\TransferBuffer.cpp" />
     <ClCompile Include="src\graphics\VertexBuffer.cpp" />
+    <ClCompile Include="src\model\Animation.cpp" />
+    <ClCompile Include="src\model\AnimationCache.cpp" />
     <ClCompile Include="src\SDL3_shadercross\SDL_shadercross.c" />
     <ClCompile Include="src\spirv_cross\spirv_cfg.cpp" />
     <ClCompile Include="src\spirv_cross\spirv_cpp.cpp" />
@@ -178,7 +180,7 @@
     <ClCompile Include="src\math\Matrix.cpp" />
     <ClCompile Include="src\math\Quaternion.cpp" />
     <ClCompile Include="src\math\Vector.cpp" />
-    <ClCompile Include="src\model\Mesh.cpp" />
+    <ClCompile Include="src\model\Model.cpp" />
     <ClCompile Include="src\renderer\Renderer.cpp" />
     <ClCompile Include="src\renderer\DebugTextRenderer.cpp" />
     <ClCompile Include="src\renderer\ScreenQuad.cpp" />
@@ -200,6 +202,8 @@
     <ClInclude Include="src\graphics\TransferBuffer.h" />
     <ClInclude Include="src\graphics\VertexBuffer.h" />
     <ClInclude Include="src\math\Shape.h" />
+    <ClInclude Include="src\model\Animation.h" />
+    <ClInclude Include="src\model\AnimationCache.h" />
     <ClInclude Include="src\SDL3_shadercross\SDL_shadercross.h" />
     <ClInclude Include="src\spirv_cross\GLSL.std.450.h" />
     <ClInclude Include="src\spirv_cross\spirv.h" />
@@ -225,7 +229,7 @@
     <ClInclude Include="src\math\Matrix.h" />
     <ClInclude Include="src\math\Quaternion.h" />
     <ClInclude Include="src\math\Vector.h" />
-    <ClInclude Include="src\model\Mesh.h" />
+    <ClInclude Include="src\model\Model.h" />
     <ClInclude Include="src\renderer\Renderer.h" />
     <ClInclude Include="src\renderer\DebugTextRenderer.h" />
     <ClInclude Include="src\renderer\ScreenQuad.h" />
@@ -251,6 +255,7 @@
     <None Include="res\shaders\common.shader" />
     <None Include="res\shaders\copy_depth.frag" />
     <None Include="res\shaders\copy_depth.vert" />
+    <None Include="res\shaders\mesh_animated.vert" />
     <None Include="res\shaders\tonemapping.frag" />
     <None Include="res\shaders\tonemapping.vert" />
     <None Include="res\shaders\glyph.frag" />

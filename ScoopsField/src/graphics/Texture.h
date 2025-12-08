@@ -22,5 +22,6 @@ struct Texture
 
 
 Texture* LoadTexture(const char* path, SDL_GPUCommandBuffer* cmdBuffer);
+Texture* LoadTextureFromData(const uint8_t* data, uint32_t size, const TextureInfo* info, SDL_GPUCommandBuffer* cmdBuffer);
 
 void DestroyTexture(Texture* texture);
