@@ -76,6 +76,7 @@ struct Renderer
 
 	SDL_GPUSampler* defaultSampler;
 	SDL_GPUBuffer* emptyBuffer;
+	SDL_GPUTexture* emptyTexture;
 };
 
 

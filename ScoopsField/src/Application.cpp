@@ -7,6 +7,8 @@
 GameMemory* memory;
 AppState* app;
 GraphicsState* graphics;
+AudioState* audio;
+PhysicsState* physics;
 ResourceState* resource;
 GameState* game;
 
@@ -18,7 +20,8 @@ float deltaTime;
 float gameTime;
 int fps;
 float avgMs;
-int allocationsPerFrame;
+int platformAllocationsPerFrame;
+int physicsAllocationsPerFrame;
 
 SDL_GPUTexture* swapchain = nullptr;
 
@@ -61,6 +64,8 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, AppSt
 	::memory = memory;
 	app = appState;
 	graphics = &app->graphics;
+	audio = &app->audio;
+	physics = &app->physics;
 	resource = &app->resourceState;
 	game = &app->game;
 	window = app->window;
@@ -79,8 +84,7 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, AppSt
 
 	SDL_GetMouseState(&app->lastMousePosition.x, &app->lastMousePosition.y);
 
-	if (!InitAudio(&app->audio))
-		return SDL_APP_FAILURE;
+	InitPhysics(&app->physics);
 
 	SDL_GPUCommandBuffer* cmdBuffer = SDL_AcquireGPUCommandBuffer(device);
 
@@ -108,12 +112,16 @@ extern "C" __declspec(dllexport) void AppDestroy(GameMemory* memory, AppState* a
 	::memory = memory;
 	app = appState;
 	graphics = &app->graphics;
+	audio = &app->audio;
+	physics = &app->physics;
 	resource = &app->resourceState;
 	game = &app->game;
 	window = app->window;
 	device = app->device;
 
 	GameDestroy();
+
+	DestroyPhysics(&app->physics);
 }
 
 extern "C" __declspec(dllexport) SDL_AppResult AppOnEvent(GameMemory* memory, AppState* appState, SDL_Event* event)
@@ -142,10 +150,14 @@ static void RenderDebugStats()
 	char platformMemoryUsageStr[16];
 	MemoryString(platformMemoryUsageStr, 16, memory->platformMemoryUsage);
 
+	char physicsMemoryUsageStr[16];
+	MemoryString(physicsMemoryUsageStr, 16, memory->physicsMemoryUsage);
+
 	DebugText(0, 0, COLOR_WHITE, COLOR_BLACK, "%d fps, %.3f ms", fps, avgMs);
-	DebugText(0, 1, COLOR_WHITE, COLOR_BLACK, "platform %s, %d allocations, %d per frame", platformMemoryUsageStr, memory->platformAllocationCount, allocationsPerFrame);
-	DebugText(0, 2, COLOR_WHITE, COLOR_BLACK, "constant %s, %d allocations", memoryUsageStr, memory->constantAllocator.count);
-	DebugText(0, 3, COLOR_WHITE, COLOR_BLACK, "transient %s, %d allocations", transientMemoryUsageStr, memory->transientAllocator.count);
+	DebugText(0, 1, COLOR_WHITE, COLOR_BLACK, "platform %s, %d allocations, %d per frame", platformMemoryUsageStr, memory->platformAllocationCount, platformAllocationsPerFrame);
+	DebugText(0, 2, COLOR_WHITE, COLOR_BLACK, "physics %s, %d allocations, %d per frame", physicsMemoryUsageStr, memory->physicsAllocationCount, physicsAllocationsPerFrame);
+	DebugText(0, 3, COLOR_WHITE, COLOR_BLACK, "constant %s, %d allocations", memoryUsageStr, memory->constantAllocator.count);
+	DebugText(0, 4, COLOR_WHITE, COLOR_BLACK, "transient %s, %d allocations", transientMemoryUsageStr, memory->transientAllocator.count);
 }
 
 extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* appState)
@@ -153,6 +165,8 @@ extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* a
 	::memory = memory;
 	app = appState;
 	graphics = &app->graphics;
+	audio = &app->audio;
+	physics = &app->physics;
 	resource = &app->resourceState;
 	game = &app->game;
 	window = app->window;
@@ -162,8 +176,11 @@ extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* a
 	deltaTime = (app->now - app->lastFrame) / 1e9f;
 	gameTime += deltaTime;
 
-	allocationsPerFrame = memory->platformAllocationsPerFrame;
+	platformAllocationsPerFrame = max(platformAllocationsPerFrame, memory->platformAllocationsPerFrame);
 	memory->platformAllocationsPerFrame = 0;
+
+	physicsAllocationsPerFrame = max(physicsAllocationsPerFrame, memory->physicsAllocationsPerFrame);
+	memory->physicsAllocationsPerFrame = 0;
 
 	if (app->now - app->lastSecond >= 1e9)
 	{
@@ -173,23 +190,35 @@ extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* a
 
 		app->frameCounter = 0;
 		app->lastSecond = app->now;
+
+		platformAllocationsPerFrame = 0;
+		physicsAllocationsPerFrame = 0;
 	}
 
 	app->keys = SDL_GetKeyboardState(&app->numKeys);
 	app->mouseButtons = SDL_GetMouseState(&app->mousePosition.x, &app->mousePosition.y);
 	SDL_GetRelativeMouseState(&app->mouseDelta.x, &app->mouseDelta.y);
 
+	EndPhysicsFrame(&app->physics);
+
+	GameUpdate();
+
+	DebugTextRendererBegin(&app->debugTextRenderer);
+	RenderDebugStats();
+	GameRender();
+
+	StartPhysicsFrame(&app->physics);
+
 	SDL_GPUCommandBuffer* cmdBuffer = SDL_AcquireGPUCommandBuffer(device);
 
 	Uint32 swapchainWidth, swapchainHeight;
 	SDL_WaitAndAcquireGPUSwapchainTexture(cmdBuffer, app->window, &swapchain, &swapchainWidth, &swapchainHeight);
 
-	DebugTextRendererBegin(&app->debugTextRenderer);
-	RenderDebugStats();
+	mat4 projection = mat4::Perspective(90 * Deg2Rad, width / (float)height, game->cameraNear, game->cameraFar);
+	Quaternion invCameraRotation = Quaternion::FromAxisAngle(vec3::Right, -game->cameraPitch) * Quaternion::FromAxisAngle(vec3::Up, -game->cameraYaw);
+	mat4 view = mat4::Rotate(invCameraRotation) * mat4::Translate(-game->cameraPosition);
 
-	GameUpdate();
-	GameRender(cmdBuffer);
-
+	RendererShow(&game->renderer, projection, view, game->cameraNear, game->cameraFar, cmdBuffer);
 	DebugTextRendererEnd(&app->debugTextRenderer, width, height, cmdBuffer);
 
 	SDL_SubmitGPUCommandBuffer(cmdBuffer);

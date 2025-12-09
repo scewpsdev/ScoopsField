@@ -4,6 +4,8 @@
 
 #include <SDL3/SDL.h>
 
+#include <soloud/soloud.h>
+
 #include "Application.h"
 
 #include "utils/BumpAllocator.h"
@@ -17,7 +19,6 @@
 
 
 static GameMemory memory;
-static HashMap<void*, uint64_t, 4000> platformAllocations;
 
 static SDL_malloc_func defaultMalloc;
 static SDL_calloc_func defaultCalloc;
@@ -60,8 +61,8 @@ void* SDLmalloc(size_t size)
 	memory.platformAllocationCount++;
 	memory.platformAllocationsPerFrame++;
 	void* mem = defaultMalloc(size);
-	if (HashMapHasSlot(&platformAllocations))
-		HashMapAdd(&platformAllocations, mem, size);
+	if (HashMapHasSlot(&memory.platformAllocations))
+		HashMapAdd(&memory.platformAllocations, mem, size);
 	return mem;
 }
 
@@ -70,8 +71,8 @@ void* SDLcalloc(size_t nmemb, size_t size)
 	memory.platformMemoryUsage += nmemb * size;
 	memory.platformAllocationCount++;
 	void* mem = defaultCalloc(nmemb, size);
-	if (HashMapHasSlot(&platformAllocations))
-		HashMapAdd(&platformAllocations, mem, nmemb * size);
+	if (HashMapHasSlot(&memory.platformAllocations))
+		HashMapAdd(&memory.platformAllocations, mem, nmemb * size);
 	return mem;
 }
 
@@ -88,7 +89,7 @@ void* SDLrealloc(void* mem, size_t size)
 	void* newMem = defaultRealloc(mem, size);
 	if (newMem == mem)
 	{
-		if (uint64_t* memsize = HashMapGet(&platformAllocations, mem))
+		if (uint64_t* memsize = HashMapGet(&memory.platformAllocations, mem))
 		{
 			memory.platformMemoryUsage += size - *memsize;
 			*memsize = size;
@@ -96,10 +97,10 @@ void* SDLrealloc(void* mem, size_t size)
 	}
 	else
 	{
-		if (uint64_t* memsize = HashMapRemove(&platformAllocations, mem))
+		if (uint64_t* memsize = HashMapRemove(&memory.platformAllocations, mem))
 		{
 			memory.platformMemoryUsage += size - *memsize;
-			HashMapAdd(&platformAllocations, newMem, size);
+			HashMapAdd(&memory.platformAllocations, newMem, size);
 		}
 	}
 	return newMem;
@@ -108,7 +109,7 @@ void* SDLrealloc(void* mem, size_t size)
 void SDLfree(void* mem)
 {
 	defaultFree(mem);
-	if (uint64_t* memsize = HashMapRemove(&platformAllocations, mem))
+	if (uint64_t* memsize = HashMapRemove(&memory.platformAllocations, mem))
 	{
 		memory.platformMemoryUsage -= *memsize;
 		memory.platformAllocationCount--;
@@ -117,9 +118,6 @@ void SDLfree(void* mem)
 
 int main(int argc, char** argv)
 {
-	InitHashMap(&platformAllocations);
-
-	memory = {};
 	memory.constantMemorySize = Gigabytes(2);
 	memory.transientMemorySize = Megabytes(256);
 
@@ -130,6 +128,9 @@ int main(int argc, char** argv)
 
 	InitBumpAllocator(&memory.constantAllocator, memory.constantMemory, memory.constantMemorySize);
 	InitBumpAllocator(&memory.transientAllocator, memory.transientMemory, memory.transientMemorySize);
+
+	InitHashMap(&memory.platformAllocations);
+	InitHashMap(&memory.physicsAllocations);
 
 	AppState* appState = (AppState*)(BumpAllocatorMalloc(&memory.constantAllocator, sizeof(AppState)));
 	InitPlatformCallbacks(&appState->platformCallbacks);
@@ -184,10 +185,19 @@ int main(int argc, char** argv)
 		SDL_LogError(SDL_LOG_CATEGORY_GPU, "Failed to set swapchain parameters: %s", SDL_GetError());
 	}
 
+	SoLoud::Soloud soloud;
+	if (SoLoud::result result = soloud.init())
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to initialize audio backend: %s", soloud.getErrorString(result));
+		SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "%s", SDL_GetError());
+		return 1;
+	}
+	InitAudio(&appState->audio, &soloud);
+
+	SDL_Log("Audio backend: %s", soloud.getBackendString());
+
 	appState->window = window;
 	appState->device = device;
-
-	SDL_Log("Loading game code\n");
 
 	SDL_AppResult result = AppInit(&memory, appState, argc, argv);
 	if (result == SDL_APP_FAILURE)
@@ -222,19 +232,26 @@ int main(int argc, char** argv)
 				running = false;
 		}
 
+		UpdateAudio(&appState->audio);
+
 		AppIterate(&memory, appState);
 
 		ResetBumpAllocator(&memory.transientAllocator);
 	}
 
+	SDL_HideWindow(window);
+
 	AppDestroy(&memory, appState, result);
 
-	VirtualFree(memory.constantMemory, 0, MEM_RELEASE);
+	soloud.stopAll();
+	soloud.deinit();
 
 	SDL_DestroyGPUDevice(device);
 	SDL_DestroyWindow(window);
 
 	SDL_Quit();
+
+	VirtualFree(memory.constantMemory, 0, MEM_RELEASE);
 
 	return 0;
 }

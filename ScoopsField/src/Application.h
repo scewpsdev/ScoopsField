@@ -22,6 +22,10 @@
 
 #include "audio/Audio.h"
 
+#include "physics/Physics.h"
+#include "physics/RigidBody.h"
+#include "physics/CharacterController.h"
+
 #include "model/Model.h"
 #include "model/Animation.h"
 
@@ -33,6 +37,7 @@
 #include "utils/BumpAllocator.h"
 #include "utils/Queue.h"
 #include "utils/Pool.h"
+#include "utils/HashMap.h"
 
 
 #define PROJECT_PATH "D:\\Dev\\ScoopsField\\ScoopsField"
@@ -49,9 +54,15 @@ struct GameMemory
 	BumpAllocator constantAllocator;
 	BumpAllocator transientAllocator;
 
+	HashMap<void*, uint64_t, 4000> platformAllocations;
 	uint64_t platformMemoryUsage;
 	int platformAllocationCount;
 	int platformAllocationsPerFrame;
+
+	HashMap<void*, uint64_t, 4000> physicsAllocations;
+	uint64_t physicsMemoryUsage;
+	int physicsAllocationCount;
+	int physicsAllocationsPerFrame;
 };
 
 struct PlatformCallbacks
@@ -109,6 +120,17 @@ struct GameState
 
 	Model model;
 	AnimationState modelAnim;
+
+	Model cube;
+
+	RigidBody platform;
+
+	RigidBody cubeBodies[100];
+	int numCubeBodies;
+
+	CharacterController controller;
+
+	Sound testSound;
 };
 
 struct AppState
@@ -135,6 +157,7 @@ struct AppState
 
 	GraphicsState graphics;
 	AudioState audio;
+	PhysicsState physics;
 	ResourceState resourceState;
 	GameState game;
 

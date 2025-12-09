@@ -108,17 +108,16 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WITH_SDL3;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)include\;$(ProjectDir)include\spirv_cross\;$(ProjectDir)include\soloud\;D:\Repositories\SDL3-main\include\;D:\Repositories\SDL3-main\src\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)include\;$(ProjectDir)include\physx\;D:\Repositories\SDL3-main\include\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PreprocessorDefinitions>PX_PHYSX_STATIC_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>
-      </AdditionalLibraryDirectories>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)lib\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>LowLevel_static_64.lib;LowLevelAABB_static_64.lib;LowLevelDynamics_static_64.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle_static_64.lib;PhysXVehicle2_static_64.lib;SceneQuery_static_64.lib;SimulationController_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -127,21 +126,20 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WITH_SDL3;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)include\;$(ProjectDir)include\spirv_cross\;$(ProjectDir)include\soloud\;D:\Repositories\SDL3-main\include\;D:\Repositories\SDL3-main\src\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)include\;$(ProjectDir)include\physx\;D:\Repositories\SDL3-main\include\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
+      <PreprocessorDefinitions>PX_PHYSX_STATIC_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>
-      </AdditionalLibraryDirectories>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)lib\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>LowLevel_static_64.lib;LowLevelAABB_static_64.lib;LowLevelDynamics_static_64.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle_static_64.lib;PhysXVehicle2_static_64.lib;SceneQuery_static_64.lib;SimulationController_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -168,87 +166,13 @@
     <ClCompile Include="src\model\Animation.cpp" />
     <ClCompile Include="src\model\AnimationCache.cpp" />
     <ClCompile Include="src\model\Model.cpp" />
+    <ClCompile Include="src\physics\CharacterController.cpp" />
+    <ClCompile Include="src\physics\Physics.cpp" />
+    <ClCompile Include="src\physics\RigidBody.cpp" />
     <ClCompile Include="src\renderer\DebugTextRenderer.cpp" />
     <ClCompile Include="src\renderer\Renderer.cpp" />
     <ClCompile Include="src\renderer\ScreenQuad.cpp" />
     <ClCompile Include="src\Resource.cpp" />
-    <ClCompile Include="src\SDL3_shadercross\SDL_shadercross.c" />
-    <ClCompile Include="src\soloud\audiosource\ay\chipplayer.cpp" />
-    <ClCompile Include="src\soloud\audiosource\ay\sndbuffer.cpp" />
-    <ClCompile Include="src\soloud\audiosource\ay\sndchip.cpp" />
-    <ClCompile Include="src\soloud\audiosource\ay\sndrender.cpp" />
-    <ClCompile Include="src\soloud\audiosource\ay\soloud_ay.cpp" />
-    <ClCompile Include="src\soloud\audiosource\monotone\soloud_monotone.cpp" />
-    <ClCompile Include="src\soloud\audiosource\noise\soloud_noise.cpp" />
-    <ClCompile Include="src\soloud\audiosource\openmpt\soloud_openmpt.cpp" />
-    <ClCompile Include="src\soloud\audiosource\openmpt\soloud_openmpt_dll.c" />
-    <ClCompile Include="src\soloud\audiosource\sfxr\soloud_sfxr.cpp" />
-    <ClCompile Include="src\soloud\audiosource\speech\darray.cpp" />
-    <ClCompile Include="src\soloud\audiosource\speech\klatt.cpp" />
-    <ClCompile Include="src\soloud\audiosource\speech\resonator.cpp" />
-    <ClCompile Include="src\soloud\audiosource\speech\soloud_speech.cpp" />
-    <ClCompile Include="src\soloud\audiosource\speech\tts.cpp" />
-    <ClCompile Include="src\soloud\audiosource\tedsid\sid.cpp" />
-    <ClCompile Include="src\soloud\audiosource\tedsid\soloud_tedsid.cpp" />
-    <ClCompile Include="src\soloud\audiosource\tedsid\ted.cpp" />
-    <ClCompile Include="src\soloud\audiosource\vic\soloud_vic.cpp" />
-    <ClCompile Include="src\soloud\audiosource\vizsn\soloud_vizsn.cpp" />
-    <ClCompile Include="src\soloud\audiosource\wav\dr_impl.cpp" />
-    <ClCompile Include="src\soloud\audiosource\wav\soloud_wav.cpp" />
-    <ClCompile Include="src\soloud\audiosource\wav\soloud_wavstream.cpp" />
-    <ClCompile Include="src\soloud\audiosource\wav\stb_impl.cpp" />
-    <ClCompile Include="src\soloud\audiosource\wav\stb_vorbis.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="src\soloud\backend\sdl3_static\soloud_sdl3_static.cpp" />
-    <ClCompile Include="src\soloud\backend\sdl\soloud_sdl1.cpp" />
-    <ClCompile Include="src\soloud\backend\sdl\soloud_sdl1_dll.c" />
-    <ClCompile Include="src\soloud\backend\sdl\soloud_sdl2.cpp" />
-    <ClCompile Include="src\soloud\backend\sdl\soloud_sdl2_dll.c" />
-    <ClCompile Include="src\soloud\backend\sdl\soloud_sdl3.cpp" />
-    <ClCompile Include="src\soloud\backend\sdl\soloud_sdl3_dll.c" />
-    <ClCompile Include="src\soloud\core\soloud.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_audiosource.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_bus.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_core_3d.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_core_basicops.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_core_faderops.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_core_filterops.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_core_getters.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_core_setters.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_core_voicegroup.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_core_voiceops.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_fader.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_fft.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_fft_lut.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_file.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_filter.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_misc.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_queue.cpp" />
-    <ClCompile Include="src\soloud\core\soloud_thread.cpp" />
-    <ClCompile Include="src\soloud\filter\soloud_bassboostfilter.cpp" />
-    <ClCompile Include="src\soloud\filter\soloud_biquadresonantfilter.cpp" />
-    <ClCompile Include="src\soloud\filter\soloud_dcremovalfilter.cpp" />
-    <ClCompile Include="src\soloud\filter\soloud_duckfilter.cpp" />
-    <ClCompile Include="src\soloud\filter\soloud_echofilter.cpp" />
-    <ClCompile Include="src\soloud\filter\soloud_eqfilter.cpp" />
-    <ClCompile Include="src\soloud\filter\soloud_fftfilter.cpp" />
-    <ClCompile Include="src\soloud\filter\soloud_flangerfilter.cpp" />
-    <ClCompile Include="src\soloud\filter\soloud_freeverbfilter.cpp" />
-    <ClCompile Include="src\soloud\filter\soloud_lofifilter.cpp" />
-    <ClCompile Include="src\soloud\filter\soloud_robotizefilter.cpp" />
-    <ClCompile Include="src\soloud\filter\soloud_waveshaperfilter.cpp" />
-    <ClCompile Include="src\spirv_cross\spirv_cfg.cpp" />
-    <ClCompile Include="src\spirv_cross\spirv_cpp.cpp" />
-    <ClCompile Include="src\spirv_cross\spirv_cross.cpp" />
-    <ClCompile Include="src\spirv_cross\spirv_cross_c.cpp" />
-    <ClCompile Include="src\spirv_cross\spirv_cross_parsed_ir.cpp" />
-    <ClCompile Include="src\spirv_cross\spirv_cross_util.cpp" />
-    <ClCompile Include="src\spirv_cross\spirv_glsl.cpp" />
-    <ClCompile Include="src\spirv_cross\spirv_hlsl.cpp" />
-    <ClCompile Include="src\spirv_cross\spirv_msl.cpp" />
-    <ClCompile Include="src\spirv_cross\spirv_parser.cpp" />
-    <ClCompile Include="src\spirv_cross\spirv_reflect.cpp" />
     <ClCompile Include="src\utils\BinaryReader.cpp" />
     <ClCompile Include="src\utils\Hash.cpp" />
     <ClCompile Include="src\utils\Simplex.cpp" />
@@ -276,6 +200,9 @@
     <ClInclude Include="src\model\Animation.h" />
     <ClInclude Include="src\model\AnimationCache.h" />
     <ClInclude Include="src\model\Model.h" />
+    <ClInclude Include="src\physics\CharacterController.h" />
+    <ClInclude Include="src\physics\Physics.h" />
+    <ClInclude Include="src\physics\RigidBody.h" />
     <ClInclude Include="src\renderer\DebugTextRenderer.h" />
     <ClInclude Include="src\renderer\Renderer.h" />
     <ClInclude Include="src\renderer\ScreenQuad.h" />
@@ -284,16 +211,6 @@
     <ClInclude Include="src\soloud\audiosource\ay\sndbuffer.h" />
     <ClInclude Include="src\soloud\audiosource\ay\sndchip.h" />
     <ClInclude Include="src\soloud\audiosource\ay\sndrender.h" />
-    <ClInclude Include="src\soloud\audiosource\speech\darray.h" />
-    <ClInclude Include="src\soloud\audiosource\speech\klatt.h" />
-    <ClInclude Include="src\soloud\audiosource\speech\resonator.h" />
-    <ClInclude Include="src\soloud\audiosource\speech\tts.h" />
-    <ClInclude Include="src\soloud\audiosource\tedsid\sid.h" />
-    <ClInclude Include="src\soloud\audiosource\tedsid\ted.h" />
-    <ClInclude Include="src\soloud\audiosource\wav\dr_flac.h" />
-    <ClInclude Include="src\soloud\audiosource\wav\dr_mp3.h" />
-    <ClInclude Include="src\soloud\audiosource\wav\dr_wav.h" />
-    <ClInclude Include="src\soloud\audiosource\wav\stb_vorbis.h" />
     <ClInclude Include="src\spirv_cross\spirv.h" />
     <ClInclude Include="src\spirv_cross\spirv.hpp" />
     <ClInclude Include="src\spirv_cross\spirv_cfg.hpp" />
@@ -328,6 +245,9 @@
     <ProjectReference Include="..\..\..\Repositories\SDL3-main\VisualC\SDL\SDL.vcxproj">
       <Project>{81ce8daf-ebb2-4761-8e45-b71abcca8c68}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\Dependencies\Dependencies.vcxproj">
+      <Project>{0e029a39-cbb7-49d1-93b4-bdbd20099785}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\clear_buffer.comp" />
@@ -347,7 +267,6 @@
     <None Include="res\shaders\mesh.vert" />
     <None Include="res\shaders\sprite.frag" />
     <None Include="res\shaders\sprite.vert" />
-    <None Include="src\soloud\audiosource\speech\Elements.def" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

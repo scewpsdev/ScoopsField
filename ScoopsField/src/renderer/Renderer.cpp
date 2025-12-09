@@ -225,6 +225,17 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	emptyBufferInfo.size = 4;
 	emptyBufferInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
 	renderer->emptyBuffer = SDL_CreateGPUBuffer(device, &emptyBufferInfo);
+
+	SDL_GPUTextureCreateInfo emptyTextureInfo = {};
+	emptyTextureInfo.type = SDL_GPU_TEXTURETYPE_2D;
+	emptyTextureInfo.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+	emptyTextureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+	emptyTextureInfo.width = 1;
+	emptyTextureInfo.height = 1;
+	emptyTextureInfo.layer_count_or_depth = 1;
+	emptyTextureInfo.num_levels = 1;
+	emptyTextureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
+	renderer->emptyTexture = SDL_CreateGPUTexture(device, &emptyTextureInfo);
 }
 
 void DestroyRenderer(Renderer* renderer)
@@ -282,7 +293,7 @@ void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, ma
 	{
 		Mesh* mesh = &model->meshes[i];
 		Material* material = mesh->materialID != -1 ? &model->materials[mesh->materialID] : nullptr;
-		RenderMesh(renderer, mesh, material, &animation->skeletons[i], transform);
+		RenderMesh(renderer, mesh, material, animation ? &animation->skeletons[i] : nullptr, transform);
 	}
 }
 
@@ -371,7 +382,7 @@ static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, Skele
 		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 		SDL_GPUTextureSamplerBinding textureBindings[1] = {};
-		textureBindings[0].texture = material && material->diffuse ? material->diffuse->handle : nullptr;
+		textureBindings[0].texture = material && material->diffuse ? material->diffuse->handle : renderer->emptyTexture;
 		textureBindings[0].sampler = renderer->defaultSampler;
 		SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, 1);
 	}

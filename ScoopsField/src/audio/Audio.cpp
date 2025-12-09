@@ -1,28 +1,20 @@
 #include "Audio.h"
 
-#include <soloud/soloud_backend_data_sdl3.h>
+#include <new>
 
 
-// we need this because c++ is a garbage language that cant allocate simple structs from a preallocated buffer.
-// good job bjarne. clap clap.
-#define InitTrashCppObject(x, T) { T t; SDL_memcpy(x, &t, sizeof(T)); }
+#define InitTrashCppObject(x, T) new(x)T()
 
 
 using namespace SoLoud;
 
 
-bool InitAudio(AudioState* audio)
-{
-	SoLoudClientDataSdl3 clientData(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK);
-	result result = audio->soloud.init(1, Soloud::BACKENDS::SDL3, 0, 0, 2, &clientData);
-	if (result)
-	{
-		SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to initialize audio backend: %s", audio->soloud.getErrorString(result));
-		SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "%s", SDL_GetError());
-		return false;
-	}
+extern AudioState* audio;
 
-	SDL_Log("Audio backend: %s", audio->soloud.getBackendString());
+
+bool InitAudio(AudioState* audio, SoLoud::Soloud* soloud)
+{
+	audio->soloud = soloud;
 
 	InitTrashCppObject(&audio->reverb, FreeverbFilter);
 	audio->reverb.setParams(0.0f, 0.5f, 0.5f, 1.0f);
@@ -30,18 +22,45 @@ bool InitAudio(AudioState* audio)
 	InitTrashCppObject(&audio->defaultBus, Bus);
 
 	InitTrashCppObject(&audio->reverbBus, Bus);
-	audio->reverbBus.setFilter(1, &audio->reverb);
+	audio->reverbBus.setFilter(0, &audio->reverb);
 
 	InitTrashCppObject(&audio->musicBus, Bus);
 
 	// We need to play 3d sounds over a default bus,
 	// otherwise sound attenuation will glitch for the first frame of playing (yikes)
-	//defaultBus.set3dAttenuation(SoLoud::AudioSource::INVERSE_DISTANCE, 10);
-	audio->soloud.play(audio->defaultBus);
+	soloud->play(audio->defaultBus);
 
-	audio->reverbBusSource = audio->soloud.play(audio->reverbBus);
+	audio->reverbBusSource = soloud->play(audio->reverbBus);
 
-	audio->musicBusHandle = audio->soloud.playBackground(audio->musicBus);
+	audio->musicBusHandle = soloud->playBackground(audio->musicBus);
 
 	return true;
+}
+
+void UpdateAudio(AudioState* audio)
+{
+	audio->soloud->update3dAudio();
+}
+
+bool LoadSound(Sound* sound, const char* path)
+{
+	InitTrashCppObject(&sound->wav, Wav);
+	if (result result = sound->wav.load(path))
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to load sound %s", path);
+		return false;
+	}
+	return true;
+}
+
+uint32_t PlaySound(Sound* sound)
+{
+	uint32_t handle = audio->soloud->play(sound->wav);
+	return handle;
+}
+
+uint32_t PlaySound(Sound* sound, vec3 position)
+{
+	uint32_t handle = audio->defaultBus.play3d(sound->wav, position.x, position.y, position.z, 0, 0, 0, 1, false);
+	return handle;
 }
