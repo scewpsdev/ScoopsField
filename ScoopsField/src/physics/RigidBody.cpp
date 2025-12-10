@@ -22,7 +22,7 @@ static PxVec3 PxVector(const vec3& v)
 	return PxVec3(v.x, v.y, v.z);
 }
 
-static PxQuat PxQuaternion(const Quaternion& q)
+static PxQuat PxQuaternion(const quat& q)
 {
 	return PxQuat(q.x, q.y, q.z, q.w);
 }
@@ -32,12 +32,12 @@ static vec3 FromPxVector(const PxVec3& v)
 	return vec3(v.x, v.y, v.z);
 }
 
-static Quaternion FromPxQuaternion(const PxQuat& q)
+static quat FromPxQuaternion(const PxQuat& q)
 {
-	return Quaternion(q.x, q.y, q.z, q.w);
+	return quat(q.x, q.y, q.z, q.w);
 }
 
-static PxRigidActor* CreateActor(RigidBodyType type, const vec3& position, const Quaternion& rotation)
+static PxRigidActor* CreateActor(RigidBodyType type, const vec3& position, const quat& rotation)
 {
 	PxTransform transform(PxVector(position), PxQuaternion(rotation));
 
@@ -68,7 +68,7 @@ static PxRigidActor* CreateActor(RigidBodyType type, const vec3& position, const
 	return nullptr;
 }
 
-static void AddShape(PxRigidActor* actor, const PxGeometry& geometry, uint32_t filterGroup, uint32_t filterMask, const vec3& position, const Quaternion& rotation, bool dynamic, bool trigger)
+static void AddShape(PxRigidActor* actor, const PxGeometry& geometry, uint32_t filterGroup, uint32_t filterMask, const vec3& position, const quat& rotation, bool dynamic, bool trigger)
 {
 	SDL_assert(!(dynamic && trigger));
 
@@ -97,7 +97,7 @@ static void AddShape(PxRigidActor* actor, const PxGeometry& geometry, uint32_t f
 	}
 }
 
-void InitRigidBody(RigidBody* body, RigidBodyType type, const vec3& position, const Quaternion& rotation)
+void InitRigidBody(RigidBody* body, RigidBodyType type, const vec3& position, const quat& rotation)
 {
 	body->type = type;
 	body->actor = CreateActor(type, position, rotation);
@@ -113,32 +113,32 @@ void DestroyRigidBody(RigidBody* body)
 	}
 }
 
-void AddBoxCollider(RigidBody* body, const vec3& size, const vec3& position, const Quaternion& rotation, uint32_t filterGroup, uint32_t filterMask, bool trigger)
+void AddBoxCollider(RigidBody* body, const vec3& size, const vec3& position, const quat& rotation, uint32_t filterGroup, uint32_t filterMask, bool trigger)
 {
 	AddShape(body->actor, PxBoxGeometry(PxVector(size * 0.5f)), filterGroup, filterMask, position, rotation, body->type == RIGID_BODY_DYNAMIC, trigger);
 }
 
-void AddSphereCollider(RigidBody* body, float radius, const vec3& position, const Quaternion& rotation, uint32_t filterGroup, uint32_t filterMask, bool trigger)
+void AddSphereCollider(RigidBody* body, float radius, const vec3& position, const quat& rotation, uint32_t filterGroup, uint32_t filterMask, bool trigger)
 {
 	AddShape(body->actor, PxSphereGeometry(radius), filterGroup, filterMask, position, rotation, body->type == RIGID_BODY_DYNAMIC, trigger);
 }
 
-void AddCapsuleCollider(RigidBody* body, float radius, float height, const vec3& position, const Quaternion& rotation, uint32_t filterGroup, uint32_t filterMask, bool trigger)
+void AddCapsuleCollider(RigidBody* body, float radius, float height, const vec3& position, const quat& rotation, uint32_t filterGroup, uint32_t filterMask, bool trigger)
 {
 	AddShape(body->actor, PxCapsuleGeometry(radius, 0.5f * height - radius), filterGroup, filterMask, position, rotation, body->type == RIGID_BODY_DYNAMIC, trigger);
 }
 
-void AddMeshCollider(RigidBody* body, PxTriangleMesh* mesh, const vec3& position, const Quaternion& rotation, const vec3& scale, uint32_t filterGroup, uint32_t filterMask, bool trigger)
+void AddMeshCollider(RigidBody* body, PxTriangleMesh* mesh, const vec3& position, const quat& rotation, const vec3& scale, uint32_t filterGroup, uint32_t filterMask, bool trigger)
 {
 	AddShape(body->actor, PxTriangleMeshGeometry(mesh, PxMeshScale(PxVector(scale))), filterGroup, filterMask, position, rotation, body->type == RIGID_BODY_DYNAMIC, trigger);
 }
 
-void AddConvexMeshCollider(RigidBody* body, PxConvexMesh* mesh, const vec3& position, const Quaternion& rotation, const vec3& scale, uint32_t filterGroup, uint32_t filterMask, bool trigger)
+void AddConvexMeshCollider(RigidBody* body, PxConvexMesh* mesh, const vec3& position, const quat& rotation, const vec3& scale, uint32_t filterGroup, uint32_t filterMask, bool trigger)
 {
 	AddShape(body->actor, PxConvexMeshGeometry(mesh, PxMeshScale(PxVector(scale))), filterGroup, filterMask, position, rotation, body->type == RIGID_BODY_DYNAMIC, trigger);
 }
 
-void GetRigidBodyTransform(RigidBody* body, vec3* position, Quaternion* rotation)
+void GetRigidBodyTransform(RigidBody* body, vec3* position, quat* rotation)
 {
 	PxRigidBody* dynamic = body->actor->is<PxRigidBody>();
 	SDL_assert(dynamic);
@@ -148,7 +148,7 @@ void GetRigidBodyTransform(RigidBody* body, vec3* position, Quaternion* rotation
 	*rotation = FromPxQuaternion(transform.q);
 }
 
-void SetRigidBodyTransform(RigidBody* body, const vec3& position, const Quaternion& rotation)
+void SetRigidBodyTransform(RigidBody* body, const vec3& position, const quat& rotation)
 {
 	PxTransform transform(PxVector(position), PxQuaternion(rotation));
 

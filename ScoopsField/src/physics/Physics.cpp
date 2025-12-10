@@ -126,7 +126,7 @@ bool InitPhysics(PhysicsState* physics)
 
 	physics->controllers = PxCreateControllerManager(*physics->scene);
 
-	physics->material = physics->physics->createMaterial(0.5f, 0.5f, 0.1f);
+	physics->material = physics->physics->createMaterial(0.5f, 0.5f, 0.2f);
 
 	physics->timeAcc = 0.0f;
 	physics->running = false;

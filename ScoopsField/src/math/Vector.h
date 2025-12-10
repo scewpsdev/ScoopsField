@@ -233,6 +233,7 @@ struct ivec4
 
 
 	ivec4();
+	ivec4(int i);
 	ivec4(int x, int y, int z, int w);
 	ivec4(const ivec3& xyz, int w);
 };

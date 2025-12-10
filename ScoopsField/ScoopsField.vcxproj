@@ -148,6 +148,7 @@
     <ClCompile Include="src\file\Image.cpp" />
     <ClCompile Include="src\game\Game.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\graphics\GraphicsPipeline.cpp" />
     <ClCompile Include="src\graphics\IndexBuffer.cpp" />
@@ -171,6 +172,7 @@
     <ClCompile Include="src\physics\RigidBody.cpp" />
     <ClCompile Include="src\renderer\DebugTextRenderer.cpp" />
     <ClCompile Include="src\renderer\Renderer.cpp" />
+    <ClCompile Include="src\renderer\Renderer2D.cpp" />
     <ClCompile Include="src\renderer\ScreenQuad.cpp" />
     <ClCompile Include="src\Resource.cpp" />
     <ClCompile Include="src\utils\BinaryReader.cpp" />
@@ -205,6 +207,7 @@
     <ClInclude Include="src\physics\RigidBody.h" />
     <ClInclude Include="src\renderer\DebugTextRenderer.h" />
     <ClInclude Include="src\renderer\Renderer.h" />
+    <ClInclude Include="src\renderer\Renderer2D.h" />
     <ClInclude Include="src\renderer\ScreenQuad.h" />
     <ClInclude Include="src\Resource.h" />
     <ClInclude Include="src\soloud\audiosource\ay\chipplayer.h" />
@@ -255,6 +258,8 @@
     <None Include="res\shaders\copy_depth.frag" />
     <None Include="res\shaders\copy_depth.vert" />
     <None Include="res\shaders\mesh_animated.vert" />
+    <None Include="res\shaders\screenquad.frag" />
+    <None Include="res\shaders\screenquad.vert" />
     <None Include="res\shaders\tonemapping.frag" />
     <None Include="res\shaders\tonemapping.vert" />
     <None Include="res\shaders\glyph.frag" />

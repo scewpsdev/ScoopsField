@@ -3,7 +3,7 @@
 //layout (location = 0) in vec3 a_position;
 //layout (location = 1) in vec2 a_texcoord;
 
-layout (location = 0) out vec2 v_texcoord;
+layout (location = 0) out vec3 v_texcoord;
 layout (location = 1) out vec4 v_color;
 
 
@@ -12,7 +12,8 @@ struct SpriteData
 	vec3 position;
 	float rotation;
 	vec2 scale;
-	vec2 padding;
+    int textureID;
+	float padding;
 	vec4 rect;
 	vec4 color;
 };
@@ -59,6 +60,6 @@ void main()
 
     gl_Position = u_projectionView * vec4(position, 1.0f);
 
-    v_texcoord = texcoords[vertexIdx];
+    v_texcoord = vec3(texcoords[vertexIdx], sprite.textureID);
     v_color = sprite.color;
 }

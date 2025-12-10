@@ -7,6 +7,36 @@ extern SDL_GPUDevice* device;
 extern GraphicsState* graphics;
 
 
+static SDL_GPUTexture* CreateColorAttachment(int width, int height, const ColorAttachmentInfo* attachmentInfo)
+{
+	SDL_GPUTextureCreateInfo textureInfo = {};
+	textureInfo.type = SDL_GPU_TEXTURETYPE_2D;
+	textureInfo.format = attachmentInfo->format;
+	textureInfo.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | attachmentInfo->usage | (attachmentInfo->storeOp == SDL_GPU_STOREOP_DONT_CARE ? 0 : SDL_GPU_TEXTUREUSAGE_SAMPLER);
+	textureInfo.width = width;
+	textureInfo.height = height;
+	textureInfo.layer_count_or_depth = 1;
+	textureInfo.num_levels = 1;
+	textureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
+
+	return SDL_CreateGPUTexture(device, &textureInfo);
+}
+
+static SDL_GPUTexture* CreateDepthAttachment(int width, int height, const DepthAttachmentInfo* attachmentInfo)
+{
+	SDL_GPUTextureCreateInfo textureInfo = {};
+	textureInfo.type = SDL_GPU_TEXTURETYPE_2D;
+	textureInfo.format = attachmentInfo->format;
+	textureInfo.usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET | attachmentInfo->usage | (attachmentInfo->storeOp == SDL_GPU_STOREOP_DONT_CARE ? 0 : SDL_GPU_TEXTUREUSAGE_SAMPLER);
+	textureInfo.width = width;
+	textureInfo.height = height;
+	textureInfo.layer_count_or_depth = 1;
+	textureInfo.num_levels = 1;
+	textureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
+
+	return SDL_CreateGPUTexture(device, &textureInfo);
+}
+
 RenderTarget* CreateRenderTarget(int width, int height, int numColorAttachments, const ColorAttachmentInfo* colorAttachmentInfos, const DepthAttachmentInfo* depthAttachmentInfo)
 {
 	SDL_assert(graphics->numRenderTargets < MAX_RENDER_TARGETS);
@@ -15,42 +45,19 @@ RenderTarget* CreateRenderTarget(int width, int height, int numColorAttachments,
 
 	renderTarget->width = width;
 	renderTarget->height = height;
-	renderTarget->numColorAttachments = numColorAttachments;
 
+	renderTarget->numColorAttachments = numColorAttachments;
+	SDL_memcpy(renderTarget->colorAttachmentInfos, colorAttachmentInfos, numColorAttachments * sizeof(ColorAttachmentInfo));
 	for (int i = 0; i < numColorAttachments; i++)
 	{
-		SDL_GPUTextureCreateInfo textureInfo = {};
-		textureInfo.type = SDL_GPU_TEXTURETYPE_2D;          /**< The base dimensionality of the texture. */
-		textureInfo.format = colorAttachmentInfos[i].format;      /**< The pixel format of the texture. */
-		textureInfo.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | colorAttachmentInfos[i].usage | (colorAttachmentInfos[i].storeOp == SDL_GPU_STOREOP_DONT_CARE ? 0 : SDL_GPU_TEXTUREUSAGE_SAMPLER);   /**< How the texture is intended to be used by the client. */
-		textureInfo.width = width;                     /**< The width of the texture. */
-		textureInfo.height = height;                    /**< The height of the texture. */
-		textureInfo.layer_count_or_depth = 1;      /**< The layer count or depth of the texture. This value is treated as a layer count on 2D array textures, and as a depth value on 3D textures. */
-		textureInfo.num_levels = 1;                /**< The number of mip levels in the texture. */
-		textureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;  /**< The number of samples per texel. Only applies if the texture is used as a render target. */
-
-		renderTarget->colorAttachments[i] = SDL_CreateGPUTexture(device, &textureInfo);
+		renderTarget->colorAttachments[i] = CreateColorAttachment(width, height, &colorAttachmentInfos[i]);
 	}
-
-	SDL_memcpy(renderTarget->colorAttachmentInfos, colorAttachmentInfos, numColorAttachments * sizeof(ColorAttachmentInfo));
 
 	if (depthAttachmentInfo)
 	{
 		renderTarget->hasDepthAttachment = true;
-
-		SDL_GPUTextureCreateInfo textureInfo = {};
-		textureInfo.type = SDL_GPU_TEXTURETYPE_2D;
-		textureInfo.format = depthAttachmentInfo->format;
-		textureInfo.usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET | depthAttachmentInfo->usage | (depthAttachmentInfo->storeOp == SDL_GPU_STOREOP_DONT_CARE ? 0 : SDL_GPU_TEXTUREUSAGE_SAMPLER);
-		textureInfo.width = width;
-		textureInfo.height = height;
-		textureInfo.layer_count_or_depth = 1;
-		textureInfo.num_levels = 1;
-		textureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
-
-		renderTarget->depthAttachment = SDL_CreateGPUTexture(device, &textureInfo);
-
 		renderTarget->depthAttachmentInfo = *depthAttachmentInfo;
+		renderTarget->depthAttachment = CreateDepthAttachment(width, height, depthAttachmentInfo);
 	}
 
 	return renderTarget;
@@ -62,6 +69,27 @@ void DestroyRenderTarget(RenderTarget* renderTarget)
 	{
 		SDL_ReleaseGPUTexture(device, renderTarget->colorAttachments[i]);
 	}
+	if (renderTarget->hasDepthAttachment)
+	{
+		SDL_ReleaseGPUTexture(device, renderTarget->depthAttachment);
+	}
+}
+
+void ResizeRenderTarget(RenderTarget* renderTarget, int width, int height)
+{
+	for (int i = 0; i < renderTarget->numColorAttachments; i++)
+	{
+		SDL_ReleaseGPUTexture(device, renderTarget->colorAttachments[i]);
+		renderTarget->colorAttachments[i] = CreateColorAttachment(width, height, &renderTarget->colorAttachmentInfos[i]);
+	}
+	if (renderTarget->hasDepthAttachment)
+	{
+		SDL_ReleaseGPUTexture(device, renderTarget->depthAttachment);
+		renderTarget->depthAttachment = CreateDepthAttachment(width, height, &renderTarget->depthAttachmentInfo);
+	}
+
+	renderTarget->width = width;
+	renderTarget->height = height;
 }
 
 SDL_GPURenderPass* BindRenderTarget(RenderTarget* renderTarget, SDL_GPUCommandBuffer* cmdBuffer)

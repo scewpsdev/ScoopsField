@@ -27,9 +27,9 @@ struct mat4
 
 	vec3 translation() const;
 	vec3 scale() const;
-	Quaternion rotation() const;
+	quat rotation() const;
 
-	void decompose(vec3& translation, Quaternion& rotation, vec3& scale) const;
+	void decompose(vec3& translation, quat& rotation, vec3& scale) const;
 
 	float determinant() const;
 	mat4 inverted() const;
@@ -42,10 +42,10 @@ struct mat4
 	static mat4 Translate(float x, float y, float z, float w);
 	static mat4 Translate(const vec3& v);
 	static mat4 Translate(float x, float y, float z);
-	static mat4 Rotate(const Quaternion& q);
+	static mat4 Rotate(const quat& q);
 	static mat4 Rotate(const vec3& axis, float angle);
 	static mat4 Scale(const vec3& v);
-	static mat4 Transform(const vec3& position, const Quaternion& rotation, const vec3& scale);
+	static mat4 Transform(const vec3& position, const quat& rotation, const vec3& scale);
 
 	static mat4 Perspective(float fovy, float aspect, float near, float far);
 	static mat4 Orthographic(float left, float right, float bottom, float top, float near, float far);

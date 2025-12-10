@@ -41,4 +41,6 @@ struct RenderTarget
 RenderTarget* CreateRenderTarget(int width, int height, int numColorAttachments, const ColorAttachmentInfo* colorAttachmentInfos, const DepthAttachmentInfo* depthAttachment);
 void DestroyRenderTarget(RenderTarget* renderTarget);
 
+void ResizeRenderTarget(RenderTarget* renderTarget, int width, int height);
+
 SDL_GPURenderPass* BindRenderTarget(RenderTarget* renderTarget, SDL_GPUCommandBuffer* cmdBuffer);

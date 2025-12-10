@@ -17,7 +17,7 @@ struct PositionKeyframe
 
 struct RotationKeyframe
 {
-	Quaternion value;
+	quat value;
 	float time;
 };
 

@@ -5,22 +5,22 @@
 #include <math.h>
 
 
-Quaternion::Quaternion()
+quat::quat()
 	: x(0.0f), y(0.0f), z(0.0f), w(1.0f)
 {
 }
 
-Quaternion::Quaternion(float x, float y, float z, float w)
+quat::quat(float x, float y, float z, float w)
 	: x(x), y(y), z(z), w(w)
 {
 }
 
-Quaternion::Quaternion(const vec3& xyz, float w)
+quat::quat(const vec3& xyz, float w)
 	: x(xyz.x), y(xyz.y), z(xyz.z), w(w)
 {
 }
 
-void Quaternion::normalize()
+void quat::normalize()
 {
 	if (fabsf(x * x + y * y + z * z + w * w - 1.0f) < 0.001f)
 		return;
@@ -34,12 +34,12 @@ void Quaternion::normalize()
 	w *= l;
 }
 
-float Quaternion::length() const
+float quat::length() const
 {
 	return sqrtf(this->x * this->x + this->y * this->y + this->z * this->z + this->w * this->w);
 }
 
-Quaternion Quaternion::normalized() const
+quat quat::normalized() const
 {
 	if (fabsf(x * x + y * y + z * z + w * w - 1.0f) < 0.00000001f)
 		return *this;
@@ -51,15 +51,15 @@ Quaternion Quaternion::normalized() const
 	float y = this->y * l;
 	float z = this->z * l;
 	float w = this->w * l;
-	return Quaternion(x, y, z, w);
+	return quat(x, y, z, w);
 }
 
-Quaternion Quaternion::conjugated() const
+quat quat::conjugated() const
 {
-	return Quaternion(-x, -y, -z, w);
+	return quat(-x, -y, -z, w);
 }
 
-vec4 Quaternion::toAxisAngle() const
+vec4 quat::toAxisAngle() const
 {
 	float angle = 2.0f * acosf(w);
 	float s = 1.0f / sqrtf(1.0f - w * w);
@@ -77,7 +77,7 @@ vec4 Quaternion::toAxisAngle() const
 	}
 }
 
-vec3 Quaternion::eulers() const
+vec3 quat::eulers() const
 {
 	float ry, rx, rz;
 	float test = x * w + y * z;
@@ -105,12 +105,12 @@ vec3 Quaternion::eulers() const
 	return vec3(rx, ry, rz);
 }
 
-float Quaternion::getAngle() const
+float quat::getAngle() const
 {
 	return 2.0f * acosf(w);
 }
 
-vec3 Quaternion::getAxis() const
+vec3 quat::getAxis() const
 {
 	if (w < 1)
 	{
@@ -120,37 +120,37 @@ vec3 Quaternion::getAxis() const
 	return vec3(1, 0, 0);
 }
 
-vec3 Quaternion::forward() const
+vec3 quat::forward() const
 {
 	return *this * vec3::Forward;
 }
 
-vec3 Quaternion::back() const
+vec3 quat::back() const
 {
 	return *this * vec3::Back;
 }
 
-vec3 Quaternion::left() const
+vec3 quat::left() const
 {
 	return *this * vec3::Left;
 }
 
-vec3 Quaternion::right() const
+vec3 quat::right() const
 {
 	return *this * vec3::Right;
 }
 
-vec3 Quaternion::down() const
+vec3 quat::down() const
 {
 	return *this * vec3::Down;
 }
 
-vec3 Quaternion::up() const
+vec3 quat::up() const
 {
 	return *this * vec3::Up;
 }
 
-Quaternion Quaternion::FromAxisAngle(vec3 axis, float angle)
+quat quat::FromAxisAngle(vec3 axis, float angle)
 {
 	float half = angle * 0.5f;
 	float s = sinf(half);
@@ -159,10 +159,10 @@ Quaternion Quaternion::FromAxisAngle(vec3 axis, float angle)
 	float z = axis.z * s;
 	float w = cosf(half);
 
-	return Quaternion(x, y, z, w);
+	return quat(x, y, z, w);
 }
 
-Quaternion Quaternion::LookAt(const vec3& eye, const vec3& at, const vec3& up)
+quat quat::LookAt(const vec3& eye, const vec3& at, const vec3& up)
 {
 	vec3 forward = (at - eye).normalized();
 	vec3 right = cross(forward, up).normalized();
@@ -175,7 +175,7 @@ Quaternion Quaternion::LookAt(const vec3& eye, const vec3& at, const vec3& up)
 
 	float trace = m00 + m11 + m22;
 
-	Quaternion q;
+	quat q;
 	if (trace > 0.0f)
 	{
 		float s = sqrtf(trace + 1.0f) * 2.0f;
@@ -215,19 +215,19 @@ Quaternion Quaternion::LookAt(const vec3& eye, const vec3& at, const vec3& up)
 	float d = dot(vec3::Forward, forward);
 
 	if (fabsf(d - -1.0f) < 0.000001f)
-		return Quaternion(0.0f, 1.0f, 0.0f, PI);
+		return quat(0.0f, 1.0f, 0.0f, PI);
 	if (fabsf(d - 1.0f) < 0.000001f)
-		return Quaternion::Identity;
+		return quat::Identity;
 
 	float angle = acosf(d);
 	vec3 axis = cross(vec3::Forward, forward).normalized();
-	Quaternion q = FromAxisAngle(axis, angle).normalized();
+	quat q = FromAxisAngle(axis, angle).normalized();
 
 	return q;
 	*/
 }
 
-Quaternion Quaternion::FromEulers(vec3 eulers)
+quat quat::FromEulers(vec3 eulers)
 {
 	float c1 = cosf(eulers.y / 2.0f);
 	float s1 = sinf(eulers.y / 2.0f);
@@ -242,47 +242,47 @@ Quaternion Quaternion::FromEulers(vec3 eulers)
 	float z = c1 * s2 * c3 - s1 * c2 * s3;
 	float w = c1c2 * c3 - s1s2 * s3;
 
-	return Quaternion(x, y, z, w);
+	return quat(x, y, z, w);
 }
 
-const Quaternion Quaternion::Identity = Quaternion(0.0f, 0.0f, 0.0f, 1.0f);
+const quat quat::Identity = quat(0.0f, 0.0f, 0.0f, 1.0f);
 
-Quaternion operator*(const Quaternion& a, const Quaternion& b)
+quat operator*(const quat& a, const quat& b)
 {
 	float w = a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z;
 	float x = a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y;
 	float y = a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x;
 	float z = a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w;
-	return Quaternion(x, y, z, w);
+	return quat(x, y, z, w);
 }
 
-Quaternion operator*(const Quaternion& a, const float& b)
+quat operator*(const quat& a, const float& b)
 {
-	return Quaternion(a.x * b, a.y * b, a.z * b, a.w * b);
+	return quat(a.x * b, a.y * b, a.z * b, a.w * b);
 }
 
-Quaternion operator*(const float& a, const Quaternion& b)
+quat operator*(const float& a, const quat& b)
 {
-	return Quaternion(a * b.x, a * b.y, a * b.z, a * b.w);
+	return quat(a * b.x, a * b.y, a * b.z, a * b.w);
 }
 
-Quaternion operator+(const Quaternion& a, const Quaternion& b)
+quat operator+(const quat& a, const quat& b)
 {
-	return Quaternion(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
+	return quat(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
 }
 
-vec3 operator*(const Quaternion& a, const vec3& b)
+vec3 operator*(const quat& a, const vec3& b)
 {
-	Quaternion a1 = a.normalized();
-	Quaternion a2 = a1.conjugated();
+	quat a1 = a.normalized();
+	quat a2 = a1.conjugated();
 
-	Quaternion q;
+	quat q;
 	q.w = -a1.x * b.x - a1.y * b.y - a1.z * b.z;
 	q.x = +a1.w * b.x + a1.y * b.z - a1.z * b.y;
 	q.y = +a1.w * b.y - a1.x * b.z + a1.z * b.x;
 	q.z = +a1.w * b.z + a1.x * b.y - a1.y * b.x;
 
-	Quaternion q2;
+	quat q2;
 	q2.w = q.w * a2.w - q.x * a2.x - q.y * a2.y - q.z * a2.z;
 	q2.x = q.w * a2.x + q.x * a2.w + q.y * a2.z - q.z * a2.y;
 	q2.y = q.w * a2.y - q.x * a2.z + q.y * a2.w + q.z * a2.x;
@@ -291,12 +291,12 @@ vec3 operator*(const Quaternion& a, const vec3& b)
 	return { q2.x, q2.y, q2.z };
 }
 
-bool operator==(const Quaternion& a, const Quaternion& b)
+bool operator==(const quat& a, const quat& b)
 {
 	return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
 }
 
-Quaternion slerp(const Quaternion& left, Quaternion right, float t)
+quat slerp(const quat& left, quat right, float t)
 {
 	float cosHalfTheta = left.w * right.w + left.x * right.x + left.y * right.y + left.z * right.z;
 	if (fabsf(cosHalfTheta) >= 1.0f)
@@ -320,5 +320,5 @@ Quaternion slerp(const Quaternion& left, Quaternion right, float t)
 	float y = left.y * ratioA + right.y * ratioB;
 	float z = left.z * ratioA + right.z * ratioB;
 
-	return Quaternion(x, y, z, w);
+	return quat(x, y, z, w);
 }

@@ -392,7 +392,8 @@ static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, Skele
 
 static float CalculateLightRadius(vec3 color)
 {
-	return 3;
+	// TODO calculate this based on color and attenuation function
+	return 5;
 }
 
 // TODO

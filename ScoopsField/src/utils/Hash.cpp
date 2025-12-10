@@ -29,7 +29,7 @@ uint32_t hash(const vec3& v)
 	return u;
 }
 
-uint32_t hash(const Quaternion& q)
+uint32_t hash(const quat& q)
 {
 	uint32_t u = hash(q.x);
 	u = u * 19 + hash(q.y);

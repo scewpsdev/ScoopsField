@@ -19,6 +19,7 @@
 
 #include "renderer/Renderer.h"
 #include "renderer/DebugTextRenderer.h"
+#include "renderer/Renderer2D.h"
 
 #include "audio/Audio.h"
 
@@ -117,6 +118,7 @@ struct GameState
 	float cameraNear, cameraFar;
 
 	Renderer renderer;
+	Renderer2D guiRenderer;
 
 	Model model;
 	AnimationState modelAnim;
@@ -131,6 +133,8 @@ struct GameState
 	CharacterController controller;
 
 	Sound testSound;
+
+	Texture* crosshair;
 };
 
 struct AppState

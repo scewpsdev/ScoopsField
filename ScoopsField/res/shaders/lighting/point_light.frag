@@ -22,6 +22,11 @@ vec3 reconstructPosition(vec2 uv, float depth)
 	return worldPosition.xyz / worldPosition.w;
 }
 
+float attenuate(float dist)
+{
+	return 1.0 / (1.0 + 1 * dist + 2 * dist * dist);
+}
+
 void main()
 {
 	vec2 uv = gl_FragCoord.xy * u_viewTexel.xy;
@@ -34,9 +39,12 @@ void main()
 	vec3 normal = texture(s_normal, uv).rgb;
 	vec3 color = texture(s_color, uv).rgb;
 
-	vec3 toLight = normalize(v_lightPosition - position);
+	vec3 toLight = v_lightPosition - position;
+	float dist = length(toLight);
+	toLight /= dist;
 	float d = max(dot(normal, toLight), 0);
-	vec3 diffuse = d * color * v_lightColor;
+	float a = attenuate(dist);
+	vec3 diffuse = a * d  * v_lightColor * color;
 	
 	out_color = vec4(diffuse, 1);
 }

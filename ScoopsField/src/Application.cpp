@@ -214,11 +214,7 @@ extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* a
 	Uint32 swapchainWidth, swapchainHeight;
 	SDL_WaitAndAcquireGPUSwapchainTexture(cmdBuffer, app->window, &swapchain, &swapchainWidth, &swapchainHeight);
 
-	mat4 projection = mat4::Perspective(90 * Deg2Rad, width / (float)height, game->cameraNear, game->cameraFar);
-	Quaternion invCameraRotation = Quaternion::FromAxisAngle(vec3::Right, -game->cameraPitch) * Quaternion::FromAxisAngle(vec3::Up, -game->cameraYaw);
-	mat4 view = mat4::Rotate(invCameraRotation) * mat4::Translate(-game->cameraPosition);
-
-	RendererShow(&game->renderer, projection, view, game->cameraNear, game->cameraFar, cmdBuffer);
+	GameShowFrame(cmdBuffer);
 	DebugTextRendererEnd(&app->debugTextRenderer, width, height, cmdBuffer);
 
 	SDL_SubmitGPUCommandBuffer(cmdBuffer);

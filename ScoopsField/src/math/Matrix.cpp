@@ -47,7 +47,7 @@ vec3 mat4::scale() const
 	return vec3(x, y, z);
 }
 
-static Quaternion ExtractRotation(mat4 matrix, const vec3& scale)
+static quat ExtractRotation(mat4 matrix, const vec3& scale)
 {
 	float sx = 1.0f / scale.x;
 	float sy = 1.0f / scale.y;
@@ -66,15 +66,15 @@ static Quaternion ExtractRotation(mat4 matrix, const vec3& scale)
 	y = copysignf(y, matrix.m20 - matrix.m02);
 	z = copysignf(z, matrix.m01 - matrix.m10);
 
-	return Quaternion(x, y, z, width).normalized();
+	return quat(x, y, z, width).normalized();
 }
 
-Quaternion mat4::rotation() const
+quat mat4::rotation() const
 {
 	return ExtractRotation(*this, scale());
 }
 
-void mat4::decompose(vec3& translation, Quaternion& rotation, vec3& scale) const
+void mat4::decompose(vec3& translation, quat& rotation, vec3& scale) const
 {
 	translation = this->translation();
 	scale = this->scale();
@@ -167,7 +167,7 @@ mat4 mat4::Translate(float x, float y, float z)
 	return matrix;
 }
 
-mat4 mat4::Rotate(const Quaternion& q)
+mat4 mat4::Rotate(const quat& q)
 {
 	mat4 matrix = Identity;
 
@@ -229,7 +229,7 @@ mat4 mat4::Scale(const vec3& v)
 	return matrix;
 }
 
-mat4 mat4::Transform(const vec3& position, const Quaternion& rotation, const vec3& scale)
+mat4 mat4::Transform(const vec3& position, const quat& rotation, const vec3& scale)
 {
 	return mat4::Translate(position) * mat4::Rotate(rotation) * mat4::Scale(scale);
 }

@@ -62,7 +62,7 @@ static vec3 AnimatePosition(PositionKeyframe* positions, int numPositions, float
 	}
 }
 
-static Quaternion AnimateRotation(RotationKeyframe* rotations, int numRotations, float time, float duration, bool loop)
+static quat AnimateRotation(RotationKeyframe* rotations, int numRotations, float time, float duration, bool loop)
 {
 	if (numRotations == 1) return rotations[0].value;
 
@@ -139,7 +139,7 @@ static void AnimateNode(int id, mat4 parentTransform, Model* model, AnimationSta
 		AnimationChannel* channel = &animation->channels[channelID];
 
 		vec3 position = AnimatePosition(&animation->positions[channel->positionsOffset], channel->positionsCount, SDL_fmodf(time, animation->duration), animation->duration, loop);
-		Quaternion rotation = AnimateRotation(&animation->rotations[channel->rotationsOffset], channel->rotationsCount, SDL_fmodf(time, animation->duration), animation->duration, loop);
+		quat rotation = AnimateRotation(&animation->rotations[channel->rotationsOffset], channel->rotationsCount, SDL_fmodf(time, animation->duration), animation->duration, loop);
 		vec3 scaling = AnimateScaling(&animation->scalings[channel->scalingsOffset], channel->scalingsCount, SDL_fmodf(time, animation->duration), animation->duration, loop);
 
 		localTransform = mat4::Transform(position, rotation, scaling);

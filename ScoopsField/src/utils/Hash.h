@@ -11,7 +11,7 @@ uint32_t hash(int i);
 uint32_t hash(float f);
 
 uint32_t hash(const vec3& v);
-uint32_t hash(const Quaternion& q);
+uint32_t hash(const quat& q);
 
 uint32_t hash(const char* str);
 

@@ -345,6 +345,11 @@ ivec4::ivec4()
 {
 }
 
+ivec4::ivec4(int i)
+	: x(i), y(i), z(i), w(i)
+{
+}
+
 ivec4::ivec4(int x, int y, int z, int w)
 	: x(x), y(y), z(z), w(w)
 {
