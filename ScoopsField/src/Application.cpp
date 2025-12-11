@@ -26,6 +26,36 @@ int physicsAllocationsPerFrame;
 SDL_GPUTexture* swapchain = nullptr;
 
 
+bool GetKey(SDL_Scancode key)
+{
+	return app->keys[key];
+}
+
+bool GetKeyDown(SDL_Scancode key)
+{
+	return app->keys[key] && !app->lastKeys[key];
+}
+
+bool GetKeyUp(SDL_Scancode key)
+{
+	return !app->keys[key] && app->lastKeys[key];
+}
+
+bool GetMouseButton(uint32_t button)
+{
+	return app->mouseButtons & SDL_BUTTON_MASK(button);
+}
+
+bool GetMouseButtonDown(uint32_t button)
+{
+	return (app->mouseButtons & SDL_BUTTON_MASK(button)) && !(app->lastMouseButtons & SDL_BUTTON_MASK(button));
+}
+
+bool GetMouseButtonUp(uint32_t button)
+{
+	return !(app->mouseButtons & SDL_BUTTON_MASK(button)) && (app->lastMouseButtons & SDL_BUTTON_MASK(button));
+}
+
 void DebugTextEx(int x, int y, const char* txt, int len, uint32_t color, uint32_t bgcolor)
 {
 	DebugTextRendererSubmit(&app->debugTextRenderer, x, y, txt, len, color, bgcolor);
@@ -53,6 +83,43 @@ void DebugText(int x, int y, const char* fmt, ...)
 	va_end(args);
 
 	DebugTextEx(x, y, buffer, len, 0xFFFFFFFF, 0);
+}
+
+void GUIPanel(int x, int y, int w, int h, uint32_t color)
+{
+	SpriteDrawData drawData = {};
+	drawData.position = vec3((float)(x + w / 2), (float)(height - y - h / 2), 0);
+	drawData.size = vec2((float)w, (float)h);
+	drawData.rotation = 0;
+	drawData.color = ARGBToVector(color);
+	DrawSprite(&game->guiRenderer, 0, &drawData);
+}
+
+void GUIPanel(int x, int y, Texture* texture, const ivec4& textureRect)
+{
+	int w = textureRect.z;
+	int h = textureRect.w;
+	int u = textureRect.x;
+	int v = textureRect.y;
+
+	SpriteDrawData drawData = {};
+	drawData.position = vec3((float)(x + w / 2), (float)(height - y - h / 2), 0);
+	drawData.size = vec2((float)w, (float)h);
+	drawData.rotation = 0;
+	drawData.color = vec4(1);
+	drawData.texture = texture;
+	drawData.rect = vec4(
+		u / (float)texture->info.width,
+		v / (float)texture->info.height,
+		w / (float)texture->info.width,
+		h / (float)texture->info.height
+	);
+	DrawSprite(&game->guiRenderer, 0, &drawData);
+}
+
+void GUIPanel(int x, int y, Texture* texture)
+{
+	GUIPanel(x, y, texture, ivec4(0, 0, texture->info.width, texture->info.height));
 }
 
 

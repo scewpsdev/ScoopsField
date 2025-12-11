@@ -7,7 +7,7 @@
 
 struct AnimationCache
 {
-#define MAX_POSITION_KEYFRAMES 1024
+#define MAX_POSITION_KEYFRAMES 8192
 	PositionKeyframe positions[MAX_POSITION_KEYFRAMES];
 #define MAX_ROTATION_KEYFRAMES 8192
 	RotationKeyframe rotations[MAX_ROTATION_KEYFRAMES];

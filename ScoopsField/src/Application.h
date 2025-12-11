@@ -40,6 +40,8 @@
 #include "utils/Pool.h"
 #include "utils/HashMap.h"
 
+#include "game/entity/Player.h"
+
 
 #define PROJECT_PATH "D:\\Dev\\ScoopsField\\ScoopsField"
 
@@ -120,8 +122,7 @@ struct GameState
 	Renderer renderer;
 	Renderer2D guiRenderer;
 
-	Model model;
-	AnimationState modelAnim;
+	Player player;
 
 	Model cube;
 
@@ -129,8 +130,6 @@ struct GameState
 
 	RigidBody cubeBodies[100];
 	int numCubeBodies;
-
-	CharacterController controller;
 
 	Sound testSound;
 

@@ -15,6 +15,10 @@ static bool EveryInterval(float seconds)
 	return iteration != lastIteration || gameTime - deltaTime < 0;
 }
 
+
+#include "entity/Player.cpp"
+
+
 void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 {
 	InitRenderer(&game->renderer, width, height, cmdBuffer);
@@ -29,15 +33,13 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	InitAnimationCache(&resource->animationCache);
 
 	//game->mesh = LoadMesh("res/models/monkey.glb.bin", cmdBuffer);
-	LoadModel(&game->model, "res/models/Fox.glb.bin", cmdBuffer);
-	InitAnimationState(&game->modelAnim, &game->model);
+
+	InitPlayer(&game->player, cmdBuffer);
 
 	LoadModel(&game->cube, "res/models/cube.glb.bin", cmdBuffer);
 
 	InitRigidBody(&game->platform, RIGID_BODY_STATIC, vec3::Zero, quat::Identity);
 	AddBoxCollider(&game->platform, vec3(20, 2, 20), vec3(0, -1, 0), quat::Identity, 1, 1, false);
-
-	InitCharacterController(&game->controller, 0.2f, 2, 0.2f, vec3(0, 3, 3));
 
 	LoadSound(&game->testSound, "res/sounds/test.ogg.bin");
 
@@ -74,39 +76,12 @@ void GameUpdate()
 	}
 	*/
 
-	quat cameraRotation = quat::FromAxisAngle(vec3::Up, game->cameraYaw) * quat::FromAxisAngle(vec3::Right, game->cameraPitch);
-
-	vec3 delta = vec3::Zero;
-	if (app->keys[SDL_SCANCODE_A]) delta += cameraRotation.left();
-	if (app->keys[SDL_SCANCODE_D]) delta += cameraRotation.right();
-	if (app->keys[SDL_SCANCODE_S]) delta += cameraRotation.back();
-	if (app->keys[SDL_SCANCODE_W]) delta += cameraRotation.forward();
-	if (app->keys[SDL_SCANCODE_SPACE]) delta += vec3::Up;
-	if (app->keys[SDL_SCANCODE_LCTRL]) delta += vec3::Down;
-
-	if (delta.lengthSquared() > 0)
-	{
-		float speed = app->keys[SDL_SCANCODE_LSHIFT] ? 20.0f : app->keys[SDL_SCANCODE_LALT] ? 3.0f : 10.0f;
-		vec3 velocity = delta.normalized() * speed;
-		vec3 displacement = velocity * deltaTime;
-		MoveCharacterController(&game->controller, displacement, 1);
-		//game->cameraPosition += displacement;
-	}
-
-	game->cameraPosition = GetCharacterControllerPosition(&game->controller) + vec3(0, 1.5f, 0);
-
 	if (app->keys[SDL_SCANCODE_ESCAPE] && !app->lastKeys[SDL_SCANCODE_ESCAPE])
 		game->mouseLocked = !game->mouseLocked;
 
 	SDL_SetWindowRelativeMouseMode(window, game->mouseLocked);
 
-	if (game->mouseLocked)
-	{
-		game->cameraYaw -= app->mouseDelta.x * 0.001f;
-		game->cameraPitch -= app->mouseDelta.y * 0.001f;
-	}
-
-	AnimateModel(&game->model, &game->modelAnim, &game->model.animations[2], gameTime);
+	UpdatePlayer(&game->player);
 
 	if (EveryInterval(1))
 	{
@@ -119,48 +94,11 @@ void GameUpdate()
 		PlaySound(&game->testSound);
 }
 
-static void GUIPanel(int x, int y, int w, int h, uint32_t color)
-{
-	SpriteDrawData drawData = {};
-	drawData.position = vec3((float)(x + w / 2), (float)(height - y - h / 2), 0);
-	drawData.size = vec2((float)w, (float)h);
-	drawData.rotation = 0;
-	drawData.color = ARGBToVector(color);
-	DrawSprite(&game->guiRenderer, 0, &drawData);
-}
-
-static void GUIPanel(int x, int y, Texture* texture, const ivec4& textureRect)
-{
-	int w = textureRect.z;
-	int h = textureRect.w;
-	int u = textureRect.x;
-	int v = textureRect.y;
-
-	SpriteDrawData drawData = {};
-	drawData.position = vec3((float)(x + w / 2), (float)(height - y - h / 2), 0);
-	drawData.size = vec2((float)w, (float)h);
-	drawData.rotation = 0;
-	drawData.color = vec4(1);
-	drawData.texture = texture;
-	drawData.rect = vec4(
-		u / (float)texture->info.width,
-		v / (float)texture->info.height,
-		w / (float)texture->info.width,
-		h / (float)texture->info.height
-	);
-	DrawSprite(&game->guiRenderer, 0, &drawData);
-}
-
-static void GUIPanel(int x, int y, Texture* texture)
-{
-	GUIPanel(x, y, texture, ivec4(0, 0, texture->info.width, texture->info.height));
-}
-
 void GameRender()
 {
 	BeginRenderer2D(&game->guiRenderer);
 
-	RenderModel(&game->renderer, &game->model, &game->modelAnim, mat4::Scale(0.01f));
+	RenderPlayer(&game->player);
 
 	mat4 platformTransform = mat4::Transform(vec3(0, -1, 0), quat::Identity, vec3(20, 2, 20));
 	RenderModel(&game->renderer, &game->cube, nullptr, platformTransform);

@@ -18,4 +18,4 @@ struct AnimationState
 
 void InitAnimationState(AnimationState* animationState, Model* model);
 
-void AnimateModel(Model* model, AnimationState* animationState, Animation* animation, float time);
+void AnimateModel(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop);

@@ -167,10 +167,10 @@ static int GetNodeForMesh(int meshID, Model* model)
 	return -1;
 }
 
-void AnimateModel(Model* model, AnimationState* animationState, Animation* animation, float time)
+void AnimateModel(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop)
 {
 	SDL_assert(model->numNodes > 0);
-	AnimateNode(0, {}, model, animationState, animation, time, true);
+	AnimateNode(0, {}, model, animationState, animation, time, loop);
 
 	for (int i = 0; i < model->numMeshes; i++)
 	{

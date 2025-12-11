@@ -129,7 +129,7 @@ struct Model
 	Material materials[MAX_MATERIALS];
 	int numMaterials;
 
-#define MAX_SKELETONS 1
+#define MAX_SKELETONS 2
 	Skeleton skeletons[MAX_SKELETONS];
 	int numSkeletons;
 
