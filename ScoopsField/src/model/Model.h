@@ -7,6 +7,9 @@
 #include "math/Vector.h"
 #include "math/Quaternion.h"
 #include "math/Matrix.h"
+#include "math/Shape.h"
+
+#include "utils/HashMap.h"
 
 
 struct PositionKeyframe
@@ -114,9 +117,11 @@ struct Animation
 	RotationKeyframe* rotations;
 	ScalingKeyframe* scalings;
 
-#define MAX_ANIMATION_CHANNELS 64
+#define MAX_ANIMATION_CHANNELS 128
 	AnimationChannel channels[MAX_ANIMATION_CHANNELS];
 	int numChannels;
+
+	HashMap<uint32_t, int, MAX_ANIMATION_CHANNELS> channelNameMap;
 };
 
 struct Model
@@ -133,13 +138,16 @@ struct Model
 	Skeleton skeletons[MAX_SKELETONS];
 	int numSkeletons;
 
-#define MAX_NODES 64
+#define MAX_NODES 128
 	Node nodes[MAX_NODES];
 	int numNodes;
 
 #define MAX_ANIMATIONS 32
 	Animation animations[MAX_ANIMATIONS];
 	int numAnimations;
+
+	AABB boundingBox;
+	Sphere boundingSphere;
 };
 
 

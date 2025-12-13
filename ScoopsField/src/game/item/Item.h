@@ -12,10 +12,33 @@ enum ItemType
 	ITEM_TYPE_LAST
 };
 
+struct Attack
+{
+	const char* animation;
+	vec2 damageWindow;
+	float followUpCancelTime;
+
+	float damageMultiplier;
+};
+
+struct Weapon
+{
+	int damage;
+	vec2 damageRange;
+
+#define MAX_WEAPON_ATTACKS 16
+	Attack attacks[MAX_WEAPON_ATTACKS];
+	int numAttacks;
+};
+
 struct Item
 {
 	Model model;
 	Model moveset;
+
+	union {
+		Weapon weapon;
+	};
 };
 
 struct ItemDatabase

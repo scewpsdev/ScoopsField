@@ -5,6 +5,18 @@
 #include "utils/HashMap.h"
 
 
+struct AnimationPlayback
+{
+	char name[32] = "";
+	float speed = 1.0f;
+	bool loop = true;
+	bool mirror = false;
+
+	Animation* animation;
+
+	float timer;
+};
+
 struct SkeletonState
 {
 	mat4 boneTransforms[MAX_BONES];
@@ -29,3 +41,5 @@ void BlendAnimation(Model* model, AnimationState* animationState, Animation* ani
 void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState);
 
 const mat4& GetNodeTransform(AnimationState* animationState, Node* node);
+
+void InitAnimation(AnimationPlayback* animation, const char* name, Model* moveset, float speed = 1.0f, bool loop = false, bool mirror = false);

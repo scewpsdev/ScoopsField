@@ -4,13 +4,22 @@
 
 
 extern AppState* app;
+extern ResourceState* resource;
 
+extern SDL_GPUCommandBuffer* cmdBuffer;
+
+
+void InitResourceState(ResourceState* resource)
+{
+	InitHashMap(&resource->modelNameMap);
+	InitAnimationCache(&resource->animationCache);
+}
 
 void AddFileWatcher(const char* path)
 {
-	if (app->resourceState.numFileWatchers < MAX_FILE_WATCHERS)
+	if (resource->numFileWatchers < MAX_FILE_WATCHERS)
 	{
-		FileWatcher* watcher = &app->resourceState.fileWatchers[app->resourceState.numFileWatchers];
+		FileWatcher* watcher = &resource->fileWatchers[resource->numFileWatchers];
 
 		SDL_PathInfo pathInfo = {};
 		if (SDL_GetPathInfo(path, &pathInfo))
@@ -18,7 +27,7 @@ void AddFileWatcher(const char* path)
 			SDL_strlcpy(watcher->path, path, sizeof(watcher->path));
 			watcher->lastWriteTime = pathInfo.modify_time;
 
-			app->resourceState.numFileWatchers++;
+			resource->numFileWatchers++;
 		}
 		else
 		{
@@ -29,11 +38,11 @@ void AddFileWatcher(const char* path)
 
 static FileWatcher* GetFileWatcherFromPath(const char* path)
 {
-	for (int i = 0; i < app->resourceState.numFileWatchers; i++)
+	for (int i = 0; i < resource->numFileWatchers; i++)
 	{
-		if (SDL_strcmp(path, app->resourceState.fileWatchers[i].path) == 0)
+		if (SDL_strcmp(path, resource->fileWatchers[i].path) == 0)
 		{
-			return &app->resourceState.fileWatchers[i];
+			return &resource->fileWatchers[i];
 		}
 	}
 	return nullptr;
@@ -78,4 +87,26 @@ void GetRelativePath(char* str, int maxLen, const char* absolutePath, const char
 	StringView directory = GetDirectory(relativeTo);
 	const char* relativePath = directory.buffer ? absolutePath + directory.length + 1 : absolutePath;
 	SDL_snprintf(str, maxLen, "%s", relativePath);
+}
+
+Model* GetModel(const char* path)
+{
+	uint32_t pathHash = hash(path);
+	if (int* modelID = HashMapGet(&resource->modelNameMap, pathHash))
+		return &resource->models[*modelID];
+	else
+	{
+		char fullPath[256];
+		SDL_snprintf(fullPath, 256, "res/%s.bin", path);
+
+		if (LoadModel(&resource->models[resource->numModels], fullPath, cmdBuffer))
+		{
+			int modelID = resource->numModels++;
+			Model* model = &resource->models[modelID];
+			HashMapAdd(&resource->modelNameMap, pathHash, modelID);
+			return model;
+		}
+
+		return nullptr;
+	}
 }

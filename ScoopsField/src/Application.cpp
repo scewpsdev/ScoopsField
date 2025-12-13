@@ -24,6 +24,7 @@ int platformAllocationsPerFrame;
 int physicsAllocationsPerFrame;
 
 SDL_GPUTexture* swapchain = nullptr;
+SDL_GPUCommandBuffer* cmdBuffer = nullptr;
 
 
 bool GetKey(SDL_Scancode key)
@@ -153,13 +154,15 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, AppSt
 
 	InitPhysics(&app->physics);
 
-	SDL_GPUCommandBuffer* cmdBuffer = SDL_AcquireGPUCommandBuffer(device);
+	InitResourceState(&app->resourceState);
+
+	cmdBuffer = SDL_AcquireGPUCommandBuffer(device);
 
 	InitDebugTextRenderer(&app->debugTextRenderer, 1000, cmdBuffer);
 
 	GameInit(cmdBuffer);
 
-	SDL_SubmitGPUCommandBuffer(cmdBuffer);
+	SDL_SubmitGPUCommandBuffer(cmdBuffer); cmdBuffer = nullptr;
 
 	return SDL_APP_CONTINUE;
 }
@@ -266,6 +269,8 @@ extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* a
 	app->mouseButtons = SDL_GetMouseState(&app->mousePosition.x, &app->mousePosition.y);
 	SDL_GetRelativeMouseState(&app->mouseDelta.x, &app->mouseDelta.y);
 
+	cmdBuffer = SDL_AcquireGPUCommandBuffer(device);
+
 	EndPhysicsFrame(&app->physics);
 
 	GameUpdate();
@@ -276,15 +281,13 @@ extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* a
 
 	StartPhysicsFrame(&app->physics);
 
-	SDL_GPUCommandBuffer* cmdBuffer = SDL_AcquireGPUCommandBuffer(device);
-
 	Uint32 swapchainWidth, swapchainHeight;
 	SDL_WaitAndAcquireGPUSwapchainTexture(cmdBuffer, app->window, &swapchain, &swapchainWidth, &swapchainHeight);
 
 	GameShowFrame(cmdBuffer);
 	DebugTextRendererEnd(&app->debugTextRenderer, width, height, cmdBuffer);
 
-	SDL_SubmitGPUCommandBuffer(cmdBuffer);
+	SDL_SubmitGPUCommandBuffer(cmdBuffer); cmdBuffer = nullptr;
 	swapchain = nullptr;
 
 	app->frameCounter++;

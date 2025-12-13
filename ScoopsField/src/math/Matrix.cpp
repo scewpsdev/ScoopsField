@@ -4,6 +4,8 @@
 
 #include <SDL3/SDL.h>
 
+#include <immintrin.h>
+
 
 mat4::mat4() :
 	m00(1.0f), m10(0.0f), m20(0.0f), m30(0.0f),
@@ -279,6 +281,7 @@ vec4 mul(const mat4& left, const vec4& right)
 
 mat4 operator*(const mat4& left, const mat4& right)
 {
+	/*
 	mat4 result = {};
 
 	result.elements[0] = left.elements[0] * right.elements[0] + left.elements[4] * right.elements[1] + left.elements[8] * right.elements[2] + left.elements[12] * right.elements[3];
@@ -299,6 +302,37 @@ mat4 operator*(const mat4& left, const mat4& right)
 	result.elements[15] = left.elements[3] * right.elements[12] + left.elements[7] * right.elements[13] + left.elements[11] * right.elements[14] + left.elements[15] * right.elements[15];
 
 	return result;
+	*/
+
+	__m128 columns[4];
+
+	__m128* lcolumns = (__m128*)left.columns;
+	__m128* rcolumns = (__m128*)right.columns;
+
+	__m128 a0 = lcolumns[0];
+	__m128 a1 = lcolumns[1];
+	__m128 a2 = lcolumns[2];
+	__m128 a3 = lcolumns[3];
+
+	for (int i = 0; i < 4; i++)
+	{
+		__m128 b = rcolumns[i];
+
+		__m128 x = _mm_shuffle_ps(b, b, 0x00); // xxxx
+		__m128 y = _mm_shuffle_ps(b, b, 0x55); // yyyy
+		__m128 z = _mm_shuffle_ps(b, b, 0xAA); // zzzz
+		__m128 w = _mm_shuffle_ps(b, b, 0xFF); // wwww
+
+		__m128 r =
+			_mm_fmadd_ps(a0, x,
+				_mm_fmadd_ps(a1, y,
+					_mm_fmadd_ps(a2, z,
+						_mm_mul_ps(a3, w))));
+
+		columns[i] = r;
+	}
+
+	return *(mat4*)&columns;
 }
 
 vec4 operator*(const mat4& a, const vec4& b)

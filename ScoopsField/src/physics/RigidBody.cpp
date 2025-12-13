@@ -2,6 +2,8 @@
 
 #include "Physics.h"
 
+#include "Application.h"
+
 #include <PxActor.h>
 #include <PxRigidBody.h>
 #include <PxRigidActor.h>
@@ -14,6 +16,7 @@
 using namespace physx;
 
 
+extern GameMemory* memory;
 extern PhysicsState* physics;
 
 
@@ -101,6 +104,7 @@ void InitRigidBody(RigidBody* body, RigidBodyType type, const vec3& position, co
 {
 	body->type = type;
 	body->actor = CreateActor(type, position, rotation);
+	body->actor->userData = body;
 }
 
 void DestroyRigidBody(RigidBody* body)
@@ -138,14 +142,27 @@ void AddConvexMeshCollider(RigidBody* body, PxConvexMesh* mesh, const vec3& posi
 	AddShape(body->actor, PxConvexMeshGeometry(mesh, PxMeshScale(PxVector(scale))), filterGroup, filterMask, position, rotation, body->type == RIGID_BODY_DYNAMIC, trigger);
 }
 
+void RemoveColliders(RigidBody* body)
+{
+	uint32_t numShapes = body->actor->getNbShapes();
+	PxShape** shapeBuffer = (PxShape**)BumpAllocatorMalloc(&memory->transientAllocator, numShapes * sizeof(PxShape*));
+	body->actor->getShapes(shapeBuffer, numShapes);
+	for (uint32_t i = 0; i < numShapes; i++)
+	{
+		body->actor->detachShape(*shapeBuffer[i]);
+	}
+}
+
 void GetRigidBodyTransform(RigidBody* body, vec3* position, quat* rotation)
 {
 	PxRigidBody* dynamic = body->actor->is<PxRigidBody>();
 	SDL_assert(dynamic);
 
 	PxTransform transform = dynamic->getGlobalPose();
-	*position = FromPxVector(transform.p);
-	*rotation = FromPxQuaternion(transform.q);
+	if (position)
+		*position = FromPxVector(transform.p);
+	if (rotation)
+		*rotation = FromPxQuaternion(transform.q);
 }
 
 void SetRigidBodyTransform(RigidBody* body, const vec3& position, const quat& rotation)
@@ -184,8 +201,10 @@ void GetRigidBodyVelocity(RigidBody* body, vec3* velocity, vec3* angularVelocity
 	PxRigidDynamic* dynamic = body->actor->is<PxRigidDynamic>();
 	SDL_assert(dynamic);
 
-	*velocity = FromPxVector(dynamic->getLinearVelocity());
-	*angularVelocity = FromPxVector(dynamic->getAngularVelocity());
+	if (velocity)
+		*velocity = FromPxVector(dynamic->getLinearVelocity());
+	if (angularVelocity)
+		*angularVelocity = FromPxVector(dynamic->getAngularVelocity());
 }
 
 void SetRigidBodyVelocity(RigidBody* body, const vec3& velocity, const vec3& angularVelocity)
@@ -195,6 +214,11 @@ void SetRigidBodyVelocity(RigidBody* body, const vec3& velocity, const vec3& ang
 
 	dynamic->setLinearVelocity(PxVector(velocity));
 	dynamic->setAngularVelocity(PxVector(angularVelocity));
+}
+
+void SetRigidBodyEnabled(RigidBody* body, bool enabled)
+{
+	body->actor->setActorFlag(PxActorFlag::eDISABLE_SIMULATION, !enabled);
 }
 
 void SetRigidBodyAxisLock(RigidBody* body, uint8_t lockFlags)
@@ -208,6 +232,8 @@ void SetRigidBodyAxisLock(RigidBody* body, uint8_t lockFlags)
 void GetRigidBodyAABB(RigidBody* body, vec3* center, vec3* size)
 {
 	PxBounds3 bounds = body->actor->getWorldBounds();
-	*center = FromPxVector(bounds.getCenter());
-	*size = FromPxVector(bounds.getDimensions());
+	if (center)
+		*center = FromPxVector(bounds.getCenter());
+	if (size)
+		*size = FromPxVector(bounds.getDimensions());
 }

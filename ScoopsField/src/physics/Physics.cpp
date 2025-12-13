@@ -208,6 +208,7 @@ int Raycast(PhysicsState* physics, const vec3& origin, const vec3& direction, fl
 			hits[i].position = FromPxVector(hit->position);
 			hits[i].normal = FromPxVector(hit->normal);
 			hits[i].trigger = hit->shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
+			hits[i].body = (RigidBody*)hit->actor->userData;
 		}
 	}
 

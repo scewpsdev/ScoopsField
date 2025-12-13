@@ -114,3 +114,36 @@ vec4 ARGBToVector(uint32_t argb)
 	uint8_t b = (argb & 0x000000FF) >> 0;
 	return vec4(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
 }
+
+bool FrustumCulling(const Sphere& boundingSphere, vec4 planes[6])
+{
+	vec3 boundingSpherePos = boundingSphere.center;
+	float boundingSphereRadius = boundingSphere.radius;
+
+	for (int i = 0; i < 6; i++)
+	{
+		float distance = boundingSpherePos.x * planes[i].x + boundingSpherePos.y * planes[i].y + boundingSpherePos.z * planes[i].z;
+		float l = sqrtf(planes[i].x * planes[i].x + planes[i].y * planes[i].y + planes[i].z * planes[i].z);
+		distance += planes[i].w / l;
+		if (distance + boundingSphereRadius < 0.0f)
+			return false;
+	}
+	return true;
+}
+
+bool FrustumCulling(const Sphere& boundingSphere, mat4 transform, vec4 planes[6])
+{
+	vec4 boundingSpherePos = (transform * vec4(boundingSphere.center, 1.0f));
+	vec3 scale = transform.scale();
+	float boundingSphereRadius = max(max(scale.x, scale.y), scale.z) * boundingSphere.radius;
+
+	for (int i = 0; i < 6; i++)
+	{
+		float distance = boundingSpherePos.x * planes[i].x + boundingSpherePos.y * planes[i].y + boundingSpherePos.z * planes[i].z;
+		float l = sqrtf(planes[i].x * planes[i].x + planes[i].y * planes[i].y + planes[i].z * planes[i].z);
+		distance += planes[i].w / l;
+		if (distance + boundingSphereRadius < 0.0f)
+			return false;
+	}
+	return true;
+}

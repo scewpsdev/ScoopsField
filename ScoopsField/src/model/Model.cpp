@@ -274,6 +274,8 @@ static void ReadAnimation(Animation* animation, BinaryReader& reader)
 	reader.ReadBytes(animation->rotations, animation->numRotations * sizeof(RotationKeyframe));
 	reader.ReadBytes(animation->scalings, animation->numScalings * sizeof(ScalingKeyframe));
 
+	SDL_assert(animation->numChannels <= MAX_ANIMATION_CHANNELS);
+
 	for (int i = 0; i < animation->numChannels; i++)
 	{
 		reader.ReadBytes(animation->channels[i].name, sizeof(animation->channels[i].name));
@@ -284,6 +286,13 @@ static void ReadAnimation(Animation* animation, BinaryReader& reader)
 		animation->channels[i].rotationsCount = reader.ReadInt32();
 		animation->channels[i].scalingsOffset = reader.ReadInt32();
 		animation->channels[i].scalingsCount = reader.ReadInt32();
+	}
+
+	InitHashMap(&animation->channelNameMap);
+	for (int i = 0; i < animation->numChannels; i++)
+	{
+		uint32_t nameHash = hash(animation->channels[i].name);
+		HashMapAdd(&animation->channelNameMap, nameHash, i);
 	}
 }
 
@@ -381,11 +390,10 @@ bool LoadModel(Model* model, const char* path, SDL_GPUCommandBuffer* cmdBuffer)
 		for (int i = 0; i < numLights; i++)
 			ReadLight(reader);
 
-		AABB boundingBox;
-		reader.Read(&boundingBox);
+		reader.Read(&model->boundingBox);
+		reader.Read(&model->boundingSphere);
 
-		Sphere boundingSphere;
-		reader.Read(&boundingSphere);
+		SDL_free(data);
 
 		return true;
 	}

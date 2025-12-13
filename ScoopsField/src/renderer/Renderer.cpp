@@ -404,13 +404,8 @@ static float CalculateLightRadius(vec3 color)
 // light occlusion culling
 // mesh instancing
 
-void RendererShow(Renderer* renderer, mat4 projection, mat4 view, float near, float far, SDL_GPUCommandBuffer* cmdBuffer)
+void RendererShow(Renderer* renderer, mat4 pv, vec4 frustumPlanes[6], float near, float far, SDL_GPUCommandBuffer* cmdBuffer)
 {
-	mat4 pv = projection * view;
-
-	vec4 frustumPlanes[6];
-	GetFrustumPlanes(pv, frustumPlanes);
-
 	// geometry pass
 	{
 		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->gbuffer, cmdBuffer);

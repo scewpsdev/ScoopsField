@@ -3,6 +3,20 @@
 #include <SDL3/SDL.h>
 
 
+inline bool StartsWith(const char* str, const char* prefix)
+{
+	int len = (int)SDL_strlen(str);
+	int slen = (int)SDL_strlen(prefix);
+	if (slen > len)
+		return false;
+	for (int i = 0; i < slen; i++)
+	{
+		if (str[i] != prefix[i])
+			return false;
+	}
+	return true;
+}
+
 inline bool EndsWith(const char* str, const char* suffix)
 {
 	int len = (int)SDL_strlen(str);

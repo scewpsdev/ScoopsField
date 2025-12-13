@@ -81,3 +81,5 @@ vec3 RandomPointOnSphere(struct Random& random);
 AABB TransformBoundingBox(const AABB& localBox, const mat4& transform);
 ivec2 WorldToScreenSpace(const vec3& p, const mat4& vp, int displayWidth, int displayHeight);
 vec4 ARGBToVector(uint32_t argb);
+bool FrustumCulling(const Sphere& boundingSphere, vec4 planes[6]);
+bool FrustumCulling(const Sphere& boundingSphere, mat4 transform, vec4 planes[6]);

@@ -12,16 +12,6 @@ struct Random
 	uint32_t v;
 
 
-	Random()
-		: v(0)
-	{
-	}
-
-	Random(uint32_t seed)
-		: v(hash(seed))
-	{
-	}
-
 	uint32_t next()
 	{
 		uint32_t value = v;
@@ -38,6 +28,14 @@ struct Random
 	float nextFloat(float min, float max)
 	{
 		return min + (max - min) * nextFloat();
+	}
+
+	vec2 nextVector2(float min, float max)
+	{
+		return vec2(
+			nextFloat(min, max),
+			nextFloat(min, max)
+		);
 	}
 
 	vec3 nextVector3(float min, float max)
@@ -59,3 +57,9 @@ struct Random
 		}
 	}
 };
+
+
+inline void InitRandom(Random* random, uint32_t seed)
+{
+	random->v = hash(seed);
+}

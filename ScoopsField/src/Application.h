@@ -7,6 +7,8 @@
 
 #include "Resource.h"
 
+#include "game/Game.h"
+
 #include "graphics/VertexBuffer.h"
 #include "graphics/IndexBuffer.h"
 #include "graphics/IndirectBuffer.h"
@@ -16,16 +18,6 @@
 #include "graphics/Texture.h"
 #include "graphics/RenderTarget.h"
 #include "graphics/GraphicsPipeline.h"
-
-#include "renderer/Renderer.h"
-#include "renderer/DebugTextRenderer.h"
-#include "renderer/Renderer2D.h"
-
-#include "audio/Audio.h"
-
-#include "physics/Physics.h"
-#include "physics/RigidBody.h"
-#include "physics/CharacterController.h"
 
 #include "model/Model.h"
 #include "model/Animation.h"
@@ -39,10 +31,6 @@
 #include "utils/Queue.h"
 #include "utils/Pool.h"
 #include "utils/HashMap.h"
-
-#include "game/entity/Player.h"
-
-#include "game/item/Item.h"
 
 
 #define PROJECT_PATH "D:\\Dev\\ScoopsField\\ScoopsField"
@@ -112,32 +100,6 @@ struct GraphicsState
 #define MAX_GRAPHICS_PIPELINES 64
 	GraphicsPipeline graphicsPipelines[MAX_GRAPHICS_PIPELINES];
 	int numGraphicsPipelines;
-};
-
-struct GameState
-{
-	bool mouseLocked;
-	vec3 cameraPosition;
-	float cameraPitch, cameraYaw;
-	float cameraNear, cameraFar;
-
-	Renderer renderer;
-	Renderer2D guiRenderer;
-
-	ItemDatabase items;
-
-	Player player;
-
-	Model cube;
-
-	RigidBody platform;
-
-	RigidBody cubeBodies[100];
-	int numCubeBodies;
-
-	Sound testSound;
-
-	Texture* crosshair;
 };
 
 struct AppState

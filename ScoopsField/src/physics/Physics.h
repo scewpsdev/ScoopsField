@@ -1,5 +1,7 @@
 #pragma once
 
+#include "RigidBody.h"
+
 #include "math/Vector.h"
 
 #include <physx/PxPhysics.h>
@@ -42,6 +44,7 @@ struct PhysicsHit
 	vec3 position;
 	vec3 normal;
 	bool trigger;
+	RigidBody* body;
 };
 
 

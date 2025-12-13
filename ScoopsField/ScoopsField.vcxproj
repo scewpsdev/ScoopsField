@@ -143,15 +143,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\game\entity\action\Action.cpp" />
-    <ClCompile Include="src\game\entity\action\AttackAction.cpp" />
+    <ClCompile Include="src\game\player\action\Action.cpp" />
+    <ClCompile Include="src\game\entity\action\EntityAttackAction.cpp" />
+    <ClCompile Include="src\game\entity\action\EntityDeathAction.cpp" />
+    <ClCompile Include="src\game\entity\action\EntityAction.cpp" />
+    <ClCompile Include="src\game\entity\action\EntityStaggerAction.cpp" />
+    <ClCompile Include="src\game\entity\Entity.cpp" />
+    <ClCompile Include="src\game\entity\Skeleton.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\game\item\Item.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\audio\Audio.cpp" />
-    <ClCompile Include="src\game\entity\Player.cpp">
+    <ClCompile Include="src\game\player\action\AttackAction.cpp" />
+    <ClCompile Include="src\game\player\Player.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -192,10 +201,17 @@
   <ItemGroup>
     <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\audio\Audio.h" />
-    <ClInclude Include="src\game\entity\action\Action.h" />
-    <ClInclude Include="src\game\entity\action\AttackAction.h" />
-    <ClInclude Include="src\game\entity\Player.h" />
+    <ClInclude Include="src\game\player\action\Action.h" />
+    <ClInclude Include="src\game\entity\action\EntityAttackAction.h" />
+    <ClInclude Include="src\game\entity\action\EntityDeathAction.h" />
+    <ClInclude Include="src\game\entity\action\EntityAction.h" />
+    <ClInclude Include="src\game\entity\action\EntityStaggerAction.h" />
+    <ClInclude Include="src\game\entity\Entity.h" />
+    <ClInclude Include="src\game\player\action\AttackAction.h" />
+    <ClInclude Include="src\game\player\Player.h" />
     <ClInclude Include="src\file\Image.h" />
+    <ClInclude Include="src\game\entity\Skeleton.h" />
+    <ClInclude Include="src\game\Game.h" />
     <ClInclude Include="src\game\item\Item.h" />
     <ClInclude Include="src\graphics\GraphicsPipeline.h" />
     <ClInclude Include="src\graphics\IndexBuffer.h" />

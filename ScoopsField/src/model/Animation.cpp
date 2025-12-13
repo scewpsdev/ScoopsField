@@ -24,11 +24,9 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 
 static int GetAnimationChannelWithName(Animation* animation, const char* name)
 {
-	for (int i = 0; i < animation->numChannels; i++)
-	{
-		if (SDL_strcmp(animation->channels[i].name, name) == 0)
-			return i;
-	}
+	uint32_t nameHash = hash(name);
+	if (int* channelID = HashMapGet(&animation->channelNameMap, nameHash))
+		return *channelID;
 	return -1;
 }
 
@@ -266,4 +264,13 @@ void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState)
 const mat4& GetNodeTransform(AnimationState* animationState, Node* node)
 {
 	return animationState->nodeTransforms[node->id];
+}
+
+void InitAnimation(AnimationPlayback* animation, const char* name, Model* moveset, float speed, bool loop, bool mirror)
+{
+	SDL_strlcpy(animation->name, name, 32);
+	animation->speed = speed;
+	animation->loop = loop;
+	animation->mirror = mirror;
+	animation->animation = GetAnimationByName(moveset, name);
 }
