@@ -1,5 +1,7 @@
 #pragma once
 
+#include "math/Vector.h"
+
 #include <physx/PxPhysics.h>
 #include <physx/PxScene.h>
 #include <physx/characterkinematic/PxControllerManager.h>
@@ -34,9 +36,19 @@ struct PhysicsState
 	bool running;
 };
 
+struct PhysicsHit
+{
+	float distance;
+	vec3 position;
+	vec3 normal;
+	bool trigger;
+};
+
 
 bool InitPhysics(PhysicsState* physics);
 void DestroyPhysics(PhysicsState* physics);
 
 void StartPhysicsFrame(PhysicsState* physics);
 void EndPhysicsFrame(PhysicsState* physics);
+
+int Raycast(PhysicsState* physics, const vec3& origin, const vec3& direction, float distance, PhysicsHit* hits, int maxHits, uint32_t filterMask);

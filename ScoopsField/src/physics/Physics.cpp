@@ -20,6 +20,16 @@ extern GameMemory* memory;
 extern float deltaTime;
 
 
+static PxVec3 PxVector(const vec3& v)
+{
+	return PxVec3(v.x, v.y, v.z);
+}
+
+static vec3 FromPxVector(const PxVec3& v)
+{
+	return vec3(v.x, v.y, v.z);
+}
+
 void* PhysicsAllocator::allocate(size_t size, const char* typeName, const char* filename, int line)
 {
 	memory->physicsMemoryUsage += size;
@@ -136,6 +146,8 @@ bool InitPhysics(PhysicsState* physics)
 
 void DestroyPhysics(PhysicsState* physics)
 {
+	EndPhysicsFrame(physics);
+
 	physics->material->release();
 	physics->controllers->release();
 	physics->scene->release();
@@ -179,4 +191,25 @@ void EndPhysicsFrame(PhysicsState* physics)
 
 		physics->running = false;
 	}
+}
+
+int Raycast(PhysicsState* physics, const vec3& origin, const vec3& direction, float distance, PhysicsHit* hits, int maxHits, uint32_t filterMask)
+{
+	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);
+	filterData.data.word0 = filterMask;
+
+	PxRaycastBuffer hitBuffer((PxRaycastHit*)BumpAllocatorMalloc(&memory->transientAllocator, maxHits * sizeof(PxRaycastHit)), maxHits);
+	if (physics->scene->raycast(PxVector(origin), PxVector(direction), distance, hitBuffer, PxHitFlag::eDEFAULT, filterData))
+	{
+		for (int i = 0; i < (int)hitBuffer.getNbAnyHits(); i++)
+		{
+			const PxRaycastHit* hit = &hitBuffer.getAnyHit(i);
+			hits[i].distance = hit->distance;
+			hits[i].position = FromPxVector(hit->position);
+			hits[i].normal = FromPxVector(hit->normal);
+			hits[i].trigger = hit->shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
+		}
+	}
+
+	return (int)hitBuffer.getNbAnyHits();
 }

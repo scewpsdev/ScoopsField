@@ -16,6 +16,7 @@ static bool EveryInterval(float seconds)
 }
 
 
+#include "item/Item.cpp"
 #include "entity/Player.cpp"
 
 
@@ -31,6 +32,8 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	InitRenderer2D(&game->guiRenderer, 1, &layerInfo, cmdBuffer);
 
 	InitAnimationCache(&resource->animationCache);
+
+	InitItemDatabase(&game->items, cmdBuffer);
 
 	//game->mesh = LoadMesh("res/models/monkey.glb.bin", cmdBuffer);
 

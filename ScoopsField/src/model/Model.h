@@ -143,4 +143,7 @@ struct Model
 };
 
 
-void LoadModel(Model* model, const char* path, SDL_GPUCommandBuffer* cmdBuffer);
+bool LoadModel(Model* model, const char* path, SDL_GPUCommandBuffer* cmdBuffer);
+
+Node* GetNodeByName(Model* model, const char* name);
+Animation* GetAnimationByName(Model* model, const char* name);

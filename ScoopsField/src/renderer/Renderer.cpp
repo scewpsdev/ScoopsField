@@ -293,7 +293,7 @@ void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, ma
 	{
 		Mesh* mesh = &model->meshes[i];
 		Material* material = mesh->materialID != -1 ? &model->materials[mesh->materialID] : nullptr;
-		RenderMesh(renderer, mesh, material, animation ? &animation->skeletons[i] : nullptr, transform);
+		RenderMesh(renderer, mesh, material, animation && mesh->skeletonID != -1 ? &animation->skeletons[mesh->skeletonID] : nullptr, transform);
 	}
 }
 

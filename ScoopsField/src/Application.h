@@ -42,6 +42,8 @@
 
 #include "game/entity/Player.h"
 
+#include "game/item/Item.h"
+
 
 #define PROJECT_PATH "D:\\Dev\\ScoopsField\\ScoopsField"
 
@@ -121,6 +123,8 @@ struct GameState
 
 	Renderer renderer;
 	Renderer2D guiRenderer;
+
+	ItemDatabase items;
 
 	Player player;
 

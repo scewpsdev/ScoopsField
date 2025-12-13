@@ -3,6 +3,20 @@
 #include <SDL3/SDL.h>
 
 
+inline bool EndsWith(const char* str, const char* suffix)
+{
+	int len = (int)SDL_strlen(str);
+	int slen = (int)SDL_strlen(suffix);
+	if (slen > len)
+		return false;
+	for (int i = 0; i < slen; i++)
+	{
+		if (str[len - 1 - i] != suffix[slen - 1 - i])
+			return false;
+	}
+	return true;
+}
+
 inline void MemoryString(char* str, size_t maxLen, uint64_t mem)
 {
 	if (mem >= 1 << 30)

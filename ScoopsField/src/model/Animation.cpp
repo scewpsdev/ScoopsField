@@ -7,16 +7,19 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 {
 	for (int i = 0; i < model->numNodes; i++)
 	{
-		animationState->nodeTransforms[i] = mat4::Identity;
+		animationState->nodeTransforms[i] = model->nodes[i].transform;
 	}
 	for (int i = 0; i < model->numMeshes; i++)
 	{
-		animationState->skeletons[i].numBones = model->skeletons[model->meshes[i].skeletonID].numBones;
-		for (int j = 0; j < animationState->skeletons[i].numBones; j++)
+		SkeletonState* skeletonState = &animationState->skeletons[model->meshes[i].skeletonID];
+		skeletonState->numBones = model->skeletons[model->meshes[i].skeletonID].numBones;
+		for (int j = 0; j < skeletonState->numBones; j++)
 		{
-			animationState->skeletons[i].boneTransforms[j] = mat4::Identity;
+			skeletonState->boneTransforms[j] = mat4::Identity;
 		}
 	}
+
+	InitHashMap(&animationState->channelMap);
 }
 
 static int GetAnimationChannelWithName(Animation* animation, const char* name)
@@ -128,30 +131,16 @@ static vec3 AnimateScaling(ScalingKeyframe* scalings, int numScalings, float tim
 	}
 }
 
-static void AnimateNode(int id, mat4 parentTransform, Model* model, AnimationState* animationState, Animation* animation, float time, bool loop)
+static mat4 AnimateNode(Node* node, AnimationChannel* channel, Animation* animation, float time, bool loop)
 {
-	Node* node = &model->nodes[id];
-	mat4 localTransform = node->transform;
+	if (loop)
+		time = SDL_fmodf(time, animation->duration);
 
-	int channelID = GetAnimationChannelWithName(animation, node->name);
-	if (channelID != -1)
-	{
-		AnimationChannel* channel = &animation->channels[channelID];
+	vec3 position = AnimatePosition(&animation->positions[channel->positionsOffset], channel->positionsCount, time, animation->duration, loop);
+	quat rotation = AnimateRotation(&animation->rotations[channel->rotationsOffset], channel->rotationsCount, time, animation->duration, loop);
+	vec3 scaling = AnimateScaling(&animation->scalings[channel->scalingsOffset], channel->scalingsCount, time, animation->duration, loop);
 
-		vec3 position = AnimatePosition(&animation->positions[channel->positionsOffset], channel->positionsCount, SDL_fmodf(time, animation->duration), animation->duration, loop);
-		quat rotation = AnimateRotation(&animation->rotations[channel->rotationsOffset], channel->rotationsCount, SDL_fmodf(time, animation->duration), animation->duration, loop);
-		vec3 scaling = AnimateScaling(&animation->scalings[channel->scalingsOffset], channel->scalingsCount, SDL_fmodf(time, animation->duration), animation->duration, loop);
-
-		localTransform = mat4::Transform(position, rotation, scaling);
-	}
-
-	mat4 transform = id > 0 ? parentTransform * localTransform : localTransform;
-	animationState->nodeTransforms[id] = transform;
-
-	for (int i = 0; i < node->numChildren; i++)
-	{
-		AnimateNode(node->children[i], animationState->nodeTransforms[id], model, animationState, animation, time, loop);
-	}
+	return mat4::Transform(position, rotation, scaling);
 }
 
 static int GetNodeForMesh(int meshID, Model* model)
@@ -170,7 +159,93 @@ static int GetNodeForMesh(int meshID, Model* model)
 void AnimateModel(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop)
 {
 	SDL_assert(model->numNodes > 0);
-	AnimateNode(0, {}, model, animationState, animation, time, loop);
+
+	ClearHashMap(&animationState->channelMap);
+	for (int i = 0; i < model->numNodes; i++)
+	{
+		Node* node = &model->nodes[i];
+		int channelID = GetAnimationChannelWithName(animation, node->name);
+		if (channelID != -1)
+		{
+			HashMapAdd(&animationState->channelMap, node, channelID);
+		}
+	}
+
+	for (int i = 0; i < animationState->channelMap.capacity; i++)
+	{
+		auto* slot = &animationState->channelMap.slots[i];
+		if (slot->state == SLOT_USED)
+		{
+			Node* node = slot->key;
+			int channelID = slot->value;
+			animationState->nodeTransforms[node->id] = AnimateNode(node, &animation->channels[channelID], animation, time, loop);
+		}
+	}
+}
+
+static mat4 interpolate(const mat4& a, const mat4& b, float blend)
+{
+	vec3 pa = a.translation();
+	vec3 pb = b.translation();
+	quat ra = a.rotation();
+	quat rb = b.rotation();
+
+	vec3 p = mix(pa, pb, blend);
+	quat r = slerp(ra, rb, blend);
+
+	return mat4::Translate(p) * mat4::Rotate(r);
+}
+
+void BlendAnimation(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, float blend, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr)
+{
+	SDL_assert(model->numNodes > 0);
+
+	ClearHashMap(&animationState->channelMap);
+	for (int i = 0; i < model->numNodes; i++)
+	{
+		Node* node = &model->nodes[i];
+		if (channelFilter && !channelFilter(node, filterUserPtr))
+			continue;
+		int channelID = GetAnimationChannelWithName(animation, node->name);
+		if (channelID != -1)
+		{
+			HashMapAdd(&animationState->channelMap, node, channelID);
+		}
+	}
+
+	for (int i = 0; i < animationState->channelMap.capacity; i++)
+	{
+		auto* slot = &animationState->channelMap.slots[i];
+		if (slot->state == SLOT_USED)
+		{
+			Node* node = slot->key;
+			int channelID = slot->value;
+			const mat4& a = animationState->nodeTransforms[node->id];
+			const mat4& b = AnimateNode(node, &animation->channels[channelID], animation, time, loop);
+			animationState->nodeTransforms[node->id] = interpolate(a, b, blend);
+		}
+	}
+}
+
+static void CalculateWorldTransform(int id, const mat4& parentTransform, Model* model, AnimationState* animationState)
+{
+	Node* node = &model->nodes[id];
+
+	const mat4& localTransform = animationState->nodeTransforms[id];
+	mat4 transform = id > 0 ? parentTransform * localTransform : localTransform;
+	animationState->nodeTransforms[id] = transform;
+
+	for (int i = 0; i < node->numChildren; i++)
+	{
+		CalculateWorldTransform(node->children[i], transform, model, animationState);
+	}
+}
+
+void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState)
+{
+	// resolve childOf constraints
+
+	CalculateWorldTransform(0, {}, model, animationState);
 
 	for (int i = 0; i < model->numMeshes; i++)
 	{
@@ -183,7 +258,12 @@ void AnimateModel(Model* model, AnimationState* animationState, Animation* anima
 		for (int j = 0; j < skeleton->numBones; j++)
 		{
 			Bone* bone = &skeleton->bones[j];
-			animationState->skeletons[i].boneTransforms[j] = skeleton->inverseBindPose * animationState->nodeTransforms[bone->nodeID] * bone->offsetMatrix;
+			animationState->skeletons[mesh->skeletonID].boneTransforms[j] = skeleton->inverseBindPose * animationState->nodeTransforms[bone->nodeID] * bone->offsetMatrix;
 		}
 	}
+}
+
+const mat4& GetNodeTransform(AnimationState* animationState, Node* node)
+{
+	return animationState->nodeTransforms[node->id];
 }

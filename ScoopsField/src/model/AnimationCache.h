@@ -11,7 +11,7 @@ struct AnimationCache
 	PositionKeyframe positions[MAX_POSITION_KEYFRAMES];
 #define MAX_ROTATION_KEYFRAMES 8192
 	RotationKeyframe rotations[MAX_ROTATION_KEYFRAMES];
-#define MAX_SCALING_KEYFRAMES 1024
+#define MAX_SCALING_KEYFRAMES 8192
 	ScalingKeyframe scalings[MAX_SCALING_KEYFRAMES];
 
 	BumpAllocator positionAllocator;

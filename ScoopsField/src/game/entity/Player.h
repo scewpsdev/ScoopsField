@@ -5,21 +5,15 @@
 
 #include "physics/CharacterController.h"
 
+#include "action/Action.h"
+
+#include "game/item/Item.h"
+
 
 enum CameraMode
 {
 	CAMERA_MODE_FIRST_PERSON,
 	CAMERA_MODE_FREE,
-};
-
-struct AnimationPlayback
-{
-	char name[32] = "";
-	float speed = 1.0f;
-	bool loop = true;
-	bool mirror = false;
-
-	Animation* animation;
 };
 
 struct Player
@@ -34,11 +28,17 @@ struct Player
 
 	Model model;
 	AnimationState anim;
-	float animationTimer;
+
+	Node* rightWeaponNode;
 
 	AnimationPlayback idleAnim;
 	AnimationPlayback runAnim;
-	AnimationPlayback* currentAnim;
+
+	Item* rightWeapon;
+	AnimationPlayback weaponIdleAnim;
+	AnimationPlayback weaponAttackAnim;
 
 	CharacterController controller;
+
+	ActionManager actions;
 };

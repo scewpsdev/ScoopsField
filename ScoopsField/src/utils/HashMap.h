@@ -144,7 +144,7 @@ inline VALUE_TYPE* HashMapGet(HashMap<KEY_TYPE, VALUE_TYPE, CAPACITY>* map, cons
 }
 
 template<typename KEY_TYPE, typename VALUE_TYPE, int CAPACITY>
-inline void HashMapClear(HashMap<KEY_TYPE, VALUE_TYPE, CAPACITY>* map)
+inline void ClearHashMap(HashMap<KEY_TYPE, VALUE_TYPE, CAPACITY>* map)
 {
 	SDL_memset(map->slots, 0, sizeof(map->slots));
 

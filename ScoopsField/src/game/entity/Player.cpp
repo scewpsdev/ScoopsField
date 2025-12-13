@@ -1,28 +1,25 @@
 #include "Player.h"
 
 
-static Animation* GetAnimationByName(Model* model, const char* name)
+static Action* GetCurrentAction(Player* player)
 {
-	for (int i = 0; i < model->numAnimations; i++)
+	return QueuePeek(player->actions.actions);
+}
+
+static void SetRightWeapon(Player* player, ItemType itemType)
+{
+	SDL_assert(itemType < ITEM_TYPE_LAST);
+
+	if (itemType != ITEM_TYPE_NONE)
 	{
-		if (SDL_strcmp(model->animations[i].name, name) == 0)
-			return &model->animations[i];
+		player->rightWeapon = &game->items.items[itemType];
+		InitAnimation(&player->weaponIdleAnim, "idle", &player->rightWeapon->moveset);
+		InitAnimation(&player->weaponAttackAnim, "attack1", &player->rightWeapon->moveset);
 	}
-	return nullptr;
-}
-
-static void InitAnimation(AnimationPlayback* animation, const char* name, Player* player, float speed = 1.0f, bool loop = true, bool mirror = false)
-{
-	SDL_strlcpy(animation->name, name, 32);
-	animation->speed = speed;
-	animation->loop = loop;
-	animation->mirror = mirror;
-	animation->animation = GetAnimationByName(&player->model, name);
-}
-
-static void SetAnimation(Player* player, AnimationPlayback* animation)
-{
-	player->currentAnim = animation;
+	else
+	{
+		player->rightWeapon = nullptr;
+	}
 }
 
 
@@ -31,11 +28,16 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer)
 	LoadModel(&player->model, "res/models/viewmodel.glb.bin", cmdBuffer);
 	InitAnimationState(&player->anim, &player->model);
 
-	InitAnimation(&player->idleAnim, "idle", player, 0.001f);
-	InitAnimation(&player->runAnim, "run", player);
-	SetAnimation(player, &player->idleAnim);
+	player->rightWeaponNode = GetNodeByName(&player->model, "weapon_r");
+
+	InitAnimation(&player->idleAnim, "idle", &player->model, 0.001f, true);
+	InitAnimation(&player->runAnim, "run", &player->model, 1, true);
 
 	InitCharacterController(&player->controller, 0.2f, 2, 0.2f, vec3(0, 3, 3));
+
+	InitActionManager(player->actions);
+
+	SetRightWeapon(player, ITEM_TYPE_KINGS_SWORD);
 }
 
 void DestroyPlayer(Player* player)
@@ -44,12 +46,46 @@ void DestroyPlayer(Player* player)
 	//DestroyAnimationState(&player->anim);
 }
 
+static bool ActionAnimChannelFilter(Node* node, bool* right)
+{
+	if (*right) return !EndsWith(node->name, "_l");
+	else return !EndsWith(node->name, "_r");
+}
+
 void UpdatePlayer(Player* player)
 {
-	SetAnimation(player, player->moving ? &player->runAnim : &player->idleAnim);
-	player->animationTimer += deltaTime * player->currentAnim->speed;
+	if (GetMouseButtonDown(SDL_BUTTON_LEFT) && player->rightWeapon)
+	{
+		Action action;
+		InitAttackAction(&action, player->rightWeapon);
+		QueueAction(player->actions, action);
+	}
 
-	AnimateModel(&player->model, &player->anim, player->currentAnim->animation, player->animationTimer, player->currentAnim->loop);
+	UpdateActionManager(player->actions);
+
+	AnimationPlayback* moveAnimation = player->moving ? &player->runAnim : &player->idleAnim;
+	moveAnimation->timer += deltaTime * moveAnimation->speed;
+
+	AnimateModel(&player->model, &player->anim, moveAnimation->animation, moveAnimation->timer, moveAnimation->loop);
+
+	if (player->rightWeapon)
+	{
+		Animation* weaponMoveAnimation = GetAnimationByName(&player->rightWeapon->moveset, "idle");
+
+		bool right = true;
+		BlendAnimation(&player->model, &player->anim, weaponMoveAnimation, moveAnimation->timer, moveAnimation->loop, 1, (AnimationChannelFilterCallback_t)ActionAnimChannelFilter, &right);
+	}
+
+	if (Action* currentAction = GetCurrentAction(player))
+	{
+		AnimationPlayback* actionAnimation = &currentAction->anim;
+		actionAnimation->timer += deltaTime * actionAnimation->speed;
+
+		bool right = true;
+		BlendAnimation(&player->model, &player->anim, actionAnimation->animation, actionAnimation->timer, actionAnimation->loop, 1, (AnimationChannelFilterCallback_t)ActionAnimChannelFilter, &right);
+	}
+
+	ApplyAnimationToSkeleton(&player->model, &player->anim);
 
 	if (player->cameraMode == CAMERA_MODE_FIRST_PERSON)
 	{
@@ -129,5 +165,17 @@ void UpdatePlayer(Player* player)
 
 void RenderPlayer(Player* player)
 {
-	RenderModel(&game->renderer, &player->model, &player->anim, mat4::Translate(game->cameraPosition) * mat4::Rotate(quat::FromAxisAngle(vec3::Up, game->cameraYaw) * quat::FromAxisAngle(vec3::Right, game->cameraPitch)) * mat4::Rotate(vec3::Up, PI));
+	mat4 cameraTransform = mat4::Translate(game->cameraPosition) * mat4::Rotate(quat::FromAxisAngle(vec3::Up, game->cameraYaw) * quat::FromAxisAngle(vec3::Right, game->cameraPitch));
+	mat4 viewmodelTransform = cameraTransform * mat4::Rotate(vec3::Up, PI);
+
+	RenderModel(&game->renderer, &player->model, &player->anim, viewmodelTransform);
+
+	if (player->rightWeapon)
+	{
+		RenderModel(&game->renderer, &player->rightWeapon->model, &player->anim, viewmodelTransform * GetNodeTransform(&player->anim, player->rightWeaponNode));
+	}
+
+	Action* currentAction = GetCurrentAction(player);
+	if (currentAction)
+		DebugText(0, height / 16 - 2, "%d, %.2f", currentAction->type, currentAction->elapsedTime / currentAction->duration);
 }

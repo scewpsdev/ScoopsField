@@ -207,6 +207,7 @@ static Texture* ReadTexture(BinaryReader& reader, const char* scenePath, SDL_GPU
 	{
 		char absolutePath[256];
 		GetAbsolutePath(absolutePath, 256, path, scenePath);
+		SDL_strlcat(absolutePath, ".bin", 256);
 
 		return LoadTexture(absolutePath, cmdBuffer);
 	}
@@ -264,6 +265,10 @@ static void ReadAnimation(Animation* animation, BinaryReader& reader)
 	animation->positions = (PositionKeyframe*)BumpAllocatorMalloc(&resource->animationCache.positionAllocator, animation->numPositions * sizeof(PositionKeyframe));
 	animation->rotations = (RotationKeyframe*)BumpAllocatorMalloc(&resource->animationCache.rotationAllocator, animation->numRotations * sizeof(RotationKeyframe));
 	animation->scalings = (ScalingKeyframe*)BumpAllocatorMalloc(&resource->animationCache.scalingAllocator, animation->numScalings * sizeof(ScalingKeyframe));
+
+	SDL_assert(animation->positions);
+	SDL_assert(animation->rotations);
+	SDL_assert(animation->scalings);
 
 	reader.ReadBytes(animation->positions, animation->numPositions * sizeof(PositionKeyframe));
 	reader.ReadBytes(animation->rotations, animation->numRotations * sizeof(RotationKeyframe));
@@ -333,7 +338,7 @@ static void ReadLight(BinaryReader& reader)
 	vec3 color = reader.ReadVector3();
 }
 
-void LoadModel(Model* model, const char* path, SDL_GPUCommandBuffer* cmdBuffer)
+bool LoadModel(Model* model, const char* path, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	model->numMeshes = 0;
 
@@ -341,42 +346,69 @@ void LoadModel(Model* model, const char* path, SDL_GPUCommandBuffer* cmdBuffer)
 	size_t fileSize;
 	void* data = SDL_LoadFile(path, &fileSize);
 
-	BinaryReader reader((uint8_t*)data, (int)fileSize);
+	if (data)
+	{
+		BinaryReader reader((uint8_t*)data, (int)fileSize);
 
-	model->numMeshes = reader.ReadInt32();
-	model->numMaterials = reader.ReadInt32();
-	model->numSkeletons = reader.ReadInt32();
-	model->numAnimations = reader.ReadInt32();
-	model->numNodes = reader.ReadInt32();
-	int numLights = reader.ReadInt32();
+		model->numMeshes = reader.ReadInt32();
+		model->numMaterials = reader.ReadInt32();
+		model->numSkeletons = reader.ReadInt32();
+		model->numAnimations = reader.ReadInt32();
+		model->numNodes = reader.ReadInt32();
+		int numLights = reader.ReadInt32();
 
-	SDL_assert(model->numMeshes <= MAX_MESHES);
-	SDL_assert(model->numMaterials <= MAX_MATERIALS);
-	SDL_assert(model->numSkeletons <= MAX_SKELETONS);
-	SDL_assert(model->numAnimations <= MAX_ANIMATIONS);
-	SDL_assert(model->numNodes <= MAX_NODES);
+		SDL_assert(model->numMeshes <= MAX_MESHES);
+		SDL_assert(model->numMaterials <= MAX_MATERIALS);
+		SDL_assert(model->numSkeletons <= MAX_SKELETONS);
+		SDL_assert(model->numAnimations <= MAX_ANIMATIONS);
+		SDL_assert(model->numNodes <= MAX_NODES);
 
-	for (int i = 0; i < model->numMeshes; i++)
-		ReadMesh(&model->meshes[i], reader, cmdBuffer);
+		for (int i = 0; i < model->numMeshes; i++)
+			ReadMesh(&model->meshes[i], reader, cmdBuffer);
 
-	for (int i = 0; i < model->numMaterials; i++)
-		ReadMaterial(&model->materials[i], reader, path, cmdBuffer);
+		for (int i = 0; i < model->numMaterials; i++)
+			ReadMaterial(&model->materials[i], reader, path, cmdBuffer);
 
-	for (int i = 0; i < model->numSkeletons; i++)
-		ReadSkeleton(&model->skeletons[i], reader);
+		for (int i = 0; i < model->numSkeletons; i++)
+			ReadSkeleton(&model->skeletons[i], reader);
 
-	for (int i = 0; i < model->numAnimations; i++)
-		ReadAnimation(&model->animations[i], reader);
+		for (int i = 0; i < model->numAnimations; i++)
+			ReadAnimation(&model->animations[i], reader);
 
+		for (int i = 0; i < model->numNodes; i++)
+			ReadNode(&model->nodes[i], reader);
+
+		for (int i = 0; i < numLights; i++)
+			ReadLight(reader);
+
+		AABB boundingBox;
+		reader.Read(&boundingBox);
+
+		Sphere boundingSphere;
+		reader.Read(&boundingSphere);
+
+		return true;
+	}
+
+	return false;
+}
+
+Node* GetNodeByName(Model* model, const char* name)
+{
 	for (int i = 0; i < model->numNodes; i++)
-		ReadNode(&model->nodes[i], reader);
+	{
+		if (SDL_strcmp(model->nodes[i].name, name) == 0)
+			return &model->nodes[i];
+	}
+	return nullptr;
+}
 
-	for (int i = 0; i < numLights; i++)
-		ReadLight(reader);
-
-	AABB boundingBox;
-	reader.Read(&boundingBox);
-
-	Sphere boundingSphere;
-	reader.Read(&boundingSphere);
+Animation* GetAnimationByName(Model* model, const char* name)
+{
+	for (int i = 0; i < model->numAnimations; i++)
+	{
+		if (SDL_strcmp(model->animations[i].name, name) == 0)
+			return &model->animations[i];
+	}
+	return nullptr;
 }

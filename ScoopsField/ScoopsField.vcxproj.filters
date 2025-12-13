@@ -114,6 +114,15 @@
     <ClCompile Include="src\game\entity\Player.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\game\item\Item.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\entity\action\AttackAction.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\entity\action\Action.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\spirv_cross\spirv.h">
@@ -306,6 +315,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\game\entity\Player.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\item\Item.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\entity\action\Action.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\entity\action\AttackAction.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

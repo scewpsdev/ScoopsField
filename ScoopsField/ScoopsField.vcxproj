@@ -143,6 +143,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\game\entity\action\Action.cpp" />
+    <ClCompile Include="src\game\entity\action\AttackAction.cpp" />
+    <ClCompile Include="src\game\item\Item.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\audio\Audio.cpp" />
     <ClCompile Include="src\game\entity\Player.cpp">
@@ -186,8 +192,11 @@
   <ItemGroup>
     <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\audio\Audio.h" />
+    <ClInclude Include="src\game\entity\action\Action.h" />
+    <ClInclude Include="src\game\entity\action\AttackAction.h" />
     <ClInclude Include="src\game\entity\Player.h" />
     <ClInclude Include="src\file\Image.h" />
+    <ClInclude Include="src\game\item\Item.h" />
     <ClInclude Include="src\graphics\GraphicsPipeline.h" />
     <ClInclude Include="src\graphics\IndexBuffer.h" />
     <ClInclude Include="src\graphics\IndirectBuffer.h" />
