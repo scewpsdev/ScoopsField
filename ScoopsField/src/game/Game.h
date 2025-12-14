@@ -57,7 +57,17 @@ struct GameState
 	RigidBody mapCollider;
 
 	Model cube;
+
 	Sound testSound;
+	Sound ambientSound;
+	uint32_t ambientSource;
+	Sound equipSound;
+	Sound stepSounds[6];
+	Sound landSound;
+	Sound swingSounds[3];
+	Sound slashHitSounds[2];
+	Sound skeletonHitSounds[5];
+	Sound exhaustedSounds[2];
 
 	Texture* crosshair;
 	Texture* vignette;

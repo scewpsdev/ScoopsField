@@ -3,6 +3,7 @@
 
 #define HEALTH_REGEN_HIT_DELAY 5.0f
 #define HIT_RECOVERY_DURATION 0.25f
+#define STEP_FREQUENCY 0.6f
 
 
 static Action* GetCurrentAction(Player* player)
@@ -32,8 +33,13 @@ mat4 GetRightWeaponTransform(Player* player)
 }
 
 
+#include "SourceMovement.cpp"
+
+
 void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer)
 {
+	*player = {};
+
 	InitEntity(player, ENTITY_TYPE_PLAYER);
 
 	player->position = vec3(0, 3, 3);
@@ -45,11 +51,11 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer)
 	player->rightShoulderNode = GetNodeByName(&player->model, "clavicle_r");
 	player->leftShoulderNode = GetNodeByName(&player->model, "clavicle_l");
 
-	InitAnimation(&player->idleAnim, "idle", &player->model, 0.002f, true);
+	InitAnimation(&player->idleAnim, "idle", &player->model, 0.005f, true);
 
-	InitCharacterController(&player->controller, 0.3f, 2, 0.2f, player->position);
+	InitCharacterController(&player->controller, 0.3f, 1.5f, 0.2f, player->position);
 	InitRigidBody(&player->kinematicBody, RIGID_BODY_KINEMATIC, player->position, quat::Identity);
-	AddCapsuleCollider(&player->kinematicBody, 0.2f, 2.0f, vec3(0, 1, 0), quat::Identity, ENTITY_FILTER_PLAYER, ENTITY_FILTER_ENEMY, false);
+	AddCapsuleCollider(&player->kinematicBody, 0.2f, 1.5f, vec3(0, 1, 0), quat::Identity, ENTITY_FILTER_PLAYER, ENTITY_FILTER_ENEMY, false);
 	player->kinematicBody.userPtr = player;
 
 	InitActionManager(player->actions, &player->model);
@@ -98,17 +104,16 @@ static mat4 CalculateViewBobbing(Player* player, int side)
 
 	// Walk animation
 	vec2 viewmodelWalkAnim = vec2::Zero;
-	const float stepFrequency = 0.6f;
-	viewmodelWalkAnim.x = 0.03f * SDL_sinf(player->distanceWalked * stepFrequency * PI);
-	viewmodelWalkAnim.y = 0.015f * -SDL_fabsf(SDL_cosf(player->distanceWalked * stepFrequency * PI));
+	viewmodelWalkAnim.x = 0.03f * SDL_sinf(player->distanceWalked * STEP_FREQUENCY * PI);
+	viewmodelWalkAnim.y = 0.015f * -SDL_fabsf(SDL_cosf(player->distanceWalked * STEP_FREQUENCY * PI));
 	//viewmodelWalkAnim *= 1 - Mathf.Smoothstep(1.0f, 1.5f, movementSpeed);
-	viewmodelWalkAnim *= 1 - SDL_expf(-player->controllerVelocity.xz().length());
+	viewmodelWalkAnim *= 1 - SDL_expf(-player->velocity.xz().length());
 	//viewmodelWalkAnim *= (sprinting && runAnim.layers[1 + 0] != null && runAnim.layers[1 + 0].animationName == "run" || movement.isMoving && walkAnim.layers[1 + 0] != null && walkAnim.layers[1 + 0].animationName == "walk") ? 0 : 1;
 	yawSway += viewmodelWalkAnim.x;
 	sway.y += viewmodelWalkAnim.y;
 
 	// Vertical speed animation
-	float verticalSpeedAnimDst = player->controllerVelocity.y;
+	float verticalSpeedAnimDst = player->velocity.y;
 	verticalSpeedAnimDst = clamp(verticalSpeedAnimDst, -5.0f, 5.0f);
 	player->viewBobVerticalSpeedAnim = mix(player->viewBobVerticalSpeedAnim, verticalSpeedAnimDst * 0.0075f, 5 * deltaTime);
 	pitchSway += player->viewBobVerticalSpeedAnim;
@@ -200,89 +205,7 @@ void UpdatePlayer(Player* player)
 	if (GetKeyDown(SDL_SCANCODE_F5))
 		player->cameraMode = CAMERA_MODE_FIRST_PERSON ? CAMERA_MODE_FREE : CAMERA_MODE_FIRST_PERSON;
 
-	player->sprinting = false;
-	if (player->cameraMode == CAMERA_MODE_FIRST_PERSON)
-	{
-		quat playerRotation = quat::FromAxisAngle(vec3::Up, player->rotation);
-
-		vec3 delta = vec3::Zero;
-		if (GetKey(SDL_SCANCODE_A)) delta += playerRotation.left();
-		if (GetKey(SDL_SCANCODE_D)) delta += playerRotation.right();
-		if (GetKey(SDL_SCANCODE_S)) delta += playerRotation.back();
-		if (GetKey(SDL_SCANCODE_W)) delta += playerRotation.forward();
-
-		vec3 displacement = vec3::Zero;
-		if (delta.lengthSquared() > 0)
-		{
-			player->sprinting = GetKey(SDL_SCANCODE_LSHIFT) && player->stamina > 0 && !player->exhausted;
-			float speed = (player->sprinting ? 2 : GetKey(SDL_SCANCODE_LALT) ? 0.25f : 1) * player->walkSpeed;
-			if (player->sprinting)
-				player->stamina -= 0.15f * deltaTime;
-			if (currentAction)
-				speed *= currentAction->moveSpeed;
-
-			vec3 velocity = delta.normalized() * speed;
-			displacement += velocity * deltaTime;
-		}
-
-		if (GetKeyDown(SDL_SCANCODE_SPACE) && player->grounded)
-		{
-			const float jumpPower = 7;
-			player->verticalVelocity = jumpPower;
-			player->grounded = false;
-		}
-
-		const float gravity = -20;
-		player->verticalVelocity += 0.5f * gravity * deltaTime;
-		displacement += vec3(0, player->verticalVelocity, 0) * deltaTime;
-		player->verticalVelocity += 0.5f * gravity * deltaTime;
-
-		player->distanceWalked += displacement.length();
-		player->controllerVelocity = displacement / deltaTime;
-		ControllerCollisionFlags collisionFlags = MoveCharacterController(&player->controller, displacement, ENTITY_FILTER_DEFAULT);
-		if (collisionFlags & CONTROLLER_COLLISION_DOWN)
-		{
-			player->verticalVelocity = 0;
-			player->grounded = true;
-			if (player->controllerVelocity.y < -1)
-			{
-				player->lastLandedTime = gameTime;
-			}
-		}
-		else
-		{
-			player->grounded = false;
-		}
-
-		player->moving = delta.lengthSquared() > 0;
-
-		player->position = GetCharacterControllerPosition(&player->controller);
-		SetRigidBodyTransform(&player->kinematicBody, player->position, quat::Identity);
-
-		game->cameraPosition = player->position + vec3::Up * 1.5f;
-	}
-	else
-	{
-		quat cameraRotation = quat::FromAxisAngle(vec3::Up, game->cameraYaw) * quat::FromAxisAngle(vec3::Right, game->cameraPitch);
-
-		vec3 delta = vec3::Zero;
-		if (GetKey(SDL_SCANCODE_A)) delta += cameraRotation.left();
-		if (GetKey(SDL_SCANCODE_D)) delta += cameraRotation.right();
-		if (GetKey(SDL_SCANCODE_S)) delta += cameraRotation.back();
-		if (GetKey(SDL_SCANCODE_W)) delta += cameraRotation.forward();
-		if (GetKey(SDL_SCANCODE_SPACE)) delta += vec3::Up;
-		if (GetKey(SDL_SCANCODE_LCTRL)) delta += vec3::Down;
-
-		if (delta.lengthSquared() > 0)
-		{
-			float speed = (GetKey(SDL_SCANCODE_LSHIFT) ? 2 : GetKey(SDL_SCANCODE_LALT) ? 0.25f : 1) * player->walkSpeed;
-			vec3 velocity = delta.normalized() * speed;
-			vec3 displacement = velocity * deltaTime;
-			game->cameraPosition += displacement;
-		}
-
-		player->moving = delta.lengthSquared() > 0;
-	}
+	SourceMovement(player);
 
 	if (game->mouseLocked)
 	{
@@ -292,16 +215,23 @@ void UpdatePlayer(Player* player)
 		game->cameraYaw = player->rotation;
 	}
 
+	SetAudioListener(game->cameraPosition, game->cameraPitch, game->cameraYaw);
+
 	if (player->health < player->maxHealth && player->lastHit && gameTime - player->lastHit > HEALTH_REGEN_HIT_DELAY)
 	{
 		if (EveryInterval(0.1f, hash(player)))
 			player->health++;
 	}
 
-	if (player->stamina <= 0)
+	if (player->stamina <= 0 && !player->exhausted)
+	{
 		player->exhausted = true;
+		PlaySound(&game->exhaustedSounds[game->random.next() % 2], 0.4f);
+	}
 	else if (player->stamina >= 0.5f)
+	{
 		player->exhausted = false;
+	}
 
 	if (player->stamina < 1.0f && player->actions.actions.size == 0 && !player->sprinting)
 	{

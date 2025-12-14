@@ -1,6 +1,9 @@
 #include "Action.h"
 
+#include "game/Game.h"
 
+
+extern GameState* game;
 extern float gameTime;
 extern float deltaTime;
 
@@ -12,6 +15,36 @@ void InitAction(Action* action, ActionType type)
 	action->speed = 1.0f;
 	action->animationSpeed = 1.0f;
 	action->moveSpeed = 1.0f;
+}
+
+void AddActionSound(Action* action, Sound* sounds, int numSounds, float time, float volume, float pan)
+{
+	SDL_assert(action->numSounds < MAX_ACTION_SOUNDS);
+	ActionSound* actionSound = &action->sounds[action->numSounds++];
+	actionSound->sounds = sounds;
+	actionSound->numSounds = numSounds;
+	actionSound->time = time;
+	actionSound->volume = volume;
+	actionSound->pan = pan;
+	actionSound->played = false;
+}
+
+void UpdateAction(Action* action, struct Player* player, float deltaTime)
+{
+	action->elapsedTime += deltaTime;
+
+	for (int i = 0; i < action->numSounds; i++)
+	{
+		ActionSound* sound = &action->sounds[i];
+		if (!sound->played && action->elapsedTime >= sound->time)
+		{
+			int soundIdx = game->random.next() % sound->numSounds;
+			PlaySound(&sound->sounds[soundIdx], sound->pan, sound->volume);
+			sound->played = true;
+		}
+	}
+
+	RunActionFunc(Update);
 }
 
 

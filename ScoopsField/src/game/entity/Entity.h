@@ -1,5 +1,7 @@
 #pragma once
 
+#include "math/Vector.h"
+
 
 enum EntityPhysicsFilter
 {
@@ -22,6 +24,7 @@ struct HitParams
 {
 	int damage = 1;
 	float damageMultiplier = 1;
+	vec3 position;
 };
 
 struct Entity;

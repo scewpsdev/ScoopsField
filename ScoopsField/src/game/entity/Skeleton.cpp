@@ -24,6 +24,9 @@ static void OnSkeletonHit(SkeletonEntity* skeleton, HitParams hit, Entity* by)
 {
 	int damage = (int)(hit.damage * hit.damageMultiplier);
 	skeleton->health -= damage;
+
+	PlaySound(&game->skeletonHitSounds[game->random.next() % 5], hit.position);
+
 	if (skeleton->health <= 0)
 	{
 		EntityAction action;
@@ -42,7 +45,7 @@ static void OnSkeletonHit(SkeletonEntity* skeleton, HitParams hit, Entity* by)
 	}
 }
 
-void InitSkeleton(SkeletonEntity* skeleton, const vec3& position, float rotation)
+void InitSkeleton(SkeletonEntity* skeleton, const vec3& position, float rotation, int health)
 {
 	InitEntity(skeleton, ENTITY_TYPE_SKELETON);
 	skeleton->hitCallback = (EntityHitCallback_t)OnSkeletonHit;
@@ -63,8 +66,8 @@ void InitSkeleton(SkeletonEntity* skeleton, const vec3& position, float rotation
 
 	InitActionManager(skeleton->actions, skeleton->model);
 
-	skeleton->health = 100;
-	skeleton->maxHealth = 100;
+	skeleton->health = health;
+	skeleton->maxHealth = health;
 }
 
 void DestroySkeleton(SkeletonEntity* skeleton)

@@ -30,10 +30,12 @@
 // [X] round indicator
 // [X] points
 // [X] stamina
-// [ ] sounds
+// [X] sounds
+// [X] source movement
 // [ ] doors
 // [ ] wallbuys
 // [ ] hit particles
+// [ ] perks
 
 // [ ] game over screen
 
@@ -49,6 +51,8 @@ void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackId
 	action->attack.weapon = weapon;
 	action->attack.attack = attack;
 	action->attack.attackIdx = attackIdx;
+
+	AddActionSound(action, game->swingSounds, 3, attack->damageWindow.x, 1, (attackIdx % 2 * -2 + 1) * 0.2f);
 
 	InitList(&action->attack.hitEntities);
 }
@@ -89,12 +93,15 @@ void UpdateAttackAction(Action* action, Player* player)
 					HitParams params = {};
 					params.damage = action->attack.weapon->weapon.damage;
 					params.damageMultiplier = action->attack.attack->damageMultiplier;
+					params.position = hit->position;
 					hitEntity->hitCallback(hitEntity, params, player);
 
 					action->attack.lastHitTime = gameTime;
 				}
 
 				game->points += 10;
+
+				PlaySound(&game->slashHitSounds[game->random.next() % 2], hit->position);
 
 				action->attack.hitEntities.add(hit->body);
 			}

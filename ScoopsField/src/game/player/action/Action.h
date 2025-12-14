@@ -3,6 +3,8 @@
 #include "model/Model.h"
 #include "model/Animation.h"
 
+#include "audio/Audio.h"
+
 #include "utils/Queue.h"
 
 #include "AttackAction.h"
@@ -15,6 +17,17 @@ enum ActionType
 	ACTION_TYPE_ATTACK,
 
 	ACTION_TYPE_LAST
+};
+
+struct ActionSound
+{
+	Sound* sounds;
+	int numSounds;
+	float time;
+	float volume;
+	float pan;
+
+	bool played;
 };
 
 struct Action
@@ -32,6 +45,10 @@ struct Action
 	float startTime;
 	float elapsedTime;
 	AnimationPlayback anim;
+
+#define MAX_ACTION_SOUNDS 8
+	ActionSound sounds[MAX_ACTION_SOUNDS];
+	int numSounds;
 
 	union
 	{
@@ -64,14 +81,10 @@ inline void StopAction(Action* action, struct Player* player)
 	RunActionFunc(Stop);
 }
 
-inline void UpdateAction(Action* action, struct Player* player, float deltaTime)
-{
-	action->elapsedTime += deltaTime;
-	RunActionFunc(Update);
-}
-
+void UpdateAction(Action* action, struct Player* player, float deltaTime);
 
 void InitAction(Action* action, ActionType type);
+void AddActionSound(Action* action, Sound* sounds, int numSounds, float time, float volume, float pan);
 
 void InitActionManager(ActionManager& actions, Model* moveset);
 void UpdateActionManager(ActionManager& actions, struct Player& player);

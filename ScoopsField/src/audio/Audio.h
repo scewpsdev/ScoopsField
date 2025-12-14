@@ -31,7 +31,10 @@ struct AudioState
 
 bool InitAudio(AudioState* audio, SoLoud::Soloud* soloud);
 void UpdateAudio(AudioState* audio);
+void SetAudioListener(const vec3& position, float pitch, float yaw);
 
 bool LoadSound(Sound* sound, const char* path);
-uint32_t PlaySound(Sound* sound);
-uint32_t PlaySound(Sound* sound, vec3 position);
+uint32_t PlaySound(Sound* sound, float volume = -1);
+uint32_t PlaySound(Sound* sound, float pan, float volume);
+uint32_t PlaySound(Sound* sound, vec3 position, float volume = 1);
+void StopSound(uint32_t source);

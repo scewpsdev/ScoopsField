@@ -24,7 +24,7 @@ struct Player : Entity
 {
 	vec3 position;
 	float rotation;
-	float verticalVelocity;
+	vec3 velocity;
 	bool grounded;
 	bool moving;
 	bool sprinting;
@@ -43,12 +43,13 @@ struct Player : Entity
 
 	float viewBobVerticalSpeedAnim;
 	vec3 viewBobLookSwayAnim;
+	int lastStepIdx;
 
 	Item* rightWeapon;
 
 	CharacterController controller;
 	float distanceWalked;
-	vec3 controllerVelocity;
+	float lastJumpInput;
 	float lastLandedTime;
 
 	RigidBody kinematicBody;

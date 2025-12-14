@@ -144,6 +144,9 @@
     <ClCompile Include="src\game\Navmesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\game\player\SourceMovement.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\spirv_cross\spirv.h">

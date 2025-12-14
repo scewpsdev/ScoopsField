@@ -20,7 +20,7 @@ struct NavmeshNode
 
 struct Navmesh
 {
-#define MAX_NAVMESH_NODES 64
+#define MAX_NAVMESH_NODES 128
 	NavmeshNode nodes[MAX_NAVMESH_NODES];
 	int numNodes;
 };

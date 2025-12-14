@@ -35,6 +35,12 @@ static void ResetGame(bool destroy)
 {
 	if (destroy)
 	{
+		if (game->ambientSource)
+		{
+			StopSound(game->ambientSource);
+			game->ambientSource = 0;
+		}
+
 		DestroyPlayer(&game->player);
 
 		for (int i = 0; i < game->skeletons.capacity; i++)
@@ -59,6 +65,8 @@ static void ResetGame(bool destroy)
 	game->gameOverTimer = -1;
 
 	StartRound(1);
+
+	game->ambientSource = PlaySound(&game->ambientSound, 0.5f);
 
 	game->cameraPosition = vec3(0, 0, 3);
 	//game->cameraPitch = -0.4f * PI;
@@ -93,7 +101,41 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	InitNavmesh(&game->mapNavmesh, &navmeshModel);
 
 	LoadModel(&game->cube, "res/models/cube.glb.bin", false, cmdBuffer);
+
 	LoadSound(&game->testSound, "res/sounds/test.ogg.bin");
+	LoadSound(&game->ambientSound, "res/sounds/ambience.ogg.bin");
+	LoadSound(&game->equipSound, "res/sounds/equip_light.ogg.bin");
+	for (int i = 0; i < 6; i++)
+	{
+		char path[64];
+		SDL_snprintf(path, 64, "res/sounds/step%d.ogg.bin", i + 1);
+		LoadSound(&game->stepSounds[i], path);
+	}
+	LoadSound(&game->landSound, "res/sounds/land.ogg.bin");
+	for (int i = 0; i < 3; i++)
+	{
+		char path[64];
+		SDL_snprintf(path, 64, "res/sounds/swing%d.ogg.bin", i + 1);
+		LoadSound(&game->swingSounds[i], path);
+	}
+	for (int i = 0; i < 2; i++)
+	{
+		char path[64];
+		SDL_snprintf(path, 64, "res/sounds/hit_slash%d.ogg.bin", i + 1);
+		LoadSound(&game->slashHitSounds[i], path);
+	}
+	for (int i = 0; i < 5; i++)
+	{
+		char path[64];
+		SDL_snprintf(path, 64, "res/sounds/hit_rock%d.ogg.bin", i + 1);
+		LoadSound(&game->skeletonHitSounds[i], path);
+	}
+	for (int i = 0; i < 2; i++)
+	{
+		char path[64];
+		SDL_snprintf(path, 64, "res/sounds/exhausted%d.ogg.bin", i + 1);
+		LoadSound(&game->exhaustedSounds[i], path);
+	}
 
 	game->crosshair = LoadTexture("res/textures/crosshair.png.bin", cmdBuffer);
 	game->vignette = LoadTexture("res/textures/vignette.png.bin", cmdBuffer);
@@ -139,12 +181,13 @@ void GameUpdate()
 
 			// init round
 			int numSkeletons = 3 + game->round * 2;
+			int skeletonHealth = 60 + game->round * 10;
 			for (int i = 0; i < numSkeletons; i++)
 			{
 				vec2 position = game->random.nextVector2(-9, 9);
 				SkeletonEntity* skeleton = PoolAlloc(&game->skeletons);
 				SDL_assert(skeleton);
-				InitSkeleton(skeleton, vec3(position.x, 0, position.y), 0);
+				InitSkeleton(skeleton, vec3(position.x, 0, position.y), 0, skeletonHealth);
 			}
 
 			game->numSkeletonsRemaining = numSkeletons;

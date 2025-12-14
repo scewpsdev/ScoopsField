@@ -42,6 +42,14 @@ void UpdateAudio(AudioState* audio)
 	audio->soloud->update3dAudio();
 }
 
+void SetAudioListener(const vec3& position, float pitch, float yaw)
+{
+	quat rotation = quat::FromAxisAngle(vec3::Up, yaw) * quat::FromAxisAngle(vec3::Right, pitch);
+	vec3 forward = rotation.forward();
+	vec3 up = rotation.up();
+	audio->soloud->set3dListenerParameters(position.x, position.y, position.z, forward.x, forward.y, forward.z, up.x, up.y, up.z);
+}
+
 bool LoadSound(Sound* sound, const char* path)
 {
 	InitTrashCppObject(&sound->wav, Wav);
@@ -53,14 +61,25 @@ bool LoadSound(Sound* sound, const char* path)
 	return true;
 }
 
-uint32_t PlaySound(Sound* sound)
+uint32_t PlaySound(Sound* sound, float volume)
 {
-	uint32_t handle = audio->soloud->play(sound->wav);
+	uint32_t handle = audio->soloud->playBackground(sound->wav, volume);
 	return handle;
 }
 
-uint32_t PlaySound(Sound* sound, vec3 position)
+uint32_t PlaySound(Sound* sound, float pan, float volume)
 {
-	uint32_t handle = audio->defaultBus.play3d(sound->wav, position.x, position.y, position.z, 0, 0, 0, 1, false);
+	uint32_t handle = audio->soloud->play(sound->wav, volume, pan);
 	return handle;
+}
+
+uint32_t PlaySound(Sound* sound, vec3 position, float volume)
+{
+	uint32_t handle = audio->defaultBus.play3d(sound->wav, position.x, position.y, position.z, 0, 0, 0, volume, false);
+	return handle;
+}
+
+void StopSound(uint32_t source)
+{
+	audio->soloud->stop(source);
 }
