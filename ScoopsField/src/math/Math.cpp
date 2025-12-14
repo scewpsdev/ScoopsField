@@ -6,11 +6,6 @@
 #include <float.h>
 
 
-int fsign(float f)
-{
-	return f < 0.0f ? -1 : f > 0.0f ? 1 : 0;
-}
-
 float radians(float degrees)
 {
 	return degrees / 180.0f * PI;
@@ -19,6 +14,19 @@ float radians(float degrees)
 float degrees(float radians)
 {
 	return radians / PI * 180.0f;
+}
+
+float lerpAngle(float a, float b, float t)
+{
+	a = SDL_fmodf(a + PI * 2.0f, PI * 2.0f);
+	b = SDL_fmodf(b + PI * 2.0f, PI * 2.0f);
+
+	if (a - b > PI)
+		a -= PI * 2.0f;
+	else if (b - a > PI)
+		b -= PI * 2.0f;
+
+	return a + (b - a) * t;
 }
 
 static float nextGaussian = FLT_MAX;

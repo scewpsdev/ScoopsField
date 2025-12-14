@@ -20,6 +20,8 @@
 
 #include "game/item/Item.h"
 
+#include "Navmesh.h"
+
 
 struct GameState
 {
@@ -44,17 +46,23 @@ struct GameState
 	Pool<SkeletonEntity, MAX_SKELETON_ENTITIES> skeletons;
 
 	int round;
+	int points;
 #define ROUND_START_DELAY 5.0f
 	float roundStartTimer;
 	int numSkeletonsRemaining;
+	float gameOverTimer;
+
+	Model mapModel;
+	Navmesh mapNavmesh;
+	RigidBody mapCollider;
 
 	Model cube;
-
-	RigidBody platform;
-
 	Sound testSound;
 
 	Texture* crosshair;
+	Texture* vignette;
+	Texture* roundCounter;
+	Texture* digits;
 };
 
 

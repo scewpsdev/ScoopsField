@@ -22,9 +22,11 @@ struct Action
 	ActionType type;
 	const char* animName;
 	Model* animMoveset;
+	float animationSpeed;
 
 	float duration;
 	float speed;
+	float moveSpeed;
 	float followUpCancelTime;
 
 	float startTime;

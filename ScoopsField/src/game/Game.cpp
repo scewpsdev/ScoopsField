@@ -5,14 +5,18 @@
 #include "math/Vector.h"
 
 
+#define GAME_OVER_DELAY 5.0f
+
+
 extern SDL_GPUDevice* device;
 
 
-static bool EveryInterval(float seconds)
+static bool EveryInterval(float seconds, uint32_t h)
 {
-	int iteration = (int)(gameTime / seconds);
-	int lastIteration = (int)((gameTime - deltaTime) / seconds);
-	return iteration != lastIteration || gameTime - deltaTime < 0;
+	float time = gameTime + (h / (float)UINT32_MAX) * seconds;
+	int iteration = (int)(time / seconds);
+	int lastIteration = (int)((time - deltaTime) / seconds);
+	return iteration != lastIteration || time - deltaTime < 0;
 }
 
 
@@ -25,6 +29,44 @@ static void StartRound(int round)
 {
 	game->round = round;
 	game->roundStartTimer = 0;
+}
+
+static void ResetGame(bool destroy)
+{
+	if (destroy)
+	{
+		DestroyPlayer(&game->player);
+
+		for (int i = 0; i < game->skeletons.capacity; i++)
+		{
+			if (game->skeletons.occupied[i])
+			{
+				SkeletonEntity* skeleton = &game->skeletons.data[i];
+				DestroySkeleton(skeleton);
+			}
+		}
+		ClearPool(&game->skeletons);
+	}
+
+	InitPlayer(&game->player, cmdBuffer);
+
+	InitPool(&game->skeletons);
+
+	game->round = 0;
+	game->points = 0;
+	game->roundStartTimer = -1;
+	game->numSkeletonsRemaining = 0;
+	game->gameOverTimer = -1;
+
+	StartRound(1);
+
+	game->cameraPosition = vec3(0, 0, 3);
+	//game->cameraPitch = -0.4f * PI;
+	//game->cameraYaw = 0.25f * PI;
+	game->cameraNear = 0.1f;
+	game->cameraFar = 1000;
+
+	game->mouseLocked = true;
 }
 
 void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
@@ -42,31 +84,23 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 
 	//game->mesh = LoadMesh("res/models/monkey.glb.bin", cmdBuffer);
 
-	InitPlayer(&game->player, cmdBuffer);
+	LoadModel(&game->mapModel, "res/maps/testmap/testmap.glb.bin", true, cmdBuffer);
+	InitRigidBody(&game->mapCollider, RIGID_BODY_STATIC, vec3::Zero, quat::Identity);
+	AddModelCollider(&game->mapCollider, &game->mapModel, vec3::Zero, quat::Identity, vec3::One, 1, 1, false);
 
-	InitPool(&game->skeletons);
+	Model navmeshModel;
+	LoadModel(&navmeshModel, "res/maps/testmap/testmap_navmesh.glb.bin", true, cmdBuffer);
+	InitNavmesh(&game->mapNavmesh, &navmeshModel);
 
-	game->round = 0;
-	game->roundStartTimer = -1;
-
-	StartRound(1);
-
-	LoadModel(&game->cube, "res/models/cube.glb.bin", cmdBuffer);
-
-	InitRigidBody(&game->platform, RIGID_BODY_STATIC, vec3::Zero, quat::Identity);
-	AddBoxCollider(&game->platform, vec3(20, 2, 20), vec3(0, -1, 0), quat::Identity, 1, 1, false);
-
+	LoadModel(&game->cube, "res/models/cube.glb.bin", false, cmdBuffer);
 	LoadSound(&game->testSound, "res/sounds/test.ogg.bin");
 
 	game->crosshair = LoadTexture("res/textures/crosshair.png.bin", cmdBuffer);
+	game->vignette = LoadTexture("res/textures/vignette.png.bin", cmdBuffer);
+	game->roundCounter = LoadTexture("res/textures/counter.png.bin", cmdBuffer);
+	game->digits = LoadTexture("res/textures/digits.png.bin", cmdBuffer);
 
-	game->cameraPosition = vec3(0, 0, 3);
-	//game->cameraPitch = -0.4f * PI;
-	//game->cameraYaw = 0.25f * PI;
-	game->cameraNear = 0.1f;
-	game->cameraFar = 1000;
-
-	game->mouseLocked = true;
+	ResetGame(false);
 }
 
 void GameDestroy()
@@ -121,6 +155,17 @@ void GameUpdate()
 		StartRound(game->round + 1);
 	}
 
+	if (game->gameOverTimer != -1)
+	{
+		game->gameOverTimer += deltaTime;
+		if (game->gameOverTimer >= GAME_OVER_DELAY)
+		{
+			game->gameOverTimer = -1;
+			ResetGame(true);
+			return;
+		}
+	}
+
 	UpdatePlayer(&game->player);
 
 	game->projection = mat4::Perspective(90 * Deg2Rad, width / (float)height, game->cameraNear, game->cameraFar);
@@ -161,16 +206,47 @@ void GameRender()
 		}
 	}
 
-	mat4 platformTransform = mat4::Transform(vec3(0, -1, 0), quat::Identity, vec3(20, 2, 20));
-	RenderModel(&game->renderer, &game->cube, nullptr, platformTransform);
+	RenderModel(&game->renderer, &game->mapModel, nullptr, mat4::Identity);
 
 	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 5);
 	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * PI * 0.7f) * vec3(2, 2, 0), vec3(0.5f, 1, 0.5f) * 5);
 
 	GUIPanel(width / 2 - game->crosshair->info.width / 2, height / 2 - game->crosshair->info.height / 2, game->crosshair);
 
-	DebugText(0, height / 16 - 1, "%d, %.2f", game->round, game->roundStartTimer);
-	DebugText(0, height / 16 - 2, "%d skeletons, %d in memory", game->numSkeletonsRemaining, game->skeletons.size);
+	// round counter
+	{
+		int numGroups = (game->round + 4) / 5;
+		for (int i = 0; i < numGroups; i++)
+		{
+			int numStrikes = i < numGroups - 1 ? 5 : (game->round - 1) % 5 + 1;
+			float alpha = game->roundStartTimer != -1 ? SDL_sinf(gameTime * 4) * 0.5f + 0.5f : 1;
+			GUIPanel(i * game->roundCounter->info.height, height - game->roundCounter->info.height, game->roundCounter, ivec4((numStrikes - 1) * game->roundCounter->info.height, 0, game->roundCounter->info.height, game->roundCounter->info.height), vec4(0.5f, 0, 0, alpha));
+		}
+	}
+
+	// point counter
+	{
+		int w = 120;
+		int h = 32;
+		int x = width - 20 - w;
+		int y = height - 20 - h;
+		int padding = 4;
+
+		GUIPanel(x, y, w, h, vec4(0.1f, 0.1f, 0.1f, 1));
+
+		char str[10];
+		int len = SDL_snprintf(str, 10, "%d", game->points);
+		for (int i = 0; i < len; i++)
+		{
+			int digit = str[i] - '0';
+			int u = digit * 16;
+			GUIPanel(x + w - padding - len * 16 + i * 16, y, game->digits, ivec4(u, 0, 16, 32), vec4(0.5f, 0, 0, 1));
+		}
+	}
+
+	DebugText(0, height / 16 - 1, "%d, %.2f, %.2f", game->round, game->roundStartTimer, game->gameOverTimer);
+	DebugText(0, height / 16 - 2, "%d/%d hp", game->player.health, game->player.maxHealth);
+	DebugText(0, height / 16 - 3, "%d skeletons, %d in memory", game->numSkeletonsRemaining, game->skeletons.size);
 }
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)

@@ -76,7 +76,7 @@ void InitMesh(Mesh* mesh, int vertexCount, const vec3* positions, const vec3* no
 	SDL_EndGPUCopyPass(copyPass);
 }
 
-static void ReadMesh(Mesh* mesh, BinaryReader& reader, SDL_GPUCommandBuffer* cmdBuffer)
+static void ReadMesh(Mesh* mesh, BinaryReader& reader, bool cacheData, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	int hasPositions = reader.ReadInt32();
 	int hasNormals = reader.ReadInt32();
@@ -144,6 +144,12 @@ static void ReadMesh(Mesh* mesh, BinaryReader& reader, SDL_GPUCommandBuffer* cmd
 	reader.Read(&boundingSphere);
 
 	InitMesh(mesh, vertexCount, positions, normals, weights, texcoords, indexCount, indices, indexElementSize, cmdBuffer);
+
+	if (cacheData)
+	{
+		mesh->cachedPositions = positions;
+		mesh->cachedIndices = indices;
+	}
 }
 
 static Texture* ReadTexture(BinaryReader& reader, const char* scenePath, SDL_GPUCommandBuffer* cmdBuffer)
@@ -347,7 +353,7 @@ static void ReadLight(BinaryReader& reader)
 	vec3 color = reader.ReadVector3();
 }
 
-bool LoadModel(Model* model, const char* path, SDL_GPUCommandBuffer* cmdBuffer)
+bool LoadModel(Model* model, const char* path, bool cacheMeshes, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	model->numMeshes = 0;
 
@@ -373,7 +379,7 @@ bool LoadModel(Model* model, const char* path, SDL_GPUCommandBuffer* cmdBuffer)
 		SDL_assert(model->numNodes <= MAX_NODES);
 
 		for (int i = 0; i < model->numMeshes; i++)
-			ReadMesh(&model->meshes[i], reader, cmdBuffer);
+			ReadMesh(&model->meshes[i], reader, cacheMeshes, cmdBuffer);
 
 		for (int i = 0; i < model->numMaterials; i++)
 			ReadMaterial(&model->materials[i], reader, path, cmdBuffer);

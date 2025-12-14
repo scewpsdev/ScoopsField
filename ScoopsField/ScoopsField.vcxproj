@@ -111,7 +111,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)include\;$(ProjectDir)include\physx\;D:\Repositories\SDL3-main\include\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <PreprocessorDefinitions>PX_PHYSX_STATIC_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>PX_PHYSX_STATIC_LIB;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,7 +133,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <PreprocessorDefinitions>PX_PHYSX_STATIC_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>PX_PHYSX_STATIC_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -143,6 +143,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\game\Navmesh.cpp" />
     <ClCompile Include="src\game\player\action\Action.cpp" />
     <ClCompile Include="src\game\entity\action\EntityAttackAction.cpp" />
     <ClCompile Include="src\game\entity\action\EntityDeathAction.cpp" />
@@ -201,6 +202,7 @@
   <ItemGroup>
     <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\audio\Audio.h" />
+    <ClInclude Include="src\game\Navmesh.h" />
     <ClInclude Include="src\game\player\action\Action.h" />
     <ClInclude Include="src\game\entity\action\EntityAttackAction.h" />
     <ClInclude Include="src\game\entity\action\EntityDeathAction.h" />
@@ -264,6 +266,7 @@
     <ClInclude Include="src\utils\BumpAllocator.h" />
     <ClInclude Include="src\utils\Hash.h" />
     <ClInclude Include="src\utils\HashMap.h" />
+    <ClInclude Include="src\utils\HashSet.h" />
     <ClInclude Include="src\utils\List.h" />
     <ClInclude Include="src\utils\Pool.h" />
     <ClInclude Include="src\utils\Queue.h" />

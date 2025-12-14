@@ -8,7 +8,7 @@ struct vec2
 	float x, y;
 
 
-	vec2();
+	vec2() = default;
 	vec2(float f);
 	vec2(float x, float y);
 
@@ -20,6 +20,16 @@ struct vec2
 	vec2 rotate(float angle) const;
 
 	vec2 operator-() const;
+
+	vec2& operator+=(const vec2& v);
+	vec2& operator-=(const vec2& v);
+	vec2& operator*=(const vec2& v);
+	vec2& operator/=(const vec2& v);
+
+	vec2& operator+=(float f);
+	vec2& operator-=(float f);
+	vec2& operator*=(float f);
+	vec2& operator/=(float f);
 
 	static const vec2 Zero;
 	static const vec2 One;
@@ -60,12 +70,19 @@ struct vec3
 	vec3 normalized() const;
 	float max() const;
 
+	inline vec2 xz() const { return vec2(x, z); }
+
 	vec3 operator-() const;
 
 	vec3& operator+=(const vec3& v);
 	vec3& operator-=(const vec3& v);
 	vec3& operator*=(const vec3& v);
 	vec3& operator/=(const vec3& v);
+
+	vec3& operator+=(float f);
+	vec3& operator-=(float f);
+	vec3& operator*=(float f);
+	vec3& operator/=(float f);
 
 	operator ivec3() const;
 

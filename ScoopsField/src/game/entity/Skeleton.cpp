@@ -12,6 +12,8 @@ static EntityAction* GetCurrentAction(SkeletonEntity* skeleton)
 
 static void OnDeath(SkeletonEntity* skeleton)
 {
+	SetRigidBodyVelocity(&skeleton->body, vec3(0), vec3(0));
+
 	RemoveColliders(&skeleton->body);
 
 	SDL_assert(game->numSkeletonsRemaining > 0);
@@ -26,6 +28,7 @@ static void OnSkeletonHit(SkeletonEntity* skeleton, HitParams hit, Entity* by)
 	{
 		EntityAction action;
 		InitEntityDeathAction(&action);
+		CancelAction(skeleton->actions, *skeleton);
 		QueueAction(skeleton->actions, action, *skeleton);
 
 		OnDeath(skeleton);
@@ -34,6 +37,7 @@ static void OnSkeletonHit(SkeletonEntity* skeleton, HitParams hit, Entity* by)
 	{
 		EntityAction action;
 		InitEntityStaggerAction(&action, 1.0f);
+		CancelAction(skeleton->actions, *skeleton);
 		QueueAction(skeleton->actions, action, *skeleton);
 	}
 }
@@ -89,13 +93,69 @@ static bool UpperBodyAnimFilter(Node* node, void* userPtr)
 	return isUpperBody;
 }
 
+static void UpdateAI(SkeletonEntity* skeleton)
+{
+	Player* target = &game->player;
+	if (EveryInterval(1, hash(skeleton)))
+	{
+		skeleton->targetPosition = target->position;
+		bool success = CalculateNavmeshPath(&game->mapNavmesh, skeleton->position, skeleton->targetPosition, skeleton->currentPath, skeleton->currentPathLength);
+		SDL_assert(success);
+	}
+
+	vec3 toTarget = skeleton->targetPosition - skeleton->position;
+	float distanceToTarget = toTarget.length();
+	toTarget /= distanceToTarget;
+
+	vec3 walkDir = toTarget;
+	if (skeleton->currentPathLength > 0)
+	{
+		NavmeshNode* targetNode = &game->mapNavmesh.nodes[skeleton->currentPath[1]];
+		walkDir = (targetNode->position - skeleton->position).normalized();
+	}
+	walkDir *= vec3(1, 0, 1);
+
+	quat toTargetRotation = quat::LookAt(walkDir, vec3::Up);
+	float toTargetAngle = toTargetRotation.getAngle() * sign(toTargetRotation.getAxis().y);
+	skeleton->rotation = lerpAngle(skeleton->rotation, toTargetAngle, 5 * deltaTime);
+
+	if (distanceToTarget > 0.5f)
+	{
+		float speed = 3;
+		if (EntityAction* currentAction = GetCurrentAction(skeleton))
+			speed *= currentAction->walkSpeed;
+
+		vec3 velocity = walkDir * speed;
+		SetRigidBodyVelocity(&skeleton->body, velocity, vec3(0));
+
+		skeleton->moving = true;
+	}
+	else
+	{
+		SetRigidBodyVelocity(&skeleton->body, vec3(0), vec3(0));
+
+		skeleton->moving = false;
+	}
+
+	if ((target->position - skeleton->position).length() < 1)
+	{
+		if (skeleton->actions.actions.size == 0)
+		{
+			EntityAction action;
+			InitEntityAttackAction(&action, "attack1", 0);
+			QueueAction(skeleton->actions, action, *skeleton);
+		}
+	}
+
+	GetRigidBodyTransform(&skeleton->body, &skeleton->position, nullptr);
+	//AddRigidBodyAcceleration(&skeleton->body, vec3(0, -10, 0));
+}
+
 void UpdateSkeleton(SkeletonEntity* skeleton)
 {
-	if (skeleton->actions.actions.size == 0)
+	if (skeleton->health > 0)
 	{
-		EntityAction action;
-		InitEntityAttackAction(&action, "attack1", 0);
-		QueueAction(skeleton->actions, action, *skeleton);
+		UpdateAI(skeleton);
 	}
 
 	UpdateActionManager(skeleton->actions, *skeleton);
@@ -111,7 +171,7 @@ void UpdateSkeleton(SkeletonEntity* skeleton)
 		actionAnimation->timer += deltaTime * actionAnimation->speed;
 
 		bool right = true;
-		BlendAnimation(skeleton->model, &skeleton->anim, actionAnimation->animation, actionAnimation->timer, actionAnimation->loop, 1, (AnimationChannelFilterCallback_t)UpperBodyAnimFilter);
+		BlendAnimation(skeleton->model, &skeleton->anim, actionAnimation->animation, actionAnimation->timer, actionAnimation->loop, 1, !currentAction->fullBody ? (AnimationChannelFilterCallback_t)UpperBodyAnimFilter : nullptr);
 	}
 
 	ApplyAnimationToSkeleton(skeleton->model, &skeleton->anim);
@@ -133,4 +193,11 @@ void RenderSkeleton(SkeletonEntity* skeleton)
 	mat4 transform = mat4::Translate(skeleton->position) * mat4::Rotate(vec3::Up, skeleton->rotation);
 
 	RenderModel(&game->renderer, skeleton->model, &skeleton->anim, transform);
+
+#if _DEBUG
+	for (int i = 0; i < skeleton->currentPathLength; i++)
+	{
+		RenderModel(&game->renderer, &game->cube, nullptr, mat4::Translate(game->mapNavmesh.nodes[skeleton->currentPath[i]].position));
+	}
+#endif
 }

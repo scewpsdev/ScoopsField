@@ -46,8 +46,10 @@ SDL_Time GetWriteTime(const char* path)
 
 static void CompileResources()
 {
+#ifdef _DEBUG
 	int result = system("D:\\Dev\\Rainfall\\RainfallResourceCompiler\\bin\\x64\\Release\\RainfallResourceCompiler.exe " PROJECT_PATH "\\res res png ogg vsh fsh csh glsl vert frag comp ttf rfs gltf glb");
 	SDL_assert(result == 0);
+#endif
 }
 
 static void InitPlatformCallbacks(PlatformCallbacks* callbacks)
@@ -118,8 +120,8 @@ void SDLfree(void* mem)
 
 int main(int argc, char** argv)
 {
-	memory.constantMemorySize = Gigabytes(2);
-	memory.transientMemorySize = Megabytes(256);
+	memory.constantMemorySize = Megabytes(64);
+	memory.transientMemorySize = Megabytes(16);
 
 	void* baseAddress = (void*)Terabytes(2);
 	uint64_t totalSize = memory.constantMemorySize + memory.transientMemorySize;
@@ -149,9 +151,9 @@ int main(int argc, char** argv)
 	SDL_Log("SDL %s", SDL_GetRevision());
 
 	const char* title = "abc";
-	int width = 1280;
-	int height = 720;
-	SDL_Window* window = SDL_CreateWindow(title, width, height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN);
+	int width = 1920;
+	int height = 1080;
+	SDL_Window* window = SDL_CreateWindow(title, width, height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_MAXIMIZED);
 	if (!window)
 	{
 		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Failed to create window: %s", SDL_GetError());

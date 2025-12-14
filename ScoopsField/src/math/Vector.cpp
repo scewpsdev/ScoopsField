@@ -6,11 +6,6 @@
 #include <SDL3/SDL.h>
 
 
-vec2::vec2()
-	: x(0.0f), y(0.0f)
-{
-}
-
 vec2::vec2(float f)
 	: x(f), y(f)
 {
@@ -52,6 +47,62 @@ vec2 vec2::rotate(float angle) const
 vec2 vec2::operator-() const
 {
 	return vec2(-x, -y);
+}
+
+vec2& vec2::operator+=(const vec2& v)
+{
+	x += v.x;
+	y += v.y;
+	return *this;
+}
+
+vec2& vec2::operator-=(const vec2& v)
+{
+	x -= v.x;
+	y -= v.y;
+	return *this;
+}
+
+vec2& vec2::operator*=(const vec2& v)
+{
+	x *= v.x;
+	y *= v.y;
+	return *this;
+}
+
+vec2& vec2::operator/=(const vec2& v)
+{
+	x /= v.x;
+	y /= v.y;
+	return *this;
+}
+
+vec2& vec2::operator+=(float f)
+{
+	x += f;
+	y += f;
+	return *this;
+}
+
+vec2& vec2::operator-=(float f)
+{
+	x -= f;
+	y -= f;
+	return *this;
+}
+
+vec2& vec2::operator*=(float f)
+{
+	x *= f;
+	y *= f;
+	return *this;
+}
+
+vec2& vec2::operator/=(float f)
+{
+	x /= f;
+	y /= f;
+	return *this;
 }
 
 const vec2 vec2::Zero = vec2(0.0f, 0.0f);
@@ -145,6 +196,38 @@ vec3& vec3::operator/=(const vec3& v)
 	x /= v.x;
 	y /= v.y;
 	z /= v.z;
+	return *this;
+}
+
+vec3& vec3::operator+=(float f)
+{
+	x += f;
+	y += f;
+	z += f;
+	return *this;
+}
+
+vec3& vec3::operator-=(float f)
+{
+	x -= f;
+	y -= f;
+	z -= f;
+	return *this;
+}
+
+vec3& vec3::operator*=(float f)
+{
+	x *= f;
+	y *= f;
+	z *= f;
+	return *this;
+}
+
+vec3& vec3::operator/=(float f)
+{
+	x /= f;
+	y /= f;
+	z /= f;
 	return *this;
 }
 
@@ -751,12 +834,12 @@ vec3 max(const vec3& a, const vec3& b)
 
 ivec2 sign(const vec2& v)
 {
-	return ivec2(fsign(v.x), fsign(v.y));
+	return ivec2(sign(v.x), sign(v.y));
 }
 
 ivec3 sign(const ivec3& v)
 {
-	return ivec3(fsign((float)v.x), fsign((float)v.y), fsign((float)v.z));
+	return ivec3(sign((float)v.x), sign((float)v.y), sign((float)v.z));
 }
 
 vec2 mix(const vec2& a, const vec2& b, float t)

@@ -162,9 +162,9 @@ quat quat::FromAxisAngle(vec3 axis, float angle)
 	return quat(x, y, z, w);
 }
 
-quat quat::LookAt(const vec3& eye, const vec3& at, const vec3& up)
+quat quat::LookAt(const vec3& dir, const vec3& up)
 {
-	vec3 forward = (at - eye).normalized();
+	vec3 forward = dir.normalized();
 	vec3 right = cross(forward, up).normalized();
 	vec3 up2 = cross(right, forward);
 

@@ -134,6 +134,8 @@ bool InitPhysics(PhysicsState* physics)
 		return false;
 	}
 
+	physics->cookingParams = PxCookingParams(scale);
+
 	physics->controllers = PxCreateControllerManager(*physics->scene);
 
 	physics->material = physics->physics->createMaterial(0.5f, 0.5f, 0.2f);
@@ -207,6 +209,28 @@ int Raycast(PhysicsState* physics, const vec3& origin, const vec3& direction, fl
 			hits[i].distance = hit->distance;
 			hits[i].position = FromPxVector(hit->position);
 			hits[i].normal = FromPxVector(hit->normal);
+			hits[i].trigger = hit->shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
+			hits[i].body = (RigidBody*)hit->actor->userData;
+		}
+	}
+
+	return (int)hitBuffer.getNbAnyHits();
+}
+
+int OverlapSphere(PhysicsState* physics, const vec3& position, float radius, PhysicsHit* hits, int maxHits, uint32_t filterMask)
+{
+	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);
+	filterData.data.word0 = filterMask;
+
+	PxOverlapBuffer hitBuffer((PxOverlapHit*)BumpAllocatorMalloc(&memory->transientAllocator, maxHits * sizeof(PxOverlapHit)), maxHits);
+	if (physics->scene->overlap(PxSphereGeometry(radius), PxTransform(PxVector(position)), hitBuffer, filterData))
+	{
+		for (int i = 0; i < (int)hitBuffer.getNbAnyHits(); i++)
+		{
+			const PxOverlapHit* hit = &hitBuffer.getAnyHit(i);
+			hits[i].distance = 0;
+			hits[i].position = vec3::Zero;
+			hits[i].normal = vec3::Zero;
 			hits[i].trigger = hit->shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
 			hits[i].body = (RigidBody*)hit->actor->userData;
 		}

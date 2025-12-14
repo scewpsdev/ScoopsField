@@ -10,6 +10,7 @@ void InitAction(EntityAction* action, EntityActionType type)
 	*action = {};
 	action->type = type;
 	action->speed = 1.0f;
+	action->walkSpeed = 1.0f;
 }
 
 
@@ -43,6 +44,16 @@ void QueueAction(EntityActionManager& actions, const EntityAction& action, Entit
 		QueuePush(actions.actions, action);
 		if (actions.actions.size == 1)
 			StartActionInternal(actions, QueuePeek(actions.actions), &entity);
+	}
+}
+
+void CancelAction(EntityActionManager& actions, Entity& entity)
+{
+	if (EntityAction* currentAction = QueuePeek(actions.actions))
+	{
+		StopActionInternal(actions, currentAction, &entity);
+		QueuePop(actions.actions);
+		currentAction = QueuePeek(actions.actions);
 	}
 }
 

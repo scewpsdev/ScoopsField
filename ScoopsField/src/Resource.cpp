@@ -99,7 +99,7 @@ Model* GetModel(const char* path)
 		char fullPath[256];
 		SDL_snprintf(fullPath, 256, "res/%s.bin", path);
 
-		if (LoadModel(&resource->models[resource->numModels], fullPath, cmdBuffer))
+		if (LoadModel(&resource->models[resource->numModels], fullPath, false, cmdBuffer))
 		{
 			int modelID = resource->numModels++;
 			Model* model = &resource->models[modelID];

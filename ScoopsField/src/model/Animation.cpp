@@ -261,7 +261,7 @@ void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState)
 	}
 }
 
-const mat4& GetNodeTransform(AnimationState* animationState, Node* node)
+mat4& GetNodeTransform(AnimationState* animationState, Node* node)
 {
 	return animationState->nodeTransforms[node->id];
 }

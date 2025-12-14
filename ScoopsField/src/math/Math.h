@@ -63,7 +63,10 @@ inline float smoothstep(float edge0, float edge1, float x)
 	return x * x * (3 - 2 * x);
 }
 
-int fsign(float f);
+inline int sign(float f)
+{
+	return f < 0.0f ? -1 : f > 0.0f ? 1 : 0;
+}
 
 float radians(float degrees);
 float degrees(float radians);
@@ -76,6 +79,8 @@ template<typename T>
 inline T min(T a, T b) { return a < b ? a : b; }
 template<typename T>
 inline T max(T a, T b) { return a > b ? a : b; }
+
+float lerpAngle(float a, float b, float t);
 
 vec3 RandomPointOnSphere(struct Random& random);
 AABB TransformBoundingBox(const AABB& localBox, const mat4& transform);

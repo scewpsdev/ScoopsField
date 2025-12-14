@@ -40,6 +40,6 @@ void AnimateModel(Model* model, AnimationState* animationState, Animation* anima
 void BlendAnimation(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, float blend, AnimationChannelFilterCallback_t channelFilter = nullptr, void* filterUserPtr = nullptr);
 void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState);
 
-const mat4& GetNodeTransform(AnimationState* animationState, Node* node);
+mat4& GetNodeTransform(AnimationState* animationState, Node* node);
 
 void InitAnimation(AnimationPlayback* animation, const char* name, Model* moveset, float speed = 1.0f, bool loop = false, bool mirror = false);

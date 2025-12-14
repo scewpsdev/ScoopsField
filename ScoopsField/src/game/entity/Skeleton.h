@@ -2,6 +2,8 @@
 
 #include "Entity.h"
 
+#include "game/Navmesh.h"
+
 #include "action/EntityAction.h"
 
 #include "model/Model.h"
@@ -31,4 +33,8 @@ struct SkeletonEntity : Entity
 
 	int health;
 	int maxHealth;
+
+	vec3 targetPosition;
+	int currentPath[MAX_NAVMESH_PATH_LENGTH];
+	int currentPathLength;
 };

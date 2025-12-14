@@ -1,8 +1,9 @@
 #include "RigidBody.h"
 
 #include "Physics.h"
-
 #include "Application.h"
+
+#include "model/Model.h"
 
 #include <PxActor.h>
 #include <PxRigidBody.h>
@@ -137,6 +138,28 @@ void AddMeshCollider(RigidBody* body, PxTriangleMesh* mesh, const vec3& position
 	AddShape(body->actor, PxTriangleMeshGeometry(mesh, PxMeshScale(PxVector(scale))), filterGroup, filterMask, position, rotation, body->type == RIGID_BODY_DYNAMIC, trigger);
 }
 
+static void AddModelColliderNode(RigidBody* body, Model* model, Node* node, mat4 parentTransform, uint32_t filterGroup, uint32_t filterMask, bool trigger)
+{
+	mat4 nodeGlobalTransform = parentTransform * node->transform;
+
+	for (int i = 0; i < node->numMeshes; i++)
+	{
+		int meshID = node->meshes[i];
+		Mesh* mesh = &model->meshes[meshID];
+		AddMeshCollider(body, CookTriangleMeshCollider(mesh), nodeGlobalTransform.translation(), nodeGlobalTransform.rotation(), nodeGlobalTransform.scale(), filterGroup, filterMask, trigger);
+	}
+
+	for (int i = 0; i < node->numChildren; i++)
+	{
+		AddModelColliderNode(body, model, &model->nodes[node->children[i]], nodeGlobalTransform, filterGroup, filterMask, trigger);
+	}
+}
+
+void AddModelCollider(RigidBody* body, Model* model, const vec3& position, const quat& rotation, const vec3& scale, uint32_t filterGroup, uint32_t filterMask, bool trigger)
+{
+	AddModelColliderNode(body, model, &model->nodes[0], mat4::Transform(position, rotation, scale), filterGroup, filterMask, trigger);
+}
+
 void AddConvexMeshCollider(RigidBody* body, PxConvexMesh* mesh, const vec3& position, const quat& rotation, const vec3& scale, uint32_t filterGroup, uint32_t filterMask, bool trigger)
 {
 	AddShape(body->actor, PxConvexMeshGeometry(mesh, PxMeshScale(PxVector(scale))), filterGroup, filterMask, position, rotation, body->type == RIGID_BODY_DYNAMIC, trigger);
@@ -216,6 +239,14 @@ void SetRigidBodyVelocity(RigidBody* body, const vec3& velocity, const vec3& ang
 	dynamic->setAngularVelocity(PxVector(angularVelocity));
 }
 
+void AddRigidBodyAcceleration(RigidBody* body, const vec3& acceleration)
+{
+	PxRigidDynamic* dynamic = body->actor->is<PxRigidDynamic>();
+	SDL_assert(dynamic);
+
+	dynamic->addForce(PxVector(acceleration), PxForceMode::eACCELERATION);
+}
+
 void SetRigidBodyEnabled(RigidBody* body, bool enabled)
 {
 	body->actor->setActorFlag(PxActorFlag::eDISABLE_SIMULATION, !enabled);
@@ -236,4 +267,41 @@ void GetRigidBodyAABB(RigidBody* body, vec3* center, vec3* size)
 		*center = FromPxVector(bounds.getCenter());
 	if (size)
 		*size = FromPxVector(bounds.getDimensions());
+}
+
+PxTriangleMesh* CookTriangleMeshCollider(Mesh* mesh)
+{
+	int numVertices = mesh->vertexCount;
+	int vertexStride = sizeof(vec3);
+	void* vertices = mesh->cachedPositions;
+
+	int numIndices = mesh->indexCount;
+	int indexStride = GetIndexFormatSize(mesh->indexBuffer->elementSize);
+	void* indices = mesh->cachedIndices;
+
+	PxTriangleMeshDesc meshDesc = {};
+	meshDesc.points.count = numVertices;
+	meshDesc.points.stride = vertexStride;
+	meshDesc.points.data = vertices;
+
+	meshDesc.triangles.count = numIndices / 3;
+	meshDesc.triangles.stride = 3 * indexStride;
+	meshDesc.triangles.data = indices;
+	meshDesc.flags = PxMeshFlags(mesh->indexBuffer->elementSize == SDL_GPU_INDEXELEMENTSIZE_16BIT ? PxMeshFlag::e16_BIT_INDICES : 0);
+
+	meshDesc.isValid();
+
+	PxDefaultMemoryOutputStream writeBuffer;
+	PxTriangleMeshCookingResult::Enum result;
+	bool status = PxCookTriangleMesh(physics->cookingParams, meshDesc, writeBuffer, &result);
+	if (!status)
+	{
+		printf("Failed to cook triangle mesh\n");
+		return nullptr;
+	}
+
+	PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
+	PxTriangleMesh* meshCollider = physics->physics->createTriangleMesh(readBuffer);
+
+	return meshCollider;
 }

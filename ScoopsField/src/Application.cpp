@@ -59,7 +59,9 @@ bool GetMouseButtonUp(uint32_t button)
 
 void DebugTextEx(int x, int y, const char* txt, int len, uint32_t color, uint32_t bgcolor)
 {
+#ifdef _DEBUG
 	DebugTextRendererSubmit(&app->debugTextRenderer, x, y, txt, len, color, bgcolor);
+#endif
 }
 
 void DebugText(int x, int y, uint32_t color, uint32_t bgcolor, const char* fmt, ...)
@@ -86,17 +88,29 @@ void DebugText(int x, int y, const char* fmt, ...)
 	DebugTextEx(x, y, buffer, len, 0xFFFFFFFF, 0);
 }
 
-void GUIPanel(int x, int y, int w, int h, uint32_t color)
+void GUIPanel(int x, int y, int w, int h, vec4 color)
 {
 	SpriteDrawData drawData = {};
 	drawData.position = vec3((float)(x + w / 2), (float)(height - y - h / 2), 0);
 	drawData.size = vec2((float)w, (float)h);
 	drawData.rotation = 0;
-	drawData.color = ARGBToVector(color);
+	drawData.color = color;
 	DrawSprite(&game->guiRenderer, 0, &drawData);
 }
 
-void GUIPanel(int x, int y, Texture* texture, const ivec4& textureRect)
+void GUIPanel(int x, int y, int w, int h, Texture* texture, vec4 color)
+{
+	SpriteDrawData drawData = {};
+	drawData.position = vec3((float)(x + w / 2), (float)(height - y - h / 2), 0);
+	drawData.size = vec2((float)w, (float)h);
+	drawData.rotation = 0;
+	drawData.color = color;
+	drawData.texture = texture;
+	drawData.rect = vec4(0, 0, 1, 1);
+	DrawSprite(&game->guiRenderer, 0, &drawData);
+}
+
+void GUIPanel(int x, int y, Texture* texture, const ivec4& textureRect, vec4 color)
 {
 	int w = textureRect.z;
 	int h = textureRect.w;
@@ -107,7 +121,7 @@ void GUIPanel(int x, int y, Texture* texture, const ivec4& textureRect)
 	drawData.position = vec3((float)(x + w / 2), (float)(height - y - h / 2), 0);
 	drawData.size = vec2((float)w, (float)h);
 	drawData.rotation = 0;
-	drawData.color = vec4(1);
+	drawData.color = color;
 	drawData.texture = texture;
 	drawData.rect = vec4(
 		u / (float)texture->info.width,
@@ -120,7 +134,7 @@ void GUIPanel(int x, int y, Texture* texture, const ivec4& textureRect)
 
 void GUIPanel(int x, int y, Texture* texture)
 {
-	GUIPanel(x, y, texture, ivec4(0, 0, texture->info.width, texture->info.height));
+	GUIPanel(x, y, texture, ivec4(0, 0, texture->info.width, texture->info.height), vec4(1));
 }
 
 
@@ -243,7 +257,19 @@ extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* a
 	device = app->device;
 
 	app->now = SDL_GetTicksNS();
-	deltaTime = (app->now - app->lastFrame) / 1e9f;
+	const int fpsCap = 150;
+	if (fpsCap)
+	{
+		uint64_t remaining = 1000000000 / fpsCap - (app->now - app->lastFrame);
+		SDL_DelayPrecise(remaining);
+		deltaTime = 1.0f / fpsCap;
+		app->now += remaining;
+	}
+	else
+	{
+		deltaTime = (app->now - app->lastFrame) / 1e9f;
+	}
+
 	gameTime += deltaTime;
 
 	platformAllocationsPerFrame = max(platformAllocationsPerFrame, memory->platformAllocationsPerFrame);

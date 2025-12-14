@@ -15,6 +15,7 @@ enum ItemType
 struct Attack
 {
 	const char* animation;
+	float animationSpeed;
 	vec2 damageWindow;
 	float followUpCancelTime;
 

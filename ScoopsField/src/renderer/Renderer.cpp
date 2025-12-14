@@ -221,6 +221,11 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	SDL_GPUSamplerCreateInfo samplerInfo = {};
 	renderer->defaultSampler = SDL_CreateGPUSampler(device, &samplerInfo);
 
+	SDL_GPUSamplerCreateInfo linearSamplerInfo = {};
+	linearSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
+	linearSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
+	renderer->linearSampler = SDL_CreateGPUSampler(device, &linearSamplerInfo);
+
 	SDL_GPUBufferCreateInfo emptyBufferInfo = {};
 	emptyBufferInfo.size = 4;
 	emptyBufferInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
@@ -287,14 +292,28 @@ void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonStat
 		renderer->meshes.add(data);
 }
 
+static void RenderModelNode(Renderer* renderer, Model* model, Node* node, AnimationState* animation, mat4 parentTransform)
+{
+	mat4 nodeTransform = animation ? GetNodeTransform(animation, node) : node->transform;
+	mat4 nodeGlobalTransform = parentTransform * nodeTransform;
+
+	for (int i = 0; i < node->numMeshes; i++)
+	{
+		int meshID = node->meshes[i];
+		Mesh* mesh = &model->meshes[meshID];
+		Material* material = mesh->materialID != -1 ? &model->materials[mesh->materialID] : nullptr;
+		RenderMesh(renderer, mesh, material, animation && mesh->skeletonID != -1 ? &animation->skeletons[mesh->skeletonID] : nullptr, nodeGlobalTransform);
+	}
+
+	for (int i = 0; i < node->numChildren; i++)
+	{
+		RenderModelNode(renderer, model, &model->nodes[node->children[i]], animation, nodeGlobalTransform);
+	}
+}
+
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform)
 {
-	for (int i = 0; i < model->numMeshes; i++)
-	{
-		Mesh* mesh = &model->meshes[i];
-		Material* material = mesh->materialID != -1 ? &model->materials[mesh->materialID] : nullptr;
-		RenderMesh(renderer, mesh, material, animation && mesh->skeletonID != -1 ? &animation->skeletons[mesh->skeletonID] : nullptr, transform);
-	}
+	RenderModelNode(renderer, model, &model->nodes[0], animation, transform);
 }
 
 void RenderLight(Renderer* renderer, vec3 position, vec3 color)
@@ -383,7 +402,7 @@ static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, Skele
 
 		SDL_GPUTextureSamplerBinding textureBindings[1] = {};
 		textureBindings[0].texture = material && material->diffuse ? material->diffuse->handle : renderer->emptyTexture;
-		textureBindings[0].sampler = renderer->defaultSampler;
+		textureBindings[0].sampler = renderer->linearSampler;
 		SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, 1);
 	}
 

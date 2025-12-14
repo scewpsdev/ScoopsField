@@ -43,6 +43,7 @@ void AddBoxCollider(RigidBody* body, const vec3& size, const vec3& position, con
 void AddSphereCollider(RigidBody* body, float radius, const vec3& position, const quat& rotation, uint32_t filterGroup, uint32_t filterMask, bool trigger);
 void AddCapsuleCollider(RigidBody* body, float radius, float height, const vec3& position, const quat& rotation, uint32_t filterGroup, uint32_t filterMask, bool trigger);
 void AddMeshCollider(RigidBody* body, physx::PxTriangleMesh* mesh, const vec3& position, const quat& rotation, const vec3& scale, uint32_t filterGroup, uint32_t filterMask, bool trigger);
+void AddModelCollider(RigidBody* body, struct Model* model, const vec3& position, const quat& rotation, const vec3& scale, uint32_t filterGroup, uint32_t filterMask, bool trigger);
 void AddConvexMeshCollider(RigidBody* body, physx::PxConvexMesh* mesh, const vec3& position, const quat& rotation, const vec3& scale, uint32_t filterGroup, uint32_t filterMask, bool trigger);
 void RemoveColliders(RigidBody* body);
 
@@ -50,6 +51,9 @@ void GetRigidBodyTransform(RigidBody* body, vec3* position, quat* rotation);
 void SetRigidBodyTransform(RigidBody* body, const vec3& position, const quat& rotation);
 void GetRigidBodyVelocity(RigidBody* body, vec3* velocity, vec3* angularVelocity);
 void SetRigidBodyVelocity(RigidBody* body, const vec3& velocity, const vec3& angularVelocity);
+void AddRigidBodyAcceleration(RigidBody* body, const vec3& acceleration);
 void SetRigidBodyEnabled(RigidBody* body, bool enabled);
 void SetRigidBodyAxisLock(RigidBody* body, uint8_t lockFlags);
 void GetRigidBodyAABB(RigidBody* body, vec3* center, vec3* size);
+
+physx::PxTriangleMesh* CookTriangleMeshCollider(struct Mesh* mesh);

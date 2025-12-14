@@ -11,6 +11,8 @@
 
 #include "game/item/Item.h"
 
+#include "utils/Simplex.h"
+
 
 enum CameraMode
 {
@@ -25,6 +27,7 @@ struct Player : Entity
 	float verticalVelocity;
 	bool grounded;
 	bool moving;
+	bool sprinting;
 
 	float walkSpeed;
 
@@ -34,15 +37,33 @@ struct Player : Entity
 	AnimationState anim;
 
 	Node* rightWeaponNode;
+	Node* rightShoulderNode, * leftShoulderNode;
 
 	AnimationPlayback idleAnim;
-	AnimationPlayback runAnim;
+
+	float viewBobVerticalSpeedAnim;
+	vec3 viewBobLookSwayAnim;
 
 	Item* rightWeapon;
 
 	CharacterController controller;
+	float distanceWalked;
+	vec3 controllerVelocity;
+	float lastLandedTime;
+
+	RigidBody kinematicBody;
 
 	ActionManager actions;
+
+	int health;
+	int maxHealth;
+
+	float stamina;
+	bool exhausted;
+
+	float lastHit;
 };
 
 mat4 GetRightWeaponTransform(Player* player);
+
+void HitPlayer(Player* player, HitParams hit, Entity* by);

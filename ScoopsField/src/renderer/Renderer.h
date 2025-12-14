@@ -75,6 +75,7 @@ struct Renderer
 	GraphicsPipeline* tonemappingPipeline;
 
 	SDL_GPUSampler* defaultSampler;
+	SDL_GPUSampler* linearSampler;
 	SDL_GPUBuffer* emptyBuffer;
 	SDL_GPUTexture* emptyTexture;
 };

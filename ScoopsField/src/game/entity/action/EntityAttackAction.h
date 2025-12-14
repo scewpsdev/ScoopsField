@@ -13,6 +13,8 @@ struct EntityAttackAction
 	Attack* attack;
 	int attackIdx;
 
+	vec2 damageRange;
+
 	List<RigidBody*, 16> hitEntities;
 };
 

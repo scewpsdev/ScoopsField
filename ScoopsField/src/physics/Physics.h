@@ -6,6 +6,7 @@
 
 #include <physx/PxPhysics.h>
 #include <physx/PxScene.h>
+#include <physx/cooking/PxCooking.h>
 #include <physx/characterkinematic/PxControllerManager.h>
 #include <physx/pvd/PxPvd.h>
 
@@ -31,6 +32,7 @@ struct PhysicsState
 
 	physx::PxPhysics* physics;
 	physx::PxScene* scene;
+	physx::PxCookingParams cookingParams;
 	physx::PxControllerManager* controllers;
 	physx::PxMaterial* material;
 
@@ -55,3 +57,4 @@ void StartPhysicsFrame(PhysicsState* physics);
 void EndPhysicsFrame(PhysicsState* physics);
 
 int Raycast(PhysicsState* physics, const vec3& origin, const vec3& direction, float distance, PhysicsHit* hits, int maxHits, uint32_t filterMask);
+int OverlapSphere(PhysicsState* physics, const vec3& position, float radius, PhysicsHit* hits, int maxHits, uint32_t filterMask);

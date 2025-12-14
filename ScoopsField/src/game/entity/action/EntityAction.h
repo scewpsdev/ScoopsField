@@ -32,6 +32,7 @@ struct EntityAction
 
 	float duration;
 	float speed;
+	float walkSpeed;
 	float followUpCancelTime;
 
 	float startTime;
@@ -86,3 +87,4 @@ void InitActionManager(EntityActionManager& actions, Model* moveset);
 void UpdateActionManager(EntityActionManager& actions, Entity& entity);
 
 void QueueAction(EntityActionManager& actions, const EntityAction& action, Entity& entity);
+void CancelAction(EntityActionManager& actions, Entity& entity);

@@ -14,6 +14,8 @@ struct AttackAction
 	int attackIdx;
 
 	List<RigidBody*, 16> hitEntities;
+
+	float lastHitTime;
 };
 
 

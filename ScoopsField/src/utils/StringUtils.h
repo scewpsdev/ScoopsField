@@ -50,3 +50,14 @@ inline void MemoryString(char* str, size_t maxLen, uint64_t mem)
 		SDL_snprintf(str, maxLen, "%d B", mem);
 	}
 }
+
+template<typename T>
+inline void ReverseArray(T* buffer, uint64_t size, int length)
+{
+	for (int i = 0; i < length / 2; i++)
+	{
+		T tmp = buffer[i];
+		buffer[i] = buffer[length - 1 - i];
+		buffer[length - 1 - i] = tmp;
+	}
+}

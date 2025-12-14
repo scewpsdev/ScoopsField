@@ -10,6 +10,8 @@ void InitAction(Action* action, ActionType type)
 	*action = {};
 	action->type = type;
 	action->speed = 1.0f;
+	action->animationSpeed = 1.0f;
+	action->moveSpeed = 1.0f;
 }
 
 
@@ -23,7 +25,7 @@ static void StartActionInternal(ActionManager& actions, Action* action, Player* 
 {
 	action->startTime = gameTime;
 
-	InitAnimation(&action->anim, action->animName, action->animMoveset ? action->animMoveset : actions.moveset);
+	InitAnimation(&action->anim, action->animName, action->animMoveset ? action->animMoveset : actions.moveset, action->animationSpeed);
 	if (!action->duration)
 		action->duration = action->anim.animation->duration;
 	action->speed = action->speed;

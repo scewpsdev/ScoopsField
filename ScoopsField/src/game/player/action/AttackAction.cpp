@@ -9,6 +9,9 @@
 #include "game/entity/Entity.h"
 
 
+#define HIT_FREEZE_DURATION 0.3f
+
+
 // TODO
 // [X] hit raycast
 // [X] hittable object
@@ -17,9 +20,22 @@
 // [X] skeleton hit reaction
 // [X] skeleton death
 // [X] rounds
-// [ ] skeleton attack
-// [ ] player health
-// [ ] respawn
+
+// [X] skeleton ai
+// [X] player damage & health
+// [X] testmap
+// [X] navmesh
+// [X] player death
+// [X] player hp regen
+// [X] round indicator
+// [X] points
+// [X] stamina
+// [ ] sounds
+// [ ] doors
+// [ ] wallbuys
+// [ ] hit particles
+
+// [ ] game over screen
 
 
 void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackIdx)
@@ -27,6 +43,8 @@ void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackId
 	InitAction(action, ACTION_TYPE_ATTACK);
 	action->animName = attack->animation;
 	action->animMoveset = &weapon->moveset;
+	action->animationSpeed = attack->animationSpeed;
+	//action->moveSpeed = 0.5f;
 	action->followUpCancelTime = attack->followUpCancelTime;
 	action->attack.weapon = weapon;
 	action->attack.attack = attack;
@@ -37,6 +55,7 @@ void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackId
 
 void StartAttackAction(Action* action, Player* player)
 {
+	player->stamina -= 0.1f;
 }
 
 void StopAttackAction(Action* action, Player* player)
@@ -45,6 +64,9 @@ void StopAttackAction(Action* action, Player* player)
 
 void UpdateAttackAction(Action* action, Player* player)
 {
+	action->animationSpeed = action->attack.attack->animationSpeed * (action->attack.lastHitTime && gameTime - action->attack.lastHitTime < HIT_FREEZE_DURATION ? 0.2f : 1);
+	action->anim.speed = action->animationSpeed;
+
 	bool damage = action->elapsedTime >= action->attack.attack->damageWindow.x && action->elapsedTime <= action->attack.attack->damageWindow.y;
 	if (damage)
 	{
@@ -68,7 +90,11 @@ void UpdateAttackAction(Action* action, Player* player)
 					params.damage = action->attack.weapon->weapon.damage;
 					params.damageMultiplier = action->attack.attack->damageMultiplier;
 					hitEntity->hitCallback(hitEntity, params, player);
+
+					action->attack.lastHitTime = gameTime;
 				}
+
+				game->points += 10;
 
 				action->attack.hitEntities.add(hit->body);
 			}

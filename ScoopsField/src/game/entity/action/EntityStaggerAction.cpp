@@ -7,6 +7,7 @@ void InitEntityStaggerAction(EntityAction* action, float duration)
 {
 	InitAction(action, ENTITY_ACTION_TYPE_STAGGER);
 	action->animName = "stagger_hit";
+	action->walkSpeed = 0.1f;
 	action->stagger.duration = duration;
 }
 

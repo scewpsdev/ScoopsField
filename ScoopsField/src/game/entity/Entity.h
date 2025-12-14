@@ -5,6 +5,7 @@ enum EntityPhysicsFilter
 {
 	ENTITY_FILTER_DEFAULT = 1 << 0,
 	ENTITY_FILTER_ENEMY = 1 << 1,
+	ENTITY_FILTER_PLAYER = 1 << 2,
 };
 
 enum EntityType
