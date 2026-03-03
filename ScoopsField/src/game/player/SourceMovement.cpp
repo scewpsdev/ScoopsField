@@ -177,6 +177,14 @@ static void SourceMovement(Player* player)
 		SetRigidBodyTransform(&player->kinematicBody, player->position, quat::Identity);
 
 		game->cameraPosition = player->position + vec3::Up * 1.5f;
+
+		float landBob = 0.0f;
+		if (player->lastLandedTime)
+		{
+			float timeSinceLanding = gameTime - player->lastLandedTime;
+			landBob = (1.0f - SDL_powf(0.5f, timeSinceLanding * 4.0f)) * SDL_powf(0.1f, timeSinceLanding * 4.0f) * 5.5f;
+		}
+		game->cameraPosition.y -= landBob;
 	}
 	else
 	{
