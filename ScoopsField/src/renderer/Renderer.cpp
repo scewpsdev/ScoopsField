@@ -27,7 +27,6 @@ static const uint16_t cubeIndices[36] = {
 extern GameMemory* memory;
 extern SDL_Window* window;
 extern SDL_GPUDevice* device;
-extern SDL_GPUTexture* swapchain;
 
 
 static SDL_GPUTexture* CreateDepthTarget(int width, int height)
@@ -65,6 +64,23 @@ static RenderTarget* CreateGBuffer(int width, int height)
 	depthAttachment.clearDepth = 1;
 
 	return CreateRenderTarget(width, height, GBUFFER_COLOR_ATTACHMENTS, colorAttachments, &depthAttachment);
+}
+
+static RenderTarget* CreateHDRTarget(int width, int height)
+{
+	ColorAttachmentInfo hdrTargetInfo = {};
+	hdrTargetInfo.format = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
+	hdrTargetInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
+	hdrTargetInfo.storeOp = SDL_GPU_STOREOP_STORE;
+	hdrTargetInfo.clearColor = { 0, 0, 0, 0 };
+
+	DepthAttachmentInfo hdrDepthInfo = {};
+	hdrDepthInfo.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+	hdrDepthInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
+	hdrDepthInfo.storeOp = SDL_GPU_STOREOP_DONT_CARE;
+	hdrDepthInfo.clearDepth = 1;
+
+	return CreateRenderTarget(width, height, 1, &hdrTargetInfo, &hdrDepthInfo);
 }
 
 static GraphicsPipeline* CreateGeometryPipeline(Renderer* renderer)
@@ -130,20 +146,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 
 	renderer->depthTexture = CreateDepthTarget(width, height);
 	renderer->gbuffer = CreateGBuffer(width, height);
-
-	ColorAttachmentInfo hdrTargetInfo = {};
-	hdrTargetInfo.format = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
-	hdrTargetInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
-	hdrTargetInfo.storeOp = SDL_GPU_STOREOP_STORE;
-	hdrTargetInfo.clearColor = { 0, 0, 0, 0 };
-
-	DepthAttachmentInfo hdrDepthInfo = {};
-	hdrDepthInfo.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
-	hdrDepthInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
-	hdrDepthInfo.storeOp = SDL_GPU_STOREOP_DONT_CARE;
-	hdrDepthInfo.clearDepth = 1;
-
-	renderer->hdrTarget = CreateRenderTarget(width, height, 1, &hdrTargetInfo, &hdrDepthInfo);
+	renderer->hdrTarget = CreateHDRTarget(width, height);
 
 	// position
 	renderer->meshLayout[0].numAttributes = 1;
@@ -276,6 +279,10 @@ void ResizeRenderer(Renderer* renderer, int width, int height)
 	if (renderer->gbuffer)
 		DestroyRenderTarget(renderer->gbuffer);
 	renderer->gbuffer = CreateGBuffer(width, height);
+	
+	if (renderer->hdrTarget)
+		DestroyRenderTarget(renderer->hdrTarget);
+	renderer->hdrTarget = CreateHDRTarget(width, height);
 }
 
 void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonState* skeleton, mat4 transform)
@@ -423,7 +430,7 @@ static float CalculateLightRadius(vec3 color)
 // light occlusion culling
 // mesh instancing
 
-void RendererShow(Renderer* renderer, mat4 pv, vec4 frustumPlanes[6], float near, float far, SDL_GPUCommandBuffer* cmdBuffer)
+void RendererShow(Renderer* renderer, mat4 pv, vec4 frustumPlanes[6], float near, float far, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	// geometry pass
 	{

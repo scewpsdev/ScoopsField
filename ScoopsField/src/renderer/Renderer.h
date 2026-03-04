@@ -88,4 +88,4 @@ void ResizeRenderer(Renderer* renderer, int width, int height);
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform);
 void RenderLight(Renderer* renderer, vec3 position, vec3 color);
 
-void RendererShow(Renderer* renderer, mat4 pv, vec4 frustumPlanes[6], float near, float far, SDL_GPUCommandBuffer* cmdBuffer);
+void RendererShow(Renderer* renderer, mat4 pv, vec4 frustumPlanes[6], float near, float far, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer);

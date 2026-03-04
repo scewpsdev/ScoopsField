@@ -294,7 +294,7 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	RendererShow(&game->renderer, game->pv, game->frustumPlanes, game->cameraNear, game->cameraFar, cmdBuffer);
+	RendererShow(&game->renderer, game->pv, game->frustumPlanes, game->cameraNear, game->cameraFar, swapchain, cmdBuffer);
 
 	mat4 guiProjectionView = mat4::Orthographic(0, (float)width, 0, (float)height, -1, 1);
 	SetRenderer2DCamera(&game->guiRenderer, 0, guiProjectionView);

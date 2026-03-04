@@ -1,9 +1,10 @@
 #pragma once
 
 #include <SDL3/SDL.h>
-#include <SDL3_shadercross/SDL_shadercross.h>
 
 #include <stdlib.h>
+
+#include "GameMemory.h"
 
 #include "Resource.h"
 
@@ -35,28 +36,6 @@
 
 #define PROJECT_PATH "D:\\Dev\\ScoopsField\\ScoopsField"
 
-
-struct GameMemory
-{
-	uint64_t constantMemorySize;
-	uint8_t* constantMemory;
-
-	uint64_t transientMemorySize;
-	uint8_t* transientMemory;
-
-	BumpAllocator constantAllocator;
-	BumpAllocator transientAllocator;
-
-	HashMap<void*, uint64_t, 4000> platformAllocations;
-	uint64_t platformMemoryUsage;
-	int platformAllocationCount;
-	int platformAllocationsPerFrame;
-
-	HashMap<void*, uint64_t, 4000> physicsAllocations;
-	uint64_t physicsMemoryUsage;
-	int physicsAllocationCount;
-	int physicsAllocationsPerFrame;
-};
 
 struct PlatformCallbacks
 {
@@ -112,6 +91,7 @@ struct AppState
 	uint64_t now;
 	uint64_t lastFrame;
 	uint64_t lastSecond;
+	uint64_t frameTime;
 	int frameCounter;
 
 	int numKeys;
@@ -123,6 +103,8 @@ struct AppState
 	vec2 mouseDelta;
 	SDL_MouseButtonFlags mouseButtons;
 	SDL_MouseButtonFlags lastMouseButtons;
+
+	SoLoud::Soloud* soloud;
 
 	GraphicsState graphics;
 	AudioState audio;

@@ -141,10 +141,157 @@ void GUIPanel(int x, int y, Texture* texture)
 #include "game/Game.cpp"
 
 
-extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, AppState* appState, int argc, char** argv)
+static void CompileResources()
+{
+#ifdef _DEBUG
+	int result = system("D:\\Dev\\Rainfall\\RainfallResourceCompiler\\bin\\x64\\Release\\RainfallResourceCompiler.exe " PROJECT_PATH "\\res res png ogg vsh fsh csh glsl vert frag comp ttf rfs gltf glb");
+	SDL_assert(result == 0);
+#endif
+}
+
+static void InitPlatformCallbacks(PlatformCallbacks* callbacks)
+{
+	callbacks->compileResources = CompileResources;
+}
+
+void* SDLmalloc(size_t size)
+{
+	memory->platformMemoryUsage += size;
+	memory->platformAllocationCount++;
+	memory->platformAllocationsPerFrame++;
+	void* mem = memory->defaultMalloc(size);
+	if (HashMapHasSlot(&memory->platformAllocations))
+		HashMapAdd(&memory->platformAllocations, mem, size);
+	return mem;
+}
+
+void* SDLcalloc(size_t nmemb, size_t size)
+{
+	memory->platformMemoryUsage += nmemb * size;
+	memory->platformAllocationCount++;
+	void* mem = memory->defaultCalloc(nmemb, size);
+	if (HashMapHasSlot(&memory->platformAllocations))
+		HashMapAdd(&memory->platformAllocations, mem, nmemb * size);
+	return mem;
+}
+
+void* SDLrealloc(void* mem, size_t size)
+{
+	if (!mem)
+		return SDL_malloc(size);
+	else if (!size)
+	{
+		SDL_free(mem);
+		return nullptr;
+	}
+
+	void* newMem = memory->defaultRealloc(mem, size);
+	if (newMem == mem)
+	{
+		if (uint64_t* memsize = HashMapGet(&memory->platformAllocations, mem))
+		{
+			memory->platformMemoryUsage += size - *memsize;
+			*memsize = size;
+		}
+	}
+	else
+	{
+		if (uint64_t* memsize = HashMapRemove(&memory->platformAllocations, mem))
+		{
+			memory->platformMemoryUsage += size - *memsize;
+			HashMapAdd(&memory->platformAllocations, newMem, size);
+		}
+	}
+	return newMem;
+}
+
+void SDLfree(void* mem)
+{
+	memory->defaultFree(mem);
+	if (uint64_t* memsize = HashMapRemove(&memory->platformAllocations, mem))
+	{
+		memory->platformMemoryUsage -= *memsize;
+		memory->platformAllocationCount--;
+	}
+}
+
+static AppState* InitAppState()
+{
+	AppState* appState = (AppState*)(BumpAllocatorMalloc(&memory->constantAllocator, sizeof(AppState)));
+	memory->appState = appState;
+	InitPlatformCallbacks(&appState->platformCallbacks);
+
+#if _DEBUG
+	SDL_GetOriginalMemoryFunctions(&memory->defaultMalloc, &memory->defaultCalloc, &memory->defaultRealloc, &memory->defaultFree);
+	SDL_SetMemoryFunctions(SDLmalloc, SDLcalloc, SDLrealloc, SDLfree);
+#endif
+
+	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS))
+	{
+		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Failed to initialize SDL: %s", SDL_GetError());
+		return nullptr;
+	}
+
+	SDL_Log("SDL %s", SDL_GetRevision());
+
+	const char* title = "ScoopsField";
+	int width = 1280;
+	int height = 720;
+	SDL_Window* window = SDL_CreateWindow(title, width, height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN /*| SDL_WINDOW_MAXIMIZED*/);
+	if (!window)
+	{
+		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Failed to create window: %s", SDL_GetError());
+		return nullptr;
+	}
+	SDL_Log("Display %dx%d", width, height);
+
+	bool gpuDebug = false;
+#if _DEBUG
+	gpuDebug = true;
+#endif
+
+	SDL_GPUDevice* device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, gpuDebug, nullptr);
+	if (!device)
+	{
+		SDL_LogCritical(SDL_LOG_CATEGORY_GPU, "Failed to create graphics device: %s", SDL_GetError());
+		return nullptr;
+	}
+	if (!SDL_ClaimWindowForGPUDevice(device, window))
+	{
+		SDL_LogCritical(SDL_LOG_CATEGORY_GPU, "Failed to create swapchain: %s", SDL_GetError());
+		return nullptr;
+	}
+
+	SDL_Log("Video driver %s-%s", SDL_GetCurrentVideoDriver(), SDL_GetGPUDeviceDriver(device));
+
+	SDL_GPUSwapchainComposition swapchainComposition = SDL_GPU_SWAPCHAINCOMPOSITION_SDR;
+	SDL_GPUPresentMode presentMode = SDL_GPU_PRESENTMODE_IMMEDIATE;
+	if (!SDL_SetGPUSwapchainParameters(device, window, swapchainComposition, presentMode))
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_GPU, "Failed to set swapchain parameters: %s", SDL_GetError());
+	}
+
+	appState->window = window;
+	appState->device = device;
+
+	return appState;
+}
+
+extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, int argc, char** argv)
 {
 	::memory = memory;
-	app = appState;
+
+	InitBumpAllocator(&memory->constantAllocator, memory->constantMemory, memory->constantMemorySize);
+	InitBumpAllocator(&memory->transientAllocator, memory->transientMemory, memory->transientMemorySize);
+
+	InitHashMap(&memory->platformAllocations);
+	InitHashMap(&memory->physicsAllocations);
+
+	memory->appState = InitAppState();
+	if (!memory->appState)
+		return SDL_APP_FAILURE;
+
+	app = memory->appState;
 	graphics = &app->graphics;
 	audio = &app->audio;
 	physics = &app->physics;
@@ -166,6 +313,17 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, AppSt
 
 	SDL_GetMouseState(&app->lastMousePosition.x, &app->lastMousePosition.y);
 
+	app->soloud = new(BumpAllocatorMalloc(&memory->constantAllocator, sizeof(SoLoud::Soloud)))SoLoud::Soloud();
+	if (SoLoud::result result = app->soloud->init())
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to initialize audio backend: %s", app->soloud->getErrorString(result));
+		SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "%s", SDL_GetError());
+		return SDL_APP_FAILURE;
+	}
+	InitAudio(&app->audio, app->soloud);
+
+	SDL_Log("Audio backend: %s", app->soloud->getBackendString());
+
 	InitPhysics(&app->physics);
 
 	InitResourceState(&app->resourceState);
@@ -177,6 +335,16 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, AppSt
 	GameInit(cmdBuffer);
 
 	SDL_SubmitGPUCommandBuffer(cmdBuffer); cmdBuffer = nullptr;
+
+	if (!SDL_ShowWindow(window))
+	{
+		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", SDL_GetError());
+		return SDL_APP_FAILURE;
+	}
+
+	SDL_Log("Initialization complete");
+
+
 
 	return SDL_APP_CONTINUE;
 }
@@ -193,8 +361,25 @@ extern "C" __declspec(dllexport) void AppDestroy(GameMemory* memory, AppState* a
 {
 	SDL_Log("Shutting down...");
 
+	SDL_HideWindow(window);
+
+	GameDestroy();
+
+	DestroyPhysics(&app->physics);
+
+	app->soloud->stopAll();
+	app->soloud->deinit();
+
+	SDL_DestroyGPUDevice(device);
+	SDL_DestroyWindow(window);
+
+	SDL_Quit();
+}
+
+extern "C" __declspec(dllexport) void AppReload(GameMemory* memory)
+{
 	::memory = memory;
-	app = appState;
+	app = memory->appState;
 	graphics = &app->graphics;
 	audio = &app->audio;
 	physics = &app->physics;
@@ -202,13 +387,9 @@ extern "C" __declspec(dllexport) void AppDestroy(GameMemory* memory, AppState* a
 	game = &app->game;
 	window = app->window;
 	device = app->device;
-
-	GameDestroy();
-
-	DestroyPhysics(&app->physics);
 }
 
-extern "C" __declspec(dllexport) SDL_AppResult AppOnEvent(GameMemory* memory, AppState* appState, SDL_Event* event)
+static SDL_AppResult OnEvent(SDL_Event* event)
 {
 	if (event->type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
 		return SDL_APP_SUCCESS;
@@ -244,20 +425,12 @@ static void RenderDebugStats()
 	DebugText(0, 4, COLOR_WHITE, COLOR_BLACK, "transient %s, %d allocations", transientMemoryUsageStr, memory->transientAllocator.count);
 }
 
-extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* appState)
+extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 {
-	::memory = memory;
-	app = appState;
-	graphics = &app->graphics;
-	audio = &app->audio;
-	physics = &app->physics;
-	resource = &app->resourceState;
-	game = &app->game;
-	window = app->window;
-	device = app->device;
-
 	app->now = SDL_GetTicksNS();
-	const int fpsCap = 150;
+	app->frameTime += app->now - app->lastFrame;
+
+	int fpsCap = 0;
 	if (fpsCap)
 	{
 		uint64_t remaining = 1000000000 / fpsCap - (app->now - app->lastFrame);
@@ -282,8 +455,9 @@ extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* a
 	{
 		fps = app->frameCounter;
 
-		avgMs = (app->now - app->lastSecond) / 1e6f / app->frameCounter;
+		avgMs = app->frameTime / 1e6f / app->frameCounter;
 
+		app->frameTime = 0;
 		app->frameCounter = 0;
 		app->lastSecond = app->now;
 
@@ -291,9 +465,19 @@ extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* a
 		physicsAllocationsPerFrame = 0;
 	}
 
+	SDL_Event event = {};
+	while (SDL_PollEvent(&event))
+	{
+		SDL_AppResult result = OnEvent(&event);
+		if (result != SDL_APP_CONTINUE)
+			return result;
+	}
+
 	app->keys = SDL_GetKeyboardState(&app->numKeys);
 	app->mouseButtons = SDL_GetMouseState(&app->mousePosition.x, &app->mousePosition.y);
 	SDL_GetRelativeMouseState(&app->mouseDelta.x, &app->mouseDelta.y);
+
+	UpdateAudio(&app->audio);
 
 	cmdBuffer = SDL_AcquireGPUCommandBuffer(device);
 
@@ -316,6 +500,8 @@ extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* a
 	SDL_SubmitGPUCommandBuffer(cmdBuffer); cmdBuffer = nullptr;
 	swapchain = nullptr;
 
+	ResetBumpAllocator(&memory->transientAllocator);
+
 	app->frameCounter++;
 
 	app->lastFrame = app->now;
@@ -323,4 +509,6 @@ extern "C" __declspec(dllexport) void AppIterate(GameMemory* memory, AppState* a
 	SDL_memcpy(app->lastKeys, app->keys, app->numKeys * sizeof(bool));
 	app->lastMousePosition = app->mousePosition;
 	app->lastMouseButtons = app->mouseButtons;
+
+	return SDL_APP_CONTINUE;
 }
