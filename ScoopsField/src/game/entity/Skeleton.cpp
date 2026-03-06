@@ -158,7 +158,7 @@ void UpdateSkeleton(SkeletonEntity* skeleton)
 {
 	if (skeleton->health > 0)
 	{
-		UpdateAI(skeleton);
+		//UpdateAI(skeleton);
 	}
 
 	UpdateActionManager(skeleton->actions, *skeleton);

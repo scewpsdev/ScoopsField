@@ -44,7 +44,7 @@ static SDL_GPUTexture* CreateDepthTarget(int width, int height)
 
 static RenderTarget* CreateGBuffer(int width, int height)
 {
-#define GBUFFER_COLOR_ATTACHMENTS 2
+#define GBUFFER_COLOR_ATTACHMENTS 3
 	ColorAttachmentInfo colorAttachments[GBUFFER_COLOR_ATTACHMENTS];
 	// normal
 	colorAttachments[0] = {};
@@ -56,6 +56,11 @@ static RenderTarget* CreateGBuffer(int width, int height)
 	colorAttachments[1].format = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
 	colorAttachments[1].loadOp = SDL_GPU_LOADOP_DONT_CARE;
 	colorAttachments[1].storeOp = SDL_GPU_STOREOP_STORE;
+	// material
+	colorAttachments[2] = {};
+	colorAttachments[2].format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+	colorAttachments[2].loadOp = SDL_GPU_LOADOP_DONT_CARE;
+	colorAttachments[2].storeOp = SDL_GPU_STOREOP_STORE;
 
 	DepthAttachmentInfo depthAttachment = {};
 	depthAttachment.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
@@ -403,14 +408,22 @@ static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, Skele
 		};
 
 		UniformData uniforms = {};
-		uniforms.materialData0 = vec4(material && material->diffuse ? 1.0f : 0.0f, 0, 0, 0);
+		uniforms.materialData0 = vec4(
+			material && material->diffuse ? 1.0f : 0.0f, 
+			material && material->roughness ? 1.0f : 0.0f,
+			material && material->metallic ? 1.0f : 0.0f,
+			0);
 		uniforms.materialData1 = material ? ARGBToVector(material->color) : vec4(1);
 		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-		SDL_GPUTextureSamplerBinding textureBindings[1] = {};
+		SDL_GPUTextureSamplerBinding textureBindings[3] = {};
 		textureBindings[0].texture = material && material->diffuse ? material->diffuse->handle : renderer->emptyTexture;
 		textureBindings[0].sampler = renderer->linearSampler;
-		SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, 1);
+		textureBindings[1].texture = material && material->roughness ? material->roughness->handle : renderer->emptyTexture;
+		textureBindings[1].sampler = renderer->linearSampler;
+		textureBindings[2].texture = material && material->metallic ? material->metallic->handle : renderer->emptyTexture;
+		textureBindings[2].sampler = renderer->linearSampler;
+		SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, 3);
 	}
 
 	SDL_DrawGPUIndexedPrimitives(renderPass, mesh->indexCount, 1, 0, 0, 0);
@@ -430,8 +443,10 @@ static float CalculateLightRadius(vec3 color)
 // light occlusion culling
 // mesh instancing
 
-void RendererShow(Renderer* renderer, mat4 pv, vec4 frustumPlanes[6], float near, float far, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
+void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 pv, vec4 frustumPlanes[6], float near, float far, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
+	mat4 pvInv = pv.inverted();
+
 	// geometry pass
 	{
 		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->gbuffer, cmdBuffer);
@@ -493,10 +508,14 @@ void RendererShow(Renderer* renderer, mat4 pv, vec4 frustumPlanes[6], float near
 			{
 				vec4 lightDirection;
 				vec4 lightColor;
+				vec4 cameraPosition;
+				mat4 projectionViewInv;
 			};
 			UniformData uniforms = {};
 			uniforms.lightDirection = vec4(-vec3(1, 2, 0.5).normalized(), 0);
 			uniforms.lightColor = vec4(1, 1, 1, 0);
+			uniforms.cameraPosition = vec4(cameraPosition, 0);
+			uniforms.projectionViewInv = pvInv;
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 			SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 1];
@@ -533,10 +552,12 @@ void RendererShow(Renderer* renderer, mat4 pv, vec4 frustumPlanes[6], float near
 			{
 				mat4 projectionViewInv;
 				vec4 viewTexel;
+				vec4 cameraPosition;
 			};
 			UniformData uniforms = {};
-			uniforms.projectionViewInv = pv.inverted();
+			uniforms.projectionViewInv = pvInv;
 			uniforms.viewTexel = vec4(1.0f / renderer->hdrTarget->width, 1.0f / renderer->hdrTarget->height, 0, 0);
+			uniforms.cameraPosition = vec4(cameraPosition, 0);
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 			SDL_GPUTextureSamplerBinding textureBindings[MAX_COLOR_ATTACHMENTS + 1];

@@ -398,5 +398,6 @@
     <None Include="res\shaders\mesh_animated.vert" />
     <None Include="res\shaders\screenquad.frag" />
     <None Include="res\shaders\screenquad.vert" />
+    <None Include="res\shaders\lighting\lighting.glsl" />
   </ItemGroup>
 </Project>

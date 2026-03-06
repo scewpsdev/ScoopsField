@@ -94,6 +94,15 @@ struct AppState
 	uint64_t frameTime;
 	int frameCounter;
 
+	int width, height;
+	int fps;
+	float avgMs;
+	int platformAllocationsPerFrame;
+	int physicsAllocationsPerFrame;
+
+	float deltaTime;
+	float gameTime;
+
 	int numKeys;
 	const bool* keys;
 	bool* lastKeys;

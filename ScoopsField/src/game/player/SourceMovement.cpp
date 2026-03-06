@@ -144,9 +144,10 @@ static void SourceMovement(Player* player)
 			updateVelocityAir(player->velocity, fsu, speed, forward, right, up);
 
 		vec3 displacement = player->velocity * deltaTime;
+		float xzSpeed = player->velocity.xz().length();
 
 		if (player->grounded)
-			player->distanceWalked += displacement.length();
+			player->distanceWalked += xzSpeed;
 
 		int stepIdx = (int)(player->distanceWalked * STEP_FREQUENCY);
 		if (stepIdx != player->lastStepIdx)
@@ -171,7 +172,7 @@ static void SourceMovement(Player* player)
 			player->grounded = false;
 		}
 
-		player->moving = player->velocity.lengthSquared() > 1;
+		player->moving = xzSpeed > 1;
 
 		player->position = GetCharacterControllerPosition(&player->controller);
 		SetRigidBodyTransform(&player->kinematicBody, player->position, quat::Identity);

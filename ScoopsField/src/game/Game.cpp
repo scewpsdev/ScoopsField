@@ -79,11 +79,11 @@ static void ResetGame(bool destroy)
 
 void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	InitRenderer(&game->renderer, width, height, cmdBuffer);
+	InitRenderer(&game->renderer, app->width, app->height, cmdBuffer);
 
 	Renderer2DLayerInfo layerInfo = {};
-	layerInfo.width = width;
-	layerInfo.height = height;
+	layerInfo.width = app->width;
+	layerInfo.height = app->height;
 	layerInfo.maxSprites = 1000;
 	layerInfo.textureFormat = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 	InitRenderer2D(&game->guiRenderer, 1, &layerInfo, cmdBuffer);
@@ -142,6 +142,13 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	game->roundCounter = LoadTexture("res/textures/counter.png.bin", cmdBuffer);
 	game->digits = LoadTexture("res/textures/digits.png.bin", cmdBuffer);
 
+	AddFileWatcher(PROJECT_PATH "/res/shaders/mesh.vert");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/mesh.frag");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/directional_light.vert");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/directional_light.frag");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/point_light.vert");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/point_light.frag");
+
 	ResetGame(false);
 }
 
@@ -158,14 +165,24 @@ void GameResize(int newWidth, int newHeight)
 
 void GameUpdate()
 {
-	/*
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/chunk.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/chunk.frag"))
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/mesh.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/mesh.frag"))
 	{
 		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->chunkShader, "res/shaders/chunk.vert.bin", "res/shaders/chunk.frag.bin");
-		ReloadGraphicsPipeline(game->chunkPipeline);
+		ReloadGraphicsShader(game->renderer.defaultShader, "res/shaders/mesh.vert.bin", "res/shaders/mesh.frag.bin");
+		ReloadGraphicsPipeline(game->renderer.geometryPipeline);
 	}
-	*/
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/lighting/directional_light.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/lighting/directional_light.frag"))
+	{
+		app->platformCallbacks.compileResources();
+		ReloadGraphicsShader(game->renderer.directionalLightShader, "res/shaders/lighting/directional_light.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
+		ReloadGraphicsPipeline(game->renderer.directionalLightPipeline);
+	}
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/lighting/point_light.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/lighting/point_light.frag"))
+	{
+		app->platformCallbacks.compileResources();
+		ReloadGraphicsShader(game->renderer.pointLightShader, "res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
+		ReloadGraphicsPipeline(game->renderer.pointLightPipeline);
+	}
 
 	if (app->keys[SDL_SCANCODE_ESCAPE] && !app->lastKeys[SDL_SCANCODE_ESCAPE])
 		game->mouseLocked = !game->mouseLocked;
@@ -211,7 +228,7 @@ void GameUpdate()
 
 	UpdatePlayer(&game->player);
 
-	game->projection = mat4::Perspective(90 * Deg2Rad, width / (float)height, game->cameraNear, game->cameraFar);
+	game->projection = mat4::Perspective(90 * Deg2Rad, app->width / (float)app->height, game->cameraNear, game->cameraFar);
 	quat invCameraRotation = quat::FromAxisAngle(vec3::Right, -game->cameraPitch) * quat::FromAxisAngle(vec3::Up, -game->cameraYaw);
 	game->view = mat4::Rotate(invCameraRotation) * mat4::Translate(-game->cameraPosition);
 	game->pv = game->projection * game->view;
@@ -254,7 +271,7 @@ void GameRender()
 	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 5);
 	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * PI * 0.7f) * vec3(2, 2, 0), vec3(0.5f, 1, 0.5f) * 5);
 
-	GUIPanel(width / 2 - game->crosshair->info.width / 2, height / 2 - game->crosshair->info.height / 2, game->crosshair);
+	GUIPanel(app->width / 2 - game->crosshair->info.width / 2, app->height / 2 - game->crosshair->info.height / 2, game->crosshair);
 
 	// round counter
 	{
@@ -263,7 +280,7 @@ void GameRender()
 		{
 			int numStrikes = i < numGroups - 1 ? 5 : (game->round - 1) % 5 + 1;
 			float alpha = game->roundStartTimer != -1 ? SDL_sinf(gameTime * 4) * 0.5f + 0.5f : 1;
-			GUIPanel(i * game->roundCounter->info.height, height - game->roundCounter->info.height, game->roundCounter, ivec4((numStrikes - 1) * game->roundCounter->info.height, 0, game->roundCounter->info.height, game->roundCounter->info.height), vec4(0.5f, 0, 0, alpha));
+			GUIPanel(i * game->roundCounter->info.height, app->height - game->roundCounter->info.height, game->roundCounter, ivec4((numStrikes - 1) * game->roundCounter->info.height, 0, game->roundCounter->info.height, game->roundCounter->info.height), vec4(0.5f, 0, 0, alpha));
 		}
 	}
 
@@ -271,8 +288,8 @@ void GameRender()
 	{
 		int w = 120;
 		int h = 32;
-		int x = width - 20 - w;
-		int y = height - 20 - h;
+		int x = app->width - 20 - w;
+		int y = app->height - 20 - h;
 		int padding = 4;
 
 		GUIPanel(x, y, w, h, vec4(0.1f, 0.1f, 0.1f, 1));
@@ -287,16 +304,16 @@ void GameRender()
 		}
 	}
 
-	DebugText(0, height / 16 - 1, "%d, %.2f, %.2f", game->round, game->roundStartTimer, game->gameOverTimer);
-	DebugText(0, height / 16 - 2, "%d/%d hp", game->player.health, game->player.maxHealth);
-	DebugText(0, height / 16 - 3, "%d skeletons, %d in memory", game->numSkeletonsRemaining, game->skeletons.size);
+	DebugText(0, app->height / 16 - 1, "%d, %.2f, %.2f", game->round, game->roundStartTimer, game->gameOverTimer);
+	DebugText(0, app->height / 16 - 2, "%d/%d hp", game->player.health, game->player.maxHealth);
+	DebugText(0, app->height / 16 - 3, "%d skeletons, %d in memory", game->numSkeletonsRemaining, game->skeletons.size);
 }
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	RendererShow(&game->renderer, game->pv, game->frustumPlanes, game->cameraNear, game->cameraFar, swapchain, cmdBuffer);
+	RendererShow(&game->renderer, game->cameraPosition, game->pv, game->frustumPlanes, game->cameraNear, game->cameraFar, swapchain, cmdBuffer);
 
-	mat4 guiProjectionView = mat4::Orthographic(0, (float)width, 0, (float)height, -1, 1);
+	mat4 guiProjectionView = mat4::Orthographic(0, (float)app->width, 0, (float)app->height, -1, 1);
 	SetRenderer2DCamera(&game->guiRenderer, 0, guiProjectionView);
 	EndRenderer2D(&game->guiRenderer, cmdBuffer);
 }

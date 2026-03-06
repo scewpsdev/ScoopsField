@@ -15,14 +15,11 @@ GameState* game;
 SDL_Window* window;
 SDL_GPUDevice* device;
 
-int width, height;
+// these get either set at the beginning of the frame or on resize
 float deltaTime;
 float gameTime;
-int fps;
-float avgMs;
-int platformAllocationsPerFrame;
-int physicsAllocationsPerFrame;
 
+// these get set during the frame and can be null on reload
 SDL_GPUTexture* swapchain = nullptr;
 SDL_GPUCommandBuffer* cmdBuffer = nullptr;
 
@@ -91,7 +88,7 @@ void DebugText(int x, int y, const char* fmt, ...)
 void GUIPanel(int x, int y, int w, int h, vec4 color)
 {
 	SpriteDrawData drawData = {};
-	drawData.position = vec3((float)(x + w / 2), (float)(height - y - h / 2), 0);
+	drawData.position = vec3((float)(x + w / 2), (float)(app->height - y - h / 2), 0);
 	drawData.size = vec2((float)w, (float)h);
 	drawData.rotation = 0;
 	drawData.color = color;
@@ -101,7 +98,7 @@ void GUIPanel(int x, int y, int w, int h, vec4 color)
 void GUIPanel(int x, int y, int w, int h, Texture* texture, vec4 color)
 {
 	SpriteDrawData drawData = {};
-	drawData.position = vec3((float)(x + w / 2), (float)(height - y - h / 2), 0);
+	drawData.position = vec3((float)(x + w / 2), (float)(app->height - y - h / 2), 0);
 	drawData.size = vec2((float)w, (float)h);
 	drawData.rotation = 0;
 	drawData.color = color;
@@ -118,7 +115,7 @@ void GUIPanel(int x, int y, Texture* texture, const ivec4& textureRect, vec4 col
 	int v = textureRect.y;
 
 	SpriteDrawData drawData = {};
-	drawData.position = vec3((float)(x + w / 2), (float)(height - y - h / 2), 0);
+	drawData.position = vec3((float)(x + w / 2), (float)(app->height - y - h / 2), 0);
 	drawData.size = vec2((float)w, (float)h);
 	drawData.rotation = 0;
 	drawData.color = color;
@@ -145,7 +142,7 @@ static void CompileResources()
 {
 #ifdef _DEBUG
 	int result = system("D:\\Dev\\Rainfall\\RainfallResourceCompiler\\bin\\x64\\Release\\RainfallResourceCompiler.exe " PROJECT_PATH "\\res res png ogg vsh fsh csh glsl vert frag comp ttf rfs gltf glb");
-	SDL_assert(result == 0);
+	//SDL_assert(result == 0);
 #endif
 }
 
@@ -300,7 +297,7 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, int a
 	window = app->window;
 	device = app->device;
 
-	SDL_GetWindowSizeInPixels(window, &width, &height);
+	SDL_GetWindowSizeInPixels(window, &app->width, &app->height);
 
 	if (app->platformCallbacks.compileResources)
 		app->platformCallbacks.compileResources();
@@ -351,8 +348,8 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, int a
 
 void AppResize(int newWidth, int newHeight)
 {
-	width = newWidth;
-	height = newHeight;
+	app->width = newWidth;
+	app->height = newHeight;
 
 	GameResize(newWidth, newHeight);
 }
@@ -387,6 +384,8 @@ extern "C" __declspec(dllexport) void AppReload(GameMemory* memory)
 	game = &app->game;
 	window = app->window;
 	device = app->device;
+
+	gameTime = app->gameTime;
 }
 
 static SDL_AppResult OnEvent(SDL_Event* event)
@@ -418,9 +417,9 @@ static void RenderDebugStats()
 	char physicsMemoryUsageStr[16];
 	MemoryString(physicsMemoryUsageStr, 16, memory->physicsMemoryUsage);
 
-	DebugText(0, 0, COLOR_WHITE, COLOR_BLACK, "%d fps, %.3f ms", fps, avgMs);
-	DebugText(0, 1, COLOR_WHITE, COLOR_BLACK, "platform %s, %d allocations, %d per frame", platformMemoryUsageStr, memory->platformAllocationCount, platformAllocationsPerFrame);
-	DebugText(0, 2, COLOR_WHITE, COLOR_BLACK, "physics %s, %d allocations, %d per frame", physicsMemoryUsageStr, memory->physicsAllocationCount, physicsAllocationsPerFrame);
+	DebugText(0, 0, COLOR_WHITE, COLOR_BLACK, "%d fps, %.3f ms", app->fps, app->avgMs);
+	DebugText(0, 1, COLOR_WHITE, COLOR_BLACK, "platform %s, %d allocations, %d per frame", platformMemoryUsageStr, memory->platformAllocationCount, app->platformAllocationsPerFrame);
+	DebugText(0, 2, COLOR_WHITE, COLOR_BLACK, "physics %s, %d allocations, %d per frame", physicsMemoryUsageStr, memory->physicsAllocationCount, app->physicsAllocationsPerFrame);
 	DebugText(0, 3, COLOR_WHITE, COLOR_BLACK, "constant %s, %d allocations", memoryUsageStr, memory->constantAllocator.count);
 	DebugText(0, 4, COLOR_WHITE, COLOR_BLACK, "transient %s, %d allocations", transientMemoryUsageStr, memory->transientAllocator.count);
 }
@@ -430,7 +429,7 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 	app->now = SDL_GetTicksNS();
 	app->frameTime += app->now - app->lastFrame;
 
-	int fpsCap = 0;
+	int fpsCap = 60;
 	if (fpsCap)
 	{
 		uint64_t remaining = 1000000000 / fpsCap - (app->now - app->lastFrame);
@@ -443,26 +442,27 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 		deltaTime = (app->now - app->lastFrame) / 1e9f;
 	}
 
-	gameTime += deltaTime;
+	app->gameTime += deltaTime;
+	gameTime = app->gameTime;
 
-	platformAllocationsPerFrame = max(platformAllocationsPerFrame, memory->platformAllocationsPerFrame);
+	app->platformAllocationsPerFrame = max(app->platformAllocationsPerFrame, memory->platformAllocationsPerFrame);
 	memory->platformAllocationsPerFrame = 0;
 
-	physicsAllocationsPerFrame = max(physicsAllocationsPerFrame, memory->physicsAllocationsPerFrame);
+	app->physicsAllocationsPerFrame = max(app->physicsAllocationsPerFrame, memory->physicsAllocationsPerFrame);
 	memory->physicsAllocationsPerFrame = 0;
 
 	if (app->now - app->lastSecond >= 1e9)
 	{
-		fps = app->frameCounter;
+		app->fps = app->frameCounter;
 
-		avgMs = app->frameTime / 1e6f / app->frameCounter;
+		app->avgMs = app->frameTime / 1e6f / app->frameCounter;
 
 		app->frameTime = 0;
 		app->frameCounter = 0;
 		app->lastSecond = app->now;
 
-		platformAllocationsPerFrame = 0;
-		physicsAllocationsPerFrame = 0;
+		app->platformAllocationsPerFrame = 0;
+		app->physicsAllocationsPerFrame = 0;
 	}
 
 	SDL_Event event = {};
@@ -478,6 +478,9 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 	SDL_GetRelativeMouseState(&app->mouseDelta.x, &app->mouseDelta.y);
 
 	UpdateAudio(&app->audio);
+
+	SDL_assert(!cmdBuffer);
+	SDL_assert(!swapchain);
 
 	cmdBuffer = SDL_AcquireGPUCommandBuffer(device);
 
@@ -495,7 +498,7 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 	SDL_WaitAndAcquireGPUSwapchainTexture(cmdBuffer, app->window, &swapchain, &swapchainWidth, &swapchainHeight);
 
 	GameShowFrame(cmdBuffer);
-	DebugTextRendererEnd(&app->debugTextRenderer, width, height, cmdBuffer);
+	DebugTextRendererEnd(&app->debugTextRenderer, app->width, app->height, cmdBuffer);
 
 	SDL_SubmitGPUCommandBuffer(cmdBuffer); cmdBuffer = nullptr;
 	swapchain = nullptr;

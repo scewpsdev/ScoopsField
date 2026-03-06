@@ -1,10 +1,18 @@
 #include "Item.h"
 
 
-static void InitWeapon(Item* item, int damage, vec2 damageRange)
+static void InitWeapon(Item* item, const char* name, int damage, vec2 damageRange)
 {
 	item->weapon.damage = damage;
 	item->weapon.damageRange = damageRange;
+
+	char modelPath[256];
+	SDL_snprintf(modelPath, 256, "res/items/%s/%s.glb.bin", name, name);
+	LoadModel(&item->model, modelPath, false, cmdBuffer);
+
+	char movesetPath[256];
+	SDL_snprintf(movesetPath, 256, "res/items/%s/%s_moveset.glb.bin", name, name);
+	LoadModel(&item->moveset, movesetPath, false, cmdBuffer);
 }
 
 static void AddAttack(Item* item, const char* animation, float animationSpeed, int damageStartFrame, int damageEndFrame, int cancelFrame, float damageMultiplier)
@@ -22,9 +30,7 @@ void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer)
 	// kings sword
 	{
 		Item* item = &items->items[ITEM_TYPE_KINGS_SWORD];
-		LoadModel(&item->model, "res/items/kings_sword/kings_sword.glb.bin", false, cmdBuffer);
-		LoadModel(&item->moveset, "res/items/kings_sword/kings_sword_moveset.glb.bin", false, cmdBuffer);
-		InitWeapon(item, 50, vec2(0.1f, 0.85f));
+		InitWeapon(item, "kings_sword", 50, vec2(0.1f, 0.85f));
 		AddAttack(item, "attack1", 1.5f, 10, 18, 24, 1.0f);
 		AddAttack(item, "attack2", 1.5f, 10, 18, 24, 1.0f);
 	}

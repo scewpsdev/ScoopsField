@@ -104,7 +104,7 @@ static mat4 CalculateViewBobbing(Player* player, int side)
 
 	// Walk animation
 	vec2 viewmodelWalkAnim = vec2::Zero;
-	viewmodelWalkAnim.x = 0.03f * SDL_sinf(player->distanceWalked * STEP_FREQUENCY * PI);
+	viewmodelWalkAnim.x = 0.5f * SDL_sinf(player->distanceWalked * STEP_FREQUENCY * PI);
 	viewmodelWalkAnim.y = 0.015f * -SDL_fabsf(SDL_cosf(player->distanceWalked * STEP_FREQUENCY * PI));
 	//viewmodelWalkAnim *= 1 - Mathf.Smoothstep(1.0f, 1.5f, movementSpeed);
 	viewmodelWalkAnim *= 1 - SDL_expf(-player->velocity.xz().length());
@@ -258,16 +258,16 @@ void RenderPlayer(Player* player)
 		if (player->lastHit && gameTime - player->lastHit < 5)
 			vignetteStrength += SDL_expf(-(gameTime - player->lastHit) * 2) * 0.5f;
 		vignetteStrength = min(vignetteStrength, 1);
-		GUIPanel(0, 0, width, height, game->vignette, vec4(1, 0, 0, vignetteStrength));
+		GUIPanel(0, 0, app->width, app->height, game->vignette, vec4(1, 0, 0, vignetteStrength));
 	}
 
 	// stamina
 	if (player->stamina < 1)
 	{
-		int w = width / 2;
+		int w = app->width / 2;
 		int h = 5;
-		int x = width / 2 - w / 2;
-		int y = height - 20;
+		int x = app->width / 2 - w / 2;
+		int y = app->height - 20;
 		GUIPanel(x, y, w, h, vec4(0.1f, 0.1f, 0.1f, 0.5f));
 
 		vec4 color = player->exhausted ? mix(vec4(1), vec4(1, 0, 0, 1), SDL_sinf(gameTime * 7) * 0.5f + 0.5f) : vec4(1);
