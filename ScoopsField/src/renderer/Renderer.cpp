@@ -500,6 +500,28 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 pv, vec4 frustum
 			RenderScreenQuad(&renderer->screenQuad, renderPass, 1, &renderer->gbuffer->depthAttachment, renderer->defaultSampler, cmdBuffer);
 		}
 
+		// environment light
+		{
+			SDL_BindGPUGraphicsPipeline(renderPass, renderer->environmentLightPipeline->pipeline);
+
+			struct UniformData
+			{
+				vec4 cameraPosition;
+				mat4 projectionViewInv;
+			};
+			UniformData uniforms = {};
+			uniforms.cameraPosition = vec4(cameraPosition, 0);
+			uniforms.projectionViewInv = pvInv;
+			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+
+			SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 1];
+			for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
+				gbufferTextures[i] = renderer->gbuffer->colorAttachments[i];
+			gbufferTextures[renderer->gbuffer->numColorAttachments] = renderer->gbuffer->depthAttachment;
+
+			RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 1, gbufferTextures, renderer->defaultSampler, cmdBuffer);
+		}
+
 		// directional lights
 		{
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->directionalLightPipeline->pipeline);

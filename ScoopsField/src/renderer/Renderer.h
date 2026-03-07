@@ -65,6 +65,7 @@ struct Renderer
 	Shader* copyDepthShader;
 	Shader* directionalLightShader;
 	Shader* pointLightShader;
+	Shader* environmentLightShader;
 	Shader* tonemappingShader;
 
 	GraphicsPipeline* geometryPipeline;
@@ -72,6 +73,7 @@ struct Renderer
 	GraphicsPipeline* copyDepthPipeline;
 	GraphicsPipeline* directionalLightPipeline;
 	GraphicsPipeline* pointLightPipeline;
+	GraphicsPipeline* environmentLightPipeline;
 	GraphicsPipeline* tonemappingPipeline;
 
 	SDL_GPUSampler* defaultSampler;

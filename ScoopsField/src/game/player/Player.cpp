@@ -154,9 +154,9 @@ void UpdatePlayer(Player* player)
 
 	Action* currentAction = GetCurrentAction(player);
 
-	if (GetMouseButton(SDL_BUTTON_LEFT) && player->rightWeapon && player->stamina > 0)
+	if (GetMouseButtonDown(SDL_BUTTON_LEFT) && player->rightWeapon && player->stamina > 0)
 	{
-		if (!currentAction || currentAction->elapsedTime > currentAction->followUpCancelTime)
+		if (player->actions.actions.size < player->actions.actions.capacity /* !currentAction || currentAction->elapsedTime > currentAction->followUpCancelTime*/)
 		{
 			int attackIdx = currentAction && currentAction->type == ACTION_TYPE_ATTACK && currentAction->attack.weapon == player->rightWeapon ? currentAction->attack.attackIdx + 1 : 0;
 

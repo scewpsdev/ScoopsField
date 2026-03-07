@@ -147,7 +147,7 @@ static void SourceMovement(Player* player)
 		float xzSpeed = player->velocity.xz().length();
 
 		if (player->grounded)
-			player->distanceWalked += xzSpeed;
+			player->distanceWalked += xzSpeed * deltaTime;
 
 		int stepIdx = (int)(player->distanceWalked * STEP_FREQUENCY);
 		if (stepIdx != player->lastStepIdx)
