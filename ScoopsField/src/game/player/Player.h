@@ -36,7 +36,7 @@ struct Player : Entity
 	Model model;
 	AnimationState anim;
 
-	Node* rightWeaponNode;
+	Node* rightWeaponNode, * leftWeaponNode;
 	Node* rightShoulderNode, * leftShoulderNode;
 
 	AnimationPlayback idleAnim;

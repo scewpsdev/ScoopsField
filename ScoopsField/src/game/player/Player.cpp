@@ -11,14 +11,26 @@ static Action* GetCurrentAction(Player* player)
 	return QueuePeek(player->actions.actions);
 }
 
-static void SetRightWeapon(Player* player, int loadout, ItemType itemType)
+static void SetRightWeapon(Player* player, int loadout, Item* weapon)
 {
-	SDL_assert(itemType < ITEM_TYPE_LAST);
-
-	Item* weapon = itemType != ITEM_TYPE_NONE ? &game->items.items[itemType] : nullptr;
 	if (player->rightWeapons[loadout] != weapon)
 	{
 		player->rightWeapons[loadout] = weapon;
+
+		if (loadout == player->currentLoadout && weapon)
+		{
+			Action action;
+			InitEquipAction(&action, weapon);
+			QueueAction(player->actions, action, *player);
+		}
+	}
+}
+
+static void SetLeftWeapon(Player* player, int loadout, Item* weapon)
+{
+	if (player->leftWeapons[loadout] != weapon)
+	{
+		player->leftWeapons[loadout] = weapon;
 
 		if (loadout == player->currentLoadout && weapon)
 		{
@@ -76,6 +88,16 @@ mat4 GetRightWeaponTransform(Player* player)
 	return viewmodelTransform * GetNodeTransform(&player->anim, player->rightWeaponNode);
 }
 
+void SwitchLoadout(Player* player, int loadout)
+{
+	if (player->currentLoadout != loadout)
+	{
+		Action action;
+		InitEquipAction(&action, GetRightWeapon(player), loadout);
+		QueueAction(player->actions, action, *player);
+	}
+}
+
 
 #include "SourceMovement.cpp"
 
@@ -92,6 +114,7 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer)
 	InitAnimationState(&player->anim, &player->model);
 
 	player->rightWeaponNode = GetNodeByName(&player->model, "weapon_r");
+	player->leftWeaponNode = GetNodeByName(&player->model, "weapon_l");
 	player->rightShoulderNode = GetNodeByName(&player->model, "clavicle_r");
 	player->leftShoulderNode = GetNodeByName(&player->model, "clavicle_l");
 
@@ -112,8 +135,9 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer)
 	player->stamina = 1.0f;
 	player->exhausted = false;
 
-	SetRightWeapon(player, 0, ITEM_TYPE_LONGSWORD);
-	SetRightWeapon(player, 1, ITEM_TYPE_KINGS_SWORD);
+	SetRightWeapon(player, 0, &game->items[ITEM_TYPE_LONGSWORD]);
+	SetRightWeapon(player, 1, &game->items[ITEM_TYPE_KINGS_SWORD]);
+	SetLeftWeapon(player, 1, &game->items[ITEM_TYPE_WOODEN_SHIELD]);
 }
 
 void DestroyPlayer(Player* player)
@@ -205,11 +229,7 @@ void UpdatePlayer(Player* player)
 		{
 			if (GetKeyDown((SDL_Scancode)(SDL_SCANCODE_1 + i)))
 			{
-				player->currentLoadout = i;
-				
-				Action action;
-				InitEquipAction(&action, GetRightWeapon(player));
-				QueueAction(player->actions, action, *player);
+				SwitchLoadout(player, i);
 
 				break;
 			}
@@ -282,6 +302,9 @@ void UpdatePlayer(Player* player)
 	mat4& leftShoulderTransform = GetNodeTransform(&player->anim, player->leftShoulderNode);
 	leftShoulderTransform = leftViewBob * leftShoulderTransform;
 
+	mat4& leftWeaponTransform = GetNodeTransform(&player->anim, player->leftWeaponNode);
+	leftWeaponTransform = leftViewBob * leftWeaponTransform;
+
 	ApplyAnimationToSkeleton(&player->model, &player->anim);
 
 	if (GetKeyDown(SDL_SCANCODE_F5))
@@ -328,10 +351,15 @@ void RenderPlayer(Player* player)
 
 	RenderModel(&game->renderer, &player->model, &player->anim, viewmodelTransform);
 
-	if (GetRightWeapon(player))
+	if (Item* rightWeapon = GetRightWeapon(player))
 	{
 		mat4 weaponTransform = viewmodelTransform * GetNodeTransform(&player->anim, player->rightWeaponNode);
-		RenderModel(&game->renderer, &GetRightWeapon(player)->model, &player->anim, weaponTransform);
+		RenderModel(&game->renderer, &rightWeapon->model, &player->anim, weaponTransform);
+	}
+	if (Item* leftWeapon = GetLeftWeapon(player))
+	{
+		mat4 weaponTransform = viewmodelTransform * GetNodeTransform(&player->anim, player->leftWeaponNode);
+		RenderModel(&game->renderer, &leftWeapon->model, &player->anim, weaponTransform);
 	}
 
 	// vignette
@@ -340,7 +368,10 @@ void RenderPlayer(Player* player)
 		if (player->lastHit && gameTime - player->lastHit < 5)
 			vignetteStrength += SDL_expf(-(gameTime - player->lastHit) * 2) * 0.5f;
 		vignetteStrength = min(vignetteStrength, 1);
-		GUIPanel(0, 0, app->width, app->height, game->vignette, vec4(1, 0, 0, vignetteStrength));
+
+		vec3 color = vec3(1, 0, 0);
+
+		GUIPanel(0, 0, app->width, app->height, game->vignette, vec4(color, vignetteStrength));
 	}
 
 	// stamina

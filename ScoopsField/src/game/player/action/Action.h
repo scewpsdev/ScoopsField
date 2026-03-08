@@ -56,6 +56,7 @@ struct Action
 	union
 	{
 		AttackAction attack;
+		EquipAction equip;
 	};
 };
 

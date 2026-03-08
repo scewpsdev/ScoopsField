@@ -27,7 +27,23 @@ static void AddAttack(Item* item, const char* animation, float animationSpeed, i
 	attack->damageMultiplier = damageMultiplier;
 }
 
-void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer)
+static void InitShield(Item* item, const char* name, bool twoHanded)
+{
+	item->twoHanded = twoHanded;
+
+	item->weapon.damage = 0;
+	item->weapon.damageRange = vec2(0);
+
+	char modelPath[256];
+	SDL_snprintf(modelPath, 256, "res/items/%s/%s.glb.bin", name, name);
+	LoadModel(&item->model, modelPath, false, cmdBuffer);
+
+	char movesetPath[256];
+	SDL_snprintf(movesetPath, 256, "res/items/%s/%s_moveset.glb.bin", name, name);
+	LoadModel(&item->moveset, movesetPath, false, cmdBuffer);
+}
+
+static void InitWeapons(ItemDatabase* items)
 {
 	// kings sword
 	{
@@ -43,4 +59,19 @@ void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer)
 		AddAttack(item, "attack1", 1, 15, 24, 40, 1.0f);
 		AddAttack(item, "attack2", 1, 15, 24, 40, 1.0f);
 	}
+}
+
+static void InitShields(ItemDatabase* items)
+{
+	// wooden shield
+	{
+		Item* item = &items->items[ITEM_TYPE_WOODEN_SHIELD];
+		InitShield(item, "wooden_shield", false);
+	}
+}
+
+void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer)
+{
+	InitWeapons(items);
+	InitShields(items);
 }
