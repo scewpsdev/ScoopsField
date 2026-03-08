@@ -135,6 +135,17 @@ static GraphicsPipeline* CreatePointLightPipeline(Renderer* renderer)
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
+static GraphicsPipeline* CreateEnvironmentLightPipeline(Renderer* renderer)
+{
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->environmentLightShader, renderer->hdrTarget, 1, &renderer->screenQuad.vertexBuffer->layout);
+
+	CreateBlendStateOpaque(&pipelineInfo.colorTargets[0].blend_state);
+
+	pipelineInfo.depthWrite = false;
+
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
 static GraphicsPipeline* CreateTonemappingPipeline(Renderer* renderer)
 {
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->tonemappingShader, nullptr, 1, &renderer->screenQuad.vertexBuffer->layout);
@@ -217,6 +228,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->copyDepthShader = LoadGraphicsShader("res/shaders/copy_depth.vert.bin", "res/shaders/copy_depth.frag.bin");
 	renderer->directionalLightShader = LoadGraphicsShader("res/shaders/lighting/directional_light.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
 	renderer->pointLightShader = LoadGraphicsShader("res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
+	renderer->environmentLightShader = LoadGraphicsShader("res/shaders/lighting/environment_light.vert.bin", "res/shaders/lighting/environment_light.frag.bin");
 	renderer->tonemappingShader = LoadGraphicsShader("res/shaders/tonemapping.vert.bin", "res/shaders/tonemapping.frag.bin");
 
 	renderer->geometryPipeline = CreateGeometryPipeline(renderer);
@@ -224,6 +236,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->copyDepthPipeline = CreateCopyDepthPipeline(renderer);
 	renderer->directionalLightPipeline = CreateDirectionalLightPipeline(renderer);
 	renderer->pointLightPipeline = CreatePointLightPipeline(renderer);
+	renderer->environmentLightPipeline = CreateEnvironmentLightPipeline(renderer);
 	renderer->tonemappingPipeline = CreateTonemappingPipeline(renderer);
 
 	SDL_GPUSamplerCreateInfo samplerInfo = {};
@@ -249,6 +262,8 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	emptyTextureInfo.num_levels = 1;
 	emptyTextureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
 	renderer->emptyTexture = SDL_CreateGPUTexture(device, &emptyTextureInfo);
+
+	renderer->environmentMap = LoadTexture("res/textures/sky/sky_cubemap_equirect.png.bin", cmdBuffer);
 }
 
 void DestroyRenderer(Renderer* renderer)
@@ -268,8 +283,13 @@ void DestroyRenderer(Renderer* renderer)
 	DestroyGraphicsPipeline(renderer->pointLightPipeline);
 	DestroyShader(renderer->pointLightShader);
 
+	DestroyGraphicsPipeline(renderer->environmentLightPipeline);
+	DestroyShader(renderer->environmentLightShader);
+
 	DestroyRenderTarget(renderer->gbuffer);
 	SDL_ReleaseGPUTexture(device, renderer->depthTexture);
+
+	DestroyTexture(renderer->environmentMap);
 }
 
 void ResizeRenderer(Renderer* renderer, int width, int height)
@@ -442,6 +462,8 @@ static float CalculateLightRadius(vec3 color)
 // mesh occlusion culling
 // light occlusion culling
 // mesh instancing
+// proper pbr
+// atmospheric scattering
 
 void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 pv, vec4 frustumPlanes[6], float near, float far, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
@@ -506,20 +528,21 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 pv, vec4 frustum
 
 			struct UniformData
 			{
-				vec4 cameraPosition;
+				vec4 params;
 				mat4 projectionViewInv;
 			};
 			UniformData uniforms = {};
-			uniforms.cameraPosition = vec4(cameraPosition, 0);
+			uniforms.params = vec4(cameraPosition, 1);
 			uniforms.projectionViewInv = pvInv;
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-			SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 1];
+			SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 2];
 			for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
 				gbufferTextures[i] = renderer->gbuffer->colorAttachments[i];
 			gbufferTextures[renderer->gbuffer->numColorAttachments] = renderer->gbuffer->depthAttachment;
+			gbufferTextures[renderer->gbuffer->numColorAttachments + 1] = renderer->environmentMap->handle;
 
-			RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 1, gbufferTextures, renderer->defaultSampler, cmdBuffer);
+			RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 2, gbufferTextures, renderer->defaultSampler, cmdBuffer);
 		}
 
 		// directional lights

@@ -11,17 +11,61 @@ static Action* GetCurrentAction(Player* player)
 	return QueuePeek(player->actions.actions);
 }
 
-static void SetRightWeapon(Player* player, ItemType itemType)
+static void SetRightWeapon(Player* player, int loadout, ItemType itemType)
 {
 	SDL_assert(itemType < ITEM_TYPE_LAST);
 
-	if (itemType != ITEM_TYPE_NONE)
+	Item* weapon = itemType != ITEM_TYPE_NONE ? &game->items.items[itemType] : nullptr;
+	if (player->rightWeapons[loadout] != weapon)
 	{
-		player->rightWeapon = &game->items.items[itemType];
+		player->rightWeapons[loadout] = weapon;
+
+		if (loadout == player->currentLoadout && weapon)
+		{
+			Action action;
+			InitEquipAction(&action, weapon);
+			QueueAction(player->actions, action, *player);
+		}
+	}
+}
+
+Item* GetRightWeapon(Player* player)
+{
+	return player->rightWeapons[player->currentLoadout];
+}
+
+Item* GetLeftWeapon(Player* player)
+{
+	return player->leftWeapons[player->currentLoadout];
+}
+
+Item* GetRightApparentWeapon(Player* player)
+{
+	Item* rightWeapon = GetRightWeapon(player);
+	Item* leftWeapon = GetLeftWeapon(player);
+
+	if (rightWeapon)
+	{
+		return !rightWeapon->twoHanded && leftWeapon && leftWeapon->twoHanded ? leftWeapon : rightWeapon;
 	}
 	else
 	{
-		player->rightWeapon = nullptr;
+		return leftWeapon && leftWeapon->twoHanded ? leftWeapon : nullptr;
+	}
+}
+
+Item* GetLeftApparentWeapon(Player* player)
+{
+	Item* rightWeapon = GetRightWeapon(player);
+	Item* leftWeapon = GetLeftWeapon(player);
+
+	if (leftWeapon)
+	{
+		return rightWeapon && rightWeapon->twoHanded ? rightWeapon : leftWeapon;
+	}
+	else
+	{
+		return rightWeapon && rightWeapon->twoHanded ? rightWeapon : nullptr;
 	}
 }
 
@@ -68,7 +112,8 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer)
 	player->stamina = 1.0f;
 	player->exhausted = false;
 
-	SetRightWeapon(player, ITEM_TYPE_KINGS_SWORD);
+	SetRightWeapon(player, 0, ITEM_TYPE_LONGSWORD);
+	SetRightWeapon(player, 1, ITEM_TYPE_KINGS_SWORD);
 }
 
 void DestroyPlayer(Player* player)
@@ -154,15 +199,36 @@ void UpdatePlayer(Player* player)
 
 	Action* currentAction = GetCurrentAction(player);
 
-	if (GetMouseButtonDown(SDL_BUTTON_LEFT) && player->rightWeapon && player->stamina > 0)
+	if (!currentAction)
 	{
-		if (player->actions.actions.size < player->actions.actions.capacity /* !currentAction || currentAction->elapsedTime > currentAction->followUpCancelTime*/)
+		for (int i = 0; i < NUM_LOADOUTS; i++)
 		{
-			int attackIdx = currentAction && currentAction->type == ACTION_TYPE_ATTACK && currentAction->attack.weapon == player->rightWeapon ? currentAction->attack.attackIdx + 1 : 0;
+			if (GetKeyDown((SDL_Scancode)(SDL_SCANCODE_1 + i)))
+			{
+				player->currentLoadout = i;
+				
+				Action action;
+				InitEquipAction(&action, GetRightWeapon(player));
+				QueueAction(player->actions, action, *player);
 
-			Action action;
-			InitAttackAction(&action, player->rightWeapon, &player->rightWeapon->weapon.attacks[attackIdx % player->rightWeapon->weapon.numAttacks], attackIdx);
-			QueueAction(player->actions, action, *player);
+				break;
+			}
+		}
+	}
+
+	{
+		Item* right = GetRightApparentWeapon(player);
+		bool offHand = right != GetRightWeapon(player);
+		if (GetMouseButtonDown(SDL_BUTTON_LEFT) && right && !offHand && player->stamina > 0)
+		{
+			if (player->actions.actions.size < player->actions.actions.capacity /* !currentAction || currentAction->elapsedTime > currentAction->followUpCancelTime*/)
+			{
+				int attackIdx = currentAction && currentAction->type == ACTION_TYPE_ATTACK && currentAction->attack.weapon == right ? currentAction->attack.attackIdx + 1 : 0;
+
+				Action action;
+				InitAttackAction(&action, right, &right->weapon.attacks[attackIdx % right->weapon.numAttacks], attackIdx);
+				QueueAction(player->actions, action, *player);
+			}
 		}
 	}
 
@@ -173,12 +239,20 @@ void UpdatePlayer(Player* player)
 
 	AnimateModel(&player->model, &player->anim, moveAnimation->animation, moveAnimation->timer, moveAnimation->loop);
 
-	if (player->rightWeapon)
+	Item* right = GetRightApparentWeapon(player);
+	if (right)
 	{
-		Animation* weaponMoveAnimation = GetAnimationByName(&player->rightWeapon->moveset, "idle");
+		Animation* weaponMoveAnimation = GetAnimationByName(&right->moveset, "idle");
 
-		bool right = true;
-		BlendAnimation(&player->model, &player->anim, weaponMoveAnimation, moveAnimation->timer, moveAnimation->loop, 1, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+		if (right->twoHanded)
+		{
+			AnimateModel(&player->model, &player->anim, weaponMoveAnimation, moveAnimation->timer, moveAnimation->loop);
+		}
+		else
+		{
+			bool right = true;
+			BlendAnimation(&player->model, &player->anim, weaponMoveAnimation, moveAnimation->timer, moveAnimation->loop, 1, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+		}
 	}
 
 	if (currentAction)
@@ -186,8 +260,15 @@ void UpdatePlayer(Player* player)
 		AnimationPlayback* actionAnimation = &currentAction->anim;
 		actionAnimation->timer += deltaTime * actionAnimation->speed;
 
-		bool right = true;
-		BlendAnimation(&player->model, &player->anim, actionAnimation->animation, actionAnimation->timer, actionAnimation->loop, 1, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+		if (currentAction->twoHanded)
+		{
+			AnimateModel(&player->model, &player->anim, actionAnimation->animation, actionAnimation->timer, actionAnimation->loop);
+		}
+		else
+		{
+			bool right = true;
+			BlendAnimation(&player->model, &player->anim, actionAnimation->animation, actionAnimation->timer, actionAnimation->loop, 1, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+		}
 	}
 
 	mat4 rightViewBob = CalculateViewBobbing(player, 0);
@@ -197,8 +278,9 @@ void UpdatePlayer(Player* player)
 	mat4& rightWeaponTransform = GetNodeTransform(&player->anim, player->rightWeaponNode);
 	rightWeaponTransform = rightViewBob * rightWeaponTransform;
 
+	mat4 leftViewBob = CalculateViewBobbing(player, GetLeftApparentWeapon(player) == GetLeftWeapon(player) ? 1 : 0);
 	mat4& leftShoulderTransform = GetNodeTransform(&player->anim, player->leftShoulderNode);
-	leftShoulderTransform = CalculateViewBobbing(player, 1) * leftShoulderTransform;
+	leftShoulderTransform = leftViewBob * leftShoulderTransform;
 
 	ApplyAnimationToSkeleton(&player->model, &player->anim);
 
@@ -246,10 +328,10 @@ void RenderPlayer(Player* player)
 
 	RenderModel(&game->renderer, &player->model, &player->anim, viewmodelTransform);
 
-	if (player->rightWeapon)
+	if (GetRightWeapon(player))
 	{
 		mat4 weaponTransform = viewmodelTransform * GetNodeTransform(&player->anim, player->rightWeaponNode);
-		RenderModel(&game->renderer, &player->rightWeapon->model, &player->anim, weaponTransform);
+		RenderModel(&game->renderer, &GetRightWeapon(player)->model, &player->anim, weaponTransform);
 	}
 
 	// vignette

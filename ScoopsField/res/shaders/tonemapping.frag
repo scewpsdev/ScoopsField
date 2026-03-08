@@ -59,7 +59,7 @@ void main()
 	vec3 color = texture(s_hdrFrame, v_texcoord).rgb;
 	//color = linearToSRGB(color);
 
-	color = tonemap(color);
+	color = tonemap(color * 0.5);
 	color = gammaCorrection(color);
 
 	out_color = vec4(color, 1);

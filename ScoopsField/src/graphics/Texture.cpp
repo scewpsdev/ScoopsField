@@ -61,14 +61,11 @@ Texture* LoadTexture(const char* path, SDL_GPUCommandBuffer* cmdBuffer)
 		TextureInfo info = {};
 		LoadKTX11Header(reader, &info);
 
-		uint32_t imageSize = reader.ReadUInt32();
-		uint8_t* textureData = reader.CurrentPtr();
-
 		SDL_GPUTextureCreateInfo textureInfo = {};
 		textureInfo.format = info.format;
 		textureInfo.width = info.width;
 		textureInfo.height = info.height;
-		textureInfo.layer_count_or_depth = info.depth > 1 ? info.depth : info.numLayers;
+		textureInfo.layer_count_or_depth = info.depth > 1 ? info.depth : info.numFaces > 1 ? info.numFaces : info.numLayers;
 		textureInfo.num_levels = info.numMips;
 		textureInfo.type = info.depth > 1 ? SDL_GPU_TEXTURETYPE_3D : info.numLayers > 1 && info.numFaces == 1 ? SDL_GPU_TEXTURETYPE_2D_ARRAY : info.numFaces > 1 ? SDL_GPU_TEXTURETYPE_CUBE : info.numLayers > 1 && info.numFaces > 1 ? SDL_GPU_TEXTURETYPE_CUBE_ARRAY : SDL_GPU_TEXTURETYPE_2D;
 		textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
@@ -82,29 +79,48 @@ Texture* LoadTexture(const char* path, SDL_GPUCommandBuffer* cmdBuffer)
 
 		SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
 
-		SDL_GPUTransferBufferCreateInfo transferBufferInfo = {};
-		transferBufferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-		transferBufferInfo.size = imageSize;
+		int width = info.width;
+		int height = info.height;
 
-		SDL_GPUTransferBuffer* transferBuffer = SDL_CreateGPUTransferBuffer(device, &transferBufferInfo);
+		for (int i = 0; i < info.numMips; i++)
+		{
+			uint32_t layerSize = reader.ReadUInt32();
+			uint32_t mipSize = layerSize * info.numFaces;
+			uint8_t* levelData = reader.CurrentPtr();
+			reader.Skip(mipSize);
 
-		void* textureTransferPtr = SDL_MapGPUTransferBuffer(device, transferBuffer, false);
-		SDL_memcpy(textureTransferPtr, textureData, imageSize);
-		SDL_UnmapGPUTransferBuffer(device, transferBuffer);
+			SDL_GPUTransferBufferCreateInfo transferBufferInfo = {};
+			transferBufferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+			transferBufferInfo.size = mipSize;
 
-		SDL_GPUTextureTransferInfo location = {};
-		location.transfer_buffer = transferBuffer;
-		location.offset = 0;
+			SDL_GPUTransferBuffer* transferBuffer = SDL_CreateGPUTransferBuffer(device, &transferBufferInfo);
 
-		SDL_GPUTextureRegion region = {};
-		region.texture = handle;
-		region.w = info.width;
-		region.h = info.height;
-		region.d = 1;
+			void* textureTransferPtr = SDL_MapGPUTransferBuffer(device, transferBuffer, false);
+			SDL_memcpy(textureTransferPtr, levelData, mipSize);
+			SDL_UnmapGPUTransferBuffer(device, transferBuffer);
 
-		SDL_UploadToGPUTexture(copyPass, &location, &region, false);
+			for (int j = 0; j < info.numFaces; j++)
+			{
+				SDL_GPUTextureTransferInfo location = {};
+				location.transfer_buffer = transferBuffer;
+				location.offset = layerSize * j;
 
-		SDL_ReleaseGPUTransferBuffer(device, transferBuffer);
+				SDL_GPUTextureRegion region = {};
+				region.texture = handle;
+				region.w = width;
+				region.h = height;
+				region.d = 1;
+				region.layer = j;
+				region.mip_level = i;
+
+				SDL_UploadToGPUTexture(copyPass, &location, &region, false);
+			}
+
+			SDL_ReleaseGPUTransferBuffer(device, transferBuffer);
+
+			width >>= 1;
+			height >>= 1;
+		}
 
 		SDL_EndGPUCopyPass(copyPass);
 
@@ -128,7 +144,7 @@ Texture* LoadTextureFromData(const uint8_t* data, uint32_t size, const TextureIn
 	textureInfo.format = info->format;
 	textureInfo.width = info->width;
 	textureInfo.height = info->height;
-	textureInfo.layer_count_or_depth = info->depth > 1 ? info->depth : info->numLayers;
+	textureInfo.layer_count_or_depth = info->depth > 1 ? info->depth : info->numFaces > 1 ? info->numFaces : info->numLayers;
 	textureInfo.num_levels = info->numMips;
 	textureInfo.type = info->depth > 1 ? SDL_GPU_TEXTURETYPE_3D : info->numLayers > 1 && info->numFaces == 1 ? SDL_GPU_TEXTURETYPE_2D_ARRAY : info->numFaces > 1 ? SDL_GPU_TEXTURETYPE_CUBE : info->numLayers > 1 && info->numFaces > 1 ? SDL_GPU_TEXTURETYPE_CUBE_ARRAY : SDL_GPU_TEXTURETYPE_2D;
 	textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;

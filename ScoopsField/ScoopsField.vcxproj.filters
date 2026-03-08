@@ -144,6 +144,9 @@
     <ClCompile Include="src\game\player\SourceMovement.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\game\player\action\EquipAction.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\spirv_cross\spirv.h">
@@ -377,6 +380,9 @@
     <ClInclude Include="src\GameMemory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\game\player\action\EquipAction.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\clear_buffer.comp" />
@@ -399,5 +405,7 @@
     <None Include="res\shaders\screenquad.frag" />
     <None Include="res\shaders\screenquad.vert" />
     <None Include="res\shaders\lighting\lighting.glsl" />
+    <None Include="res\shaders\lighting\environment_light.vert" />
+    <None Include="res\shaders\lighting\environment_light.frag" />
   </ItemGroup>
 </Project>

@@ -46,6 +46,7 @@ void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackId
 	action->animName = attack->animation;
 	action->animMoveset = &weapon->moveset;
 	action->animationSpeed = attack->animationSpeed;
+	action->twoHanded = weapon->twoHanded;
 	//action->moveSpeed = 0.5f;
 	action->followUpCancelTime = attack->followUpCancelTime;
 	action->attack.weapon = weapon;

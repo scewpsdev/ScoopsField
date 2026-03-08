@@ -41,13 +41,6 @@ struct Renderer
 	RenderTarget* gbuffer;
 	RenderTarget* hdrTarget;
 
-#define MAX_MESH_DRAWS 1024
-	List<MeshDrawData, MAX_MESH_DRAWS> meshes;
-#define MAX_ANIMATED_MESH_DRAWS 64
-	List<MeshDrawData, MAX_MESH_DRAWS> animatedMeshes;
-#define MAX_POINT_LIGHT_DRAWS 256
-	List<LightDrawData, MAX_POINT_LIGHT_DRAWS> pointLights;
-
 #define NUM_MESH_BUFFER_LAYOUTS 3
 	VertexBufferLayout meshLayout[NUM_MESH_BUFFER_LAYOUTS];
 #define NUM_ANIMATED_MESH_BUFFER_LAYOUTS 4
@@ -80,6 +73,15 @@ struct Renderer
 	SDL_GPUSampler* linearSampler;
 	SDL_GPUBuffer* emptyBuffer;
 	SDL_GPUTexture* emptyTexture;
+
+#define MAX_MESH_DRAWS 1024
+	List<MeshDrawData, MAX_MESH_DRAWS> meshes;
+#define MAX_ANIMATED_MESH_DRAWS 64
+	List<MeshDrawData, MAX_MESH_DRAWS> animatedMeshes;
+#define MAX_POINT_LIGHT_DRAWS 256
+	List<LightDrawData, MAX_POINT_LIGHT_DRAWS> pointLights;
+
+	Texture* environmentMap;
 };
 
 

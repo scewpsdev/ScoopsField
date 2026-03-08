@@ -8,6 +8,7 @@
 #include "utils/Queue.h"
 
 #include "AttackAction.h"
+#include "EquipAction.h"
 
 
 enum ActionType
@@ -15,6 +16,7 @@ enum ActionType
 	ACTION_TYPE_NONE,
 
 	ACTION_TYPE_ATTACK,
+	ACTION_TYPE_EQUIP,
 
 	ACTION_TYPE_LAST
 };
@@ -36,6 +38,7 @@ struct Action
 	const char* animName;
 	Model* animMoveset;
 	float animationSpeed;
+	bool twoHanded;
 
 	float duration;
 	float speed;
@@ -68,6 +71,7 @@ struct ActionManager
 #define RunActionFunc(func) \
 switch(action->type) { \
 ActionCase(func, Attack, ATTACK) \
+ActionCase(func, Equip, EQUIP) \
 default: SDL_assert(false); break; \
 }
 

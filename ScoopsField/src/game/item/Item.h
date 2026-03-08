@@ -8,6 +8,7 @@ enum ItemType
 	ITEM_TYPE_NONE,
 
 	ITEM_TYPE_KINGS_SWORD,
+	ITEM_TYPE_LONGSWORD,
 
 	ITEM_TYPE_LAST
 };
@@ -36,6 +37,7 @@ struct Item
 {
 	Model model;
 	Model moveset;
+	bool twoHanded;
 
 	union {
 		Weapon weapon;

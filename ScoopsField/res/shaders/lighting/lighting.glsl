@@ -62,7 +62,7 @@ vec3 directionalLight(vec3 normal, vec3 view, vec3 albedo, float roughness, floa
 
 	vec3 radiance = lightColor;
 
-	float ndotwi = max(dot(wi, normal) * 0.5 + 0.5, 0.0);
+	float ndotwi = max(dot(wi, normal), 0.0);
 	float shadow = 1.0; // Shadow mapping
 
 	vec3 s = (specular + fLambert * kd) * radiance * ndotwi * shadow;
@@ -114,4 +114,37 @@ vec3 pointLight(vec3 position, vec3 normal, vec3 view, vec3 albedo, float roughn
 	vec3 s = (specular + fLambert * kd) * radiance * ndotwi * shadow;
 
 	return s;
+}
+
+vec3 sampleEnvironmentIrradiance(vec3 normal, samplerCube environmentMap, float environmentIntensity)
+{
+	return textureLod(environmentMap, normal, log2(textureSize(environmentMap, 0).x)).rgb * environmentIntensity;
+}
+
+vec3 sampleEnvironmentPrefiltered(vec3 normal, vec3 view, float roughness, samplerCube environmentMap, float environmentIntensity)
+{
+	vec3 r = reflect(-view, normal);
+	float lodFactor = 1.0 - exp(-roughness * 12);
+
+	return textureLod(environmentMap, r, lodFactor * log2(textureSize(environmentMap, 0).x)).rgb * environmentIntensity;
+}
+
+vec3 environmentLight(vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, samplerCube environmentMap, float environmentIntensity)
+{
+	vec3 irradiance = sampleEnvironmentIrradiance(normal, environmentMap, environmentIntensity);
+
+	vec3 diffuse = irradiance * albedo;
+
+	vec3 f0 = mix(vec3(0.04), albedo, metallic);
+	vec3 ks = fresnel2(max(dot(normal, view), 0.0), f0, roughness);
+	vec3 kd = (1.0 - ks) * (1.0 - metallic);
+
+	vec3 prefiltered = sampleEnvironmentPrefiltered(normal, view, roughness, environmentMap, environmentIntensity);
+
+	vec2 brdfInteg = vec2(1.0, 0.0);
+	vec3 specular = prefiltered * (ks * brdfInteg.r + brdfInteg.g);
+
+	vec3 ambient = kd * diffuse + specular;
+
+	return ambient;
 }

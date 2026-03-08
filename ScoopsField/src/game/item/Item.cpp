@@ -1,8 +1,10 @@
 #include "Item.h"
 
 
-static void InitWeapon(Item* item, const char* name, int damage, vec2 damageRange)
+static void InitWeapon(Item* item, const char* name, bool twoHanded, int damage, vec2 damageRange)
 {
+	item->twoHanded = twoHanded;
+
 	item->weapon.damage = damage;
 	item->weapon.damageRange = damageRange;
 
@@ -30,8 +32,15 @@ void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer)
 	// kings sword
 	{
 		Item* item = &items->items[ITEM_TYPE_KINGS_SWORD];
-		InitWeapon(item, "kings_sword", 50, vec2(0.1f, 0.85f));
+		InitWeapon(item, "kings_sword", false, 50, vec2(0.1f, 0.85f));
 		AddAttack(item, "attack1", 1.5f, 10, 18, 24, 1.0f);
 		AddAttack(item, "attack2", 1.5f, 10, 18, 24, 1.0f);
+	}
+	// longsword
+	{
+		Item* item = &items->items[ITEM_TYPE_LONGSWORD];
+		InitWeapon(item, "longsword", true, 70, vec2(0.1f, 1.0f));
+		AddAttack(item, "attack1", 1, 15, 24, 40, 1.0f);
+		AddAttack(item, "attack2", 1, 15, 24, 40, 1.0f);
 	}
 }

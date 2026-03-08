@@ -141,7 +141,7 @@ void GUIPanel(int x, int y, Texture* texture)
 static void CompileResources()
 {
 #ifdef _DEBUG
-	int result = system("D:\\Dev\\Rainfall\\RainfallResourceCompiler\\bin\\x64\\Release\\RainfallResourceCompiler.exe " PROJECT_PATH "\\res res png ogg vsh fsh csh glsl vert frag comp ttf rfs gltf glb");
+	int result = system("D:\\Dev\\Rainfall\\RainfallResourceCompiler\\bin\\x64\\Release\\RainfallResourceCompiler.exe " PROJECT_PATH "\\res res png hdr ogg vsh fsh csh glsl vert frag comp ttf rfs gltf glb");
 	//SDL_assert(result == 0);
 #endif
 }

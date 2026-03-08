@@ -92,7 +92,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 
 	//game->mesh = LoadMesh("res/models/monkey.glb.bin", cmdBuffer);
 
-	LoadModel(&game->mapModel, "res/maps/testmap/testmap.glb.bin", true, cmdBuffer);
+	LoadModel(&game->mapModel, "res/maps/testmap/testmap.gltf.bin", true, cmdBuffer);
 	InitRigidBody(&game->mapCollider, RIGID_BODY_STATIC, vec3::Zero, quat::Identity);
 	AddModelCollider(&game->mapCollider, &game->mapModel, vec3::Zero, quat::Identity, vec3::One, 1, 1, false);
 
