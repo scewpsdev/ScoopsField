@@ -9,7 +9,7 @@
 #include "game/entity/Entity.h"
 
 
-#define HIT_FREEZE_DURATION 0.3f
+#define HIT_FREEZE_DURATION 0.1f
 
 
 // TODO
@@ -71,6 +71,7 @@ void UpdateAttackAction(Action* action, Player* player)
 {
 	action->animationSpeed = action->attack.attack->animationSpeed * (action->attack.lastHitTime && gameTime - action->attack.lastHitTime < HIT_FREEZE_DURATION ? 0.2f : 1);
 	action->anim.speed = action->animationSpeed;
+	//action->speed = action->attack.attack->animationSpeed * (action->attack.lastHitTime && gameTime - action->attack.lastHitTime < HIT_FREEZE_DURATION ? 0.2f : 1);
 
 	bool damage = action->elapsedTime >= action->attack.attack->damageWindow.x && action->elapsedTime <= action->attack.attack->damageWindow.y;
 	if (damage)

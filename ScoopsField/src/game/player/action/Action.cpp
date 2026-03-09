@@ -12,7 +12,7 @@ void InitAction(Action* action, ActionType type)
 {
 	*action = {};
 	action->type = type;
-	action->speed = 1.0f;
+	//action->speed = 1.0f;
 	action->animationSpeed = 1.0f;
 	action->moveSpeed = 1.0f;
 }
@@ -31,7 +31,7 @@ void AddActionSound(Action* action, Sound* sounds, int numSounds, float time, fl
 
 void UpdateAction(Action* action, struct Player* player, float deltaTime)
 {
-	action->elapsedTime += deltaTime;
+	action->elapsedTime += deltaTime * action->animationSpeed;
 
 	for (int i = 0; i < action->numSounds; i++)
 	{
@@ -61,7 +61,7 @@ static void StartActionInternal(ActionManager& actions, Action* action, Player* 
 	InitAnimation(&action->anim, action->animName, action->animMoveset ? action->animMoveset : actions.moveset, action->animationSpeed);
 	if (!action->duration)
 		action->duration = action->anim.animation->duration;
-	action->speed = action->speed;
+	//action->speed = action->speed;
 
 	StartAction(action, player);
 }
@@ -78,6 +78,20 @@ void QueueAction(ActionManager& actions, const Action& action, Player& player)
 		QueuePush(actions.actions, action);
 		if (actions.actions.size == 1)
 			StartActionInternal(actions, QueuePeek(actions.actions), &player);
+		else
+		{
+			int a = 5;
+		}
+	}
+}
+
+void CancelAction(ActionManager& actions, Player& player)
+{
+	if (Action* currentAction = QueuePeek(actions.actions))
+	{
+		StopActionInternal(actions, currentAction, &player);
+		QueuePop(actions.actions);
+		currentAction = QueuePeek(actions.actions);
 	}
 }
 
@@ -89,7 +103,7 @@ void UpdateActionManager(ActionManager& actions, Player& player)
 		if (currentAction->startTime > 0)
 		{
 			bool shouldFinish = currentAction->elapsedTime >= currentAction->duration ||
-				currentAction->followUpCancelTime && currentAction->elapsedTime >= currentAction->followUpCancelTime && actions.actions.size > 1 && currentAction->type == QueuePeekAt(actions.actions, 1)->type;
+				currentAction->followUpCancelTime && currentAction->elapsedTime >= currentAction->followUpCancelTime && actions.actions.size > 1 /*&& currentAction->type == QueuePeekAt(actions.actions, 1)->type*/;
 			if (shouldFinish)
 			{
 				StopActionInternal(actions, currentAction, &player);

@@ -66,7 +66,7 @@ static RenderTarget* CreateGBuffer(int width, int height)
 	depthAttachment.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
 	depthAttachment.loadOp = SDL_GPU_LOADOP_CLEAR;
 	depthAttachment.storeOp = SDL_GPU_STOREOP_STORE;
-	depthAttachment.clearDepth = 1;
+	depthAttachment.clearDepth = 0;
 
 	return CreateRenderTarget(width, height, GBUFFER_COLOR_ATTACHMENTS, colorAttachments, &depthAttachment);
 }
@@ -91,12 +91,14 @@ static RenderTarget* CreateHDRTarget(int width, int height)
 static GraphicsPipeline* CreateGeometryPipeline(Renderer* renderer)
 {
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->defaultShader, renderer->gbuffer, NUM_MESH_BUFFER_LAYOUTS, renderer->meshLayout);
+	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER;
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
 static GraphicsPipeline* CreateAnimatedPipeline(Renderer* renderer)
 {
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->animatedShader, renderer->gbuffer, NUM_ANIMATED_MESH_BUFFER_LAYOUTS, renderer->animatedLayout);
+	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER;
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
@@ -433,7 +435,7 @@ static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, Skele
 			material && material->roughness ? 1.0f : 0.0f,
 			material && material->metallic ? 1.0f : 0.0f,
 			0);
-		uniforms.materialData1 = material ? ARGBToVector(material->color) : vec4(1);
+		uniforms.materialData1 = material ? SRGBToLinear(ARGBToVector(material->color)) : vec4(1);
 		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 		SDL_GPUTextureSamplerBinding textureBindings[3] = {};
@@ -558,7 +560,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 pv, vec4 frustum
 			};
 			UniformData uniforms = {};
 			uniforms.lightDirection = vec4(-vec3(1, 2, 0.5).normalized(), 0);
-			uniforms.lightColor = vec4(1, 1, 1, 0);
+			uniforms.lightColor = vec4(1, 1, 1, 0) * 10;
 			uniforms.cameraPosition = vec4(cameraPosition, 0);
 			uniforms.projectionViewInv = pvInv;
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));

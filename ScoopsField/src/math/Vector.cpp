@@ -863,3 +863,8 @@ vec3 floor(const vec3& v)
 {
 	return vec3(SDL_floorf(v.x), SDL_floorf(v.y), SDL_floorf(v.z));
 }
+
+vec3 pow(const vec3& a,	float b)
+{
+	return vec3(SDL_powf(a.x, b), SDL_powf(a.y, b), SDL_powf(a.z, b));
+}

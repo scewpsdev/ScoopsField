@@ -41,7 +41,7 @@ struct Action
 	bool twoHanded;
 
 	float duration;
-	float speed;
+	//float speed;
 	float moveSpeed;
 	float followUpCancelTime;
 
@@ -95,3 +95,4 @@ void InitActionManager(ActionManager& actions, Model* moveset);
 void UpdateActionManager(ActionManager& actions, struct Player& player);
 
 void QueueAction(ActionManager& actions, const Action& action, struct Player& player);
+void CancelAction(ActionManager& actions, struct Player& player);

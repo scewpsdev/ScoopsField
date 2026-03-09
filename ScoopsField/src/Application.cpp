@@ -356,7 +356,7 @@ void AppResize(int newWidth, int newHeight)
 
 extern "C" __declspec(dllexport) void AppDestroy(GameMemory* memory, AppState* appState, SDL_AppResult result)
 {
-	SDL_Log("Shutting down...");
+	SDL_Log("Shutting down");
 
 	SDL_HideWindow(window);
 

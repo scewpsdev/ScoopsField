@@ -12,11 +12,21 @@
 void InitEquipAction(Action* action, Item* weapon, int dstLoadout)
 {
 	InitAction(action, ACTION_TYPE_EQUIP);
-	action->animName = "equip";
-	action->animMoveset = &weapon->moveset;
-	action->animationSpeed = 1.0f;
-	action->twoHanded = weapon->twoHanded;
-	//action->moveSpeed = 0.5f;
+
+	if (weapon)
+	{
+		action->animName = "equip";
+		action->animMoveset = &weapon->moveset;
+		action->animationSpeed = 1.0f;
+		action->twoHanded = weapon->twoHanded;
+		//action->moveSpeed = 0.5f;
+	}
+	else
+	{
+		action->animName = "equip";
+		action->animMoveset = &game->player.model;
+		action->twoHanded = true;
+	}
 
 	action->equip.dstLoadout = dstLoadout;
 

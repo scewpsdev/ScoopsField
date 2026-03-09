@@ -50,7 +50,7 @@ static SDL_SharedObject* LoadGameCode(AppInit_t* init, AppDestroy_t* destroy, Ap
 			copySuccessful = true;
 			break;
 		}
-		Sleep(10);
+		Sleep(100);
 		SDL_Log("retrying");
 	}
 	if (!copySuccessful)
@@ -154,8 +154,6 @@ int main(int argc, char** argv)
 			running = false;
 	}
 
-
-	SDL_Log("Shutting down");
 
 	appDestroy(result);
 

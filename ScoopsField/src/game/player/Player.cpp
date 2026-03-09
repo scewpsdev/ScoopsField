@@ -93,7 +93,7 @@ void SwitchLoadout(Player* player, int loadout)
 	if (player->currentLoadout != loadout)
 	{
 		Action action;
-		InitEquipAction(&action, GetRightWeapon(player), loadout);
+		InitEquipAction(&action, player->rightWeapons[loadout], loadout);
 		QueueAction(player->actions, action, *player);
 	}
 }
@@ -135,9 +135,9 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer)
 	player->stamina = 1.0f;
 	player->exhausted = false;
 
-	SetRightWeapon(player, 0, &game->items[ITEM_TYPE_LONGSWORD]);
-	SetRightWeapon(player, 1, &game->items[ITEM_TYPE_KINGS_SWORD]);
-	SetLeftWeapon(player, 1, &game->items[ITEM_TYPE_WOODEN_SHIELD]);
+	SetRightWeapon(player, 0, GetItem(ITEM_TYPE_LONGSWORD));
+	SetRightWeapon(player, 1, GetItem(ITEM_TYPE_KINGS_SWORD));
+	SetLeftWeapon(player, 1, GetItem(ITEM_TYPE_WOODEN_SHIELD));
 }
 
 void DestroyPlayer(Player* player)
@@ -223,18 +223,16 @@ void UpdatePlayer(Player* player)
 
 	Action* currentAction = GetCurrentAction(player);
 
-	if (!currentAction)
-	{
 		for (int i = 0; i < NUM_LOADOUTS; i++)
 		{
 			if (GetKeyDown((SDL_Scancode)(SDL_SCANCODE_1 + i)))
 			{
+				if (currentAction && player->actions.actions.back()->type == ACTION_TYPE_EQUIP)
+					CancelAction(player->actions, *player);
 				SwitchLoadout(player, i);
-
 				break;
 			}
 		}
-	}
 
 	{
 		Item* right = GetRightApparentWeapon(player);
@@ -278,7 +276,8 @@ void UpdatePlayer(Player* player)
 	if (currentAction)
 	{
 		AnimationPlayback* actionAnimation = &currentAction->anim;
-		actionAnimation->timer += deltaTime * actionAnimation->speed;
+		//actionAnimation->timer += deltaTime * actionAnimation->speed;
+		actionAnimation->timer = currentAction->elapsedTime;
 
 		if (currentAction->twoHanded)
 		{

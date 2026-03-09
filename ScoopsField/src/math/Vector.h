@@ -60,7 +60,9 @@ struct vec3
 
 
 	vec3();
-	vec3(float xyz);
+	// we need explicit here because otherwise floats will be able to implicitly cast to vec3 in function calls.
+	// this will then cause ambiguous function overload errors because c++ is absolute trash. amazing mr starsoup
+	explicit vec3(float xyz);
 	vec3(float x, float y, float z);
 	vec3(const vec2& xy, float z);
 	vec3(float x, const vec2& yz);
@@ -366,3 +368,4 @@ T mix(const T& a, const T& b, float t)
 }
 
 vec3 floor(const vec3& v);
+vec3 pow(const vec3& a, float b);

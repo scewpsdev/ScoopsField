@@ -238,20 +238,19 @@ mat4 mat4::Transform(const vec3& position, const quat& rotation, const vec3& sca
 
 mat4 mat4::Perspective(float fovy, float aspect, float near, float far)
 {
-	// TODO homogenous depth check
-
-	mat4 matrix = Identity;
-
-	float y = 1.0f / tanf(0.5f * fovy);
+	float y = 1 / tanf(0.5f * fovy);
 	float x = y / aspect;
-	float l = far - near;
 
+	float a = 0;
+	float b = near;
+
+	mat4 matrix = {};
 	matrix.m00 = x;
 	matrix.m11 = y;
-	matrix.m22 = (far + near) / -l;
-	matrix.m23 = -1.0f;
-	matrix.m32 = -2.0f * near * far / l;
-	matrix.m33 = 0.0f;
+	matrix.m22 = a;
+	matrix.m23 = -1;
+	matrix.m32 = b;
+	matrix.m33 = 0;
 
 	return matrix;
 }

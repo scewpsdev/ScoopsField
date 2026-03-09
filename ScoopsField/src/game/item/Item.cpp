@@ -49,15 +49,15 @@ static void InitWeapons(ItemDatabase* items)
 	{
 		Item* item = &items->items[ITEM_TYPE_KINGS_SWORD];
 		InitWeapon(item, "kings_sword", false, 50, vec2(0.1f, 0.85f));
-		AddAttack(item, "attack1", 1.5f, 10, 18, 24, 1.0f);
-		AddAttack(item, "attack2", 1.5f, 10, 18, 24, 1.0f);
+		AddAttack(item, "attack1", 1.0f, 10, 18, 24, 1.0f);
+		AddAttack(item, "attack2", 1.0f, 10, 18, 24, 1.0f);
 	}
 	// longsword
 	{
 		Item* item = &items->items[ITEM_TYPE_LONGSWORD];
 		InitWeapon(item, "longsword", true, 70, vec2(0.1f, 1.0f));
-		AddAttack(item, "attack1", 1, 15, 24, 40, 1.0f);
-		AddAttack(item, "attack2", 1, 15, 24, 40, 1.0f);
+		AddAttack(item, "attack1", 1, 15, 24, 32, 1.0f);
+		AddAttack(item, "attack2", 1, 15, 24, 32, 1.0f);
 	}
 }
 
@@ -74,4 +74,10 @@ void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	InitWeapons(items);
 	InitShields(items);
+}
+
+Item* GetItem(ItemType type)
+{
+	SDL_assert(type < ITEM_TYPE_LAST);
+	return &game->items.items[type];
 }

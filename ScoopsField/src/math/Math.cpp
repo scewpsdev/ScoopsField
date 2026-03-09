@@ -123,6 +123,17 @@ vec4 ARGBToVector(uint32_t argb)
 	return vec4(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
 }
 
+vec3 SRGBToLinear(vec3 color)
+{
+	const float gamma = 2.2f;
+	return pow(color, gamma);
+}
+
+vec4 SRGBToLinear(vec4 color)
+{
+	return vec4(SRGBToLinear(color.xyz), color.a);
+}
+
 bool FrustumCulling(const Sphere& boundingSphere, vec4 planes[6])
 {
 	vec3 boundingSpherePos = boundingSphere.center;

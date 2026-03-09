@@ -11,6 +11,12 @@ struct Queue
 	int size;
 	int head;
 	int tail;
+
+	T* back()
+	{
+		if (!size) return nullptr;
+		return &data[(tail + CAPACITY - 1) % CAPACITY];
+	}
 };
 
 

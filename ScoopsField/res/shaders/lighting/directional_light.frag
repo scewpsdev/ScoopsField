@@ -49,7 +49,7 @@ void main()
 	//float d = dot(normal, -lightDirection) * 0.5 + 0.5;
 	//vec3 diffuse = d * color * lightColor + 0.0001 * material.r;
 
-	vec3 radiance = directionalLight(normal, view, albedo, roughness, metallic, lightDirection, lightColor);
+	vec3 radiance = directionalLight(normal, view, albedo, roughness, metallic, lightDirection, lightColor) * 0.01;
 
 	out_color = vec4(radiance, 1);
 }

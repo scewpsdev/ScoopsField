@@ -51,3 +51,5 @@ struct ItemDatabase
 };
 
 void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer);
+
+Item* GetItem(ItemType type);
