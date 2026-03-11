@@ -241,10 +241,24 @@ void UpdatePlayer(Player* player)
 		{
 			if (player->actions.actions.size < player->actions.actions.capacity /* !currentAction || currentAction->elapsedTime > currentAction->followUpCancelTime*/)
 			{
-				int attackIdx = currentAction && currentAction->type == ACTION_TYPE_ATTACK && currentAction->attack.weapon == right ? currentAction->attack.attackIdx + 1 : 0;
+				Attack* nextAttack = nullptr;
+				int attackIdx = 0;
+				if (currentAction && currentAction->type == ACTION_TYPE_ATTACK && currentAction->attack.weapon == right)
+				{
+					nextAttack = GetNextAttack(currentAction->attack.attack, currentAction->attack.weapon);
+					attackIdx = currentAction->attack.attackIdx + 1;
+				}
+				else if (player->sprinting && right->weapon.runningAttack != -1)
+				{
+					nextAttack = &right->weapon.attacks[right->weapon.runningAttack];
+				}
+				else
+				{
+					nextAttack = &right->weapon.attacks[0];
+				}
 
 				Action action;
-				InitAttackAction(&action, right, &right->weapon.attacks[attackIdx % right->weapon.numAttacks], attackIdx);
+				InitAttackAction(&action, right, nextAttack, attackIdx);
 				QueueAction(player->actions, action, *player);
 			}
 		}

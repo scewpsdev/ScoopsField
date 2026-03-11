@@ -16,12 +16,14 @@ enum ItemType
 
 struct Attack
 {
+	const char* name;
 	const char* animation;
 	float animationSpeed;
 	vec2 damageWindow;
 	float followUpCancelTime;
-
 	float damageMultiplier;
+
+	const char* followUp;
 };
 
 struct Weapon
@@ -32,6 +34,7 @@ struct Weapon
 #define MAX_WEAPON_ATTACKS 16
 	Attack attacks[MAX_WEAPON_ATTACKS];
 	int numAttacks;
+	int runningAttack;
 };
 
 struct Item
@@ -53,3 +56,5 @@ struct ItemDatabase
 void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer);
 
 Item* GetItem(ItemType type);
+
+Attack* GetNextAttack(Attack* attack, Item* item);
