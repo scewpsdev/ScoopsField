@@ -15,17 +15,28 @@ void InitEquipAction(Action* action, Item* weapon, int dstLoadout)
 
 	if (weapon)
 	{
-		action->animName = "equip";
-		action->animMoveset = &weapon->moveset;
+		action->rightAnimName = "equip";
+		action->rightAnimMoveset = &weapon->moveset;
+		action->rightAnimBlendDuration = 0.0f;
+
+		if (weapon->twoHanded)
+		{
+			action->leftAnimName = "equip";
+			action->leftAnimMoveset = &weapon->moveset;
+			action->leftAnimBlendDuration = 0.0f;
+		}
 		action->animationSpeed = 1.0f;
-		action->twoHanded = weapon->twoHanded;
 		//action->moveSpeed = 0.5f;
 	}
 	else
 	{
-		action->animName = "equip";
-		action->animMoveset = &game->player.model;
-		action->twoHanded = true;
+		action->rightAnimName = "equip";
+		action->rightAnimMoveset = &game->player.model;
+		action->rightAnimBlendDuration = 0.0f;
+
+		action->leftAnimName = "equip";
+		action->leftAnimMoveset = &game->player.model;
+		action->leftAnimBlendDuration = 0.0f;
 	}
 
 	action->equip.dstLoadout = dstLoadout;

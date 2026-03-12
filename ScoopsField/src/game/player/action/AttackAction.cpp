@@ -43,10 +43,16 @@
 void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackIdx)
 {
 	InitAction(action, ACTION_TYPE_ATTACK);
-	action->animName = attack->animation;
-	action->animMoveset = &weapon->moveset;
+
+	action->rightAnimName = attack->animation;
+	action->rightAnimMoveset = &weapon->moveset;
+	if (weapon->twoHanded)
+	{
+		action->leftAnimName = attack->animation;
+		action->leftAnimMoveset = &weapon->moveset;
+	}
+
 	action->animationSpeed = attack->animationSpeed;
-	action->twoHanded = weapon->twoHanded;
 	//action->moveSpeed = 0.5f;
 	action->followUpCancelTime = attack->followUpCancelTime;
 	action->attack.weapon = weapon;
@@ -70,7 +76,7 @@ void StopAttackAction(Action* action, Player* player)
 void UpdateAttackAction(Action* action, Player* player)
 {
 	action->animationSpeed = action->attack.attack->animationSpeed * (action->attack.lastHitTime && gameTime - action->attack.lastHitTime < HIT_FREEZE_DURATION ? 0.2f : 1);
-	action->anim.speed = action->animationSpeed;
+	action->rightAnim.speed = action->animationSpeed;
 	//action->speed = action->attack.attack->animationSpeed * (action->attack.lastHitTime && gameTime - action->attack.lastHitTime < HIT_FREEZE_DURATION ? 0.2f : 1);
 
 	bool damage = action->elapsedTime >= action->attack.attack->damageWindow.x && action->elapsedTime <= action->attack.attack->damageWindow.y;

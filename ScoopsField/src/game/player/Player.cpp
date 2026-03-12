@@ -118,7 +118,7 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer)
 	player->rightShoulderNode = GetNodeByName(&player->model, "clavicle_r");
 	player->leftShoulderNode = GetNodeByName(&player->model, "clavicle_l");
 
-	InitAnimation(&player->idleAnim, "idle", &player->model, 0.005f, true);
+	InitAnimation(&player->idleAnim, "idle", &player->model, 0.005f, true, false);
 
 	InitCharacterController(&player->controller, 0.3f, 1.5f, 0.2f, player->position);
 	InitRigidBody(&player->kinematicBody, RIGID_BODY_KINEMATIC, player->position, quat::Identity);
@@ -223,16 +223,16 @@ void UpdatePlayer(Player* player)
 
 	Action* currentAction = GetCurrentAction(player);
 
-		for (int i = 0; i < NUM_LOADOUTS; i++)
+	for (int i = 0; i < NUM_LOADOUTS; i++)
+	{
+		if (GetKeyDown((SDL_Scancode)(SDL_SCANCODE_1 + i)))
 		{
-			if (GetKeyDown((SDL_Scancode)(SDL_SCANCODE_1 + i)))
-			{
-				if (currentAction && player->actions.actions.back()->type == ACTION_TYPE_EQUIP)
-					CancelAction(player->actions, *player);
-				SwitchLoadout(player, i);
-				break;
-			}
+			if (currentAction && player->actions.actions.back()->type == ACTION_TYPE_EQUIP)
+				CancelAction(player->actions, *player);
+			SwitchLoadout(player, i);
+			break;
 		}
+	}
 
 	{
 		Item* right = GetRightApparentWeapon(player);
@@ -265,43 +265,144 @@ void UpdatePlayer(Player* player)
 	}
 
 	UpdateActionManager(player->actions, *player);
+	currentAction = GetCurrentAction(player);
 
 	AnimationPlayback* moveAnimation = &player->idleAnim;
 	moveAnimation->timer += deltaTime * moveAnimation->speed;
 
-	AnimateModel(&player->model, &player->anim, moveAnimation->animation, moveAnimation->timer, moveAnimation->loop);
+	AnimateModel(&player->model, &player->anim, moveAnimation->animation, moveAnimation->timer, moveAnimation->loop, nullptr, nullptr);
+
+	Animation* rightAnimation = moveAnimation->animation;
+	float rightAnimationTimer = moveAnimation->timer;
+	bool rightAnimationLoop = moveAnimation->loop;
+	float rightAnimationBlendDuration = 0.2f;
+
+	Animation* leftAnimation = moveAnimation->animation;
+	float leftAnimationTimer = moveAnimation->timer;
+	bool leftAnimationLoop = moveAnimation->loop;
+	float leftAnimationBlendDuration = 0.2f;
 
 	Item* right = GetRightApparentWeapon(player);
+	Item* left = GetLeftApparentWeapon(player);
+
 	if (right)
 	{
-		Animation* weaponMoveAnimation = GetAnimationByName(&right->moveset, "idle");
+		rightAnimation = GetAnimationByName(&right->moveset, "idle");
 
+		/*
 		if (right->twoHanded)
 		{
-			AnimateModel(&player->model, &player->anim, weaponMoveAnimation, moveAnimation->timer, moveAnimation->loop);
+			AnimateModel(&player->model, &player->anim, weaponMoveAnimation, moveAnimation->timer, moveAnimation->loop, nullptr, nullptr);
 		}
 		else
 		{
 			bool right = true;
 			BlendAnimation(&player->model, &player->anim, weaponMoveAnimation, moveAnimation->timer, moveAnimation->loop, 1, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 		}
+		*/
+	}
+
+	if (left)
+	{
+		leftAnimation = GetAnimationByName(&left->moveset, "idle");
 	}
 
 	if (currentAction)
 	{
-		AnimationPlayback* actionAnimation = &currentAction->anim;
+		if (currentAction->rightAnim.animation)
+		{
+			rightAnimation = currentAction->rightAnim.animation;
+			rightAnimationTimer = currentAction->elapsedTime;
+			rightAnimationLoop = false;
+			rightAnimationBlendDuration = currentAction->rightAnimBlendDuration;
+		}
+
+		if (currentAction->leftAnim.animation)
+		{
+			leftAnimation = currentAction->leftAnim.animation;
+			leftAnimationTimer = currentAction->elapsedTime;
+			leftAnimationLoop = false;
+			leftAnimationBlendDuration = currentAction->leftAnimBlendDuration;
+		}
+
+		/*
+		AnimationPlayback* actionAnimation = &currentAction->rightAnim;
 		//actionAnimation->timer += deltaTime * actionAnimation->speed;
 		actionAnimation->timer = currentAction->elapsedTime;
 
 		if (currentAction->twoHanded)
 		{
-			AnimateModel(&player->model, &player->anim, actionAnimation->animation, actionAnimation->timer, actionAnimation->loop);
+			AnimateModel(&player->model, &player->anim, actionAnimation->animation, actionAnimation->timer, actionAnimation->loop, nullptr, nullptr);
 		}
 		else
 		{
 			bool right = true;
-			BlendAnimation(&player->model, &player->anim, actionAnimation->animation, actionAnimation->timer, actionAnimation->loop, 1, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+			AnimateModel(&player->model, &player->anim, actionAnimation->animation, actionAnimation->timer, actionAnimation->loop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 		}
+		*/
+	}
+
+	if (rightAnimation)
+	{
+		bool right = true;
+		AnimateModel(&player->model, &player->anim, rightAnimation, rightAnimationTimer, rightAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+
+		if (rightAnimation != player->lastRightAnim && player->lastRightAnim && rightAnimationBlendDuration)
+		{
+			player->rightBlendStart = gameTime;
+			player->rightBlendAnim = player->lastRightAnim;
+			player->rightBlendAnimTimer = player->lastRightAnimTimer;
+			player->rightBlendAnimLoop = player->lastRightAnimLoop;
+			player->rightBlendDuration = rightAnimationBlendDuration;
+		}
+
+		if (player->rightBlendStart)
+		{
+			float blendProgress = (gameTime - player->rightBlendStart) / player->rightBlendDuration;
+			if (blendProgress > 1.0f)
+			{
+				player->rightBlendStart = 0;
+			}
+			else
+			{
+				BlendAnimation(&player->model, &player->anim, player->rightBlendAnim, player->rightBlendAnimTimer, player->rightBlendAnimLoop, 1 - blendProgress, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+			}
+		}
+
+		player->lastRightAnim = rightAnimation;
+		player->lastRightAnimTimer = rightAnimationTimer;
+		player->lastRightAnimLoop = rightAnimationLoop;
+	}
+	if (leftAnimation)
+	{
+		bool right = false;
+		AnimateModel(&player->model, &player->anim, leftAnimation, leftAnimationTimer, leftAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+
+		if (leftAnimation != player->lastLeftAnim && player->lastLeftAnim && leftAnimationBlendDuration)
+		{
+			player->leftBlendStart = gameTime;
+			player->leftBlendAnim = player->lastLeftAnim;
+			player->leftBlendAnimTimer = player->lastLeftAnimTimer;
+			player->leftBlendAnimLoop = player->lastLeftAnimLoop;
+			player->leftBlendDuration = leftAnimationBlendDuration;
+		}
+
+		if (player->leftBlendStart)
+		{
+			float blendProgress = (gameTime - player->leftBlendStart) / player->leftBlendDuration;
+			if (blendProgress > 1.0f)
+			{
+				player->leftBlendStart = 0;
+			}
+			else
+			{
+				BlendAnimation(&player->model, &player->anim, player->leftBlendAnim, player->leftBlendAnimTimer, player->leftBlendAnimLoop, 1 - blendProgress, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+			}
+		}
+
+		player->lastLeftAnim = leftAnimation;
+		player->lastLeftAnimTimer = leftAnimationTimer;
+		player->lastLeftAnimLoop = leftAnimationLoop;
 	}
 
 	mat4 rightViewBob = CalculateViewBobbing(player, 0);

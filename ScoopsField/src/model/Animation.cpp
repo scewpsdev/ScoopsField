@@ -154,7 +154,7 @@ static int GetNodeForMesh(int meshID, Model* model)
 	return -1;
 }
 
-void AnimateModel(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop)
+void AnimateModel(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr)
 {
 	SDL_assert(model->numNodes > 0);
 
@@ -162,6 +162,8 @@ void AnimateModel(Model* model, AnimationState* animationState, Animation* anima
 	for (int i = 0; i < model->numNodes; i++)
 	{
 		Node* node = &model->nodes[i];
+		if (channelFilter && !channelFilter(node, filterUserPtr))
+			continue;
 		int channelID = GetAnimationChannelWithName(animation, node->name);
 		if (channelID != -1)
 		{

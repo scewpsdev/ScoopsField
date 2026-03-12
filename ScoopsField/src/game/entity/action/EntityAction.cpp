@@ -24,7 +24,7 @@ static void StartActionInternal(EntityActionManager& actions, EntityAction* acti
 {
 	action->startTime = gameTime;
 
-	InitAnimation(&action->anim, action->animName, action->animMoveset ? action->animMoveset : actions.moveset);
+	InitAnimation(&action->anim, action->animName, action->animMoveset ? action->animMoveset : actions.moveset, 1.0f, false, false);
 	if (!action->duration)
 		action->duration = action->anim.animation->duration;
 	action->speed = action->speed;

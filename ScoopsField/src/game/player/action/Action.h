@@ -35,10 +35,16 @@ struct ActionSound
 struct Action
 {
 	ActionType type;
-	const char* animName;
-	Model* animMoveset;
+
+	const char* rightAnimName;
+	Model* rightAnimMoveset;
+	float rightAnimBlendDuration;
+
+	const char* leftAnimName;
+	Model* leftAnimMoveset;
+	float leftAnimBlendDuration;
+
 	float animationSpeed;
-	bool twoHanded;
 
 	float duration;
 	//float speed;
@@ -47,7 +53,8 @@ struct Action
 
 	float startTime;
 	float elapsedTime;
-	AnimationPlayback anim;
+	AnimationPlayback rightAnim;
+	AnimationPlayback leftAnim;
 
 #define MAX_ACTION_SOUNDS 8
 	ActionSound sounds[MAX_ACTION_SOUNDS];

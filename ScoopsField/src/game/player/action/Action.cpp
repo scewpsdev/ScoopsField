@@ -15,6 +15,9 @@ void InitAction(Action* action, ActionType type)
 	//action->speed = 1.0f;
 	action->animationSpeed = 1.0f;
 	action->moveSpeed = 1.0f;
+
+	action->rightAnimBlendDuration = 0.2f;
+	action->leftAnimBlendDuration = 0.2f;
 }
 
 void AddActionSound(Action* action, Sound* sounds, int numSounds, float time, float volume, float pan)
@@ -58,9 +61,23 @@ static void StartActionInternal(ActionManager& actions, Action* action, Player* 
 {
 	action->startTime = gameTime;
 
-	InitAnimation(&action->anim, action->animName, action->animMoveset ? action->animMoveset : actions.moveset, action->animationSpeed);
+	if (action->rightAnimName)
+		InitAnimation(&action->rightAnim, action->rightAnimName, action->rightAnimMoveset ? action->rightAnimMoveset : actions.moveset, action->animationSpeed, false, false);
+	if (action->leftAnimName)
+		InitAnimation(&action->leftAnim, action->leftAnimName, action->leftAnimMoveset ? action->leftAnimMoveset : actions.moveset, action->animationSpeed, false, false);
+
 	if (!action->duration)
-		action->duration = action->anim.animation->duration;
+	{
+		if (action->rightAnimName && !action->leftAnimName)
+			action->duration = action->rightAnim.animation->duration;
+		else if (action->rightAnimName && !action->leftAnimName)
+			action->duration = action->leftAnim.animation->duration;
+		else
+		{
+			SDL_assert(action->rightAnimName && action->leftAnimName);
+			action->duration = max(action->rightAnim.animation->duration, action->leftAnim.animation->duration);
+		}
+	}
 	//action->speed = action->speed;
 
 	StartAction(action, player);
@@ -78,10 +95,6 @@ void QueueAction(ActionManager& actions, const Action& action, Player& player)
 		QueuePush(actions.actions, action);
 		if (actions.actions.size == 1)
 			StartActionInternal(actions, QueuePeek(actions.actions), &player);
-		else
-		{
-			int a = 5;
-		}
 	}
 }
 

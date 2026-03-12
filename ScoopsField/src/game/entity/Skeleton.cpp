@@ -56,8 +56,8 @@ void InitSkeleton(SkeletonEntity* skeleton, const vec3& position, float rotation
 	skeleton->model = GetModel("entities/skeleton/skeleton.glb");
 	InitAnimationState(&skeleton->anim, skeleton->model);
 
-	InitAnimation(&skeleton->idleAnim, "idle", skeleton->model, 1, true);
-	InitAnimation(&skeleton->runAnim, "run", skeleton->model, 1, true);
+	InitAnimation(&skeleton->idleAnim, "idle", skeleton->model, 1, true, false);
+	InitAnimation(&skeleton->runAnim, "run", skeleton->model, 1, true, false);
 
 	InitRigidBody(&skeleton->body, RIGID_BODY_DYNAMIC, position, quat::FromAxisAngle(vec3::Up, rotation));
 	AddCapsuleCollider(&skeleton->body, 0.3f, 2, vec3(0, 1, 0), quat::Identity, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ENEMY, 1, false);
@@ -166,7 +166,7 @@ void UpdateSkeleton(SkeletonEntity* skeleton)
 	AnimationPlayback* moveAnimation = skeleton->moving ? &skeleton->runAnim : &skeleton->idleAnim;
 	moveAnimation->timer += deltaTime * moveAnimation->speed;
 
-	AnimateModel(skeleton->model, &skeleton->anim, moveAnimation->animation, moveAnimation->timer, moveAnimation->loop);
+	AnimateModel(skeleton->model, &skeleton->anim, moveAnimation->animation, moveAnimation->timer, moveAnimation->loop, nullptr, nullptr);
 
 	if (EntityAction* currentAction = GetCurrentAction(skeleton))
 	{

@@ -36,6 +36,26 @@ struct Player : Entity
 	Model model;
 	AnimationState anim;
 
+	Animation* lastRightAnim;
+	float lastRightAnimTimer;
+	bool lastRightAnimLoop;
+
+	Animation* rightBlendAnim;
+	float rightBlendAnimTimer;
+	bool rightBlendAnimLoop;
+	float rightBlendDuration;
+	float rightBlendStart;
+
+	Animation* lastLeftAnim;
+	float lastLeftAnimTimer;
+	bool lastLeftAnimLoop;
+
+	Animation* leftBlendAnim;
+	float leftBlendAnimTimer;
+	bool leftBlendAnimLoop;
+	float leftBlendDuration;
+	float leftBlendStart;
+
 	Node* rightWeaponNode, * leftWeaponNode;
 	Node* rightShoulderNode, * leftShoulderNode;
 
