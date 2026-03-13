@@ -342,7 +342,6 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, int a
 	SDL_Log("Initialization complete");
 
 
-
 	return SDL_APP_CONTINUE;
 }
 
@@ -429,7 +428,7 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 	app->now = SDL_GetTicksNS();
 	app->frameTime += app->now - app->lastFrame;
 
-	int fpsCap = 60;
+	int fpsCap = 0;
 	if (fpsCap)
 	{
 		uint64_t remaining = 1000000000 / fpsCap - (app->now - app->lastFrame);

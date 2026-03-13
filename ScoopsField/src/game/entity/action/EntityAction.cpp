@@ -1,5 +1,7 @@
 #include "EntityAction.h"
 
+#include "game/entity/Entity.h"
+
 
 extern float gameTime;
 extern float deltaTime;

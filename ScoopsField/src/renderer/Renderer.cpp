@@ -132,7 +132,7 @@ static GraphicsPipeline* CreatePointLightPipeline(Renderer* renderer)
 	CreateBlendStateAddPremultiplied(&pipelineInfo.colorTargets[0].blend_state);
 
 	pipelineInfo.depthWrite = false;
-	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER_OR_EQUAL;
+	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
 
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
@@ -358,7 +358,7 @@ void RenderLight(Renderer* renderer, vec3 position, vec3 color)
 	renderer->pointLights.add(data);
 }
 
-static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& pv, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
+static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& view, const mat4& pv, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	if (skeleton)
 	{
@@ -398,13 +398,13 @@ static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, Skele
 		struct UniformData
 		{
 			mat4 projectionViewModel;
-			mat4 model;
+			mat4 viewModel;
 			mat4 boneTransforms[MAX_BONES];
 		};
 
 		UniformData uniforms = {};
 		uniforms.projectionViewModel = pv * transform;
-		uniforms.model = transform;
+		uniforms.viewModel = view * transform;
 		SDL_memcpy(uniforms.boneTransforms, skeleton->boneTransforms, skeleton->numBones * sizeof(mat4));
 		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 	}
@@ -413,12 +413,12 @@ static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, Skele
 		struct UniformData
 		{
 			mat4 projectionViewModel;
-			mat4 model;
+			mat4 viewModel;
 		};
 
 		UniformData uniforms = {};
 		uniforms.projectionViewModel = pv * transform;
-		uniforms.model = transform;
+		uniforms.viewModel = view * transform;
 		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 	}
 
@@ -454,7 +454,7 @@ static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, Skele
 static float CalculateLightRadius(vec3 color)
 {
 	// TODO calculate this based on color and attenuation function
-	return 5;
+	return 10;
 }
 
 // TODO
@@ -467,9 +467,11 @@ static float CalculateLightRadius(vec3 color)
 // proper pbr
 // atmospheric scattering
 
-void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 pv, vec4 frustumPlanes[6], float near, float far, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
+void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], float near, float far, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	mat4 pvInv = pv.inverted();
+	mat4 projectionInv = projection.inverted();
+	mat4 viewInv = view.inverted();
 
 	// geometry pass
 	{
@@ -482,7 +484,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 pv, vec4 frustum
 			Mesh* mesh = renderer->meshes[i].mesh;
 			Material* material = renderer->meshes[i].material;
 			const mat4& transform = renderer->meshes[i].transform;
-			SubmitMesh(renderer, mesh, material, nullptr, transform, pv, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, material, nullptr, transform, view, pv, renderPass, cmdBuffer);
 		}
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
@@ -493,7 +495,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 pv, vec4 frustum
 			Material* material = renderer->animatedMeshes[i].material;
 			SkeletonState* skeleton = renderer->animatedMeshes[i].skeleton;
 			const mat4& transform = renderer->animatedMeshes[i].transform;
-			SubmitMesh(renderer, mesh, material, skeleton, transform, pv, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, material, skeleton, transform, view, pv, renderPass, cmdBuffer);
 		}
 
 		SDL_EndGPURenderPass(renderPass);
@@ -528,14 +530,18 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 pv, vec4 frustum
 		{
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->environmentLightPipeline->pipeline);
 
+			float environmentIntensity = 1.0f;
+
 			struct UniformData
 			{
 				vec4 params;
 				mat4 projectionViewInv;
+				mat4 viewInv;
 			};
 			UniformData uniforms = {};
-			uniforms.params = vec4(cameraPosition, 1);
+			uniforms.params = vec4(cameraPosition, environmentIntensity);
 			uniforms.projectionViewInv = pvInv;
+			uniforms.viewInv = viewInv;
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 			SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 2];
@@ -551,18 +557,23 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 pv, vec4 frustum
 		{
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->directionalLightPipeline->pipeline);
 
+			vec3 lightDirection = -vec3(1, 2, 0.5).normalized();
+			lightDirection = (view * vec4(lightDirection, 0)).xyz;
+
+			vec3 lightColor = vec3(1, 1, 1);
+			float lightIntensity = 10;
+			lightColor *= lightIntensity;
+
 			struct UniformData
 			{
 				vec4 lightDirection;
 				vec4 lightColor;
-				vec4 cameraPosition;
-				mat4 projectionViewInv;
+				mat4 projectionInv;
 			};
 			UniformData uniforms = {};
-			uniforms.lightDirection = vec4(-vec3(1, 2, 0.5).normalized(), 0);
-			uniforms.lightColor = vec4(1, 1, 1, 0) * 10;
-			uniforms.cameraPosition = vec4(cameraPosition, 0);
-			uniforms.projectionViewInv = pvInv;
+			uniforms.lightDirection = vec4(lightDirection, 0);
+			uniforms.lightColor = vec4(lightColor, 0);
+			uniforms.projectionInv = projectionInv;
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 			SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 1];
@@ -593,18 +604,24 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 pv, vec4 frustum
 
 			SDL_BindGPUIndexBuffer(renderPass, &indexBinding, renderer->cubeIndexBuffer->elementSize);
 
-			SDL_PushGPUVertexUniformData(cmdBuffer, 0, &pv, sizeof(pv));
+			struct VertexUniformData
+			{
+				mat4 pv;
+				mat4 view;
+			};
+			VertexUniformData vertexUniforms = {};
+			vertexUniforms.pv = pv;
+			vertexUniforms.view = view;
+			SDL_PushGPUVertexUniformData(cmdBuffer, 0, &vertexUniforms, sizeof(vertexUniforms));
 
 			struct UniformData
 			{
-				mat4 projectionViewInv;
+				mat4 projectionInv;
 				vec4 viewTexel;
-				vec4 cameraPosition;
 			};
 			UniformData uniforms = {};
-			uniforms.projectionViewInv = pvInv;
+			uniforms.projectionInv = projectionInv;
 			uniforms.viewTexel = vec4(1.0f / renderer->hdrTarget->width, 1.0f / renderer->hdrTarget->height, 0, 0);
-			uniforms.cameraPosition = vec4(cameraPosition, 0);
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 			SDL_GPUTextureSamplerBinding textureBindings[MAX_COLOR_ATTACHMENTS + 1];

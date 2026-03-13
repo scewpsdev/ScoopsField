@@ -80,6 +80,9 @@ void UpdateAttackAction(Action* action, Player* player)
 	//action->speed = action->attack.attack->animationSpeed * (action->attack.lastHitTime && gameTime - action->attack.lastHitTime < HIT_FREEZE_DURATION ? 0.2f : 1);
 
 	bool damage = action->elapsedTime >= action->attack.attack->damageWindow.x && action->elapsedTime <= action->attack.attack->damageWindow.y;
+
+	action->moveSpeed = damage ? 0.5f : 1.0f;
+
 	if (damage)
 	{
 		mat4 weaponTransform = GetRightWeaponTransform(player);
@@ -96,20 +99,20 @@ void UpdateAttackAction(Action* action, Player* player)
 			if (!action->attack.hitEntities.contains(hit->body))
 			{
 				Entity* hitEntity = (Entity*)hit->body->userPtr;
-				if (hitEntity->hitCallback)
+
+				HitParams params = {};
+				params.damage = action->attack.weapon->weapon.damage;
+				params.damageMultiplier = action->attack.attack->damageMultiplier;
+				params.position = hit->position;
+
+				if (HitEntity(hitEntity, &params, player))
 				{
-					HitParams params = {};
-					params.damage = action->attack.weapon->weapon.damage;
-					params.damageMultiplier = action->attack.attack->damageMultiplier;
-					params.position = hit->position;
-					hitEntity->hitCallback(hitEntity, params, player);
-
 					action->attack.lastHitTime = gameTime;
+
+					game->points += 10;
+
+					PlaySound(&game->slashHitSounds[game->random.next() % 2], hit->position);
 				}
-
-				game->points += 10;
-
-				PlaySound(&game->slashHitSounds[game->random.next() % 2], hit->position);
 
 				action->attack.hitEntities.add(hit->body);
 			}

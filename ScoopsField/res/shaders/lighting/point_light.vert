@@ -9,6 +9,7 @@ layout (location = 1) out vec3 v_lightColor;
 
 layout(std140, set = 1, binding = 0) uniform UniformBlock {
     mat4 u_projectionView;
+    mat4 view;
 };
 
 
@@ -18,6 +19,6 @@ void main()
 
     gl_Position = u_projectionView * vec4(worldPosition, 1.0);
 
-    v_lightPosition = i_position.xyz;
+    v_lightPosition = (view * vec4(i_position.xyz, 1)).xyz;
     v_lightColor = i_color.rgb;
 }

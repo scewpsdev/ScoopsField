@@ -21,6 +21,8 @@ static bool EveryInterval(float seconds, uint32_t h)
 
 
 #include "item/Item.cpp"
+#include "entity/component/Creature.cpp"
+#include "entity/component/ItemEntity.cpp"
 #include "player/Player.cpp"
 #include "entity/Skeleton.cpp"
 
@@ -43,28 +45,27 @@ static void ResetGame(bool destroy)
 
 		DestroyPlayer(&game->player);
 
-		for (int i = 0; i < game->skeletons.capacity; i++)
+		for (int i = 0; i < game->entities.capacity; i++)
 		{
-			if (game->skeletons.occupied[i])
+			if (game->entities.occupied[i])
 			{
-				SkeletonEntity* skeleton = &game->skeletons.data[i];
-				DestroySkeleton(skeleton);
+				Entity* entity = &game->entities.data[i];
+				DestroyEntity(entity);
 			}
 		}
-		ClearPool(&game->skeletons);
+		ClearPool(&game->entities);
 	}
+
 
 	InitPlayer(&game->player, cmdBuffer);
 
-	InitPool(&game->skeletons);
+	InitPool(&game->entities);
 
 	game->round = 0;
 	game->points = 0;
 	game->roundStartTimer = -1;
 	game->numSkeletonsRemaining = 0;
 	game->gameOverTimer = -1;
-
-	StartRound(1);
 
 	game->ambientSource = PlaySound(&game->ambientSound, 0.5f);
 
@@ -75,6 +76,8 @@ static void ResetGame(bool destroy)
 	game->cameraFar = 1000;
 
 	game->mouseLocked = true;
+
+	StartRound(1);
 }
 
 void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
@@ -96,15 +99,14 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	InitRigidBody(&game->mapCollider, RIGID_BODY_STATIC, vec3::Zero, quat::Identity);
 	AddModelCollider(&game->mapCollider, &game->mapModel, vec3::Zero, quat::Identity, vec3::One, 1, 1, false);
 
-	Model navmeshModel;
-	LoadModel(&navmeshModel, "res/maps/testmap/testmap_navmesh.glb.bin", true, cmdBuffer);
-	InitNavmesh(&game->mapNavmesh, &navmeshModel);
+	Model* navmeshModel = (Model*)BumpAllocatorMalloc(&memory->transientAllocator, sizeof(Model));
+	LoadModel(navmeshModel, "res/maps/testmap/testmap_navmesh.glb.bin", true, cmdBuffer);
+	InitNavmesh(&game->mapNavmesh, navmeshModel);
 
 	LoadModel(&game->cube, "res/models/cube.glb.bin", false, cmdBuffer);
 
 	LoadSound(&game->testSound, "res/sounds/test.ogg.bin");
 	LoadSound(&game->ambientSound, "res/sounds/ambience.ogg.bin");
-	LoadSound(&game->equipSound, "res/sounds/equip_light.ogg.bin");
 	for (int i = 0; i < 6; i++)
 	{
 		char path[64];
@@ -137,7 +139,8 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 		LoadSound(&game->exhaustedSounds[i], path);
 	}
 
-	game->crosshair = LoadTexture("res/textures/crosshair.png.bin", cmdBuffer);
+	game->crosshair = LoadTexture("res/textures/ui/crosshair.png.bin", cmdBuffer);
+	game->crosshairInteract = LoadTexture("res/textures/ui/crosshair_hand.png.bin", cmdBuffer);
 	game->vignette = LoadTexture("res/textures/vignette.png.bin", cmdBuffer);
 	game->roundCounter = LoadTexture("res/textures/counter.png.bin", cmdBuffer);
 	game->digits = LoadTexture("res/textures/digits.png.bin", cmdBuffer);
@@ -202,7 +205,7 @@ void GameUpdate()
 			for (int i = 0; i < numSkeletons; i++)
 			{
 				vec2 position = game->random.nextVector2(-9, 9);
-				SkeletonEntity* skeleton = PoolAlloc(&game->skeletons);
+				Entity* skeleton = PoolAlloc(&game->entities);
 				SDL_assert(skeleton);
 				InitSkeleton(skeleton, vec3(position.x, 0, position.y), 0, skeletonHealth);
 			}
@@ -228,28 +231,33 @@ void GameUpdate()
 
 	UpdatePlayer(&game->player);
 
+	for (int i = 0; i < game->entities.capacity; i++)
+	{
+		if (game->entities.occupied[i])
+		{
+			Entity* entity = &game->entities.data[i];
+			UpdateEntity(entity);
+			if (entity->removed)
+			{
+				DestroyEntity(entity);
+				PoolRelease(&game->entities, entity);
+			}
+		}
+	}
+
 	game->projection = mat4::Perspective(90 * Deg2Rad, app->width / (float)app->height, game->cameraNear, game->cameraFar);
 	quat invCameraRotation = quat::FromAxisAngle(vec3::Right, -game->cameraPitch) * quat::FromAxisAngle(vec3::Up, -game->cameraYaw);
 	game->view = mat4::Rotate(invCameraRotation) * mat4::Translate(-game->cameraPosition);
 	game->pv = game->projection * game->view;
 	GetFrustumPlanes(game->pv, game->frustumPlanes);
 
-	for (int i = 0; i < game->skeletons.capacity; i++)
-	{
-		if (game->skeletons.occupied[i])
-		{
-			SkeletonEntity* skeleton = &game->skeletons.data[i];
-			UpdateSkeleton(skeleton);
-			if (skeleton->removed)
-			{
-				DestroySkeleton(skeleton);
-				PoolRelease(&game->skeletons, skeleton);
-			}
-		}
-	}
-
 	if (GetKeyDown(SDL_SCANCODE_P))
+	{
 		PlaySound(&game->testSound);
+
+		Entity* kingsSword = PoolAlloc(&game->entities);
+		InitItemEntity(kingsSword, GetItem(ITEM_TYPE_KINGS_SWORD), vec3(0, 2, 0), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
+	}
 }
 
 void GameRender()
@@ -258,20 +266,18 @@ void GameRender()
 
 	RenderPlayer(&game->player);
 
-	for (int i = 0; i < game->skeletons.capacity; i++)
+	for (int i = 0; i < game->entities.capacity; i++)
 	{
-		if (game->skeletons.occupied[i])
+		if (game->entities.occupied[i])
 		{
-			RenderSkeleton(&game->skeletons.data[i]);
+			RenderEntity(&game->entities.data[i]);
 		}
 	}
 
 	RenderModel(&game->renderer, &game->mapModel, nullptr, mat4::Identity);
 
-	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 5);
-	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * PI * 0.7f) * vec3(2, 2, 0), vec3(0.5f, 1, 0.5f) * 5);
-
-	GUIPanel(app->width / 2 - game->crosshair->info.width / 2, app->height / 2 - game->crosshair->info.height / 2, game->crosshair);
+	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 50);
+	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * 0.5f * PI * 0.7f) * vec3(2, 2, 0), vec3(0.5f, 1, 0.5f) * 50);
 
 	// round counter
 	{
@@ -306,12 +312,12 @@ void GameRender()
 
 	DebugText(0, app->height / 16 - 1, "%d, %.2f, %.2f", game->round, game->roundStartTimer, game->gameOverTimer);
 	DebugText(0, app->height / 16 - 2, "%d/%d hp", game->player.health, game->player.maxHealth);
-	DebugText(0, app->height / 16 - 3, "%d skeletons, %d in memory", game->numSkeletonsRemaining, game->skeletons.size);
+	DebugText(0, app->height / 16 - 3, "%d entities in memory, %d skeletons remaining", game->entities.size, game->numSkeletonsRemaining);
 }
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	RendererShow(&game->renderer, game->cameraPosition, game->pv, game->frustumPlanes, game->cameraNear, game->cameraFar, swapchain, cmdBuffer);
+	RendererShow(&game->renderer, game->cameraPosition, game->projection, game->view, game->pv, game->frustumPlanes, game->cameraNear, game->cameraFar, swapchain, cmdBuffer);
 
 	mat4 guiProjectionView = mat4::Orthographic(0, (float)app->width, 0, (float)app->height, -1, 1);
 	SetRenderer2DCamera(&game->guiRenderer, 0, guiProjectionView);

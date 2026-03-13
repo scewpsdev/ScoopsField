@@ -16,6 +16,7 @@ layout(set = 2, binding = 4) uniform samplerCube s_environment;
 layout(set = 3, binding = 0) uniform UniformBlock {
 	vec4 params;
 	mat4 projectionViewInv;
+	mat4 viewInv;
 
 #define cameraPosition params.xyz
 #define intensity params.w
@@ -35,10 +36,11 @@ void main()
 	if (depth == 1)
 		discard;
 
-	vec3 position = reconstructPosition(v_texcoord, depth);
-	vec3 view = normalize(cameraPosition - position);
+	vec3 position = reconstructPosition(v_texcoord, depth); // world space position
+	vec3 view = normalize(cameraPosition - position); // world space view
 
-	vec3 normal = texture(s_normal, v_texcoord).rgb;
+	vec3 viewSpaceNormal = texture(s_normal, v_texcoord).rgb;
+	vec3 normal = (viewInv * vec4(viewSpaceNormal, 0)).xyz; // world space normal
 	vec3 albedo = texture(s_color, v_texcoord).rgb;
 
 	vec4 material = texture(s_material, v_texcoord);

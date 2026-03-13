@@ -5,12 +5,12 @@
 
 #include "utils/Queue.h"
 
-#include "game/entity/Entity.h"
-
 #include "EntityAttackAction.h"
 #include "EntityStaggerAction.h"
 #include "EntityDeathAction.h"
 
+
+struct Entity;
 
 enum EntityActionType
 {

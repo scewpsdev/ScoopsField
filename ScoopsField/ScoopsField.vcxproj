@@ -143,6 +143,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\game\entity\component\Creature.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\game\entity\component\ItemEntity.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\game\Navmesh.cpp" />
     <ClCompile Include="src\game\player\action\Action.cpp" />
     <ClCompile Include="src\game\entity\action\EntityAttackAction.cpp" />
@@ -207,6 +215,8 @@
     <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\audio\Audio.h" />
     <ClInclude Include="src\GameMemory.h" />
+    <ClInclude Include="src\game\entity\component\Creature.h" />
+    <ClInclude Include="src\game\entity\component\ItemEntity.h" />
     <ClInclude Include="src\game\Navmesh.h" />
     <ClInclude Include="src\game\player\action\Action.h" />
     <ClInclude Include="src\game\entity\action\EntityAttackAction.h" />
@@ -274,6 +284,7 @@
     <ClInclude Include="src\utils\HashMap.h" />
     <ClInclude Include="src\utils\HashSet.h" />
     <ClInclude Include="src\utils\List.h" />
+    <ClInclude Include="src\utils\Optional.h" />
     <ClInclude Include="src\utils\Pool.h" />
     <ClInclude Include="src\utils\Queue.h" />
     <ClInclude Include="src\utils\Random.h" />

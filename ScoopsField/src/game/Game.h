@@ -42,8 +42,8 @@ struct GameState
 
 	Player player;
 
-#define MAX_SKELETON_ENTITIES 64
-	Pool<SkeletonEntity, MAX_SKELETON_ENTITIES> skeletons;
+#define MAX_ENTITIES 256
+	Pool<Entity, MAX_ENTITIES> entities;
 
 	int round;
 	int points;
@@ -61,7 +61,6 @@ struct GameState
 	Sound testSound;
 	Sound ambientSound;
 	uint32_t ambientSource;
-	Sound equipSound;
 	Sound stepSounds[6];
 	Sound landSound;
 	Sound swingSounds[3];
@@ -70,6 +69,7 @@ struct GameState
 	Sound exhaustedSounds[2];
 
 	Texture* crosshair;
+	Texture* crosshairInteract;
 	Texture* vignette;
 	Texture* roundCounter;
 	Texture* digits;

@@ -2,6 +2,8 @@
 
 #include "model/Model.h"
 
+#include "audio/Audio.h"
+
 
 enum ItemType
 {
@@ -42,6 +44,7 @@ struct Item
 	Model model;
 	Model moveset;
 	bool twoHanded;
+	Sound* equipSound;
 
 	union {
 		Weapon weapon;
@@ -51,6 +54,11 @@ struct Item
 struct ItemDatabase
 {
 	Item items[ITEM_TYPE_LAST];
+
+	Sound equipLight;
+	Sound equipHeavy;
+	Sound equipSword;
+	Sound equipArmor;
 };
 
 void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer);

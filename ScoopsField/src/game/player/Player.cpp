@@ -4,6 +4,7 @@
 #define HEALTH_REGEN_HIT_DELAY 5.0f
 #define HIT_RECOVERY_DURATION 0.25f
 #define STEP_FREQUENCY 0.6f
+#define PLAYER_REACH 2.5f
 
 
 static Action* GetCurrentAction(Player* player)
@@ -81,9 +82,19 @@ Item* GetLeftApparentWeapon(Player* player)
 	}
 }
 
+quat GetCameraRotation()
+{
+	return quat::FromAxisAngle(vec3::Up, game->cameraYaw) * quat::FromAxisAngle(vec3::Right, game->cameraPitch);
+}
+
+mat4 GetCameraTransform()
+{
+	return mat4::Translate(game->cameraPosition) * mat4::Rotate(GetCameraRotation());
+}
+
 mat4 GetRightWeaponTransform(Player* player)
 {
-	mat4 cameraTransform = mat4::Translate(game->cameraPosition) * mat4::Rotate(quat::FromAxisAngle(vec3::Up, game->cameraYaw) * quat::FromAxisAngle(vec3::Right, game->cameraPitch));
+	mat4 cameraTransform = GetCameraTransform();
 	mat4 viewmodelTransform = cameraTransform * mat4::Rotate(vec3::Up, PI);
 	return viewmodelTransform * GetNodeTransform(&player->anim, player->rightWeaponNode);
 }
@@ -104,7 +115,7 @@ void SwitchLoadout(Player* player, int loadout)
 
 void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer)
 {
-	*player = {};
+	SDL_memset(player, 0, sizeof(Player));
 
 	InitEntity(player, ENTITY_TYPE_PLAYER);
 
@@ -136,8 +147,8 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer)
 	player->exhausted = false;
 
 	SetRightWeapon(player, 0, GetItem(ITEM_TYPE_LONGSWORD));
-	SetRightWeapon(player, 1, GetItem(ITEM_TYPE_KINGS_SWORD));
-	SetLeftWeapon(player, 1, GetItem(ITEM_TYPE_WOODEN_SHIELD));
+	//SetRightWeapon(player, 1, GetItem(ITEM_TYPE_KINGS_SWORD));
+	//SetLeftWeapon(player, 1, GetItem(ITEM_TYPE_WOODEN_SHIELD));
 }
 
 void DestroyPlayer(Player* player)
@@ -145,6 +156,48 @@ void DestroyPlayer(Player* player)
 	DestroyCharacterController(&player->controller);
 	//DestroyModel(&player->model);
 	//DestroyAnimationState(&player->anim);
+}
+
+static void OnDeath(Player* player)
+{
+	SDL_assert(game->gameOverTimer == -1);
+	game->gameOverTimer = 0;
+}
+
+void HitPlayer(Player* player, HitParams hit, Entity* by)
+{
+	if (player->health <= 0)
+		return;
+	if (player->lastHit && gameTime - player->lastHit < HIT_RECOVERY_DURATION)
+		return;
+
+	int damage = (int)(hit.damage * hit.damageMultiplier);
+	player->health -= damage;
+	player->lastHit = gameTime;
+
+	if (player->health <= 0)
+	{
+		//
+
+		OnDeath(player);
+	}
+	else
+	{
+		//
+	}
+}
+
+bool GiveItem(Player* player, Item* item)
+{
+	for (int i = 0; i < NUM_LOADOUTS; i++)
+	{
+		if (!player->rightWeapons[i])
+		{
+			SetRightWeapon(player, i, item);
+			return true;
+		}
+	}
+	return false;
 }
 
 static bool ArmAnimChannelFilter(Node* node, bool* right)
@@ -235,6 +288,31 @@ void UpdatePlayer(Player* player)
 	}
 
 	{
+		player->interactTarget = nullptr;
+
+		quat cameraRotation = GetCameraRotation();
+		PhysicsHit hits[16];
+		int numHits = Raycast(physics, game->cameraPosition, cameraRotation.forward(), PLAYER_REACH, hits, 16, ENTITY_FILTER_INTERACTABLE);
+		for (int i = 0; i < numHits; i++)
+		{
+			PhysicsHit* hit = &hits[i];
+			if (Entity* entity = (Entity*)hit->body->userPtr)
+			{
+				player->interactTarget = entity;
+				break;
+			}
+		}
+
+		if (player->interactTarget)
+		{
+			if (!currentAction && GetKeyDown(SDL_SCANCODE_E))
+			{
+				InteractEntity(player->interactTarget, player);
+			}
+		}
+	}
+
+	{
 		Item* right = GetRightApparentWeapon(player);
 		bool offHand = right != GetRightWeapon(player);
 		if (GetMouseButtonDown(SDL_BUTTON_LEFT) && right && !offHand && player->stamina > 0)
@@ -263,7 +341,7 @@ void UpdatePlayer(Player* player)
 			}
 		}
 	}
-
+	
 	UpdateActionManager(player->actions, *player);
 	currentAction = GetCurrentAction(player);
 
@@ -460,7 +538,7 @@ void UpdatePlayer(Player* player)
 
 void RenderPlayer(Player* player)
 {
-	mat4 cameraTransform = mat4::Translate(game->cameraPosition) * mat4::Rotate(quat::FromAxisAngle(vec3::Up, game->cameraYaw) * quat::FromAxisAngle(vec3::Right, game->cameraPitch));
+	mat4 cameraTransform = GetCameraTransform();
 	mat4 viewmodelTransform = cameraTransform * mat4::Rotate(vec3::Up, PI);
 
 	RenderModel(&game->renderer, &player->model, &player->anim, viewmodelTransform);
@@ -501,33 +579,16 @@ void RenderPlayer(Player* player)
 
 		GUIPanel(x, y, (int)(w * max(player->stamina, 0)), h, color);
 	}
-}
 
-static void OnDeath(Player* player)
-{
-	SDL_assert(game->gameOverTimer == -1);
-	game->gameOverTimer = 0;
-}
-
-void HitPlayer(Player* player, HitParams hit, Entity* by)
-{
-	if (player->health <= 0)
-		return;
-	if (player->lastHit && gameTime - player->lastHit < HIT_RECOVERY_DURATION)
-		return;
-
-	int damage = (int)(hit.damage * hit.damageMultiplier);
-	player->health -= damage;
-	player->lastHit = gameTime;
-
-	if (player->health <= 0)
+	// crosshair
 	{
-		//
-
-		OnDeath(player);
-	}
-	else
-	{
-		//
+		if (player->interactTarget)
+		{
+			GUIPanel(app->width / 2 - game->crosshairInteract->info.width / 4, app->height / 2 - game->crosshairInteract->info.height / 4, game->crosshairInteract->info.width / 2, game->crosshairInteract->info.height / 2, game->crosshairInteract, vec4::One);
+		}
+		else
+		{
+			GUIPanel(app->width / 2 - game->crosshair->info.width / 2, app->height / 2 - game->crosshair->info.height / 2, game->crosshair);
+		}
 	}
 }

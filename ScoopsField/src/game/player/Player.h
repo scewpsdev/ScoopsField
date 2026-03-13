@@ -79,6 +79,8 @@ struct Player : Entity
 
 	ActionManager actions;
 
+	Entity* interactTarget;
+
 	int health;
 	int maxHealth;
 
@@ -91,3 +93,4 @@ struct Player : Entity
 mat4 GetRightWeaponTransform(Player* player);
 
 void HitPlayer(Player* player, HitParams hit, Entity* by);
+bool GiveItem(Player* player, Item* item);
