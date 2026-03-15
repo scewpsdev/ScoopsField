@@ -55,10 +55,11 @@ struct ItemDatabase
 {
 	Item items[ITEM_TYPE_LAST];
 
-	Sound equipLight;
-	Sound equipHeavy;
-	Sound equipSword;
-	Sound equipArmor;
+	Sound equipLightSound;
+	Sound equipHeavySound;
+	Sound equipSwordSound;
+	Sound equipArmorSound;
+	Sound clothSound;
 };
 
 void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer);

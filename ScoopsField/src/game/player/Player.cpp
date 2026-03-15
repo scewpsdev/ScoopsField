@@ -1,5 +1,7 @@
 #include "Player.h"
 
+#include "math/Math.h"
+
 
 #define HEALTH_REGEN_HIT_DELAY 5.0f
 #define HIT_RECOVERY_DURATION 0.25f
@@ -7,7 +9,7 @@
 #define PLAYER_REACH 2.5f
 
 
-static Action* GetCurrentAction(Player* player)
+Action* GetCurrentAction(Player* player)
 {
 	return QueuePeek(player->actions.actions);
 }
@@ -200,6 +202,30 @@ bool GiveItem(Player* player, Item* item)
 	return false;
 }
 
+bool DropItem(Player* player, Item* item)
+{
+	for (int i = 0; i < NUM_LOADOUTS; i++)
+	{
+		if (player->rightWeapons[i] == item)
+		{
+			Entity* itemEntity = PoolAlloc(&game->entities);
+			mat4 weaponTransform = GetRightWeaponTransform(player);
+			vec3 position = weaponTransform.translation(); // game->cameraPosition + GetCameraRotation().forward();
+			quat rotation = weaponTransform.rotation();
+			InitItemEntity(itemEntity, item, position, rotation);
+
+			vec3 velocity = GetCameraRotation().forward() * 5;
+			vec3 angularVelocity = game->random.nextVector3(-2, 2);
+			SetRigidBodyVelocity(&itemEntity->item.value.body, velocity, angularVelocity);
+
+			SetRightWeapon(player, i, nullptr);
+
+			return true;
+		}
+	}
+	return false;
+}
+
 static bool ArmAnimChannelFilter(Node* node, bool* right)
 {
 	if (*right) return !EndsWith(node->name, "_l");
@@ -274,17 +300,22 @@ void UpdatePlayer(Player* player)
 		return;
 	}
 
-	Action* currentAction = GetCurrentAction(player);
-
 	for (int i = 0; i < NUM_LOADOUTS; i++)
 	{
 		if (GetKeyDown((SDL_Scancode)(SDL_SCANCODE_1 + i)))
 		{
-			if (currentAction && player->actions.actions.back()->type == ACTION_TYPE_EQUIP)
+			if (GetCurrentAction(player) && player->actions.actions.back()->type == ACTION_TYPE_EQUIP)
 				CancelAction(player->actions, *player);
 			SwitchLoadout(player, i);
 			break;
 		}
+	}
+
+	if (GetKeyDown(SDL_SCANCODE_G) && GetRightWeapon(player))
+	{
+		Action dropAction = {};
+		InitDropAction(&dropAction);
+		QueueAction(player->actions, dropAction, *player);
 	}
 
 	{
@@ -305,7 +336,7 @@ void UpdatePlayer(Player* player)
 
 		if (player->interactTarget)
 		{
-			if (!currentAction && GetKeyDown(SDL_SCANCODE_E))
+			if (!GetCurrentAction(player) && GetKeyDown(SDL_SCANCODE_E))
 			{
 				InteractEntity(player->interactTarget, player);
 			}
@@ -321,6 +352,8 @@ void UpdatePlayer(Player* player)
 			{
 				Attack* nextAttack = nullptr;
 				int attackIdx = 0;
+
+				Action* currentAction = GetCurrentAction(player);
 				if (currentAction && currentAction->type == ACTION_TYPE_ATTACK && currentAction->attack.weapon == right)
 				{
 					nextAttack = GetNextAttack(currentAction->attack.attack, currentAction->attack.weapon);
@@ -341,9 +374,8 @@ void UpdatePlayer(Player* player)
 			}
 		}
 	}
-	
+
 	UpdateActionManager(player->actions, *player);
-	currentAction = GetCurrentAction(player);
 
 	AnimationPlayback* moveAnimation = &player->idleAnim;
 	moveAnimation->timer += deltaTime * moveAnimation->speed;
@@ -385,8 +417,9 @@ void UpdatePlayer(Player* player)
 		leftAnimation = GetAnimationByName(&left->moveset, "idle");
 	}
 
-	if (currentAction)
+	if (GetCurrentAction(player))
 	{
+		Action* currentAction = GetCurrentAction(player);
 		if (currentAction->rightAnim.animation)
 		{
 			rightAnimation = currentAction->rightAnim.animation;
@@ -532,7 +565,7 @@ void UpdatePlayer(Player* player)
 
 	if (player->stamina < 1.0f && player->actions.actions.size == 0 && !player->sprinting)
 	{
-		player->stamina = min(player->stamina + 0.2f * deltaTime, 1);
+		player->stamina = min(player->stamina + 0.2f * deltaTime, 1.0f);
 	}
 }
 
@@ -543,12 +576,24 @@ void RenderPlayer(Player* player)
 
 	RenderModel(&game->renderer, &player->model, &player->anim, viewmodelTransform);
 
-	if (Item* rightWeapon = GetRightWeapon(player))
+	Item* rightWeapon = GetRightWeapon(player);
+	Item* leftWeapon = GetLeftWeapon(player);
+
+	Action* currentAction = GetCurrentAction(player);
+	if (currentAction)
+	{
+		if (currentAction->overrideRightWeapon)
+			rightWeapon = currentAction->rightWeapon;
+		if (currentAction->overrideLeftWeapon)
+			leftWeapon = currentAction->leftWeapon;
+	}
+
+	if (rightWeapon)
 	{
 		mat4 weaponTransform = viewmodelTransform * GetNodeTransform(&player->anim, player->rightWeaponNode);
 		RenderModel(&game->renderer, &rightWeapon->model, &player->anim, weaponTransform);
 	}
-	if (Item* leftWeapon = GetLeftWeapon(player))
+	if (leftWeapon)
 	{
 		mat4 weaponTransform = viewmodelTransform * GetNodeTransform(&player->anim, player->leftWeaponNode);
 		RenderModel(&game->renderer, &leftWeapon->model, &player->anim, weaponTransform);
@@ -559,7 +604,7 @@ void RenderPlayer(Player* player)
 		float vignetteStrength = 1 - player->health / (float)player->maxHealth;
 		if (player->lastHit && gameTime - player->lastHit < 5)
 			vignetteStrength += SDL_expf(-(gameTime - player->lastHit) * 2) * 0.5f;
-		vignetteStrength = min(vignetteStrength, 1);
+		vignetteStrength = min(vignetteStrength, 1.0f);
 
 		vec3 color = vec3(1, 0, 0);
 
@@ -577,7 +622,7 @@ void RenderPlayer(Player* player)
 
 		vec4 color = player->exhausted ? mix(vec4(1), vec4(1, 0, 0, 1), SDL_sinf(gameTime * 7) * 0.5f + 0.5f) : vec4(1);
 
-		GUIPanel(x, y, (int)(w * max(player->stamina, 0)), h, color);
+		GUIPanel(x, y, (int)(w * max(player->stamina, 0.0f)), h, color);
 	}
 
 	// crosshair

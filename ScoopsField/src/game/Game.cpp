@@ -91,6 +91,8 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	layerInfo.textureFormat = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 	InitRenderer2D(&game->guiRenderer, 1, &layerInfo, cmdBuffer);
 
+	InitRandom(&game->random, (uint32_t)SDL_GetTicks());
+
 	InitItemDatabase(&game->items, cmdBuffer);
 
 	//game->mesh = LoadMesh("res/models/monkey.glb.bin", cmdBuffer);

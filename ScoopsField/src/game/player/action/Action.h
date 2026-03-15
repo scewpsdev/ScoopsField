@@ -9,6 +9,8 @@
 
 #include "AttackAction.h"
 #include "EquipAction.h"
+#include "PickUpAction.h"
+#include "DropAction.h"
 
 
 enum ActionType
@@ -17,6 +19,8 @@ enum ActionType
 
 	ACTION_TYPE_ATTACK,
 	ACTION_TYPE_EQUIP,
+	ACTION_TYPE_PICKUP,
+	ACTION_TYPE_DROP,
 
 	ACTION_TYPE_LAST
 };
@@ -56,6 +60,11 @@ struct Action
 	AnimationPlayback rightAnim;
 	AnimationPlayback leftAnim;
 
+	bool overrideRightWeapon;
+	Item* rightWeapon;
+	bool overrideLeftWeapon;
+	Item* leftWeapon;
+
 #define MAX_ACTION_SOUNDS 8
 	ActionSound sounds[MAX_ACTION_SOUNDS];
 	int numSounds;
@@ -64,6 +73,8 @@ struct Action
 	{
 		AttackAction attack;
 		EquipAction equip;
+		PickUpAction pickup;
+		DropAction drop;
 	};
 };
 
@@ -80,6 +91,8 @@ struct ActionManager
 switch(action->type) { \
 ActionCase(func, Attack, ATTACK) \
 ActionCase(func, Equip, EQUIP) \
+ActionCase(func, PickUp, PICKUP) \
+ActionCase(func, Drop, DROP) \
 default: SDL_assert(false); break; \
 }
 
@@ -96,7 +109,7 @@ inline void StopAction(Action* action, struct Player* player)
 void UpdateAction(Action* action, struct Player* player, float deltaTime);
 
 void InitAction(Action* action, ActionType type);
-void AddActionSound(Action* action, Sound* sounds, int numSounds, float time, float volume, float pan);
+void AddActionSound(Action* action, Sound* sounds, int numSounds = 1, float time = 0, float volume = 1, float pan = 0);
 
 void InitActionManager(ActionManager& actions, Model* moveset);
 void UpdateActionManager(ActionManager& actions, struct Player& player);

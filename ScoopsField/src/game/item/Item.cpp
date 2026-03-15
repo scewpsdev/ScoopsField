@@ -13,7 +13,7 @@ static void InitWeapon(ItemDatabase* items, Item* item, const char* name, bool t
 	SDL_snprintf(movesetPath, 256, "res/items/%s/%s_moveset.glb.bin", name, name);
 	LoadModel(&item->moveset, movesetPath, false, cmdBuffer);
 
-	item->equipSound = &items->equipLight;
+	item->equipSound = &items->equipLightSound;
 
 	item->weapon.damage = damage;
 	item->weapon.damageRange = damageRange;
@@ -48,7 +48,7 @@ static void InitShield(ItemDatabase* items, Item* item, const char* name, bool t
 	SDL_snprintf(movesetPath, 256, "res/items/%s/%s_moveset.glb.bin", name, name);
 	LoadModel(&item->moveset, movesetPath, false, cmdBuffer);
 
-	item->equipSound = &items->equipLight;
+	item->equipSound = &items->equipLightSound;
 
 	item->weapon.damage = 0;
 	item->weapon.damageRange = vec2(0);
@@ -63,7 +63,7 @@ static void InitWeapons(ItemDatabase* items)
 		Item* item = &items->items[ITEM_TYPE_KINGS_SWORD];
 		InitWeapon(items, item, "kings_sword", false, 50, vec2(0.1f, 0.85f));
 
-		item->equipSound = &items->equipSword;
+		item->equipSound = &items->equipSwordSound;
 
 		AddAttack(item, "attack1", "attack1", 1.0f, 10, 18, 24, 1.0f, "attack2");
 		AddAttack(item, "attack2", "attack2", 1.0f, 10, 18, 24, 1.0f, "attack1");
@@ -74,7 +74,7 @@ static void InitWeapons(ItemDatabase* items)
 		Item* item = &items->items[ITEM_TYPE_LONGSWORD];
 		InitWeapon(items, item, "longsword", true, 70, vec2(0.1f, 1.0f));
 
-		item->equipSound = &items->equipHeavy;
+		item->equipSound = &items->equipHeavySound;
 
 		AddAttack(item, "attack1", "attack1", 1, 15, 24, 32, 1.0f, "attack2");
 		AddAttack(item, "attack2", "attack2", 1, 15, 24, 32, 1.0f, "attack1");
@@ -92,10 +92,11 @@ static void InitShields(ItemDatabase* items)
 
 void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer)
 {
-	LoadSound(&items->equipLight, "res/sounds/item/equip_light.ogg.bin");
-	LoadSound(&items->equipHeavy, "res/sounds/item/equip_heavy.ogg.bin");
-	LoadSound(&items->equipSword, "res/sounds/item/equip_sword.ogg.bin");
-	LoadSound(&items->equipArmor, "res/sounds/item/equip_armor.ogg.bin");
+	LoadSound(&items->equipLightSound, "res/sounds/item/equip_light.ogg.bin");
+	LoadSound(&items->equipHeavySound, "res/sounds/item/equip_heavy.ogg.bin");
+	LoadSound(&items->equipSwordSound, "res/sounds/item/equip_sword.ogg.bin");
+	LoadSound(&items->equipArmorSound, "res/sounds/item/equip_armor.ogg.bin");
+	LoadSound(&items->clothSound, "res/sounds/item/cloth.ogg.bin");
 
 	InitWeapons(items);
 	InitShields(items);

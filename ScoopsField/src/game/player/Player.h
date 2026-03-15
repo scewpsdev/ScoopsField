@@ -90,7 +90,13 @@ struct Player : Entity
 	float lastHit;
 };
 
+Action* GetCurrentAction(Player* player);
+
+Item* GetRightWeapon(Player* player);
+Item* GetLeftWeapon(Player* player);
+
 mat4 GetRightWeaponTransform(Player* player);
 
 void HitPlayer(Player* player, HitParams hit, Entity* by);
 bool GiveItem(Player* player, Item* item);
+bool DropItem(Player* player, Item* item);

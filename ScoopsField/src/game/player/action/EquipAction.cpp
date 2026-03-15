@@ -41,7 +41,7 @@ void InitEquipAction(Action* action, Item* weapon, int dstLoadout)
 		action->leftAnimMoveset = &game->player.model;
 		action->leftAnimBlendDuration = 0.0f;
 
-		AddActionSound(action, &game->items.equipLight, 1, 0, 1, 0);
+		AddActionSound(action, &game->items.equipLightSound, 1, 0, 1, 0);
 	}
 
 	action->equip.dstLoadout = dstLoadout;
