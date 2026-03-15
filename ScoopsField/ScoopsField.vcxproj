@@ -201,6 +201,7 @@
     <ClCompile Include="src\model\Animation.cpp" />
     <ClCompile Include="src\model\AnimationCache.cpp" />
     <ClCompile Include="src\model\Model.cpp" />
+    <ClCompile Include="src\model\RootMotion.cpp" />
     <ClCompile Include="src\physics\CharacterController.cpp" />
     <ClCompile Include="src\physics\Physics.cpp" />
     <ClCompile Include="src\physics\RigidBody.cpp" />
@@ -254,6 +255,7 @@
     <ClInclude Include="src\model\Animation.h" />
     <ClInclude Include="src\model\AnimationCache.h" />
     <ClInclude Include="src\model\Model.h" />
+    <ClInclude Include="src\model\RootMotion.h" />
     <ClInclude Include="src\physics\CharacterController.h" />
     <ClInclude Include="src\physics\Physics.h" />
     <ClInclude Include="src\physics\RigidBody.h" />

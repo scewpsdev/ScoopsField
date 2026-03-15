@@ -58,6 +58,9 @@ struct Player : Entity
 
 	Node* rightWeaponNode, * leftWeaponNode;
 	Node* rightShoulderNode, * leftShoulderNode;
+	Node* rootNode;
+
+	mat4 lastRootNodeTransform;
 
 	AnimationPlayback idleAnim;
 

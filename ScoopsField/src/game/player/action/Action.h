@@ -49,6 +49,7 @@ struct Action
 	float leftAnimBlendDuration;
 
 	float animationSpeed;
+	bool rootMotion;
 
 	float duration;
 	//float speed;

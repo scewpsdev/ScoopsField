@@ -2,6 +2,8 @@
 
 #include "math/Math.h"
 
+#include "model/RootMotion.h"
+
 
 #define HEALTH_REGEN_HIT_DELAY 5.0f
 #define HIT_RECOVERY_DURATION 0.25f
@@ -130,6 +132,7 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer)
 	player->leftWeaponNode = GetNodeByName(&player->model, "weapon_l");
 	player->rightShoulderNode = GetNodeByName(&player->model, "clavicle_r");
 	player->leftShoulderNode = GetNodeByName(&player->model, "clavicle_l");
+	player->rootNode = GetNodeByName(&player->model, "root");
 
 	InitAnimation(&player->idleAnim, "idle", &player->model, 0.005f, true, false);
 
@@ -229,7 +232,7 @@ bool DropItem(Player* player, Item* item)
 static bool ArmAnimChannelFilter(Node* node, bool* right)
 {
 	if (*right) return !EndsWith(node->name, "_l");
-	else return !EndsWith(node->name, "_r");
+	else return EndsWith(node->name, "_l"); /*!EndsWith(node->name, "_r")*/;
 }
 
 static mat4 CalculateViewBobbing(Player* player, int side)
@@ -530,12 +533,23 @@ void UpdatePlayer(Player* player)
 	mat4& leftWeaponTransform = GetNodeTransform(&player->anim, player->leftWeaponNode);
 	leftWeaponTransform = leftViewBob * leftWeaponTransform;
 
+	vec3 rootMotion = vec3::Zero;
+	mat4 rootMotionDelta = DoRootMotion(&player->anim, player->rootNode, &player->lastRootNodeTransform);
+	if (Action* currentAction = GetCurrentAction(player))
+	{
+		if (currentAction->rootMotion)
+		{
+			rootMotion = rootMotionDelta.translation();
+			SDL_Log("%.2f, %.2f, %.2f\n", rootMotion.x, rootMotion.y, rootMotion.z);
+		}
+	}
+
 	ApplyAnimationToSkeleton(&player->model, &player->anim);
 
 	if (GetKeyDown(SDL_SCANCODE_F5))
 		player->cameraMode = CAMERA_MODE_FIRST_PERSON ? CAMERA_MODE_FREE : CAMERA_MODE_FIRST_PERSON;
 
-	SourceMovement(player);
+	SourceMovement(player, quat::FromAxisAngle(vec3::Up, game->cameraYaw) * rootMotion);
 
 	if (game->mouseLocked)
 	{

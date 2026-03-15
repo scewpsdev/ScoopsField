@@ -107,7 +107,7 @@ vec3 updateVelocityAir(vec3& velocity, const vec3& wishdir, float maxSpeed, cons
 	return velocity;
 }
 
-static void SourceMovement(Player* player)
+static void SourceMovement(Player* player, vec3 extraDisplacement)
 {
 	Action* currentAction = GetCurrentAction(player);
 
@@ -143,7 +143,7 @@ static void SourceMovement(Player* player)
 		else
 			updateVelocityAir(player->velocity, fsu, speed, forward, right, up);
 
-		vec3 displacement = player->velocity * deltaTime;
+		vec3 displacement = player->velocity * deltaTime + extraDisplacement;
 		float xzSpeed = player->velocity.xz().length();
 
 		if (player->grounded)
