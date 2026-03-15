@@ -18,6 +18,7 @@ void InitAction(Action* action, ActionType type)
 
 	action->rightAnimBlendDuration = 0.2f;
 	action->leftAnimBlendDuration = 0.2f;
+	action->bodyAnimBlendDuration = 0.2f;
 }
 
 void AddActionSound(Action* action, Sound* sounds, int numSounds, float time, float volume, float pan)
@@ -51,9 +52,10 @@ void UpdateAction(Action* action, struct Player* player, float deltaTime)
 }
 
 
-void InitActionManager(ActionManager& actions, Model* moveset)
+void InitActionManager(ActionManager& actions, Model* moveset, Model* bodyMoveset)
 {
 	actions.moveset = moveset;
+	actions.bodyMoveset = bodyMoveset;
 	InitQueue(actions.actions);
 }
 
@@ -65,18 +67,12 @@ static void StartActionInternal(ActionManager& actions, Action* action, Player* 
 		InitAnimation(&action->rightAnim, action->rightAnimName, action->rightAnimMoveset ? action->rightAnimMoveset : actions.moveset, action->animationSpeed, false, false);
 	if (action->leftAnimName)
 		InitAnimation(&action->leftAnim, action->leftAnimName, action->leftAnimMoveset ? action->leftAnimMoveset : actions.moveset, action->animationSpeed, false, false);
+	if (action->bodyAnimName)
+		InitAnimation(&action->bodyAnim, action->bodyAnimName, action->bodyAnimMoveset ? action->bodyAnimMoveset : actions.bodyMoveset, action->animationSpeed, false, false);
 
 	if (!action->duration)
 	{
-		if (action->rightAnimName && !action->leftAnimName)
-			action->duration = action->rightAnim.animation->duration;
-		else if (action->rightAnimName && !action->leftAnimName)
-			action->duration = action->leftAnim.animation->duration;
-		else
-		{
-			SDL_assert(action->rightAnimName && action->leftAnimName);
-			action->duration = max(action->rightAnim.animation->duration, action->leftAnim.animation->duration);
-		}
+		action->duration = max(max(action->rightAnimName ? action->rightAnim.animation->duration : 0, action->leftAnimName ? action->leftAnim.animation->duration : 0), action->bodyAnimName ? action->bodyAnim.animation->duration : 0);
 	}
 	//action->speed = action->speed;
 

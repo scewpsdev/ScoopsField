@@ -21,6 +21,7 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 };
 
 
+// reconstruct without matrix multiplication just using near plane and fov
 vec3 reconstructPosition(vec2 uv, float depth)
 {
 	vec4 ndc = vec4(uv.x * 2 - 1, uv.y * -2 + 1, depth, 1);

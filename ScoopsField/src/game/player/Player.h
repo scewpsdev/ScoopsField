@@ -36,6 +36,9 @@ struct Player : Entity
 	Model model;
 	AnimationState anim;
 
+	Model bodyModel;
+	AnimationState bodyAnim;
+
 	Animation* lastRightAnim;
 	float lastRightAnimTimer;
 	bool lastRightAnimLoop;

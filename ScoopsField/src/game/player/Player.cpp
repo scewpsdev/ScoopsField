@@ -128,6 +128,9 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer)
 	LoadModel(&player->model, "res/models/viewmodel.glb.bin", false, cmdBuffer);
 	InitAnimationState(&player->anim, &player->model);
 
+	LoadModel(&player->bodyModel, "res/models/bodymodel.glb.bin", false, cmdBuffer);
+	InitAnimationState(&player->bodyAnim, &player->bodyModel);
+
 	player->rightWeaponNode = GetNodeByName(&player->model, "weapon_r");
 	player->leftWeaponNode = GetNodeByName(&player->model, "weapon_l");
 	player->rightShoulderNode = GetNodeByName(&player->model, "clavicle_r");
@@ -141,7 +144,7 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer)
 	AddCapsuleCollider(&player->kinematicBody, 0.2f, 1.5f, vec3(0, 1, 0), quat::Identity, ENTITY_FILTER_PLAYER, ENTITY_FILTER_ENEMY, false);
 	player->kinematicBody.userPtr = player;
 
-	InitActionManager(player->actions, &player->model);
+	InitActionManager(player->actions, &player->model, &player->bodyModel);
 
 	player->walkSpeed = 4.0f;
 
@@ -314,6 +317,13 @@ void UpdatePlayer(Player* player)
 		}
 	}
 
+	if (GetKeyDown(SDL_SCANCODE_L))
+	{
+		Action action = {};
+		InitSitAction(&action);
+		QueueAction(player->actions, action, *player);
+	}
+
 	if (GetKeyDown(SDL_SCANCODE_G) && GetRightWeapon(player))
 	{
 		Action dropAction = {};
@@ -395,30 +405,24 @@ void UpdatePlayer(Player* player)
 	bool leftAnimationLoop = moveAnimation->loop;
 	float leftAnimationBlendDuration = 0.2f;
 
+	Animation* bodyAnimation = nullptr;
+	float bodyAnimationTimer = 0;
+	bool bodyAnimationLoop = false;
+	float bodyAnimationBlendDuration = 0.2f;
+
 	Item* right = GetRightApparentWeapon(player);
 	Item* left = GetLeftApparentWeapon(player);
 
 	if (right)
 	{
 		rightAnimation = GetAnimationByName(&right->moveset, "idle");
-
-		/*
-		if (right->twoHanded)
-		{
-			AnimateModel(&player->model, &player->anim, weaponMoveAnimation, moveAnimation->timer, moveAnimation->loop, nullptr, nullptr);
-		}
-		else
-		{
-			bool right = true;
-			BlendAnimation(&player->model, &player->anim, weaponMoveAnimation, moveAnimation->timer, moveAnimation->loop, 1, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
-		}
-		*/
 	}
 
 	if (left)
 	{
 		leftAnimation = GetAnimationByName(&left->moveset, "idle");
 	}
+	bodyAnimation = GetAnimationByName(&player->bodyModel, "idle");
 
 	if (GetCurrentAction(player))
 	{
@@ -430,13 +434,19 @@ void UpdatePlayer(Player* player)
 			rightAnimationLoop = false;
 			rightAnimationBlendDuration = currentAction->rightAnimBlendDuration;
 		}
-
 		if (currentAction->leftAnim.animation)
 		{
 			leftAnimation = currentAction->leftAnim.animation;
 			leftAnimationTimer = currentAction->elapsedTime;
 			leftAnimationLoop = false;
 			leftAnimationBlendDuration = currentAction->leftAnimBlendDuration;
+		}
+		if (currentAction->bodyAnim.animation)
+		{
+			bodyAnimation = currentAction->bodyAnim.animation;
+			bodyAnimationTimer = currentAction->elapsedTime;
+			bodyAnimationLoop = false;
+			bodyAnimationBlendDuration = currentAction->bodyAnimBlendDuration;
 		}
 
 		/*
@@ -518,6 +528,10 @@ void UpdatePlayer(Player* player)
 		player->lastLeftAnimTimer = leftAnimationTimer;
 		player->lastLeftAnimLoop = leftAnimationLoop;
 	}
+	if (bodyAnimation)
+	{
+		AnimateModel(&player->bodyModel, &player->bodyAnim, bodyAnimation, bodyAnimationTimer, bodyAnimationLoop, nullptr, nullptr);
+	}
 
 	mat4 rightViewBob = CalculateViewBobbing(player, 0);
 	mat4& rightShoulderTransform = GetNodeTransform(&player->anim, player->rightShoulderNode);
@@ -539,12 +553,14 @@ void UpdatePlayer(Player* player)
 	{
 		if (currentAction->rootMotion)
 		{
+			rootMotionDelta = mat4::Rotate(vec3::Up, PI) * rootMotionDelta;
 			rootMotion = rootMotionDelta.translation();
-			SDL_Log("%.2f, %.2f, %.2f\n", rootMotion.x, rootMotion.y, rootMotion.z);
 		}
 	}
 
 	ApplyAnimationToSkeleton(&player->model, &player->anim);
+
+	ApplyAnimationToSkeleton(&player->bodyModel, &player->bodyAnim);
 
 	if (GetKeyDown(SDL_SCANCODE_F5))
 		player->cameraMode = CAMERA_MODE_FIRST_PERSON ? CAMERA_MODE_FREE : CAMERA_MODE_FIRST_PERSON;
@@ -585,6 +601,9 @@ void UpdatePlayer(Player* player)
 
 void RenderPlayer(Player* player)
 {
+	mat4 bodyTransform = mat4::Translate(player->position) * mat4::Rotate(vec3::Up, game->cameraYaw + PI) * mat4::Translate(0, 0, -0.3f);
+	RenderModel(&game->renderer, &player->bodyModel, &player->bodyAnim, bodyTransform);
+
 	mat4 cameraTransform = GetCameraTransform();
 	mat4 viewmodelTransform = cameraTransform * mat4::Rotate(vec3::Up, PI);
 
