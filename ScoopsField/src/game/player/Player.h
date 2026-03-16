@@ -24,6 +24,8 @@ struct Player : Entity
 {
 	vec3 position;
 	float rotation;
+	float pitch, yaw;
+
 	vec3 velocity;
 	bool grounded;
 	bool moving;
@@ -62,6 +64,8 @@ struct Player : Entity
 	Node* rightWeaponNode, * leftWeaponNode;
 	Node* rightShoulderNode, * leftShoulderNode;
 	Node* rootNode;
+
+	Node* bodyCameraNode;
 
 	mat4 lastRootNodeTransform;
 

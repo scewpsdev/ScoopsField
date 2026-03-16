@@ -60,6 +60,8 @@ struct Action
 
 	float animationSpeed;
 	bool rootMotion;
+	bool fullBodyAnim;
+	bool lockPlayerRotation;
 
 	float duration;
 	//float speed;

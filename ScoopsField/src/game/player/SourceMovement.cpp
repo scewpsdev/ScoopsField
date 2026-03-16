@@ -176,20 +176,10 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 
 		player->position = GetCharacterControllerPosition(&player->controller);
 		SetRigidBodyTransform(&player->kinematicBody, player->position, quat::Identity);
-
-		game->cameraPosition = player->position + vec3::Up * 1.5f;
-
-		float landBob = 0.0f;
-		if (player->lastLandedTime)
-		{
-			float timeSinceLanding = gameTime - player->lastLandedTime;
-			landBob = (1.0f - SDL_powf(0.5f, timeSinceLanding * 4.0f)) * SDL_powf(0.1f, timeSinceLanding * 4.0f) * 5.5f;
-		}
-		game->cameraPosition.y -= landBob;
 	}
 	else
 	{
-		quat cameraRotation = quat::FromAxisAngle(vec3::Up, game->cameraYaw) * quat::FromAxisAngle(vec3::Right, game->cameraPitch);
+		quat cameraRotation = quat::FromAxisAngle(vec3::Up, player->yaw) * quat::FromAxisAngle(vec3::Right, player->pitch);
 
 		vec3 delta = vec3::Zero;
 		if (GetKey(SDL_SCANCODE_A)) delta += cameraRotation.left();

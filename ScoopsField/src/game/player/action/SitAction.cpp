@@ -15,14 +15,20 @@ void InitSitAction(Action* action)
 
 	action->rightAnimName = "sit";
 	action->rightAnimMoveset = nullptr;
+	action->overrideRightWeapon = true;
+	action->rightWeapon = nullptr;
 
 	action->leftAnimName = "sit";
 	action->leftAnimMoveset = nullptr;
+	action->overrideLeftWeapon = true;
+	action->leftWeapon = nullptr;
 
 	action->bodyAnimName = "sit_";
 	action->bodyAnimMoveset = nullptr;
 
 	action->duration = 10;
+	action->fullBodyAnim = true;
+	action->lockPlayerRotation = true;
 }
 
 void StartSitAction(Action* action, Player* player)

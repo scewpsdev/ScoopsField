@@ -248,8 +248,7 @@ void GameUpdate()
 	}
 
 	game->projection = mat4::Perspective(90 * Deg2Rad, app->width / (float)app->height, game->cameraNear, game->cameraFar);
-	quat invCameraRotation = quat::FromAxisAngle(vec3::Right, -game->cameraPitch) * quat::FromAxisAngle(vec3::Up, -game->cameraYaw);
-	game->view = mat4::Rotate(invCameraRotation) * mat4::Translate(-game->cameraPosition);
+	game->view = mat4::Rotate(game->cameraRotation.conjugated()) * mat4::Translate(-game->cameraPosition);
 	game->pv = game->projection * game->view;
 	GetFrustumPlanes(game->pv, game->frustumPlanes);
 

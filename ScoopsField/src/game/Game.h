@@ -27,7 +27,7 @@ struct GameState
 {
 	bool mouseLocked;
 	vec3 cameraPosition;
-	float cameraPitch, cameraYaw;
+	quat cameraRotation;
 	float cameraNear, cameraFar;
 
 	mat4 projection, view, pv;

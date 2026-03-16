@@ -42,9 +42,8 @@ void UpdateAudio(AudioState* audio)
 	audio->soloud->update3dAudio();
 }
 
-void SetAudioListener(const vec3& position, float pitch, float yaw)
+void SetAudioListener(const vec3& position, const quat& rotation)
 {
-	quat rotation = quat::FromAxisAngle(vec3::Up, yaw) * quat::FromAxisAngle(vec3::Right, pitch);
 	vec3 forward = rotation.forward();
 	vec3 up = rotation.up();
 	audio->soloud->set3dListenerParameters(position.x, position.y, position.z, forward.x, forward.y, forward.z, up.x, up.y, up.z);
