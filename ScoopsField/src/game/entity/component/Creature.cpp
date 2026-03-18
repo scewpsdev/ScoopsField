@@ -203,3 +203,17 @@ void RenderCreature(Creature* creature, Entity* entity)
 	}
 #endif
 }
+
+
+
+
+
+
+void InitSkeleton(Entity* skeleton, const vec3& position, float rotation, int health)
+{
+	InitEntity(skeleton, ENTITY_TYPE_SKELETON);
+
+	skeleton->position = position;
+
+	InitCreature(&skeleton->creature, skeleton, "entities/skeleton/skeleton.glb", rotation, health);
+}

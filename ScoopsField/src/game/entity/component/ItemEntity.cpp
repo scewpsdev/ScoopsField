@@ -12,12 +12,11 @@ void InitItemEntity(Entity* entity, Item* actualItem, vec3 position, quat rotati
 	InitEntity(entity, ENTITY_TYPE_ITEM);
 
 	entity->position = position;
+	entity->rotation = rotation;
 
-	entity->item.hasValue = true;
-	ItemEntity* item = &entity->item.value;
+	ItemEntity* item = &entity->item;
 	item->item = actualItem;
 
-	item->rotation = rotation;
 	InitRigidBody(&item->body, RIGID_BODY_DYNAMIC, entity->position, rotation);
 	item->body.userPtr = entity;
 
@@ -57,12 +56,10 @@ bool InteractItemEntity(ItemEntity* item, Entity* entity, Entity* by)
 
 void UpdateItemEntity(ItemEntity* item, Entity* entity)
 {
-	GetRigidBodyTransform(&item->body, &entity->position, &item->rotation);
+	GetRigidBodyTransform(&item->body, &entity->position, &entity->rotation);
 }
 
 void RenderItemEntity(ItemEntity* item, Entity* entity)
 {
-	mat4 transform = mat4::Translate(entity->position) * mat4::Rotate(item->rotation);
-
-	RenderModel(&game->renderer, &item->item->model, nullptr, transform);
+	RenderModel(&game->renderer, &item->item->model, nullptr, ModelMatrix(entity));
 }

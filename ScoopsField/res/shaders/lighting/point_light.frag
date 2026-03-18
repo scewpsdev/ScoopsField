@@ -13,16 +13,18 @@ layout(set = 2, binding = 2) uniform sampler2D s_material;
 layout(set = 2, binding = 3) uniform sampler2D s_depth;
 
 layout(std140, set = 3, binding = 0) uniform UniformBlock {
-    mat4 projectionInv;
+    mat4 projection;
 	vec4 u_viewTexel;
 };
 
 
 vec3 reconstructPosition(vec2 uv, float depth)
 {
-	vec4 ndc = vec4(uv.x * 2 - 1, uv.y * -2 + 1, depth, 1);
-	vec4 viewSpacePosition = projectionInv * ndc;
-	return viewSpacePosition.xyz / viewSpacePosition.w;
+	vec3 view;
+	view.z = -projection[3][2] / depth;
+	view.x = -(uv.x * 2 - 1) * view.z / projection[0][0];
+	view.y = -(1 - uv.y * 2) * view.z / projection[1][1];
+	return view;
 }
 
 void main()

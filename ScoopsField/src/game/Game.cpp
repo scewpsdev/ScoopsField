@@ -5,6 +5,7 @@
 #include "math/Vector.h"
 
 
+#define ROUND_START_DELAY 500.0f
 #define GAME_OVER_DELAY 5.0f
 
 
@@ -21,10 +22,10 @@ static bool EveryInterval(float seconds, uint32_t h)
 
 
 #include "item/Item.cpp"
+#include "player/Player.cpp"
 #include "entity/component/Creature.cpp"
 #include "entity/component/ItemEntity.cpp"
-#include "player/Player.cpp"
-#include "entity/Skeleton.cpp"
+#include "entity/component/RestingSpot.cpp"
 
 
 static void StartRound(int round)
@@ -73,9 +74,12 @@ static void ResetGame(bool destroy)
 	//game->cameraPitch = -0.4f * PI;
 	//game->cameraYaw = 0.25f * PI;
 	game->cameraNear = 0.1f;
-	game->cameraFar = 1000;
+	//game->cameraFar = 1000;
 
 	game->mouseLocked = true;
+
+	Entity* carpet = PoolAlloc(&game->entities);
+	InitRestingSpot(carpet, vec3(0, 0, -4), quat::Identity);
 
 	StartRound(1);
 }
@@ -247,7 +251,7 @@ void GameUpdate()
 		}
 	}
 
-	game->projection = mat4::Perspective(90 * Deg2Rad, app->width / (float)app->height, game->cameraNear, game->cameraFar);
+	game->projection = mat4::Perspective(90 * Deg2Rad, app->width / (float)app->height, game->cameraNear);
 	game->view = mat4::Rotate(game->cameraRotation.conjugated()) * mat4::Translate(-game->cameraPosition);
 	game->pv = game->projection * game->view;
 	GetFrustumPlanes(game->pv, game->frustumPlanes);
@@ -318,7 +322,7 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	RendererShow(&game->renderer, game->cameraPosition, game->projection, game->view, game->pv, game->frustumPlanes, game->cameraNear, game->cameraFar, swapchain, cmdBuffer);
+	RendererShow(&game->renderer, game->cameraPosition, game->projection, game->view, game->pv, game->frustumPlanes, game->cameraNear, swapchain, cmdBuffer);
 
 	mat4 guiProjectionView = mat4::Orthographic(0, (float)app->width, 0, (float)app->height, -1, 1);
 	SetRenderer2DCamera(&game->guiRenderer, 0, guiProjectionView);

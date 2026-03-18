@@ -9,7 +9,6 @@ struct ItemEntity
 {
 	Item* item;
 
-	quat rotation;
 	RigidBody body;
 };
 

@@ -16,7 +16,6 @@
 #include "utils/Pool.h"
 
 #include "game/player/Player.h"
-#include "game/entity/Skeleton.h"
 
 #include "game/item/Item.h"
 
@@ -28,7 +27,7 @@ struct GameState
 	bool mouseLocked;
 	vec3 cameraPosition;
 	quat cameraRotation;
-	float cameraNear, cameraFar;
+	float cameraNear /*, cameraFar*/;
 
 	mat4 projection, view, pv;
 	vec4 frustumPlanes[6];
@@ -47,7 +46,6 @@ struct GameState
 
 	int round;
 	int points;
-#define ROUND_START_DELAY 5.0f
 	float roundStartTimer;
 	int numSkeletonsRemaining;
 	float gameOverTimer;

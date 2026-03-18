@@ -224,7 +224,7 @@ bool DropItem(Player* player, Item* item)
 
 			vec3 velocity = GetCameraRotation(player).forward() * 5;
 			vec3 angularVelocity = game->random.nextVector3(-2, 2);
-			SetRigidBodyVelocity(&itemEntity->item.value.body, velocity, angularVelocity);
+			SetRigidBodyVelocity(&itemEntity->item.body, velocity, angularVelocity);
 
 			SetRightWeapon(player, i, nullptr);
 
@@ -317,13 +317,6 @@ void UpdatePlayer(Player* player)
 			SwitchLoadout(player, i);
 			break;
 		}
-	}
-
-	if (GetKeyDown(SDL_SCANCODE_L))
-	{
-		Action action = {};
-		InitSitAction(&action);
-		QueueAction(player->actions, action, *player);
 	}
 
 	if (GetKeyDown(SDL_SCANCODE_G) && GetRightWeapon(player))
@@ -648,7 +641,7 @@ void RenderPlayer(Player* player)
 	}
 	else
 	{
-		viewmodelTransform = mat4::Translate(game->cameraPosition) * mat4::Rotate(vec3::Up, player->rotation + PI);
+		viewmodelTransform = bodyTransform * GetNodeTransform(&player->bodyAnim, player->bodyCameraNode);
 	}
 
 	RenderModel(&game->renderer, &player->model, &player->anim, viewmodelTransform);

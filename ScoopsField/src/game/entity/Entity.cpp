@@ -10,40 +10,80 @@ void InitEntity(Entity* entity, EntityType type)
 
 void DestroyEntity(Entity* entity)
 {
-	if (entity->creature)
-		DestroyCreature(&entity->creature.value, entity);
-	if (entity->item)
-		DestroyItemEntity(&entity->item.value, entity);
+	switch (entity->type)
+	{
+	case ENTITY_TYPE_SKELETON:
+		DestroyCreature(&entity->creature, entity);
+		break;
+	case ENTITY_TYPE_ITEM:
+		DestroyItemEntity(&entity->item, entity);
+		break;
+	case ENTITY_TYPE_RESTING_SPOT:
+		DestroyRestingSpot(&entity->restingSpot, entity);
+		break;
+	default:
+		break;
+	}
 
 	SDL_memset(entity, 0, sizeof(Entity));
 }
 
 bool HitEntity(Entity* entity, HitParams* hit, Entity* by)
 {
-	if (entity->creature)
-		return HitCreature(&entity->creature.value, entity, hit, by);
-	return false;
+	switch (entity->type)
+	{
+	case ENTITY_TYPE_SKELETON:
+		return HitCreature(&entity->creature, entity, hit, by);
+	default:
+		return false;
+	}
 }
 
 bool InteractEntity(Entity* entity, Entity* by)
 {
-	if (entity->item)
-		return InteractItemEntity(&entity->item.value, entity, by);
-	return false;
+	switch (entity->type)
+	{
+	case ENTITY_TYPE_ITEM:
+		return InteractItemEntity(&entity->item, entity, by);
+	case ENTITY_TYPE_RESTING_SPOT:
+		return InteractRestingSpot(&entity->restingSpot, entity, by);
+	default:
+		return false;
+	}
 }
 
 void UpdateEntity(Entity* entity)
 {
-	if (entity->creature)
-		UpdateCreature(&entity->creature.value, entity);
-	if (entity->item)
-		UpdateItemEntity(&entity->item.value, entity);
+	switch (entity->type)
+	{
+	case ENTITY_TYPE_SKELETON:
+		UpdateCreature(&entity->creature, entity);
+		break;
+	case ENTITY_TYPE_ITEM:
+		UpdateItemEntity(&entity->item, entity);
+		break;
+	case ENTITY_TYPE_RESTING_SPOT:
+		UpdateRestingSpot(&entity->restingSpot, entity);
+		break;
+	default:
+		break;
+	}
 }
 
 void RenderEntity(Entity* entity)
 {
-	if (entity->creature)
-		RenderCreature(&entity->creature.value, entity);
-	if (entity->item)
-		RenderItemEntity(&entity->item.value, entity);
+	switch (entity->type)
+	{
+	case ENTITY_TYPE_SKELETON:
+		RenderCreature(&entity->creature, entity);
+		break;
+	case ENTITY_TYPE_ITEM:
+		RenderItemEntity(&entity->item, entity);
+		break;
+	case ENTITY_TYPE_RESTING_SPOT:
+		RenderRestingSpot(&entity->restingSpot, entity);
+		break;
+	default:
+		break;
+	}
 }

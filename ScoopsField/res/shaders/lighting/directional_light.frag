@@ -14,7 +14,7 @@ layout(set = 2, binding = 3) uniform sampler2D s_depth;
 layout(set = 3, binding = 0) uniform UniformBlock {
 	vec4 lightData0;
 	vec4 lightData1;
-	mat4 projectionInv;
+	mat4 projection;
 
 #define lightDirection lightData0.xyz
 #define lightColor lightData1.rgb
@@ -24,9 +24,13 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 // reconstruct without matrix multiplication just using near plane and fov
 vec3 reconstructPosition(vec2 uv, float depth)
 {
-	vec4 ndc = vec4(uv.x * 2 - 1, uv.y * -2 + 1, depth, 1);
-	vec4 viewSpacePosition = projectionInv * ndc;
-	return viewSpacePosition.xyz / viewSpacePosition.w;
+	vec3 view;
+	view.z = -projection[3][2] / depth;
+	view.x = -(uv.x * 2 - 1) * view.z / projection[0][0];
+	view.y = -(1 - uv.y * 2) * view.z / projection[1][1];
+	return view;
+	//vec4 viewSpacePosition = projectionInv * ndc;
+	//return viewSpacePosition.xyz / viewSpacePosition.w;
 }
 
 void main()

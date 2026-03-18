@@ -347,6 +347,7 @@ static void RenderModelNode(Renderer* renderer, Model* model, Node* node, Animat
 
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform)
 {
+	SDL_assert(model);
 	RenderModelNode(renderer, model, &model->nodes[0], animation, transform);
 }
 
@@ -467,7 +468,7 @@ static float CalculateLightRadius(vec3 color)
 // proper pbr
 // atmospheric scattering
 
-void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], float near, float far, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
+void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], float near, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	mat4 pvInv = pv.inverted();
 	mat4 projectionInv = projection.inverted();
@@ -568,12 +569,12 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 			{
 				vec4 lightDirection;
 				vec4 lightColor;
-				mat4 projectionInv;
+				mat4 projection;
 			};
 			UniformData uniforms = {};
 			uniforms.lightDirection = vec4(lightDirection, 0);
 			uniforms.lightColor = vec4(lightColor, 0);
-			uniforms.projectionInv = projectionInv;
+			uniforms.projection = projection;
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 			SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 1];
@@ -616,11 +617,11 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 			struct UniformData
 			{
-				mat4 projectionInv;
+				mat4 projection;
 				vec4 viewTexel;
 			};
 			UniformData uniforms = {};
-			uniforms.projectionInv = projectionInv;
+			uniforms.projection = projection;
 			uniforms.viewTexel = vec4(1.0f / renderer->hdrTarget->width, 1.0f / renderer->hdrTarget->height, 0, 0);
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 

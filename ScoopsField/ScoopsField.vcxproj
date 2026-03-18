@@ -151,6 +151,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="src\game\entity\component\RestingSpot.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\game\Navmesh.cpp" />
     <ClCompile Include="src\game\player\action\Action.cpp" />
     <ClCompile Include="src\game\entity\action\EntityAttackAction.cpp" />
@@ -158,10 +162,6 @@
     <ClCompile Include="src\game\entity\action\EntityAction.cpp" />
     <ClCompile Include="src\game\entity\action\EntityStaggerAction.cpp" />
     <ClCompile Include="src\game\entity\Entity.cpp" />
-    <ClCompile Include="src\game\entity\Skeleton.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="src\game\item\Item.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -221,6 +221,7 @@
     <ClInclude Include="src\GameMemory.h" />
     <ClInclude Include="src\game\entity\component\Creature.h" />
     <ClInclude Include="src\game\entity\component\ItemEntity.h" />
+    <ClInclude Include="src\game\entity\component\RestingSpot.h" />
     <ClInclude Include="src\game\Navmesh.h" />
     <ClInclude Include="src\game\player\action\Action.h" />
     <ClInclude Include="src\game\entity\action\EntityAttackAction.h" />
@@ -235,7 +236,6 @@
     <ClInclude Include="src\game\player\action\SitAction.h" />
     <ClInclude Include="src\game\player\Player.h" />
     <ClInclude Include="src\file\Image.h" />
-    <ClInclude Include="src\game\entity\Skeleton.h" />
     <ClInclude Include="src\game\Game.h" />
     <ClInclude Include="src\game\item\Item.h" />
     <ClInclude Include="src\graphics\GraphicsPipeline.h" />

@@ -47,7 +47,7 @@ struct mat4
 	static mat4 Scale(const vec3& v);
 	static mat4 Transform(const vec3& position, const quat& rotation, const vec3& scale);
 
-	static mat4 Perspective(float fovy, float aspect, float near, float far);
+	static mat4 Perspective(float fovy, float aspect, float near);
 	static mat4 Orthographic(float left, float right, float bottom, float top, float near, float far);
 
 	static const mat4 Identity;

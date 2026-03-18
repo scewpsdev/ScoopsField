@@ -6,6 +6,7 @@
 
 #include "component/Creature.h"
 #include "component/ItemEntity.h"
+#include "component/RestingSpot.h"
 
 
 enum EntityPhysicsFilter
@@ -24,6 +25,7 @@ enum EntityType
 	ENTITY_TYPE_PLAYER,
 	ENTITY_TYPE_SKELETON,
 	ENTITY_TYPE_ITEM,
+	ENTITY_TYPE_RESTING_SPOT,
 
 	ENTITY_TYPE_LAST
 };
@@ -44,9 +46,15 @@ struct Entity
 
 	// transform
 	vec3 position;
+	quat rotation;
 
-	Optional<Creature> creature;
-	Optional<ItemEntity> item;
+	Model* model;
+
+	union {
+		Creature creature;
+		ItemEntity item;
+		RestingSpot restingSpot;
+	};
 };
 
 
@@ -58,3 +66,8 @@ bool InteractEntity(Entity* entity, Entity* by);
 
 void UpdateEntity(Entity* entity);
 void RenderEntity(Entity* entity);
+
+inline mat4 ModelMatrix(Entity* entity)
+{
+	return mat4::Translate(entity->position) * mat4::Rotate(entity->rotation);
+}
