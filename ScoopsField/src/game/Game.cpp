@@ -256,6 +256,9 @@ void GameUpdate()
 	game->pv = game->projection * game->view;
 	GetFrustumPlanes(game->pv, game->frustumPlanes);
 
+	vec3 test = vec3(0, 0, -5);
+	vec4 a = game->projection * vec4(test, 1);
+
 	if (GetKeyDown(SDL_SCANCODE_P))
 	{
 		PlaySound(&game->testSound);

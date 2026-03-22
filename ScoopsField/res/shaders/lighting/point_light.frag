@@ -20,10 +20,16 @@ layout(std140, set = 3, binding = 0) uniform UniformBlock {
 
 vec3 reconstructPosition(vec2 uv, float depth)
 {
+	vec2 ndc = vec2(uv.x * 2 - 1, 1 - uv.y * 2);
+	float near = projection[3][2];
+	float x = projection[0][0];
+	float y = projection[1][1];
+
 	vec3 view;
-	view.z = -projection[3][2] / depth;
-	view.x = -(uv.x * 2 - 1) * view.z / projection[0][0];
-	view.y = -(1 - uv.y * 2) * view.z / projection[1][1];
+	view.z = near / depth;
+	view.x = ndc.x * view.z / x;
+	view.y = ndc.y * view.z / y;
+	view.z *= -1; // right handed coordinate system
 	return view;
 }
 
