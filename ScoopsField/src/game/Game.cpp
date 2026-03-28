@@ -99,17 +99,17 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 
 	InitItemDatabase(&game->items, cmdBuffer);
 
-	//game->mesh = LoadMesh("res/models/monkey.glb.bin", cmdBuffer);
+	LoadModel(&game->cube, "res/models/cube.glb.bin", false, cmdBuffer);
 
-	LoadModel(&game->mapModel, "res/maps/testmap/testmap.gltf.bin", true, cmdBuffer);
+	//LoadModel(&game->mapModel, "res/maps/testmap/testmap.gltf.bin", true, cmdBuffer);
+	LoadModel(&game->mapModel, "res/maps/painted_world/painted_world.glb.bin", true, cmdBuffer);
+
 	InitRigidBody(&game->mapCollider, RIGID_BODY_STATIC, vec3::Zero, quat::Identity);
 	AddModelCollider(&game->mapCollider, &game->mapModel, vec3::Zero, quat::Identity, vec3::One, 1, 1, false);
 
 	Model* navmeshModel = (Model*)BumpAllocatorMalloc(&memory->transientAllocator, sizeof(Model));
 	LoadModel(navmeshModel, "res/maps/testmap/testmap_navmesh.glb.bin", true, cmdBuffer);
 	InitNavmesh(&game->mapNavmesh, navmeshModel);
-
-	LoadModel(&game->cube, "res/models/cube.glb.bin", false, cmdBuffer);
 
 	LoadSound(&game->testSound, "res/sounds/test.ogg.bin");
 	LoadSound(&game->ambientSound, "res/sounds/ambience.ogg.bin");
