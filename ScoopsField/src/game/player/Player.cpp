@@ -271,7 +271,7 @@ static mat4 CalculateViewBobbing(Player* player, int side)
 	// Vertical speed animation
 	float verticalSpeedAnimDst = player->velocity.y;
 	verticalSpeedAnimDst = clamp(verticalSpeedAnimDst, -5.0f, 5.0f);
-	player->viewBobVerticalSpeedAnim = mix(player->viewBobVerticalSpeedAnim, verticalSpeedAnimDst * 0.075f, 5 * deltaTime);
+	player->viewBobVerticalSpeedAnim = mix(player->viewBobVerticalSpeedAnim, verticalSpeedAnimDst * 0.1f, 5 * deltaTime);
 	pitchSway += player->viewBobVerticalSpeedAnim;
 
 	// Land bob animation

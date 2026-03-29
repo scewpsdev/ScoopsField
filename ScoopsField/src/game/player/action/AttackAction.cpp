@@ -83,7 +83,7 @@ void UpdateAttackAction(Action* action, Player* player)
 
 	bool damage = action->elapsedTime >= action->attack.attack->damageWindow.x && action->elapsedTime <= action->attack.attack->damageWindow.y;
 
-	action->moveSpeed = damage ? 0.5f : 1.0f;
+	action->moveSpeed = action->elapsedTime >= action->attack.attack->damageWindow.y ? 0.5f : 1.0f; // damage ? 0.5f : 1.0f;
 
 	if (damage)
 	{

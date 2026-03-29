@@ -129,7 +129,7 @@ struct Animation
 
 struct Model
 {
-#define MAX_MESHES 16
+#define MAX_MESHES 64
 	Mesh meshes[MAX_MESHES];
 	int numMeshes;
 
