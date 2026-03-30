@@ -157,8 +157,8 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer)
 	player->exhausted = false;
 
 	SetRightWeapon(player, 0, GetItem(ITEM_TYPE_LONGSWORD));
-	//SetRightWeapon(player, 1, GetItem(ITEM_TYPE_KINGS_SWORD));
-	//SetLeftWeapon(player, 1, GetItem(ITEM_TYPE_WOODEN_SHIELD));
+	SetRightWeapon(player, 1, GetItem(ITEM_TYPE_KINGS_SWORD));
+	SetLeftWeapon(player, 1, GetItem(ITEM_TYPE_WOODEN_SHIELD));
 }
 
 void DestroyPlayer(Player* player)

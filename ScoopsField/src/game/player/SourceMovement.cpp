@@ -157,14 +157,28 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 		}
 
 		ControllerCollisionFlags collisionFlags = MoveCharacterController(&player->controller, displacement, ENTITY_FILTER_DEFAULT);
+		vec3 newPosition = GetCharacterControllerPosition(&player->controller);
+
 		if (collisionFlags & CONTROLLER_COLLISION_DOWN)
 		{
-			if (player->velocity.y < -1)
+			if (player->velocity.y < -5)
 			{
 				player->lastLandedTime = gameTime;
 				OnLand(player);
 			}
-			player->velocity.y = 0; //max(player->velocity.y, -player->velocity.xz().length());
+			
+			if (newPosition.y < player->position.y)
+			{
+				vec3 movedDisplacement = newPosition - player->position;
+				vec3 movedVelocity = movedDisplacement / deltaTime;
+	
+				player->velocity.y = movedVelocity.y; //max(player->velocity.y, -player->velocity.xz().length());
+			}
+			else
+			{
+				player->velocity.y = 0;
+			}
+
 			player->grounded = true;
 		}
 		else
@@ -174,7 +188,7 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 
 		player->moving = xzSpeed > 1;
 
-		player->position = GetCharacterControllerPosition(&player->controller);
+		player->position = newPosition;
 		SetRigidBodyTransform(&player->kinematicBody, player->position, quat::Identity);
 	}
 	else
