@@ -200,6 +200,15 @@ def update_brush_sector_materials(ob):
     else:
         ob.material_slots[2].material = bpy.data.materials[scn.default_material]
 
+def update_brush_material(ob):
+    if len(ob.material_slots) < 1:
+        bpy.ops.object.material_slot_add()
+    
+    scn = bpy.context.scene
+    
+    if ob.material_slots[0].material == None:
+        ob.material_slots[0].material = bpy.data.materials[scn.default_material]
+
 
 # def update_brush_sector_materials(ob):
 #     matCount = 0
@@ -244,6 +253,8 @@ def update_brush(obj):
 
         if obj.brush_type == 'SECTOR':
             update_brush_sector_materials(obj)
+        else:
+            update_brush_material(obj)
 
         update_location_precision(obj)
 
