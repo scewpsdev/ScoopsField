@@ -37,7 +37,7 @@ void main()
 {
 	vec2 uv = gl_FragCoord.xy * u_viewTexel.xy;
 	float depth = texture(s_depth, uv).r;
-	if (depth == 1)
+	if (depth == 0)
 		discard;
 
 	vec3 position = reconstructPosition(uv, depth);

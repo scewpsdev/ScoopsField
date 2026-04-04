@@ -33,6 +33,11 @@ struct LightDrawData
 	vec3 color;
 };
 
+struct WorldDrawData
+{
+	vec3 sunDirection;
+};
+
 struct Renderer
 {
 	int width, height;
@@ -59,6 +64,7 @@ struct Renderer
 	Shader* directionalLightShader;
 	Shader* pointLightShader;
 	Shader* environmentLightShader;
+	Shader* skyShader;
 	Shader* tonemappingShader;
 
 	GraphicsPipeline* geometryPipeline;
@@ -67,6 +73,7 @@ struct Renderer
 	GraphicsPipeline* directionalLightPipeline;
 	GraphicsPipeline* pointLightPipeline;
 	GraphicsPipeline* environmentLightPipeline;
+	GraphicsPipeline* skyPipeline;
 	GraphicsPipeline* tonemappingPipeline;
 
 	SDL_GPUSampler* defaultSampler;
@@ -92,4 +99,4 @@ void ResizeRenderer(Renderer* renderer, int width, int height);
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform);
 void RenderLight(Renderer* renderer, vec3 position, vec3 color);
 
-void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], float near, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer);
+void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], float near, vec3 sunDirection, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer);

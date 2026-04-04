@@ -3,8 +3,6 @@
 
 void InitEntity(Entity* entity, EntityType type)
 {
-	SDL_memset(entity, 0, sizeof(Entity));
-
 	entity->type = type;
 }
 

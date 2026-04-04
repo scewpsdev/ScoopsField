@@ -117,13 +117,14 @@ void SwitchLoadout(Player* player, int loadout)
 #include "SourceMovement.cpp"
 
 
-void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer)
+void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, float rotation)
 {
 	SDL_memset(player, 0, sizeof(Player));
-
 	InitEntity(player, ENTITY_TYPE_PLAYER);
 
-	player->position = vec3(0, 3, 3);
+	player->position = position;
+	player->rotation = rotation;
+	player->yaw = rotation;
 
 	LoadModel(&player->model, "res/models/viewmodel.glb.bin", false, cmdBuffer);
 	InitAnimationState(&player->anim, &player->model);

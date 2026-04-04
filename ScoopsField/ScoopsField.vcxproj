@@ -321,6 +321,8 @@
     <None Include="res\shaders\mesh_animated.vert" />
     <None Include="res\shaders\screenquad.frag" />
     <None Include="res\shaders\screenquad.vert" />
+    <None Include="res\shaders\sky.frag" />
+    <None Include="res\shaders\sky.vert" />
     <None Include="res\shaders\tonemapping.frag" />
     <None Include="res\shaders\tonemapping.vert" />
     <None Include="res\shaders\glyph.frag" />

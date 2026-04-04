@@ -42,7 +42,7 @@ vec3 reconstructPosition(vec2 uv, float depth)
 void main()
 {
 	float depth = texture(s_depth, v_texcoord).r;
-	if (depth == 1)
+	if (depth == 0)
 		discard;
 
 	vec3 position = reconstructPosition(v_texcoord, depth);

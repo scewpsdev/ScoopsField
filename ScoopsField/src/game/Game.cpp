@@ -58,8 +58,6 @@ static void ResetGame(bool destroy)
 	}
 
 
-	InitPlayer(&game->player, cmdBuffer);
-
 	InitPool(&game->entities);
 
 	game->round = 0;
@@ -78,8 +76,35 @@ static void ResetGame(bool destroy)
 
 	game->mouseLocked = true;
 
-	Entity* carpet = PoolAlloc(&game->entities);
-	InitRestingSpot(carpet, vec3(0, 0, -4), quat::Identity);
+	game->playerSpawn = mat4::Identity;
+
+	for (int i = 0; i < game->mapModel.numNodes; i++)
+	{
+		Node* node = &game->mapModel.nodes[i];
+		if (SDL_strncmp(node->name, "Spawn", 5) == 0)
+		{
+			// spawn
+			game->playerSpawn = node->transform;
+		}
+		else if (SDL_strncmp(node->name, "Entity", 6) == 0)
+		{
+			// entity
+			SDL_assert(SDL_strlen(node->name) == 6 || node->name[6] == ' ' && SDL_strlen(node->name) > 7);
+			char entityType[32] = "";
+			char* entityTypeStart = node->name + 7;
+			char* entityTypeEnd = SDL_strchr(entityTypeStart, '#');
+			SDL_memcpy(entityType, entityTypeStart, (int)(entityTypeEnd - entityTypeStart));
+
+			if (SDL_strcmp(entityType, "carpet") == 0)
+			{
+				mat4 transform = node->transform;
+				Entity* carpet = PoolAlloc(&game->entities);
+				InitRestingSpot(carpet, transform.translation(), transform.rotation());
+			}
+		}
+	}
+
+	InitPlayer(&game->player, cmdBuffer, game->playerSpawn.translation(), game->playerSpawn.rotation().getAngle());
 
 	StartRound(1);
 }
@@ -325,7 +350,9 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	RendererShow(&game->renderer, game->cameraPosition, game->projection, game->view, game->pv, game->frustumPlanes, game->cameraNear, swapchain, cmdBuffer);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.2f) * vec3(1, 0, 0);
+
+	RendererShow(&game->renderer, game->cameraPosition, game->projection, game->view, game->pv, game->frustumPlanes, game->cameraNear, sunDirection, swapchain, cmdBuffer);
 
 	mat4 guiProjectionView = mat4::Orthographic(0, (float)app->width, 0, (float)app->height, -1, 1);
 	SetRenderer2DCamera(&game->guiRenderer, 0, guiProjectionView);

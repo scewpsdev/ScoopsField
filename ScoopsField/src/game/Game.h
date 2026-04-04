@@ -44,6 +44,8 @@ struct GameState
 #define MAX_ENTITIES 256
 	Pool<Entity, MAX_ENTITIES> entities;
 
+	mat4 playerSpawn;
+
 	int round;
 	int points;
 	float roundStartTimer;

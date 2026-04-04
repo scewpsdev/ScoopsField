@@ -148,6 +148,16 @@ static GraphicsPipeline* CreateEnvironmentLightPipeline(Renderer* renderer)
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
+static GraphicsPipeline* CreateSkyPipeline(Renderer* renderer)
+{
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->skyShader, renderer->hdrTarget, 1, &renderer->screenQuad.vertexBuffer->layout);
+
+	pipelineInfo.depthTest = false;
+	pipelineInfo.depthWrite = false;
+
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
 static GraphicsPipeline* CreateTonemappingPipeline(Renderer* renderer)
 {
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->tonemappingShader, nullptr, 1, &renderer->screenQuad.vertexBuffer->layout);
@@ -231,6 +241,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->directionalLightShader = LoadGraphicsShader("res/shaders/lighting/directional_light.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
 	renderer->pointLightShader = LoadGraphicsShader("res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
 	renderer->environmentLightShader = LoadGraphicsShader("res/shaders/lighting/environment_light.vert.bin", "res/shaders/lighting/environment_light.frag.bin");
+	renderer->skyShader = LoadGraphicsShader("res/shaders/sky.vert.bin", "res/shaders/sky.frag.bin");
 	renderer->tonemappingShader = LoadGraphicsShader("res/shaders/tonemapping.vert.bin", "res/shaders/tonemapping.frag.bin");
 
 	renderer->geometryPipeline = CreateGeometryPipeline(renderer);
@@ -239,6 +250,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->directionalLightPipeline = CreateDirectionalLightPipeline(renderer);
 	renderer->pointLightPipeline = CreatePointLightPipeline(renderer);
 	renderer->environmentLightPipeline = CreateEnvironmentLightPipeline(renderer);
+	renderer->skyPipeline = CreateSkyPipeline(renderer);
 	renderer->tonemappingPipeline = CreateTonemappingPipeline(renderer);
 
 	SDL_GPUSamplerCreateInfo samplerInfo = {};
@@ -306,7 +318,7 @@ void ResizeRenderer(Renderer* renderer, int width, int height)
 	if (renderer->gbuffer)
 		DestroyRenderTarget(renderer->gbuffer);
 	renderer->gbuffer = CreateGBuffer(width, height);
-	
+
 	if (renderer->hdrTarget)
 		DestroyRenderTarget(renderer->hdrTarget);
 	renderer->hdrTarget = CreateHDRTarget(width, height);
@@ -432,7 +444,7 @@ static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, Skele
 
 		UniformData uniforms = {};
 		uniforms.materialData0 = vec4(
-			material && material->diffuse ? 1.0f : 0.0f, 
+			material && material->diffuse ? 1.0f : 0.0f,
 			material && material->roughness ? 1.0f : 0.0f,
 			material && material->metallic ? 1.0f : 0.0f,
 			0);
@@ -468,7 +480,7 @@ static float CalculateLightRadius(vec3 color)
 // proper pbr
 // atmospheric scattering
 
-void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], float near, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
+void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], float near, vec3 sunDirection, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	mat4 pvInv = pv.inverted();
 	mat4 projectionInv = projection.inverted();
@@ -558,8 +570,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		{
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->directionalLightPipeline->pipeline);
 
-			vec3 lightDirection = -vec3(1, 2, 0.5).normalized();
-			lightDirection = (view * vec4(lightDirection, 0)).xyz;
+			vec3 lightDirection = (view * vec4(sunDirection, 0)).xyz;
 
 			vec3 lightColor = vec3(1, 1, 1);
 			float lightIntensity = 10;
@@ -637,6 +648,30 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 			SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, renderer->gbuffer->numColorAttachments + 1);
 
 			SDL_DrawGPUIndexedPrimitives(renderPass, renderer->cubeIndexBuffer->numIndices, renderer->pointLights.size, 0, 0, 0);
+		}
+
+		// sky
+		{
+			SDL_BindGPUGraphicsPipeline(renderPass, renderer->skyPipeline->pipeline);
+
+			struct UniformData
+			{
+				vec4 params;
+				mat4 projectionInv;
+				mat4 viewInv;
+			};
+			UniformData uniforms = {};
+			uniforms.params = vec4(sunDirection, 0);
+			uniforms.projectionInv = projectionInv;
+			uniforms.viewInv = viewInv;
+			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+
+			SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 1];
+			for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
+				gbufferTextures[i] = renderer->gbuffer->colorAttachments[i];
+			gbufferTextures[renderer->gbuffer->numColorAttachments] = renderer->gbuffer->depthAttachment;
+
+			RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 1, gbufferTextures, renderer->defaultSampler, cmdBuffer);
 		}
 
 		SDL_EndGPURenderPass(renderPass);

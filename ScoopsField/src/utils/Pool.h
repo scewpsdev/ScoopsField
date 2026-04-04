@@ -53,7 +53,9 @@ T* PoolAlloc(Pool<T, CAPACITY>* pool)
 	pool->freeHead = pool->freeList[idx];
 	pool->size++;
 	pool->occupied[idx] = true;
-	return &pool->data[idx];
+	T* data = &pool->data[idx];
+	SDL_memset(data, 0, sizeof(T));
+	return data;
 }
 
 template<typename T, int CAPACITY>

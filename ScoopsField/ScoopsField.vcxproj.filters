@@ -446,5 +446,7 @@
     <None Include="res\shaders\lighting\lighting.glsl" />
     <None Include="res\shaders\lighting\environment_light.vert" />
     <None Include="res\shaders\lighting\environment_light.frag" />
+    <None Include="res\shaders\sky.vert" />
+    <None Include="res\shaders\sky.frag" />
   </ItemGroup>
 </Project>
