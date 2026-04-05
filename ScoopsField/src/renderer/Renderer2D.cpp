@@ -258,7 +258,7 @@ void EndRenderer2D(Renderer2D* renderer, SDL_GPUCommandBuffer* cmdBuffer)
 
 	for (int i = 0; i < renderer->numLayers; i++)
 	{
-		RenderScreenQuad(&renderer->screenQuad, renderPass, 1, renderer->layers[i].renderTarget->colorAttachments, renderer->sampler, cmdBuffer);
+		RenderScreenQuad(&renderer->screenQuad, renderPass, 1, renderer->layers[i].renderTarget->colorAttachments, &renderer->sampler, cmdBuffer);
 	}
 
 	SDL_EndGPURenderPass(renderPass);

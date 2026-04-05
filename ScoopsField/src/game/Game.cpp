@@ -182,6 +182,8 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/directional_light.frag");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/point_light.vert");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/point_light.frag");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky.vert");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky.frag");
 
 	ResetGame(false);
 }
@@ -216,6 +218,12 @@ void GameUpdate()
 		app->platformCallbacks.compileResources();
 		ReloadGraphicsShader(game->renderer.pointLightShader, "res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
 		ReloadGraphicsPipeline(game->renderer.pointLightPipeline);
+	}
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/sky.frag"))
+	{
+		app->platformCallbacks.compileResources();
+		ReloadGraphicsShader(game->renderer.skyShader, "res/shaders/sky.vert.bin", "res/shaders/sky.frag.bin");
+		ReloadGraphicsPipeline(game->renderer.skyPipeline);
 	}
 
 	if (app->keys[SDL_SCANCODE_ESCAPE] && !app->lastKeys[SDL_SCANCODE_ESCAPE])
@@ -351,6 +359,8 @@ void GameRender()
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
 	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.2f) * vec3(1, 0, 0);
+	sunDirection.y = -fabsf(sunDirection.y);
+	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 
 	RendererShow(&game->renderer, game->cameraPosition, game->projection, game->view, game->pv, game->frustumPlanes, game->cameraNear, sunDirection, swapchain, cmdBuffer);
 

@@ -277,6 +277,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	emptyTextureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
 	renderer->emptyTexture = SDL_CreateGPUTexture(device, &emptyTextureInfo);
 
+	renderer->noiseTexture = LoadTexture("res/textures/noise.png.bin", cmdBuffer);
 	renderer->environmentMap = LoadTexture("res/textures/sky/sky_cubemap_equirect.png.bin", cmdBuffer);
 }
 
@@ -536,7 +537,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		{
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->copyDepthPipeline->pipeline);
 
-			RenderScreenQuad(&renderer->screenQuad, renderPass, 1, &renderer->gbuffer->depthAttachment, renderer->defaultSampler, cmdBuffer);
+			RenderScreenQuad(&renderer->screenQuad, renderPass, 1, &renderer->gbuffer->depthAttachment, &renderer->defaultSampler, cmdBuffer);
 		}
 
 		// environment light
@@ -563,7 +564,11 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 			gbufferTextures[renderer->gbuffer->numColorAttachments] = renderer->gbuffer->depthAttachment;
 			gbufferTextures[renderer->gbuffer->numColorAttachments + 1] = renderer->environmentMap->handle;
 
-			RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 2, gbufferTextures, renderer->defaultSampler, cmdBuffer);
+			SDL_GPUSampler* samplers[MAX_COLOR_ATTACHMENTS + 2];
+			for (int i = 0; i < MAX_COLOR_ATTACHMENTS + 2; i++)
+				samplers[i] = renderer->defaultSampler;
+
+			RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 2, gbufferTextures, samplers, cmdBuffer);
 		}
 
 		// directional lights
@@ -593,7 +598,11 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 				gbufferTextures[i] = renderer->gbuffer->colorAttachments[i];
 			gbufferTextures[renderer->gbuffer->numColorAttachments] = renderer->gbuffer->depthAttachment;
 
-			RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 1, gbufferTextures, renderer->defaultSampler, cmdBuffer);
+			SDL_GPUSampler* samplers[MAX_COLOR_ATTACHMENTS + 1];
+			for (int i = 0; i < MAX_COLOR_ATTACHMENTS + 1; i++)
+				samplers[i] = renderer->defaultSampler;
+
+			RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 1, gbufferTextures, samplers, cmdBuffer);
 		}
 
 		// point lights
@@ -661,17 +670,23 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 				mat4 viewInv;
 			};
 			UniformData uniforms = {};
-			uniforms.params = vec4(sunDirection, 0);
+			uniforms.params = vec4(sunDirection, gameTime);
 			uniforms.projectionInv = projectionInv;
 			uniforms.viewInv = viewInv;
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-			SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 1];
+			SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 2];
 			for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
 				gbufferTextures[i] = renderer->gbuffer->colorAttachments[i];
 			gbufferTextures[renderer->gbuffer->numColorAttachments] = renderer->gbuffer->depthAttachment;
+			gbufferTextures[renderer->gbuffer->numColorAttachments + 1] = renderer->noiseTexture->handle;
 
-			RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 1, gbufferTextures, renderer->defaultSampler, cmdBuffer);
+			SDL_GPUSampler* samplers[MAX_COLOR_ATTACHMENTS + 2];
+			for (int i = 0; i < MAX_COLOR_ATTACHMENTS + 2; i++)
+				samplers[i] = renderer->defaultSampler;
+			samplers[renderer->gbuffer->numColorAttachments + 1] = renderer->linearSampler;
+
+			RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 2, gbufferTextures, samplers, cmdBuffer);
 		}
 
 		SDL_EndGPURenderPass(renderPass);
@@ -688,7 +703,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->tonemappingPipeline->pipeline);
 
-		RenderScreenQuad(&renderer->screenQuad, renderPass, 1, &renderer->hdrTarget->colorAttachments[0], renderer->defaultSampler, cmdBuffer);
+		RenderScreenQuad(&renderer->screenQuad, renderPass, 1, &renderer->hdrTarget->colorAttachments[0], &renderer->defaultSampler, cmdBuffer);
 
 		SDL_EndGPURenderPass(renderPass);
 	}

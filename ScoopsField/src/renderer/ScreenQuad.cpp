@@ -29,7 +29,7 @@ void DestroyScreenQuad(ScreenQuad* quad)
 	DestroyVertexBuffer(quad->vertexBuffer);
 }
 
-void RenderScreenQuad(ScreenQuad* quad, SDL_GPURenderPass* renderPass, int numTextures, SDL_GPUTexture** textures, SDL_GPUSampler* sampler, SDL_GPUCommandBuffer* cmdBuffer)
+void RenderScreenQuad(ScreenQuad* quad, SDL_GPURenderPass* renderPass, int numTextures, SDL_GPUTexture** textures, SDL_GPUSampler** samplers, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	SDL_GPUBufferBinding bufferBindings[1];
 	bufferBindings[0].buffer = quad->vertexBuffer->buffer;
@@ -41,7 +41,7 @@ void RenderScreenQuad(ScreenQuad* quad, SDL_GPURenderPass* renderPass, int numTe
 	for (int i = 0; i < numTextures; i++)
 	{
 		textureBindings[i].texture = textures[i];
-		textureBindings[i].sampler = sampler;
+		textureBindings[i].sampler = samplers[i];
 	}
 
 	SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, numTextures);

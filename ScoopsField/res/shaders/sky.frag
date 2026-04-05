@@ -9,24 +9,33 @@ layout(set = 2, binding = 1) uniform sampler2D s_color;
 layout(set = 2, binding = 2) uniform sampler2D s_material;
 layout(set = 2, binding = 3) uniform sampler2D s_depth;
 
+layout(set = 2, binding = 4) uniform sampler2D s_noise;
+
 layout(set = 3, binding = 0) uniform UniformBlock {
 	vec4 params;
 	mat4 projectionInv;
 	mat4 viewInv;
 
 #define lightDirection params.xyz
+#define time params.w
 };
 
 
 #define pi 3.14159265359
 
 #define planetRadius 6360e3
-#define atmosphereRadius 6420e3
-#define rayleighScatter vec3(3.8e-6f, 13.5e-6f, 33.1e-6f)
+#define atmosphereRadius 6380e3
+#define rayleighScatter vec3(5.8e-6f, 13.5e-6f, 33.1e-6f)
 #define mieScatter 21e-6f
 #define rayleighHeightScale 7994
 #define mieHeightScale 1200
-#define mieAnisotropy 0.76
+#define mieAnisotropy 0.45 // 0.76
+#define ozoneAbsorption vec3(0.65e-6, 1.88e-6, 0.085e-6)
+#define minCloudHeight 5e3
+#define maxCloudHeight 8e3
+#define cloudCoverage 0.5
+#define cloudDensity 15.0
+#define cloudNoiseScale 2e-4
 
 #define numSamples 16
 #define numLightSamples 8
@@ -48,7 +57,59 @@ bool sphereIntersect(vec3 origin, vec3 dir, float radius, out float tmin, out fl
 	return true;
 }
 
-bool lightRay(vec3 origin, vec3 dir, out float odr, out float odm)
+// by iq
+float noise(vec3 x)
+{
+	return texture(s_noise, x.xz / 512).x;
+
+    vec3 p = floor(x);
+    vec3 f = fract(x);
+	f = f*f*(3.0-2.0*f);
+
+	vec2 uv = (p.xy+vec2(37.0,17.0)*p.z) + f.xy;
+	vec2 rg = texture( s_noise, (uv+ 0.5)/512.0, -100.0).yx;
+	return mix( rg.x, rg.y, f.z );
+}
+
+
+float fnoise(vec3 p, float t)
+{
+	p *= .25;
+
+    float f;
+	f = 0.5000 * noise(p); p = p * 3.02; p.y -= t*.1; //t*.05 speed cloud changes
+	f += 0.2500 * noise(p); p = p * 3.03; p.y += t*.06;
+	f += 0.1250 * noise(p); p = p * 3.01;
+	f += 0.0625 * noise(p); p =  p * 3.03;
+	f += 0.03125 * noise(p); p =  p * 3.02;
+	f += 0.015625 * noise(p);
+
+    return f;
+}
+
+float cloud(vec3 p, float t)
+{
+	float cld = fnoise(p * cloudNoiseScale, t) + cloudCoverage * 0.1;
+	cld = smoothstep(0.44, 0.64, cld);
+	cld *= cld * cloudDensity;
+	return cld;
+}
+
+void getDensities(vec3 position, float height, out float hr, out float hm, out float ho)
+{
+	hr = exp(-height / rayleighHeightScale);
+	hm = exp(-height / mieHeightScale);
+	ho = max(1 - abs(height - 10e3) / 10e3, 0);
+
+	if (height > minCloudHeight && height < maxCloudHeight)
+	{
+		float cld = cloud(position + vec3(5e2 * time, 0, 6e2 * time), time);
+		cld *= sin(pi * (height - minCloudHeight) / (maxCloudHeight - minCloudHeight));
+		hm += cld;
+	}
+}
+
+bool lightRay(vec3 origin, vec3 dir, out float odr, out float odm, out float odo)
 {
 	float tmin, tmax;
 	sphereIntersect(origin, dir, atmosphereRadius, tmin, tmax);
@@ -58,6 +119,7 @@ bool lightRay(vec3 origin, vec3 dir, out float odr, out float odm)
 
 	odr = 0;
 	odm = 0;
+	odo = 0;
 	for (int i = 0; i < numLightSamples; i++)
 	{
 		vec3 samplePosition = origin + (t + segmentLength * 0.5) * dir;
@@ -65,10 +127,16 @@ bool lightRay(vec3 origin, vec3 dir, out float odr, out float odm)
 		if (height < 0)
 			return false;
 
-		float hr = exp(-height / rayleighHeightScale) * segmentLength;
-		float hm = exp(-height / mieHeightScale) * segmentLength;
+		// optical depth
+		float hr, hm, ho;
+		getDensities(samplePosition, height, hr, hm, ho);
+		hr *= segmentLength;
+		hm *= segmentLength;
+		ho *= segmentLength;
+		
 		odr += hr;
 		odm += hm;
+		odo += ho;
 
 		t += segmentLength;
 	}
@@ -90,7 +158,7 @@ vec3 atmosphere(vec3 dir, vec3 lightDir)
 	float t = tmin;
 
 	vec3 rayleigh = vec3(0), mie = vec3(0);
-	float odr = 0, odm = 0; // cumulative optical depth
+	float odr = 0, odm = 0, odo = 0; // cumulative optical depth
 
 	vec3 toLight = -lightDir;
 	float m = dot(dir, toLight);
@@ -104,15 +172,20 @@ vec3 atmosphere(vec3 dir, vec3 lightDir)
 		float height = length(samplePosition) - planetRadius;
 
 		// optical depth
-		float hr = exp(-height / rayleighHeightScale) * segmentLength;
-		float hm = exp(-height / mieHeightScale) * segmentLength;
+		float hr, hm, ho;
+		getDensities(samplePosition, height, hr, hm, ho);
+		hr *= segmentLength;
+		hm *= segmentLength;
+		ho *= segmentLength;
+
 		odr += hr;
 		odm += hm;
+		odo += ho;
 
-		float odri = 0, odmi = 0;
-		if (lightRay(samplePosition, toLight, odri, odmi))
+		float odri = 0, odmi = 0, odoi = 0;
+		if (lightRay(samplePosition, toLight, odri, odmi, odoi))
 		{
-			vec3 tau = rayleighScatter * (odr + odri) + mieScatter * 1.1 * (odm + odmi);
+			vec3 tau = rayleighScatter * (odr + odri) + mieScatter * 1.1 * (odm + odmi) + ozoneAbsorption * (odo + odoi) * 1.5;
 			vec3 attenuation = exp(-tau);
 			rayleigh += attenuation * hr;
 			mie += attenuation * hm;
@@ -121,7 +194,7 @@ vec3 atmosphere(vec3 dir, vec3 lightDir)
 		t += segmentLength;
 	}
 
-	float sunIntensity = 20;
+	float sunIntensity = 25;
 	vec3 scattering = (rayleigh * rayleighScatter * phaseR + mie * mieScatter * phaseM) * sunIntensity;
 
 	return scattering;
