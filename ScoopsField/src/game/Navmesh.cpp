@@ -1,10 +1,12 @@
 #include "Navmesh.h"
 
-#include "Application.h"
+#include "GameMemory.h"
 
 #include "model/Model.h"
 
 #include "utils/StringUtils.h"
+
+#include <float.h>
 
 
 extern GameMemory* memory;

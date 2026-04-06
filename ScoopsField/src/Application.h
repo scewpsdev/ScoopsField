@@ -19,6 +19,7 @@
 #include "graphics/Texture.h"
 #include "graphics/RenderTarget.h"
 #include "graphics/GraphicsPipeline.h"
+#include "graphics/GPUTiming.h"
 
 #include "model/Model.h"
 #include "model/Animation.h"
@@ -88,6 +89,8 @@ struct AppState
 	SDL_Window* window;
 	SDL_GPUDevice* device;
 
+	GpuTimerContext gpuTiming;
+
 	uint64_t now;
 	uint64_t lastFrame;
 	uint64_t lastSecond;
@@ -95,6 +98,7 @@ struct AppState
 	int frameCounter;
 
 	int width, height;
+	bool debugStats;
 	int fps;
 	float avgMs;
 	int platformAllocationsPerFrame;

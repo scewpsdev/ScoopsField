@@ -2,6 +2,9 @@
 
 #include "Application.h"
 
+#include "graphics/GPUTiming.h"
+#include "graphics/GPUVulkan.h"
+
 
 struct LightInstanceData
 {
@@ -483,12 +486,16 @@ static float CalculateLightRadius(vec3 color)
 
 void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], float near, vec3 sunDirection, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
+	GPU_SCOPE("renderer");
+	
 	mat4 pvInv = pv.inverted();
 	mat4 projectionInv = projection.inverted();
 	mat4 viewInv = view.inverted();
 
 	// geometry pass
 	{
+		GPU_SCOPE("geometry pass");
+
 		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->gbuffer, cmdBuffer);
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->geometryPipeline->pipeline);
@@ -517,24 +524,33 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 	// lighting pass
 	{
-		// update point light data
-		SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
-		LightInstanceData* instanceData = (LightInstanceData*)renderer->pointLightInstanceTransferBuffer->mapped;
-		for (int i = 0; i < renderer->pointLights.size; i++)
-		{
-			vec3 position = renderer->pointLights[i].position;
-			vec3 color = renderer->pointLights[i].color;
-			instanceData[i].positionRadius = vec4(position, CalculateLightRadius(color));
-			instanceData[i].color = vec4(color, 0);
-		}
-		UpdateVertexBuffer(renderer->pointLightInstanceBuffer, 0, renderer->pointLights.size * sizeof(LightInstanceData), renderer->pointLightInstanceTransferBuffer->buffer, copyPass);
-		SDL_EndGPUCopyPass(copyPass); copyPass = nullptr;
+		GPU_SCOPE("lighting");
 
+		{
+			GPU_SCOPE("copy pass");
+
+			// update point light data
+			SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
+			LightInstanceData* instanceData = (LightInstanceData*)renderer->pointLightInstanceTransferBuffer->mapped;
+			for (int i = 0; i < renderer->pointLights.size; i++)
+			{
+				vec3 position = renderer->pointLights[i].position;
+				vec3 color = renderer->pointLights[i].color;
+				instanceData[i].positionRadius = vec4(position, CalculateLightRadius(color));
+				instanceData[i].color = vec4(color, 0);
+			}
+			UpdateVertexBuffer(renderer->pointLightInstanceBuffer, 0, renderer->pointLights.size * sizeof(LightInstanceData), renderer->pointLightInstanceTransferBuffer->buffer, copyPass);
+			SDL_EndGPUCopyPass(copyPass); copyPass = nullptr;
+		}
+
+		GPU_SCOPE("render pass");
 
 		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->hdrTarget, cmdBuffer);
 
 		// copy depth
 		{
+			GPU_SCOPE("copy depth");
+
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->copyDepthPipeline->pipeline);
 
 			RenderScreenQuad(&renderer->screenQuad, renderPass, 1, &renderer->gbuffer->depthAttachment, &renderer->defaultSampler, cmdBuffer);
@@ -542,6 +558,8 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 		// environment light
 		{
+			GPU_SCOPE("environment");
+
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->environmentLightPipeline->pipeline);
 
 			float environmentIntensity = 1.0f;
@@ -573,6 +591,8 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 		// directional lights
 		{
+			GPU_SCOPE("sun");
+
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->directionalLightPipeline->pipeline);
 
 			vec3 lightDirection = (view * vec4(sunDirection, 0)).xyz;
@@ -607,6 +627,8 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 		// point lights
 		{
+			GPU_SCOPE("point lights");
+
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->pointLightPipeline->pipeline);
 
 			SDL_GPUBufferBinding vertexBindings[2];
@@ -661,6 +683,8 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 		// sky
 		{
+			GPU_SCOPE("sky");
+
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->skyPipeline->pipeline);
 
 			struct UniformData
@@ -694,6 +718,8 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 	// tonemapping
 	{
+		GPU_SCOPE("tonemap");
+
 		SDL_GPUColorTargetInfo colorTarget = {};
 		colorTarget.load_op = SDL_GPU_LOADOP_DONT_CARE;
 		colorTarget.store_op = SDL_GPU_STOREOP_STORE;

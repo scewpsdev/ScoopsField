@@ -1,5 +1,8 @@
 #version 460
 
+#pragma optimize(off)
+#pragma debug(on)
+
 layout (location = 0) in vec2 v_texcoord;
 
 layout (location = 0) out vec4 out_color;
@@ -57,11 +60,19 @@ bool sphereIntersect(vec3 origin, vec3 dir, float radius, out float tmin, out fl
 	return true;
 }
 
-// by iq
-float noise(vec3 x)
+float triangle(float x)
 {
-	return texture(s_noise, x.xz / 512).x;
+    return abs(mod(x, 1.0) * 2.0 - 1.0);
+}
 
+// by iq
+float noise(vec3 pos)
+{
+	vec3 n = texture(s_noise, pos.xz / 512).rgb;
+	float t = 2 * triangle(pos.z / 512);
+	return mix(n.r, n.g, t - floor(t));
+
+	/*
     vec3 p = floor(x);
     vec3 f = fract(x);
 	f = f*f*(3.0-2.0*f);
@@ -69,6 +80,7 @@ float noise(vec3 x)
 	vec2 uv = (p.xy+vec2(37.0,17.0)*p.z) + f.xy;
 	vec2 rg = texture( s_noise, (uv+ 0.5)/512.0, -100.0).yx;
 	return mix( rg.x, rg.y, f.z );
+	*/
 }
 
 
@@ -77,10 +89,10 @@ float fnoise(vec3 p, float t)
 	p *= .25;
 
     float f;
-	f = 0.5000 * noise(p); p = p * 3.02; p.y -= t*.1; //t*.05 speed cloud changes
-	f += 0.2500 * noise(p); p = p * 3.03; p.y += t*.06;
-	f += 0.1250 * noise(p); p = p * 3.01;
-	f += 0.0625 * noise(p); p =  p * 3.03;
+	f = 0.5000 * noise(p); p = p * 3.02; // p.y -= t*.1*10; //t*.05 speed cloud changes
+	f += 0.2500 * noise(p); p = p * 3.03; // p.y += t*.06*10;
+	f += 0.1250 * noise(p); p = p * 3.01;  p.xz += t * 2; // detail noise moves at a different speed from cloud shapes
+	f += 0.0625 * noise(p); p =  p * 3.03;  p.xz -= t * 4; // detail noise moves at a different speed from cloud shapes
 	f += 0.03125 * noise(p); p =  p * 3.02;
 	f += 0.015625 * noise(p);
 

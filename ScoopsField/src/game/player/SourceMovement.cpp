@@ -82,8 +82,7 @@ static vec3 updateVelocityGround(vec3& velocity, const vec3& wishdir, float maxS
 
 	return velocity;
 }
-
-vec3 updateVelocityAir(vec3& velocity, const vec3& wishdir, float maxSpeed, const vec3& forward, const vec3& right, const vec3& up)
+static vec3 updateVelocityAir(vec3& velocity, const vec3& wishdir, float maxSpeed, const vec3& forward, const vec3& right, const vec3& up)
 {
 	velocity.y = velocity.y + 0.5f * GRAVITY * deltaTime;
 

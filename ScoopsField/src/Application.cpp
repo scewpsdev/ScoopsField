@@ -135,6 +135,7 @@ void GUIPanel(int x, int y, Texture* texture)
 }
 
 
+#include "graphics/GPUTiming.cpp"
 #include "game/Game.cpp"
 
 
@@ -270,6 +271,8 @@ static AppState* InitAppState()
 
 	appState->window = window;
 	appState->device = device;
+
+	InitGPUTimer(&appState->gpuTiming, device);
 
 	return appState;
 }
@@ -421,6 +424,8 @@ static void RenderDebugStats()
 	DebugText(0, 2, COLOR_WHITE, COLOR_BLACK, "physics %s, %d allocations, %d per frame", physicsMemoryUsageStr, memory->physicsAllocationCount, app->physicsAllocationsPerFrame);
 	DebugText(0, 3, COLOR_WHITE, COLOR_BLACK, "constant %s, %d allocations", memoryUsageStr, memory->constantAllocator.count);
 	DebugText(0, 4, COLOR_WHITE, COLOR_BLACK, "transient %s, %d allocations", transientMemoryUsageStr, memory->transientAllocator.count);
+
+	PrintGPUTimers(&app->gpuTiming, 0, 5);
 }
 
 extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
@@ -439,6 +444,9 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 	else
 	{
 		deltaTime = (app->now - app->lastFrame) / 1e9f;
+
+		const float maxDelta = 0.05f;
+		deltaTime = min(deltaTime, maxDelta);
 	}
 
 	app->gameTime += deltaTime;
@@ -483,12 +491,23 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 
 	cmdBuffer = SDL_AcquireGPUCommandBuffer(device);
 
+	BeginGPUTimerFrame(&app->gpuTiming, device, cmdBuffer);
+
+	BeginGPUTimer(cmdBuffer, "frame");
+
 	EndPhysicsFrame(&app->physics);
 
 	GameUpdate();
 
 	DebugTextRendererBegin(&app->debugTextRenderer);
-	RenderDebugStats();
+
+	if (GetKeyDown(SDL_SCANCODE_F10))
+		app->debugStats = !app->debugStats;
+	if (app->debugStats)
+		RenderDebugStats();
+	else
+		DebugText(0, 0, COLOR_WHITE, COLOR_TRANSPARENT, "%d", app->fps);
+	
 	GameRender();
 
 	StartPhysicsFrame(&app->physics);
@@ -499,8 +518,12 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 	GameShowFrame(cmdBuffer);
 	DebugTextRendererEnd(&app->debugTextRenderer, app->width, app->height, cmdBuffer);
 
+	EndGPUTimer(cmdBuffer); // frame
+
 	SDL_SubmitGPUCommandBuffer(cmdBuffer); cmdBuffer = nullptr;
 	swapchain = nullptr;
+
+	ResolveGPUTimers(&app->gpuTiming, device);
 
 	ResetBumpAllocator(&memory->transientAllocator);
 
