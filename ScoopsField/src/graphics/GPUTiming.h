@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef GPU_TIMING
+
 #include "GPUVulkan.h"
 
 #include "utils/HashMap.h"
@@ -56,6 +58,16 @@ struct GpuTimerContext
 	int numCumulativeFrames;
 	int64_t lastTimerReset;
 };
+
+#else
+
+struct GpuTimerContext
+{
+};
+
+#define GPU_SCOPE(name)
+
+#endif
 
 
 void BeginGPUTimer(SDL_GPUCommandBuffer* cmdBuffer, const char* label);

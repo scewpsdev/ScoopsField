@@ -1,5 +1,7 @@
 #pragma once
 
+#define GPU_TIMING
+
 #include <SDL3/SDL.h>
 
 #include <stdlib.h>
@@ -19,6 +21,7 @@
 #include "graphics/Texture.h"
 #include "graphics/RenderTarget.h"
 #include "graphics/GraphicsPipeline.h"
+
 #include "graphics/GPUTiming.h"
 
 #include "model/Model.h"

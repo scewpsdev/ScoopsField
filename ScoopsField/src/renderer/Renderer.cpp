@@ -280,7 +280,29 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	emptyTextureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
 	renderer->emptyTexture = SDL_CreateGPUTexture(device, &emptyTextureInfo);
 
-	renderer->noiseTexture = LoadTexture("res/textures/noise.png.bin", cmdBuffer);
+	{
+		const int width = 256, height = 32, depth = 256;
+		uint8_t* noise = BumpAllocatorMalloc(&memory->transientAllocator, width * height * depth);
+
+		Random random;
+		InitRandom(&random, 12345);
+		random.nextBytes(noise, width * height * depth);
+
+		TextureInfo textureInfo = {};
+		textureInfo.format = SDL_GPU_TEXTUREFORMAT_R8_UNORM;
+		textureInfo.width = width;
+		textureInfo.height = height;
+		textureInfo.depth = depth;
+		textureInfo.numMips = 1;
+		textureInfo.numLayers = 1;
+		textureInfo.numFaces = 1;
+
+		renderer->valueNoise3D = LoadTextureFromData(noise, width * height * depth, &textureInfo, cmdBuffer);
+	}
+
+	renderer->blueNoise = LoadTexture("res/textures/bluenoise.png.bin", cmdBuffer);
+
+	//renderer->noiseTexture = LoadTexture("res/textures/noise.png.bin", cmdBuffer);
 	renderer->environmentMap = LoadTexture("res/textures/sky/sky_cubemap_equirect.png.bin", cmdBuffer);
 }
 
@@ -699,18 +721,19 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 			uniforms.viewInv = viewInv;
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-			SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 2];
+			SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 3];
 			for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
 				gbufferTextures[i] = renderer->gbuffer->colorAttachments[i];
 			gbufferTextures[renderer->gbuffer->numColorAttachments] = renderer->gbuffer->depthAttachment;
-			gbufferTextures[renderer->gbuffer->numColorAttachments + 1] = renderer->noiseTexture->handle;
+			gbufferTextures[renderer->gbuffer->numColorAttachments + 1] = renderer->valueNoise3D->handle;
+			gbufferTextures[renderer->gbuffer->numColorAttachments + 2] = renderer->blueNoise->handle;
 
-			SDL_GPUSampler* samplers[MAX_COLOR_ATTACHMENTS + 2];
-			for (int i = 0; i < MAX_COLOR_ATTACHMENTS + 2; i++)
+			SDL_GPUSampler* samplers[MAX_COLOR_ATTACHMENTS + 3];
+			for (int i = 0; i < MAX_COLOR_ATTACHMENTS + 3; i++)
 				samplers[i] = renderer->defaultSampler;
 			samplers[renderer->gbuffer->numColorAttachments + 1] = renderer->linearSampler;
 
-			RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 2, gbufferTextures, samplers, cmdBuffer);
+			RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 3, gbufferTextures, samplers, cmdBuffer);
 		}
 
 		SDL_EndGPURenderPass(renderPass);

@@ -1,6 +1,8 @@
 #include "GPUTiming.h"
 
 
+#ifdef GPU_TIMING
+
 #define GPU_TIMER_RESET 2000
 
 
@@ -187,3 +189,31 @@ void PrintGPUTimers(GpuTimerContext* ctx, int x, int y)
 			PrintNode(ctx, f, x, y, i, 0);
 	}
 }
+
+#else
+
+void InitGPUTimer(GpuTimerContext* ctx, SDL_GPUDevice* device)
+{
+}
+
+void BeginGPUTimerFrame(GpuTimerContext* ctx, SDL_GPUDevice* device, SDL_GPUCommandBuffer* cmdBuffer)
+{
+}
+
+void BeginGPUTimer(SDL_GPUCommandBuffer* cmdBuffer, const char* label)
+{
+}
+
+void EndGPUTimer(SDL_GPUCommandBuffer* cmdBuffer)
+{
+}
+
+void ResolveGPUTimers(GpuTimerContext* ctx, SDL_GPUDevice* device)
+{
+}
+
+void PrintGPUTimers(GpuTimerContext* ctx, int x, int y)
+{
+}
+
+#endif

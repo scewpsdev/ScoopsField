@@ -88,7 +88,9 @@ struct Renderer
 #define MAX_POINT_LIGHT_DRAWS 256
 	List<LightDrawData, MAX_POINT_LIGHT_DRAWS> pointLights;
 
-	Texture* noiseTexture;
+	Texture* valueNoise3D;
+	Texture* blueNoise;
+
 	Texture* environmentMap;
 };
 

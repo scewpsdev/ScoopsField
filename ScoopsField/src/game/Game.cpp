@@ -284,7 +284,8 @@ void GameUpdate()
 		}
 	}
 
-	game->projection = mat4::Perspective(90 * Deg2Rad, app->width / (float)app->height, game->cameraNear);
+	float fov = GetKey(SDL_SCANCODE_C) ? 30.0f : 90.0f;
+	game->projection = mat4::Perspective(fov * Deg2Rad, app->width / (float)app->height, game->cameraNear);
 	game->view = mat4::Rotate(game->cameraRotation.conjugated()) * mat4::Translate(-game->cameraPosition);
 	game->pv = game->projection * game->view;
 	GetFrustumPlanes(game->pv, game->frustumPlanes);
@@ -358,7 +359,7 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.2f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.02f) * vec3(1, 0, 0);
 	sunDirection.y = -fabsf(sunDirection.y);
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 

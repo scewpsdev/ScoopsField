@@ -53,7 +53,7 @@ struct Random
 		for (int i = 0; i < numInts; i++)
 		{
 			uint32_t i32 = next();
-			memcpy(&bytes[i * 4], &i32, min(4, size - numInts * 4));
+			memcpy(&bytes[i * 4], &i32, min(4, size - i * 4));
 		}
 	}
 };
