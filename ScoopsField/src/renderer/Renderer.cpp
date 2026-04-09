@@ -27,6 +27,7 @@ static const uint16_t cubeIndices[36] = {
 };
 
 
+extern AppState* app;
 extern GameMemory* memory;
 extern SDL_Window* window;
 extern SDL_GPUDevice* device;
@@ -105,7 +106,7 @@ static RenderTarget* CreateHalfResTarget(int width, int height)
 	hdrDepthInfo.storeOp = SDL_GPU_STOREOP_STORE;
 	hdrDepthInfo.clearDepth = 1;
 
-	return CreateRenderTarget(width, height, 1, &hdrTargetInfo, &hdrDepthInfo);
+	return CreateRenderTarget(width / 2, height / 2, 1, &hdrTargetInfo, &hdrDepthInfo);
 }
 
 static GraphicsPipeline* CreateGeometryPipeline(Renderer* renderer)
@@ -170,7 +171,7 @@ static GraphicsPipeline* CreateEnvironmentLightPipeline(Renderer* renderer)
 
 static GraphicsPipeline* CreateSkyPipeline(Renderer* renderer)
 {
-	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->skyShader, renderer->halfResTarget, 1, &renderer->screenQuad.vertexBuffer->layout);
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->skyShader, renderer->skyTarget, 1, &renderer->screenQuad.vertexBuffer->layout);
 
 	//pipelineInfo.depthTest = false;
 	//pipelineInfo.depthWrite = false;
@@ -207,7 +208,8 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->depthTexture = CreateDepthTarget(width, height);
 	renderer->gbuffer = CreateGBuffer(width, height);
 	renderer->hdrTarget = CreateHDRTarget(width, height);
-	renderer->halfResTarget = CreateHalfResTarget(width, height);
+	renderer->skyTarget = CreateHalfResTarget(width, height);
+	renderer->skyTarget2 = CreateHalfResTarget(width, height);
 
 	// position
 	renderer->meshLayout[0].numAttributes = 1;
@@ -381,9 +383,13 @@ void ResizeRenderer(Renderer* renderer, int width, int height)
 		DestroyRenderTarget(renderer->hdrTarget);
 	renderer->hdrTarget = CreateHDRTarget(width, height);
 
-	if (renderer->halfResTarget)
-		DestroyRenderTarget(renderer->halfResTarget);
-	renderer->halfResTarget = CreateHalfResTarget(width, height);
+	if (renderer->skyTarget)
+		DestroyRenderTarget(renderer->skyTarget);
+	renderer->skyTarget = CreateHalfResTarget(width, height);
+
+	if (renderer->skyTarget2)
+		DestroyRenderTarget(renderer->skyTarget2);
+	renderer->skyTarget2 = CreateHalfResTarget(width, height);
 }
 
 void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonState* skeleton, mat4 transform)
@@ -584,35 +590,41 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 	{
 		GPU_SCOPE("sky");
 
-		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->halfResTarget, cmdBuffer);
+		RenderTarget* rt = app->frameIdx % 2 == 0 ? renderer->skyTarget : renderer->skyTarget2;
+		RenderTarget* rt2 = app->frameIdx % 2 == 0 ? renderer->skyTarget2 : renderer->skyTarget;
+
+		SDL_GPURenderPass* renderPass = BindRenderTarget(rt, cmdBuffer);
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->skyPipeline->pipeline);
 
 		struct UniformData
 		{
 			vec4 params;
+			vec4 params2;
 			mat4 projectionInv;
 			mat4 viewInv;
 		};
 		UniformData uniforms = {};
 		uniforms.params = vec4(sunDirection, gameTime);
+		uniforms.params2 = vec4((float)app->frameIdx, 0, 0, 0);
 		uniforms.projectionInv = projectionInv;
 		uniforms.viewInv = viewInv;
 		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-		SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 3];
+		SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 4];
 		for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
 			gbufferTextures[i] = renderer->gbuffer->colorAttachments[i];
 		gbufferTextures[renderer->gbuffer->numColorAttachments] = renderer->gbuffer->depthAttachment;
 		gbufferTextures[renderer->gbuffer->numColorAttachments + 1] = renderer->valueNoise3D->handle;
 		gbufferTextures[renderer->gbuffer->numColorAttachments + 2] = renderer->blueNoise->handle;
+		gbufferTextures[renderer->gbuffer->numColorAttachments + 3] = rt2->colorAttachments[0];
 
-		SDL_GPUSampler* samplers[MAX_COLOR_ATTACHMENTS + 3];
-		for (int i = 0; i < MAX_COLOR_ATTACHMENTS + 3; i++)
+		SDL_GPUSampler* samplers[MAX_COLOR_ATTACHMENTS + 4];
+		for (int i = 0; i < MAX_COLOR_ATTACHMENTS + 4; i++)
 			samplers[i] = renderer->defaultSampler;
 		samplers[renderer->gbuffer->numColorAttachments + 1] = renderer->linearSampler;
 
-		RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 3, gbufferTextures, samplers, cmdBuffer);
+		RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 4, gbufferTextures, samplers, cmdBuffer);
 
 		SDL_EndGPURenderPass(renderPass);
 	}
@@ -782,9 +794,11 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->skyUpsamplePipeline->pipeline);
 
+			RenderTarget* rt = app->frameIdx % 2 == 0 ? renderer->skyTarget : renderer->skyTarget2;
+
 			SDL_GPUTexture* textures[3];
-			textures[0] = renderer->halfResTarget->colorAttachments[0];
-			textures[1] = renderer->halfResTarget->depthAttachment;
+			textures[0] = rt->colorAttachments[0];
+			textures[1] = rt->depthAttachment;
 			textures[2] = renderer->gbuffer->depthAttachment;
 
 			SDL_GPUSampler* samplers[3];

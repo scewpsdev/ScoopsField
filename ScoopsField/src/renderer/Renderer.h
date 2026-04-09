@@ -45,7 +45,8 @@ struct Renderer
 	SDL_GPUTexture* depthTexture;
 	RenderTarget* gbuffer;
 	RenderTarget* hdrTarget;
-	RenderTarget* halfResTarget;
+	RenderTarget* skyTarget;
+	RenderTarget* skyTarget2;
 
 #define NUM_MESH_BUFFER_LAYOUTS 3
 	VertexBufferLayout meshLayout[NUM_MESH_BUFFER_LAYOUTS];

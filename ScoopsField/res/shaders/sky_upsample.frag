@@ -33,14 +33,14 @@ void main()
 	float sum = 0;
 
 	processSample(v_texcoord, color, sum);
-	processSample(v_texcoord + texel, color, sum);
-	processSample(v_texcoord - texel, color, sum);
-	processSample(v_texcoord + vec2(texel.x, -texel.y), color, sum);
-	processSample(v_texcoord + vec2(-texel.x, texel.y), color, sum);
-	processSample(v_texcoord + vec2(texel.x, 0), color, sum);
-	processSample(v_texcoord + vec2(-texel.x, 0), color, sum);
-	processSample(v_texcoord + vec2(0, texel.y), color, sum);
-	processSample(v_texcoord + vec2(0, -texel.y), color, sum);
+	//processSample(v_texcoord + texel, color, sum);
+	//processSample(v_texcoord - texel, color, sum);
+	//processSample(v_texcoord + vec2(texel.x, -texel.y), color, sum);
+	//processSample(v_texcoord + vec2(-texel.x, texel.y), color, sum);
+	//processSample(v_texcoord + vec2(texel.x, 0), color, sum);
+	//processSample(v_texcoord + vec2(-texel.x, 0), color, sum);
+	//processSample(v_texcoord + vec2(0, texel.y), color, sum);
+	//processSample(v_texcoord + vec2(0, -texel.y), color, sum);
 
 	color /= sum;
 	out_color = vec4(color.rgb, 1);

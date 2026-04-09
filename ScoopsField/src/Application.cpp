@@ -460,12 +460,13 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 
 	if (app->now - app->lastSecond >= 1e9)
 	{
-		app->fps = app->frameCounter;
+		int numFrames = app->frameIdx - app->lastSecondFrame;
+		app->fps = numFrames;
 
-		app->avgMs = app->frameTime / 1e6f / app->frameCounter;
+		app->avgMs = app->frameTime / 1e6f / numFrames;
 
 		app->frameTime = 0;
-		app->frameCounter = 0;
+		app->lastSecondFrame = app->frameIdx;
 		app->lastSecond = app->now;
 
 		app->platformAllocationsPerFrame = 0;
@@ -527,7 +528,7 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 
 	ResetBumpAllocator(&memory->transientAllocator);
 
-	app->frameCounter++;
+	app->frameIdx++;
 
 	app->lastFrame = app->now;
 

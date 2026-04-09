@@ -98,7 +98,8 @@ struct AppState
 	uint64_t lastFrame;
 	uint64_t lastSecond;
 	uint64_t frameTime;
-	int frameCounter;
+	int frameIdx;
+	int lastSecondFrame;
 
 	int width, height;
 	bool debugStats;

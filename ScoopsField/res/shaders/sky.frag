@@ -12,13 +12,17 @@ layout(set = 2, binding = 3) uniform sampler2D s_depth;
 layout(set = 2, binding = 4) uniform sampler3D s_noise;
 layout(set = 2, binding = 5) uniform sampler2D s_bluenoise;
 
+layout(set = 2, binding = 6) uniform sampler2D s_lastFrame;
+
 layout(set = 3, binding = 0) uniform UniformBlock {
 	vec4 params;
+	vec4 params2;
 	mat4 projectionInv;
 	mat4 viewInv;
 
 #define lightDirection params.xyz
 #define time params.w
+#define frameIdx int(params2.x + 0.5)
 };
 
 
@@ -32,7 +36,7 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 #define mieHeightScale 1200
 #define mieAnisotropy 0.45 // 0.76
 #define ozoneAbsorption vec3(0.65e-6, 1.88e-6, 0.085e-6)
-#define haze 0.1
+#define haze 0.0
 #define sunConcentration 0.9999
 #define minCloudHeight 5e3
 #define maxCloudHeight 8e3
@@ -125,6 +129,18 @@ void getDensities(vec3 position, float height, out float hr, out float hm, out f
 	}
 }
 
+float bluenoise(vec2 coord)
+{
+	vec2 size = textureSize(s_bluenoise, 0);
+	vec2 uv = coord / size;
+	return texture(s_bluenoise, uv).r;
+}
+
+float hash(vec2 p)
+{
+    return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453);
+}
+
 bool lightRay(vec3 origin, vec3 dir, out float odr, out float odm, out float odo)
 {
 	float tmin, tmax;
@@ -136,7 +152,7 @@ bool lightRay(vec3 origin, vec3 dir, out float odr, out float odm, out float odo
 	odm = 0;
 	odo = 0;
 
-	for (float t = 0.5 * segmentLength; t < tmax; t += segmentLength)
+	for (float t = 0; t < tmax; t += segmentLength)
 	{
 		vec3 samplePosition = origin + t * dir;
 		float height = length(samplePosition) - planetRadius;
@@ -160,16 +176,9 @@ bool lightRay(vec3 origin, vec3 dir, out float odr, out float odm, out float odo
 	return true;
 }
 
-float bluenoise()
-{
-	vec2 size = textureSize(s_bluenoise, 0);
-	vec2 uv = gl_FragCoord.xy / size;
-	return texture(s_bluenoise, uv).r;
-}
-
 vec3 atmosphere(vec3 dir, vec3 lightDir)
 {
-	vec3 origin = vec3(0, planetRadius, 0);
+	vec3 origin = vec3(0, planetRadius + 1000, 0);
 
 	float tmin, tmax;
 	if (!sphereIntersect(origin, dir, atmosphereRadius, tmin, tmax) || tmax < 0)
@@ -193,8 +202,10 @@ vec3 atmosphere(vec3 dir, vec3 lightDir)
 		((2 + sunConcentration * sunConcentration) * pow(1 + sunConcentration * sunConcentration - 2 * sunConcentration * ms, 1.5));
 	phaseS *= 1 - exp(-max(dir.y + 0.012, 0) * 1000);
 
-	for (float t = tmin + segmentLength * bluenoise(); t < tmax; t += segmentLength)
+	for (int i = 0; i < numSamples; i++)
 	{
+		float xi = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875);
+		float t = tmin + (i + xi) * segmentLength;
 		vec3 samplePosition = origin + t * dir;
 		// length(samplePosition) is faster than samplePosition.y ???
 		float height = length(samplePosition) - planetRadius;
@@ -262,6 +273,10 @@ void main()
 	view = mat3(viewInv) * view;
 
 	vec3 color = atmosphere(view, lightDirection);
+
+	// accumulation
+	vec3 lastColor = texture(s_lastFrame, v_texcoord).rgb;
+	color = mix(color, lastColor, 0.9);
 
 	out_color = vec4(color, 1);
 }
