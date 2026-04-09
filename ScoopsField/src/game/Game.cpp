@@ -184,6 +184,8 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/point_light.frag");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky.vert");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky.frag");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky_upsample.vert");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky_upsample.frag");
 
 	ResetGame(false);
 }
@@ -224,6 +226,12 @@ void GameUpdate()
 		app->platformCallbacks.compileResources();
 		ReloadGraphicsShader(game->renderer.skyShader, "res/shaders/sky.vert.bin", "res/shaders/sky.frag.bin");
 		ReloadGraphicsPipeline(game->renderer.skyPipeline);
+	}
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky_upsample.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/sky_upsample.frag"))
+	{
+		app->platformCallbacks.compileResources();
+		ReloadGraphicsShader(game->renderer.skyUpsampleShader, "res/shaders/sky_upsample.vert.bin", "res/shaders/sky_upsample.frag.bin");
+		ReloadGraphicsPipeline(game->renderer.skyUpsamplePipeline);
 	}
 
 	if (app->keys[SDL_SCANCODE_ESCAPE] && !app->lastKeys[SDL_SCANCODE_ESCAPE])

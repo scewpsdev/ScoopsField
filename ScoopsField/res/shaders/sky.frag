@@ -1,7 +1,5 @@
 #version 460
 
-#pragma optimize(off)
-
 layout (location = 0) in vec2 v_texcoord;
 
 layout (location = 0) out vec4 out_color;
@@ -34,11 +32,11 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 #define mieHeightScale 1200
 #define mieAnisotropy 0.45 // 0.76
 #define ozoneAbsorption vec3(0.65e-6, 1.88e-6, 0.085e-6)
-#define haze 0.0
+#define haze 0.1
 #define sunConcentration 0.9999
 #define minCloudHeight 5e3
 #define maxCloudHeight 8e3
-#define cloudCoverage 0.2
+#define cloudCoverage 0.5
 #define cloudDensity 25.0
 #define cloudNoiseScale 2e-4
 
@@ -142,8 +140,9 @@ bool lightRay(vec3 origin, vec3 dir, out float odr, out float odm, out float odo
 	{
 		vec3 samplePosition = origin + t * dir;
 		float height = length(samplePosition) - planetRadius;
-		if (height < 0)
-			return false;
+		// apparently this is slow
+		//if (height < 0)
+		//	return false;
 
 		// optical depth
 		float hr, hm, ho;
@@ -170,7 +169,7 @@ float bluenoise()
 
 vec3 atmosphere(vec3 dir, vec3 lightDir)
 {
-	vec3 origin = vec3(0, planetRadius + 1, 0);
+	vec3 origin = vec3(0, planetRadius, 0);
 
 	float tmin, tmax;
 	if (!sphereIntersect(origin, dir, atmosphereRadius, tmin, tmax) || tmax < 0)
@@ -197,7 +196,10 @@ vec3 atmosphere(vec3 dir, vec3 lightDir)
 	for (float t = tmin + segmentLength * bluenoise(); t < tmax; t += segmentLength)
 	{
 		vec3 samplePosition = origin + t * dir;
+		// length(samplePosition) is faster than samplePosition.y ???
 		float height = length(samplePosition) - planetRadius;
+		if (height <= 0 && dir.y < 0)
+			break;
 
 		// optical depth
 		float hr, hm, ho;
@@ -248,8 +250,13 @@ vec3 reconstructView(vec2 uv, mat4 projectionInv)
 void main()
 {
 	float depth = texture(s_depth, v_texcoord).r;
+	gl_FragDepth = depth;
+
 	if (depth != 0)
-		discard;
+	{
+		out_color = vec4(0);
+		return;
+	}
 
 	vec3 view = reconstructView(v_texcoord, projectionInv); // view space direction
 	view = mat3(viewInv) * view;

@@ -45,6 +45,7 @@ struct Renderer
 	SDL_GPUTexture* depthTexture;
 	RenderTarget* gbuffer;
 	RenderTarget* hdrTarget;
+	RenderTarget* halfResTarget;
 
 #define NUM_MESH_BUFFER_LAYOUTS 3
 	VertexBufferLayout meshLayout[NUM_MESH_BUFFER_LAYOUTS];
@@ -65,6 +66,7 @@ struct Renderer
 	Shader* pointLightShader;
 	Shader* environmentLightShader;
 	Shader* skyShader;
+	Shader* skyUpsampleShader;
 	Shader* tonemappingShader;
 
 	GraphicsPipeline* geometryPipeline;
@@ -74,6 +76,7 @@ struct Renderer
 	GraphicsPipeline* pointLightPipeline;
 	GraphicsPipeline* environmentLightPipeline;
 	GraphicsPipeline* skyPipeline;
+	GraphicsPipeline* skyUpsamplePipeline;
 	GraphicsPipeline* tonemappingPipeline;
 
 	SDL_GPUSampler* defaultSampler;
