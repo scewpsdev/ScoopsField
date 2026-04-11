@@ -6,6 +6,9 @@
 #include "graphics/GPUVulkan.h"
 
 
+#include "CloudNoise.cpp"
+
+
 struct LightInstanceData
 {
 	vec4 positionRadius;
@@ -100,13 +103,7 @@ static RenderTarget* CreateHalfResTarget(int width, int height)
 	hdrTargetInfo.storeOp = SDL_GPU_STOREOP_STORE;
 	hdrTargetInfo.clearColor = { 0, 0, 0, 0 };
 
-	DepthAttachmentInfo hdrDepthInfo = {};
-	hdrDepthInfo.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
-	hdrDepthInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
-	hdrDepthInfo.storeOp = SDL_GPU_STOREOP_STORE;
-	hdrDepthInfo.clearDepth = 1;
-
-	return CreateRenderTarget(width / 2, height / 2, 1, &hdrTargetInfo, &hdrDepthInfo);
+	return CreateRenderTarget(width / 2, height / 2, 1, &hdrTargetInfo, nullptr);
 }
 
 static GraphicsPipeline* CreateGeometryPipeline(Renderer* renderer)
@@ -293,6 +290,12 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	SDL_GPUSamplerCreateInfo samplerInfo = {};
 	renderer->defaultSampler = SDL_CreateGPUSampler(device, &samplerInfo);
 
+	SDL_GPUSamplerCreateInfo clampedSamplerInfo = {};
+	clampedSamplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+	clampedSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+	clampedSamplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+	renderer->clampedSampler = SDL_CreateGPUSampler(device, &clampedSamplerInfo);
+
 	SDL_GPUSamplerCreateInfo linearSamplerInfo = {};
 	linearSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	linearSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
@@ -314,30 +317,14 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	emptyTextureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
 	renderer->emptyTexture = SDL_CreateGPUTexture(device, &emptyTextureInfo);
 
-	{
-		const int width = 256, height = 32, depth = 256;
-		uint8_t* noise = BumpAllocatorMalloc(&memory->transientAllocator, width * height * depth);
-
-		Random random;
-		InitRandom(&random, 12345);
-		random.nextBytes(noise, width * height * depth);
-
-		TextureInfo textureInfo = {};
-		textureInfo.format = SDL_GPU_TEXTUREFORMAT_R8_UNORM;
-		textureInfo.width = width;
-		textureInfo.height = height;
-		textureInfo.depth = depth;
-		textureInfo.numMips = 1;
-		textureInfo.numLayers = 1;
-		textureInfo.numFaces = 1;
-
-		renderer->valueNoise3D = LoadTextureFromData(noise, width * height * depth, &textureInfo, cmdBuffer);
-	}
-
 	renderer->blueNoise = LoadTexture("res/textures/bluenoise.png.bin", cmdBuffer);
 
 	//renderer->noiseTexture = LoadTexture("res/textures/noise.png.bin", cmdBuffer);
 	renderer->environmentMap = LoadTexture("res/textures/sky/sky_cubemap_equirect.png.bin", cmdBuffer);
+
+	renderer->cloudCoverage = GenerateCloudCoverage(cmdBuffer);
+	renderer->cloudLowFrequency = GenerateCloudLowFrequency(cmdBuffer);
+	renderer->cloudHighFrequency = GenerateCloudHighFrequency(cmdBuffer);
 }
 
 void DestroyRenderer(Renderer* renderer)
@@ -603,28 +590,35 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 			vec4 params2;
 			mat4 projectionInv;
 			mat4 viewInv;
-		};
+			mat4 lastProjection;
+			mat4 lastView;
+		}; 
 		UniformData uniforms = {};
 		uniforms.params = vec4(sunDirection, gameTime);
 		uniforms.params2 = vec4((float)app->frameIdx, 0, 0, 0);
 		uniforms.projectionInv = projectionInv;
 		uniforms.viewInv = viewInv;
+		uniforms.lastProjection = renderer->lastProjection;
+		uniforms.lastView = renderer->lastView;
 		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-		SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 4];
-		for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
-			gbufferTextures[i] = renderer->gbuffer->colorAttachments[i];
-		gbufferTextures[renderer->gbuffer->numColorAttachments] = renderer->gbuffer->depthAttachment;
-		gbufferTextures[renderer->gbuffer->numColorAttachments + 1] = renderer->valueNoise3D->handle;
-		gbufferTextures[renderer->gbuffer->numColorAttachments + 2] = renderer->blueNoise->handle;
-		gbufferTextures[renderer->gbuffer->numColorAttachments + 3] = rt2->colorAttachments[0];
+		SDL_GPUTexture* gbufferTextures[6];
+		gbufferTextures[0] = renderer->gbuffer->depthAttachment;
+		gbufferTextures[1] = renderer->cloudCoverage->handle;
+		gbufferTextures[2] = renderer->cloudLowFrequency->handle;
+		gbufferTextures[3] = renderer->cloudHighFrequency->handle;
+		gbufferTextures[4] = renderer->blueNoise->handle;
+		gbufferTextures[5] = rt2->colorAttachments[0];
 
-		SDL_GPUSampler* samplers[MAX_COLOR_ATTACHMENTS + 4];
-		for (int i = 0; i < MAX_COLOR_ATTACHMENTS + 4; i++)
-			samplers[i] = renderer->defaultSampler;
-		samplers[renderer->gbuffer->numColorAttachments + 1] = renderer->linearSampler;
+		SDL_GPUSampler* samplers[6];
+		samplers[0] = renderer->defaultSampler;
+		samplers[1] = renderer->linearSampler;
+		samplers[2] = renderer->linearSampler;
+		samplers[3] = renderer->linearSampler;
+		samplers[4] = renderer->defaultSampler;
+		samplers[5] = renderer->defaultSampler;
 
-		RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 4, gbufferTextures, samplers, cmdBuffer);
+		RenderScreenQuad(&renderer->screenQuad, renderPass, 6, gbufferTextures, samplers, cmdBuffer);
 
 		SDL_EndGPURenderPass(renderPass);
 	}
@@ -798,15 +792,13 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 			SDL_GPUTexture* textures[3];
 			textures[0] = rt->colorAttachments[0];
-			textures[1] = rt->depthAttachment;
-			textures[2] = renderer->gbuffer->depthAttachment;
+			textures[1] = renderer->gbuffer->depthAttachment;
 
 			SDL_GPUSampler* samplers[3];
-			samplers[0] = renderer->defaultSampler;
-			samplers[1] = renderer->defaultSampler;
-			samplers[2] = renderer->defaultSampler;
+			samplers[0] = renderer->clampedSampler;
+			samplers[1] = renderer->clampedSampler;
 
-			RenderScreenQuad(&renderer->screenQuad, renderPass, 3, textures, samplers, cmdBuffer);
+			RenderScreenQuad(&renderer->screenQuad, renderPass, 2, textures, samplers, cmdBuffer);
 		}
 
 		SDL_EndGPURenderPass(renderPass);
@@ -829,6 +821,9 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 		SDL_EndGPURenderPass(renderPass);
 	}
+
+	renderer->lastProjection = projection;
+	renderer->lastView = view;
 
 	renderer->meshes.clear();
 	renderer->animatedMeshes.clear();

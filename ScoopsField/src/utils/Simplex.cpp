@@ -305,6 +305,22 @@ float Simplex2f(float x, float y)
 	return 70.0f * (n0 + n1 + n2);
 }
 
+float Simplex2fTiled(float x, float y, float frequency, float loopX, float loopY, int seed)
+{
+	const float TWO_PI = 6.28318530718f;
+
+	float nx = x / loopX;
+	float ny = y / loopY;
+
+	float cx = cosf(TWO_PI * nx);
+	float sx = sinf(TWO_PI * nx);
+
+	float cy = cosf(TWO_PI * ny);
+	float sy = sinf(TWO_PI * ny);
+
+	return Simplex4f(cx * frequency + seed * 123.456f, sx * frequency, cy * frequency, sy * frequency);
+}
+
 float Simplex3f(float x, float y, float z)
 {
 	float n0, n1, n2, n3; // Noise contributions from the four corners

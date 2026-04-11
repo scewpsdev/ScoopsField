@@ -168,6 +168,9 @@
     <ClCompile Include="src\graphics\GPUTiming.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\renderer\CloudNoise.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\spirv_cross\spirv.h">
@@ -447,7 +450,7 @@
     <None Include="res\shaders\mesh.vert" />
     <None Include="res\shaders\lighting\point_light.frag" />
     <None Include="res\shaders\lighting\point_light.vert" />
-    <None Include="res\shaders\common.shader" />
+    <None Include="res\shaders\common.glsl" />
     <None Include="res\shaders\tonemapping.frag" />
     <None Include="res\shaders\tonemapping.vert" />
     <None Include="res\shaders\copy_depth.frag" />

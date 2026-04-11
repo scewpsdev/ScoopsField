@@ -212,6 +212,10 @@
     <ClCompile Include="src\physics\CharacterController.cpp" />
     <ClCompile Include="src\physics\Physics.cpp" />
     <ClCompile Include="src\physics\RigidBody.cpp" />
+    <ClCompile Include="src\renderer\CloudNoise.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\renderer\DebugTextRenderer.cpp" />
     <ClCompile Include="src\renderer\Renderer.cpp" />
     <ClCompile Include="src\renderer\Renderer2D.cpp" />
@@ -321,7 +325,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\clear_buffer.comp" />
-    <None Include="res\shaders\common.shader" />
+    <None Include="res\shaders\common.glsl" />
     <None Include="res\shaders\copy_depth.frag" />
     <None Include="res\shaders\copy_depth.vert" />
     <None Include="res\shaders\lighting\environment_light.frag" />

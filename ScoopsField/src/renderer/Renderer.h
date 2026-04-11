@@ -42,6 +42,8 @@ struct Renderer
 {
 	int width, height;
 
+	mat4 lastProjection, lastView;
+
 	SDL_GPUTexture* depthTexture;
 	RenderTarget* gbuffer;
 	RenderTarget* hdrTarget;
@@ -81,6 +83,7 @@ struct Renderer
 	GraphicsPipeline* tonemappingPipeline;
 
 	SDL_GPUSampler* defaultSampler;
+	SDL_GPUSampler* clampedSampler;
 	SDL_GPUSampler* linearSampler;
 	SDL_GPUBuffer* emptyBuffer;
 	SDL_GPUTexture* emptyTexture;
@@ -92,10 +95,12 @@ struct Renderer
 #define MAX_POINT_LIGHT_DRAWS 256
 	List<LightDrawData, MAX_POINT_LIGHT_DRAWS> pointLights;
 
-	Texture* valueNoise3D;
 	Texture* blueNoise;
-
 	Texture* environmentMap;
+
+	Texture* cloudCoverage;
+	Texture* cloudLowFrequency;
+	Texture* cloudHighFrequency;
 };
 
 

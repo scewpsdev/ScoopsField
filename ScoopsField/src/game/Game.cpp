@@ -66,7 +66,7 @@ static void ResetGame(bool destroy)
 	game->numSkeletonsRemaining = 0;
 	game->gameOverTimer = -1;
 
-	game->ambientSource = PlaySound(&game->ambientSound, 0.5f);
+	//game->ambientSource = PlaySound(&game->ambientSound, 0.5f);
 
 	game->cameraPosition = vec3(0, 0, 3);
 	//game->cameraPitch = -0.4f * PI;
@@ -367,7 +367,7 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.02f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -(0 - 20) * 0.05f) * vec3(1, 0, 0);
 	sunDirection.y = -fabsf(sunDirection.y);
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 

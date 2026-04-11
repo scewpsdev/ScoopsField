@@ -37,7 +37,7 @@ void RenderScreenQuad(ScreenQuad* quad, SDL_GPURenderPass* renderPass, int numTe
 
 	SDL_BindGPUVertexBuffers(renderPass, 0, bufferBindings, 1);
 
-	SDL_GPUTextureSamplerBinding textureBindings[8];
+	SDL_GPUTextureSamplerBinding textureBindings[16];
 	for (int i = 0; i < numTextures; i++)
 	{
 		textureBindings[i].texture = textures[i];

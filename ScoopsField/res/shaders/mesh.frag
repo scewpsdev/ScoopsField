@@ -1,6 +1,6 @@
 #version 460
 
-#include "common.shader"
+#include "common.glsl"
 
 layout (location = 0) in vec3 v_normal;
 layout (location = 1) in vec2 v_texcoord;

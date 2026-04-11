@@ -1,24 +1,27 @@
 #version 460
 
+#include "common.glsl"
+
 layout (location = 0) in vec2 v_texcoord;
 
 layout (location = 0) out vec4 out_color;
 
-layout(set = 2, binding = 0) uniform sampler2D s_normal;
-layout(set = 2, binding = 1) uniform sampler2D s_color;
-layout(set = 2, binding = 2) uniform sampler2D s_material;
-layout(set = 2, binding = 3) uniform sampler2D s_depth;
+layout(set = 2, binding = 0) uniform sampler2D s_depth;
 
-layout(set = 2, binding = 4) uniform sampler3D s_noise;
-layout(set = 2, binding = 5) uniform sampler2D s_bluenoise;
+layout(set = 2, binding = 1) uniform sampler2D s_cloudCoverage;
+layout(set = 2, binding = 2) uniform sampler3D s_cloudLowFrequency;
+layout(set = 2, binding = 3) uniform sampler3D s_cloudHighFrequency;
 
-layout(set = 2, binding = 6) uniform sampler2D s_lastFrame;
+layout(set = 2, binding = 4) uniform sampler2D s_bluenoise;
+layout(set = 2, binding = 5) uniform sampler2D s_lastFrame;
 
 layout(set = 3, binding = 0) uniform UniformBlock {
 	vec4 params;
 	vec4 params2;
 	mat4 projectionInv;
 	mat4 viewInv;
+	mat4 lastProjection;
+	mat4 lastView;
 
 #define lightDirection params.xyz
 #define time params.w
@@ -41,7 +44,7 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 #define minCloudHeight 5e3
 #define maxCloudHeight 8e3
 #define cloudCoverage 0.5
-#define cloudDensity 25.0
+#define cloudDensity 15
 #define cloudNoiseScale 2e-4
 
 #define numSamples 16
@@ -64,33 +67,10 @@ bool sphereIntersect(vec3 origin, vec3 dir, float radius, out float tmin, out fl
 	return true;
 }
 
-float triangle(float x)
-{
-    return abs(mod(x, 1.0) * 2.0 - 1.0);
-}
-
-// by iq
 float noise(vec3 pos)
 {
-	return texture(s_noise, pos / vec3(256, 32, 256)).r;
-
-	/*
-	vec3 n = texture(s_noise, vec3(pos.x, 0, pos.z) / 256).rgb;
-	float t = 2 * triangle(pos.y / 256);
-	return mix(n.r, n.g, t - floor(t));
-	*/
-
-	/*
-    vec3 p = floor(x);
-    vec3 f = fract(x);
-	f = f*f*(3.0-2.0*f);
-
-	vec2 uv = (p.xy+vec2(37.0,17.0)*p.z) + f.xy;
-	vec2 rg = texture( s_noise, (uv+ 0.5)/512.0, -100.0).yx;
-	return mix( rg.x, rg.y, f.z );
-	*/
+	return texture(s_cloudLowFrequency, pos.xzy / vec3(256, 256, 64)).r;
 }
-
 
 float fnoise(vec3 p, float t)
 {
@@ -107,12 +87,55 @@ float fnoise(vec3 p, float t)
     return f;
 }
 
-float clouds(vec3 p, float t)
+float clouds(vec3 p, float height, float t)
 {
+	p += vec3(5e2 * t, 0, 6e2 * t);
+
 	float cld = fnoise(p * cloudNoiseScale, t) + (cloudCoverage - 0.5) * 0.5;
 	cld = smoothstep(0.44, 0.64, cld);
 	cld *= cld * cloudDensity;
+
+	float heightPercentage = (height - minCloudHeight) / (maxCloudHeight - minCloudHeight);
+	float heightGradient = sin(pi * (0.25 + 0.75 * heightPercentage));
+
 	return cld;
+}
+
+float clouds2(vec3 p, float height, float t)
+{
+	float lowFrequency = texture(s_cloudLowFrequency, p.xzy / vec3(256, 256, 64) * cloudNoiseScale * 20).r;
+	lowFrequency = smoothstep(0.1, 0.5, lowFrequency);
+	float highFrequency = texture(s_cloudHighFrequency, p.xzy / vec3(32, 32, 32) * 50).r;
+	float baseDensity = remap(lowFrequency, highFrequency * 0.5, 1, 0, 1);
+
+	float coverage = clamp(cloudCoverage - 0.5 + texture(s_cloudCoverage, p.xz / vec2(128, 128) * 2 * cloudNoiseScale).r, 0, 1);
+	//coverage = step(0.5, coverage);
+	float heightPercentage = (height - minCloudHeight) / (maxCloudHeight - minCloudHeight);
+	float heightGradient = sin(pi * (0.25 + 0.75 * heightPercentage));
+
+	float cld = smoothstep(0.3, 0.7, coverage) * baseDensity; //remap(0.75, 1 - coverage, 1, 0, 1);
+	cld = clamp(cld, 0, 1);
+
+	return cld * cloudDensity;
+
+	/*
+	float lowFrequency = texture(s_cloudLowFrequency, p.xzy / vec3(512, 512, 64) * 5).r;
+	//float highFrequency = texture(s_cloudHighFrequency, p.xzy / vec3(32, 32, 32) * 50).r;
+	float baseDensity = lowFrequency; //remap(lowFrequency, highFrequency, 1, 0, 1);
+
+	float coverage = texture(s_cloudCoverage, p.xz / vec2(128, 128) * 0.25).r;
+	float heightGradient = 1.0; //sin(pi * (height - minCloudHeight) / (maxCloudHeight - minCloudHeight));
+
+	float cld = remap(baseDensity * heightGradient, coverage, 1, 0, 1);
+
+	return cld * cloudDensity;
+	*/
+
+	//float cld = fnoise(p * cloudNoiseScale, t); // + (cloudCoverage - 0.5) * 0.5;
+	//cld = smoothstep(0.44, 0.64, cld);
+	//cld -= 1 - cloudCoverage;
+	//cld *= cld * cloudDensity;
+	//return cld;
 }
 
 void getDensities(vec3 position, float height, out float hr, out float hm, out float ho)
@@ -123,8 +146,8 @@ void getDensities(vec3 position, float height, out float hr, out float hm, out f
 
 	if (height > minCloudHeight && height < maxCloudHeight)
 	{
-		float cld = clouds(position + vec3(5e2 * time, 0, 6e2 * time), time);
-		cld *= sin(pi * (height - minCloudHeight) / (maxCloudHeight - minCloudHeight));
+		float cld = clouds(position, height, time);
+		//cld *= sin(pi * (height - minCloudHeight) / (maxCloudHeight - minCloudHeight));
 		hm += cld;
 	}
 }
@@ -152,8 +175,10 @@ bool lightRay(vec3 origin, vec3 dir, out float odr, out float odm, out float odo
 	odm = 0;
 	odo = 0;
 
-	for (float t = 0; t < tmax; t += segmentLength)
+	for (int i = 0; i < numLightSamples; i++)
 	{
+		float xi = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875);
+		float t = (i) * segmentLength;
 		vec3 samplePosition = origin + t * dir;
 		float height = length(samplePosition) - planetRadius;
 		// apparently this is slow
@@ -186,7 +211,9 @@ vec3 atmosphere(vec3 dir, vec3 lightDir)
 	if (tmin < 0)
 		tmin = 0;
 
-	float segmentLength = (tmax - tmin) / numSamples;
+	float l = tmax - tmin;
+	float ldt = 1.0 / numSamples;
+	float segmentLength = l * ldt;
 
 	vec3 rayleigh = vec3(0), mie = vec3(0);
 	float odr = 0, odm = 0, odo = 0; // cumulative optical depth
@@ -204,9 +231,20 @@ vec3 atmosphere(vec3 dir, vec3 lightDir)
 
 	for (int i = 0; i < numSamples; i++)
 	{
-		float xi = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875);
-		float t = tmin + (i + xi) * segmentLength;
+		float xi = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
+
+		float u0 = (i + xi) * ldt;
+		float u1 = (i + 1 + xi) * ldt;
+		float u = (i + 0.5 + xi) * ldt;
+
+		float t0 = tmin + l * u0 * u0;
+		float t1 = tmin + l * u1 * u1;
+		float t = tmin + l * u * u;
+
+		float dt = t1 - t0;
+
 		vec3 samplePosition = origin + t * dir;
+
 		// length(samplePosition) is faster than samplePosition.y ???
 		float height = length(samplePosition) - planetRadius;
 		if (height <= 0 && dir.y < 0)
@@ -216,9 +254,9 @@ vec3 atmosphere(vec3 dir, vec3 lightDir)
 		float hr, hm, ho;
 		getDensities(samplePosition, height, hr, hm, ho);
 
-		hr *= segmentLength;
-		hm *= segmentLength;
-		ho *= segmentLength;
+		hr *= dt;
+		hm *= dt;
+		ho *= dt;
 
 		odr += hr;
 		odm += hm;
@@ -240,7 +278,7 @@ vec3 atmosphere(vec3 dir, vec3 lightDir)
 	return scattering;
 }
 
-vec3 reconstructView(vec2 uv, mat4 projectionInv)
+vec3 reconstructView(vec2 uv, mat4 projectionInv, mat4 viewInv)
 {
 	vec2 ndc = vec2(uv.x * 2 - 1, uv.y * -2 + 1);
 
@@ -253,9 +291,22 @@ vec3 reconstructView(vec2 uv, mat4 projectionInv)
 	dir.x = ndc.x * projectionInv[0][0];
 	dir.y = ndc.y * projectionInv[1][1];
 	dir.z = -1;
+
+	dir = mat3(viewInv) * dir;
 	dir = normalize(dir);
 
 	return dir;
+}
+
+vec2 reconstructUV(vec3 dir, mat4 projection, mat4 view)
+{
+	dir = normalize(mat3(view) * dir);
+
+	vec4 clip = projection * vec4(dir, 1);
+	vec2 ndc = clip.xy / clip.w;
+	vec2 uv = vec2(ndc.x * 0.5 + 0.5, ndc.y * -0.5 + 0.5);
+	
+	return uv;
 }
 
 void main()
@@ -269,14 +320,22 @@ void main()
 		return;
 	}
 
-	vec3 view = reconstructView(v_texcoord, projectionInv); // view space direction
-	view = mat3(viewInv) * view;
+	vec3 view = reconstructView(v_texcoord, projectionInv, viewInv); // view space direction
 
 	vec3 color = atmosphere(view, lightDirection);
 
 	// accumulation
-	vec3 lastColor = texture(s_lastFrame, v_texcoord).rgb;
-	color = mix(color, lastColor, 0.9);
+	vec2 lastUV = reconstructUV(view, lastProjection, lastView);
+	if (lastUV.x >= 0 && lastUV.x <= 1 && lastUV.y >= 0 && lastUV.y <= 1)
+	{
+		float lastDepth = texture(s_depth, lastUV).r;
+		if (lastDepth == 0)
+		{
+			vec4 lastColor = texture(s_lastFrame, lastUV);
+			if (lastColor.a == 1)
+				color = mix(color, lastColor.rgb, 0.9);
+		}
+	}
 
 	out_color = vec4(color, 1);
 }
