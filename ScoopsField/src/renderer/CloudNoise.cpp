@@ -48,14 +48,14 @@ static Texture* GenerateCloudCoverage(SDL_GPUCommandBuffer* cmdBuffer)
 	const int width = 128, height = 128;
 	uint8_t* noise = (uint8_t*)SDL_malloc(width * height);
 
-	Random random(1234567);
+	Random random(12345);
 
 	for (int y = 0; y < height; y++)
 	{
 		for (int x = 0; x < width; x++)
 		{
-			float h = hashLinear(x / 3.0f, y / 3.0f, 0, width / 3, height / 3, 256, 0);
-			float i = hashLinear((float)x, (float)y, 123, width, height, 256, 1);
+			float h = hashLinear(x / 3.0f, y / 3.0f, 0, width / 3, height / 3, 128 / 3, 0);
+			float i = hashLinear((float)x, (float)y, 5.12f, width, height, 128, 1);
 			float value = h * 0.666f + i * 0.333f;
 			noise[x + y * width] = (uint8_t)clamp(roundf(value * 256), 0, 255);
 		}

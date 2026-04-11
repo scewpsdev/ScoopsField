@@ -43,7 +43,7 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 #define sunConcentration 0.9999
 #define minCloudHeight 5e3
 #define maxCloudHeight 8e3
-#define cloudCoverage 0.6
+#define cloudCoverage 0.5
 #define cloudDensity 15
 #define cloudNoiseScale 2e-4
 
@@ -67,14 +67,19 @@ bool sphereIntersect(vec3 origin, vec3 dir, float radius, out float tmin, out fl
 	return true;
 }
 
+float coveragenoise(vec3 pos)
+{
+	return texture(s_cloudCoverage, pos.xz / vec2(128, 128)).r;
+}
+
 float noise(vec3 pos)
 {
-	return texture(s_cloudLowFrequency, pos.xzy / vec3(256, 256, 64)).r;
+	return texture(s_cloudLowFrequency, pos.xzy / vec3(256, 256, 64) + vec3(0.081)).r;
 }
 
 float fnoise(vec3 p, float t)
 {
-	p *= .25;
+	p *= 0.25;
 
     float f = 0;
 
@@ -88,7 +93,7 @@ float fnoise(vec3 p, float t)
 	f += 0.750000 * noise(p); p = p * 9.02; p.xz += t * 0.75;
 	f += 0.187500 * noise(p); p = p * 9.01; p.xz -= t * 4; // detail noise moves at a different speed from cloud shapes
 	f /= 0.95;
-	f = remap(f / 0.95, 0.16875 * noise(p), 1, 0, 1); //; p = p * 9.03;
+	f = remap(f, 0.06875 * noise(p), 1, 0, 1); //; p = p * 9.03;
 
     return f;
 }
@@ -98,7 +103,7 @@ float clouds(vec3 p, float height, float t)
 	//p += vec3(5e2 * t, 0, 6e2 * t);
 
 	float cld = fnoise(p * cloudNoiseScale, t) + (cloudCoverage - 0.5) * 0.5;
-	cld = smoothstep(0.44, 0.64, cld);
+	cld = smoothstep(0.53, 0.55, cld);
 	cld *= cld * cloudDensity;
 
 	float heightPercentage = (height - minCloudHeight) / (maxCloudHeight - minCloudHeight);
