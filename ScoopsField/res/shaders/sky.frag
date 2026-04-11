@@ -43,12 +43,12 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 #define sunConcentration 0.9999
 #define minCloudHeight 5e3
 #define maxCloudHeight 8e3
-#define cloudCoverage 0.5
+#define cloudCoverage 0.6
 #define cloudDensity 15
 #define cloudNoiseScale 2e-4
 
 #define numSamples 16
-#define numLightSamples 8
+#define numLightSamples 6
 
 
 bool sphereIntersect(vec3 origin, vec3 dir, float radius, out float tmin, out float tmax)
@@ -76,20 +76,26 @@ float fnoise(vec3 p, float t)
 {
 	p *= .25;
 
-    float f;
-	f = 0.5000 * noise(p); p = p * 3.02; // p.y -= t*.1*10; //t*.05 speed cloud changes
-	f += 0.2500 * noise(p); p = p * 3.03; // p.y += t*.06*10;
-	f += 0.1250 * noise(p); p = p * 3.01;  p.xz += t * 2; // detail noise moves at a different speed from cloud shapes
-	f += 0.0625 * noise(p); p =  p * 3.03;  p.xz -= t * 4; // detail noise moves at a different speed from cloud shapes
-	f += 0.03125 * noise(p); p =  p * 3.02;
-	f += 0.015625 * noise(p);
+    float f = 0;
+
+	//f += 0.5000 * noise(p); p = p * 3.02; // p.y -= t*.1*10; //t*.05 speed cloud changes
+	//f += 0.2500 * noise(p); p = p * 3.03; // p.y += t*.06*10;
+	//f += 0.1250 * noise(p); p = p * 3.01;  p.xz += t * 2; // detail noise moves at a different speed from cloud shapes
+	//f += 0.0625 * noise(p); p =  p * 3.03;  p.xz -= t * 4; // detail noise moves at a different speed from cloud shapes
+	//f += 0.03125 * noise(p); p =  p * 3.02;
+	//f += 0.015625 * noise(p);
+
+	f += 0.750000 * noise(p); p = p * 9.02; p.xz += t * 0.75;
+	f += 0.187500 * noise(p); p = p * 9.01; p.xz -= t * 4; // detail noise moves at a different speed from cloud shapes
+	f /= 0.95;
+	f = remap(f / 0.95, 0.16875 * noise(p), 1, 0, 1); //; p = p * 9.03;
 
     return f;
 }
 
 float clouds(vec3 p, float height, float t)
 {
-	p += vec3(5e2 * t, 0, 6e2 * t);
+	//p += vec3(5e2 * t, 0, 6e2 * t);
 
 	float cld = fnoise(p * cloudNoiseScale, t) + (cloudCoverage - 0.5) * 0.5;
 	cld = smoothstep(0.44, 0.64, cld);
@@ -98,7 +104,7 @@ float clouds(vec3 p, float height, float t)
 	float heightPercentage = (height - minCloudHeight) / (maxCloudHeight - minCloudHeight);
 	float heightGradient = sin(pi * (0.25 + 0.75 * heightPercentage));
 
-	return cld;
+	return cld * heightGradient;
 }
 
 float clouds2(vec3 p, float height, float t)
@@ -146,9 +152,7 @@ void getDensities(vec3 position, float height, out float hr, out float hm, out f
 
 	if (height > minCloudHeight && height < maxCloudHeight)
 	{
-		float cld = clouds(position, height, time);
-		//cld *= sin(pi * (height - minCloudHeight) / (maxCloudHeight - minCloudHeight));
-		hm += cld;
+		hm += clouds(position, height, time);
 	}
 }
 

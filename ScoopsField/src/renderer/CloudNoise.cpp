@@ -1,11 +1,67 @@
 
 
+uint32_t hash3(int x, int y, int z, int px, int py, int pz)
+{
+	x = (x + px) % px;
+	y = (y + py) % py;
+	z = (z + pz) % pz;
+
+	uint32_t h = (uint32_t)(x * 374761393 + y * 668265263 + z * 2147483647);
+	h = (h ^ (h >> 13)) * 1274126177;
+	return h;
+}
+
+float hashLinear(float x, float y, float z, int px, int py, int pz, int seed)
+{
+	int xx = (int)floorf(x);
+	int yy = (int)floorf(y);
+	int zz = (int)floorf(z);
+
+	float h0 = hash3(hash(seed) + xx, yy, zz, px, py, pz) / (float)UINT32_MAX;
+	float h1 = hash3(hash(seed) + xx + 1, yy, zz, px, py, pz) / (float)UINT32_MAX;
+	float h2 = hash3(hash(seed) + xx, yy + 1, zz, px, py, pz) / (float)UINT32_MAX;
+	float h3 = hash3(hash(seed) + xx + 1, yy + 1, zz, px, py, pz) / (float)UINT32_MAX;
+	float h4 = hash3(hash(seed) + xx, yy, zz + 1, px, py, pz) / (float)UINT32_MAX;
+	float h5 = hash3(hash(seed) + xx + 1, yy, zz + 1, px, py, pz) / (float)UINT32_MAX;
+	float h6 = hash3(hash(seed) + xx, yy + 1, zz + 1, px, py, pz) / (float)UINT32_MAX;
+	float h7 = hash3(hash(seed) + xx + 1, yy + 1, zz + 1, px, py, pz) / (float)UINT32_MAX;
+
+	float tx = x - xx;
+	float ty = y - yy;
+	float tz = z - zz;
+
+	float v0 = mix(h0, h1, tx);
+	float v1 = mix(h2, h3, tx);
+	float v2 = mix(v0, v1, ty);
+
+	float v3 = mix(h4, h5, tx);
+	float v4 = mix(h6, h7, tx);
+	float v5 = mix(v3, v4, ty);
+
+	float v6 = mix(v2, v5, tz);
+
+	return v6;
+}
 
 static Texture* GenerateCloudCoverage(SDL_GPUCommandBuffer* cmdBuffer)
 {
 	const int width = 128, height = 128;
 	uint8_t* noise = (uint8_t*)SDL_malloc(width * height);
 
+	Random random(1234567);
+
+	for (int y = 0; y < height; y++)
+	{
+		for (int x = 0; x < width; x++)
+		{
+			float h = hashLinear(x / 3.0f, y / 3.0f, 0, width / 3, height / 3, 256, 0);
+			float i = hashLinear((float)x, (float)y, 123, width, height, 256, 1);
+			float value = h * 0.666f + i * 0.333f;
+			noise[x + y * width] = (uint8_t)clamp(roundf(value * 256), 0, 255);
+		}
+	}
+
+	/*
 	for (int y = 0; y < height; y++)
 	{
 		for (int x = 0; x < width; x++)
@@ -32,6 +88,7 @@ static Texture* GenerateCloudCoverage(SDL_GPUCommandBuffer* cmdBuffer)
 			noise[x + y * width] = (uint8_t)clamp(roundf(d * 256), 0, 255);
 		}
 	}
+	*/
 
 	TextureInfo textureInfo = {};
 	textureInfo.format = SDL_GPU_TEXTUREFORMAT_R8_UNORM;
@@ -62,17 +119,6 @@ inline float fade(float t)
 inline float lerp(float a, float b, float t)
 {
 	return a + t * (b - a);
-}
-
-int hash3(int x, int y, int z, int px, int py, int pz)
-{
-	x = ((x % px) + px) % px;
-	y = ((y % py) + py) % py;
-	z = ((z % pz) + pz) % pz;
-
-	int h = x * 374761393 + y * 668265263 + z * 2147483647;
-	h = (h ^ (h >> 13)) * 1274126177;
-	return h;
 }
 
 float rand3(int x, int y, int z, int px, int py, int pz)
@@ -221,7 +267,7 @@ float PerlinWorley3D_TiledFBM(float x, float y, float z,
 
 	// classic cloud-style blend
 	//SDL_assert(worley <= 1 && worley >= 0);
-	return clamp(remap(perlin, 0.5f * worley, 1, 0, 1), 0, 1);
+	return perlin * 0.5f + (1 - worley) * 0.5f; //clamp(remap(perlin, 0.5f * worley, 1, 0, 1), 0, 1);
 }
 
 float Worley3D_TiledFBM(float x, float y, float z,
@@ -261,24 +307,21 @@ static Texture* GenerateCloudLowFrequency(SDL_GPUCommandBuffer* cmdBuffer)
 	uint8_t* noise = (uint8_t*)SDL_malloc(width * height * depth);
 
 	Random random(12345);
-	random.nextBytes(noise, width * height * depth);
 
-	/*
 	for (int z = 0; z < depth; z++)
 	{
 		for (int y = 0; y < height; y++)
 		{
 			for (int x = 0; x < width; x++)
 			{
-				int octaves = 5;
-				float perlinWorley = PerlinWorley3D_TiledFBM((float)x, (float)y, (float)z, width, height, depth, octaves);
-
-				noise[x + y * width + z * width * height] = (uint8_t)clamp(roundf(perlinWorley * 256), 0, 255);
+				float h = hashLinear(x / 3.0f, y / 3.0f, z / 3.0f, width / 3, height / 3, depth / 3, 0);
+				float i = hashLinear((float)x, (float)y, (float)z, width, height, depth, 1);
+				float value = h * 0.666f + i * 0.333f;
+				//float value = PerlinWorley3D_TiledFBM(x * 1.5f, y * 1.5f, z * 1.5f, width, height, depth, 4);
+				noise[x + y * width + z * width * height] = (uint8_t)clamp(roundf(value * 256), 0, 255);
 			}
 		}
-		SDL_Log("%d\n", z + 1);
 	}
-	*/
 
 	TextureInfo textureInfo = {};
 	textureInfo.format = SDL_GPU_TEXTUREFORMAT_R8_UNORM;
@@ -300,15 +343,15 @@ static Texture* GenerateCloudHighFrequency(SDL_GPUCommandBuffer* cmdBuffer)
 {
 	const int width = 32, height = 32, depth = 32;
 	uint8_t* noise = (uint8_t*)SDL_malloc(width * height * depth);
-	
+
 	for (int z = 0; z < depth; z++)
 	{
 		for (int y = 0; y < height; y++)
 		{
 			for (int x = 0; x < width; x++)
 			{
-				int octaves = 5;
-				float worley = Worley3D_TiledFBM((float)x, (float)y, (float)z, width, height, depth, octaves);
+				int octaves = 3;
+				float worley = Worley3D_TiledFBM(x, y, z, width, height, depth, octaves);
 
 				noise[x + y * width + z * width * height] = (uint8_t)clamp(roundf(worley * 256), 0, 255);
 			}

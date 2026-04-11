@@ -274,6 +274,10 @@ static AppState* InitAppState()
 
 	InitGPUTimer(&appState->gpuTiming, device);
 
+#if _DEBUG
+	appState->debugStats = true;
+#endif
+
 	return appState;
 }
 
@@ -507,8 +511,8 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 	if (app->debugStats)
 		RenderDebugStats();
 	else
-		DebugText(0, 0, COLOR_WHITE, COLOR_TRANSPARENT, "%d", app->fps);
-	
+		DebugText(0, 0, COLOR_WHITE, COLOR_BLACK, "%d fps", app->fps);
+
 	GameRender();
 
 	StartPhysicsFrame(&app->physics);

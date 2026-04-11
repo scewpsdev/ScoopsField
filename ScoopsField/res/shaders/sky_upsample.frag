@@ -43,6 +43,9 @@ void main()
 	//processSample(v_texcoord + vec2(0, texel.y), color, sum);
 	//processSample(v_texcoord + vec2(0, -texel.y), color, sum);
 
-	color /= sum;
-	out_color = vec4(color.rgb, 1);
+	if (sum > 0)
+	{
+		color /= sum;
+		out_color = vec4(color.rgb, 1);
+	}
 }

@@ -68,6 +68,11 @@ inline int sign(float f)
 	return f < 0.0f ? -1 : f > 0.0f ? 1 : 0;
 }
 
+inline float fract(float x)
+{
+	return x - floorf(x);
+}
+
 float radians(float degrees);
 float degrees(float radians);
 
