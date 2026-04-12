@@ -367,7 +367,7 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -(0 - 20) * 0.05f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -(gameTime - 20) * 0.05f) * vec3(1, 0, 0);
 	sunDirection.y = -fabsf(sunDirection.y);
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 

@@ -356,7 +356,6 @@ static Texture* GenerateCloudHighFrequency(SDL_GPUCommandBuffer* cmdBuffer)
 				noise[x + y * width + z * width * height] = (uint8_t)clamp(roundf(worley * 256), 0, 255);
 			}
 		}
-		SDL_Log("%d\n", z + 1);
 	}
 
 	TextureInfo textureInfo = {};

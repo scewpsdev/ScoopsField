@@ -77,32 +77,68 @@ float noise(vec3 pos)
 	return texture(s_cloudLowFrequency, pos.xzy / vec3(256, 256, 64) + vec3(0.081)).r;
 }
 
-float fnoise(vec3 p, float t)
-{
-	p *= 0.25;
-
-    float f = 0;
-
-	//f += 0.5000 * noise(p); p = p * 3.02; // p.y -= t*.1*10; //t*.05 speed cloud changes
-	//f += 0.2500 * noise(p); p = p * 3.03; // p.y += t*.06*10;
-	//f += 0.1250 * noise(p); p = p * 3.01;  p.xz += t * 2; // detail noise moves at a different speed from cloud shapes
-	//f += 0.0625 * noise(p); p =  p * 3.03;  p.xz -= t * 4; // detail noise moves at a different speed from cloud shapes
-	//f += 0.03125 * noise(p); p =  p * 3.02;
-	//f += 0.015625 * noise(p);
-
-	f += 0.750000 * noise(p); p = p * 9.02; p.xz += t * 0.75;
-	f += 0.187500 * noise(p); p = p * 9.01; p.xz -= t * 4; // detail noise moves at a different speed from cloud shapes
-	f /= 0.95;
-	f = remap(f, 0.06875 * noise(p), 1, 0, 1); //; p = p * 9.03;
-
-    return f;
-}
-
 float clouds(vec3 p, float height, float t)
 {
-	//p += vec3(5e2 * t, 0, 6e2 * t);
+	p += vec3(5e2 * t, 0, 6e2 * t);
 
-	float cld = fnoise(p * cloudNoiseScale, t) + (cloudCoverage - 0.5) * 0.5;
+	p *= cloudNoiseScale;
+	p *= 0.25;
+
+    float cld = 0;
+
+	//cld += 0.5000 * noise(p); p = p * 3.02; // p.y -= t*.1*10; //t*.05 speed cloud changes
+	//cld += 0.2500 * noise(p); p = p * 3.03; // p.y += t*.06*10;
+	//cld += 0.1250 * noise(p); p = p * 3.01;  p.xz += t * 2; // detail noise moves at a different speed from cloud shapes
+	//cld += 0.0625 * noise(p); p =  p * 3.03;  p.xz -= t * 4; // detail noise moves at a different speed from cloud shapes
+	//cld += 0.03125 * noise(p); p =  p * 3.02;
+	//cld += 0.015625 * noise(p);
+
+	cld += 0.750000 * noise(p); p = p * 9.02; p.xz += t * 0.75;
+	cld += 0.187500 * noise(p); p = p * 9.01; p.xz -= t * 4; // detail noise moves at a different speed from cloud shapes
+	cld = remap(cld / 0.95, 0.06875 * noise(p), 1, 0, 1); //; p = p * 9.03;
+
+	cld += (0.7 - 0.5) * 0.5;
+
+	cld = smoothstep(0.44, 0.64, cld);
+	cld *= cld * cloudDensity;
+
+	float heightPercentage = (height - minCloudHeight) / (maxCloudHeight - minCloudHeight);
+	float heightGradient = sin(pi * (0.25 + 0.75 * heightPercentage));
+
+	return cld * heightGradient;
+}
+
+float clouds3(vec3 p, float height, float t)
+{
+	p += vec3(5e2 * t, 0, 6e2 * t);
+
+	p *= cloudNoiseScale;
+	p *= 0.5;
+
+    float cld = 0;
+
+	cld += noise(p);
+
+	//bool hasCloud = cld + (cloudCoverage - 0.5) * 0.5 > 0.53;
+	//if (!hasCloud)
+	//	return 0;
+
+	//cld *= 0.8;
+	p = p * 3.02;
+	p.xz += t * 0.75;
+	cld = remap(cld / 0.99, 0.2 * noise(p), 1, 0, 1);
+	//cld += 0.2 * noise(p);
+
+	//bool hasCloud2 = cld + (cloudCoverage - 0.5) * 0.5 > 0.53;
+	//if (!hasCloud2)
+	//	return 0;
+	
+	p = p * 9.01;
+	p.xz -= t * 4; // detail noise moves at a different speed from cloud shapes
+	cld = remap(cld / 0.97, 0.06875 * noise(p), 1, 0, 1);
+
+	cld += (cloudCoverage - 0.5) * 0.5;
+
 	cld = smoothstep(0.53, 0.55, cld);
 	cld *= cld * cloudDensity;
 
