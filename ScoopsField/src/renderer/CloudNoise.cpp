@@ -351,7 +351,7 @@ static Texture* GenerateCloudHighFrequency(SDL_GPUCommandBuffer* cmdBuffer)
 			for (int x = 0; x < width; x++)
 			{
 				int octaves = 3;
-				float worley = Worley3D_TiledFBM(x, y, z, width, height, depth, octaves);
+				float worley = Worley3D_TiledFBM((float)x, (float)y, (float)z, width, height, depth, octaves);
 
 				noise[x + y * width + z * width * height] = (uint8_t)clamp(roundf(worley * 256), 0, 255);
 			}

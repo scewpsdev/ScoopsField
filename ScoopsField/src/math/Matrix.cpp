@@ -83,6 +83,29 @@ void mat4::decompose(vec3& translation, quat& rotation, vec3& scale) const
 	rotation = ExtractRotation(*this, scale);
 }
 
+mat4 mat4::transpose() const
+{
+	mat4 result = *this;
+
+	result.m01 = m10;
+	result.m02 = m20;
+	result.m03 = m30;
+
+	result.m10 = m01;
+	result.m12 = m21;
+	result.m13 = m31;
+
+	result.m20 = m02;
+	result.m21 = m12;
+	result.m23 = m32;
+
+	result.m30 = m03;
+	result.m31 = m13;
+	result.m32 = m23;
+
+	return result;
+}
+
 float mat4::determinant() const
 {
 	const mat4& m = *this;

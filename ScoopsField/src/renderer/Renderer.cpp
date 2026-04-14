@@ -75,7 +75,7 @@ static RenderTarget* CreateGBuffer(int width, int height)
 	depthAttachment.storeOp = SDL_GPU_STOREOP_STORE;
 	depthAttachment.clearDepth = 0;
 
-	return CreateRenderTarget(width, height, GBUFFER_COLOR_ATTACHMENTS, colorAttachments, &depthAttachment);
+	return CreateRenderTarget(width, height, SDL_GPU_TEXTURETYPE_2D, GBUFFER_COLOR_ATTACHMENTS, colorAttachments, &depthAttachment);
 }
 
 static RenderTarget* CreateHDRTarget(int width, int height)
@@ -92,7 +92,7 @@ static RenderTarget* CreateHDRTarget(int width, int height)
 	hdrDepthInfo.storeOp = SDL_GPU_STOREOP_DONT_CARE;
 	hdrDepthInfo.clearDepth = 1;
 
-	return CreateRenderTarget(width, height, 1, &hdrTargetInfo, &hdrDepthInfo);
+	return CreateRenderTarget(width, height, SDL_GPU_TEXTURETYPE_2D, 1, &hdrTargetInfo, &hdrDepthInfo);
 }
 
 static RenderTarget* CreateHalfResTarget(int width, int height)
@@ -103,7 +103,7 @@ static RenderTarget* CreateHalfResTarget(int width, int height)
 	hdrTargetInfo.storeOp = SDL_GPU_STOREOP_STORE;
 	hdrTargetInfo.clearColor = { 0, 0, 0, 0 };
 
-	return CreateRenderTarget(width / 2, height / 2, 1, &hdrTargetInfo, nullptr);
+	return CreateRenderTarget(width / 2, height / 2, SDL_GPU_TEXTURETYPE_2D, 1, &hdrTargetInfo, nullptr);
 }
 
 static GraphicsPipeline* CreateGeometryPipeline(Renderer* renderer)
@@ -170,8 +170,10 @@ static GraphicsPipeline* CreateSkyPipeline(Renderer* renderer)
 {
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->skyShader, renderer->skyTarget, 1, &renderer->screenQuad.vertexBuffer->layout);
 
-	//pipelineInfo.depthTest = false;
-	//pipelineInfo.depthWrite = false;
+	//pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER_OR_EQUAL;
+
+	pipelineInfo.depthTest = false;
+	pipelineInfo.depthWrite = false;
 
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
@@ -180,7 +182,21 @@ static GraphicsPipeline* CreateSkyUpsamplePipeline(Renderer* renderer)
 {
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->skyUpsampleShader, renderer->hdrTarget, 1, &renderer->screenQuad.vertexBuffer->layout);
 
-	CreateBlendStateAlpha(&pipelineInfo.colorTargets[0].blend_state);
+	//pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER;
+
+	//CreateBlendStateAlpha(&pipelineInfo.colorTargets[0].blend_state);
+
+	pipelineInfo.depthTest = false;
+	pipelineInfo.depthWrite = false;
+
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
+static GraphicsPipeline* CreateSkyCubePipeline(Renderer* renderer)
+{
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->skyCubeShader, renderer->skyCubemap, 1, &renderer->screenQuad.vertexBuffer->layout);
+
+	//pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER_OR_EQUAL;
 
 	pipelineInfo.depthTest = false;
 	pipelineInfo.depthWrite = false;
@@ -207,6 +223,17 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->hdrTarget = CreateHDRTarget(width, height);
 	renderer->skyTarget = CreateHalfResTarget(width, height);
 	renderer->skyTarget2 = CreateHalfResTarget(width, height);
+
+	{
+		ColorAttachmentInfo hdrTargetInfo = {};
+		hdrTargetInfo.format = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
+		hdrTargetInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
+		hdrTargetInfo.storeOp = SDL_GPU_STOREOP_STORE;
+		hdrTargetInfo.clearColor = { 0, 0, 0, 0 };
+		hdrTargetInfo.mips = true;
+
+		renderer->skyCubemap = CreateRenderTarget(32, 32, SDL_GPU_TEXTURETYPE_CUBE, 1, &hdrTargetInfo, nullptr);
+	}
 
 	// position
 	renderer->meshLayout[0].numAttributes = 1;
@@ -275,6 +302,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->environmentLightShader = LoadGraphicsShader("res/shaders/lighting/environment_light.vert.bin", "res/shaders/lighting/environment_light.frag.bin");
 	renderer->skyShader = LoadGraphicsShader("res/shaders/sky.vert.bin", "res/shaders/sky.frag.bin");
 	renderer->skyUpsampleShader = LoadGraphicsShader("res/shaders/sky_upsample.vert.bin", "res/shaders/sky_upsample.frag.bin");
+	renderer->skyCubeShader = LoadGraphicsShader("res/shaders/sky_cube.vert.bin", "res/shaders/sky_cube.frag.bin");
 	renderer->tonemappingShader = LoadGraphicsShader("res/shaders/tonemapping.vert.bin", "res/shaders/tonemapping.frag.bin");
 
 	renderer->geometryPipeline = CreateGeometryPipeline(renderer);
@@ -285,6 +313,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->environmentLightPipeline = CreateEnvironmentLightPipeline(renderer);
 	renderer->skyPipeline = CreateSkyPipeline(renderer);
 	renderer->skyUpsamplePipeline = CreateSkyUpsamplePipeline(renderer);
+	renderer->skyCubePipeline = CreateSkyCubePipeline(renderer);
 	renderer->tonemappingPipeline = CreateTonemappingPipeline(renderer);
 
 	SDL_GPUSamplerCreateInfo samplerInfo = {};
@@ -299,7 +328,16 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	SDL_GPUSamplerCreateInfo linearSamplerInfo = {};
 	linearSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	linearSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
+	linearSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
+	linearSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
 	renderer->linearSampler = SDL_CreateGPUSampler(device, &linearSamplerInfo);
+
+	SDL_GPUSamplerCreateInfo cubemapSamplerInfo = {};
+	cubemapSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
+	cubemapSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
+	cubemapSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
+	cubemapSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
+	renderer->cubemapSampler = SDL_CreateGPUSampler(device, &cubemapSamplerInfo);
 
 	SDL_GPUBufferCreateInfo emptyBufferInfo = {};
 	emptyBufferInfo.size = 4;
@@ -320,7 +358,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->blueNoise = LoadTexture("res/textures/bluenoise.png.bin", cmdBuffer);
 
 	//renderer->noiseTexture = LoadTexture("res/textures/noise.png.bin", cmdBuffer);
-	renderer->environmentMap = LoadTexture("res/textures/sky/sky_cubemap_equirect.png.bin", cmdBuffer);
+	//renderer->environmentMap = LoadTexture("res/textures/sky/sky_cubemap_equirect.png.bin", cmdBuffer);
 
 	renderer->cloudCoverage = GenerateCloudCoverage(cmdBuffer);
 	renderer->cloudLowFrequency = GenerateCloudLowFrequency(cmdBuffer);
@@ -350,7 +388,7 @@ void DestroyRenderer(Renderer* renderer)
 	DestroyRenderTarget(renderer->gbuffer);
 	SDL_ReleaseGPUTexture(device, renderer->depthTexture);
 
-	DestroyTexture(renderer->environmentMap);
+	//DestroyTexture(renderer->environmentMap);
 }
 
 void ResizeRenderer(Renderer* renderer, int width, int height)
@@ -538,7 +576,7 @@ static float CalculateLightRadius(vec3 color)
 void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], float near, vec3 sunDirection, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	GPU_SCOPE("renderer");
-	
+
 	mat4 pvInv = pv.inverted();
 	mat4 projectionInv = projection.inverted();
 	mat4 viewInv = view.inverted();
@@ -547,7 +585,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 	{
 		GPU_SCOPE("geometry pass");
 
-		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->gbuffer, cmdBuffer);
+		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->gbuffer, 0, cmdBuffer);
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->geometryPipeline->pipeline);
 
@@ -580,7 +618,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		RenderTarget* rt = app->frameIdx % 2 == 0 ? renderer->skyTarget : renderer->skyTarget2;
 		RenderTarget* rt2 = app->frameIdx % 2 == 0 ? renderer->skyTarget2 : renderer->skyTarget;
 
-		SDL_GPURenderPass* renderPass = BindRenderTarget(rt, cmdBuffer);
+		SDL_GPURenderPass* renderPass = BindRenderTarget(rt, 0, cmdBuffer);
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->skyPipeline->pipeline);
 
@@ -592,7 +630,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 			mat4 viewInv;
 			mat4 lastProjection;
 			mat4 lastView;
-		}; 
+		};
 		UniformData uniforms = {};
 		uniforms.params = vec4(sunDirection, gameTime);
 		uniforms.params2 = vec4((float)app->frameIdx, 0, 0, 0);
@@ -618,9 +656,62 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		samplers[4] = renderer->defaultSampler;
 		samplers[5] = renderer->defaultSampler;
 
-		RenderScreenQuad(&renderer->screenQuad, renderPass, 6, gbufferTextures, samplers, cmdBuffer);
+		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 6, gbufferTextures, samplers, cmdBuffer);
 
 		SDL_EndGPURenderPass(renderPass);
+	}
+
+	// sky cubemap
+	{
+		GPU_SCOPE("sky cubemap");
+
+		mat4 cubemapViewsInv[6];
+		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_POSITIVEX] = mat4::Rotate(vec3::Up, -0.5f * PI);
+		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_NEGATIVEX] = mat4::Rotate(vec3::Up, 0.5f * PI);
+		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_POSITIVEY] = mat4::Rotate(vec3::Right, 0.5f * PI);
+		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_NEGATIVEY] = mat4::Rotate(vec3::Right, -0.5f * PI);
+		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_POSITIVEZ] = mat4::Rotate(vec3::Up, PI);
+		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_NEGATIVEZ] = mat4::Identity;
+		
+		for (int i = 0; i < 6; i++)
+		{
+			SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->skyCubemap, i, cmdBuffer);
+
+			SDL_BindGPUGraphicsPipeline(renderPass, renderer->skyCubePipeline->pipeline);
+
+			struct UniformData
+			{
+				vec4 params;
+				vec4 params2;
+				mat4 projectionInv;
+				mat4 viewInv;
+			};
+			UniformData uniforms = {};
+			uniforms.params = vec4(sunDirection, gameTime);
+			uniforms.params2 = vec4((float)app->frameIdx, 0, 0, 0);
+			uniforms.projectionInv = mat4::Perspective(0.5f * PI, 1, 0.1f);
+			uniforms.viewInv = cubemapViewsInv[i];
+
+			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+
+			SDL_GPUTexture* gbufferTextures[4];
+			gbufferTextures[0] = renderer->cloudCoverage->handle;
+			gbufferTextures[1] = renderer->cloudLowFrequency->handle;
+			gbufferTextures[2] = renderer->cloudHighFrequency->handle;
+			gbufferTextures[3] = renderer->blueNoise->handle;
+
+			SDL_GPUSampler* samplers[4];
+			samplers[0] = renderer->linearSampler;
+			samplers[1] = renderer->linearSampler;
+			samplers[2] = renderer->linearSampler;
+			samplers[3] = renderer->defaultSampler;
+
+			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 4, gbufferTextures, samplers, cmdBuffer);
+
+			SDL_EndGPURenderPass(renderPass);
+		}
+
+		SDL_GenerateMipmapsForGPUTexture(cmdBuffer, renderer->skyCubemap->colorAttachments[0]);
 	}
 
 	// lighting pass
@@ -646,7 +737,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 		GPU_SCOPE("render pass");
 
-		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->hdrTarget, cmdBuffer);
+		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->hdrTarget, 0, cmdBuffer);
 
 		// copy depth
 		{
@@ -654,7 +745,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->copyDepthPipeline->pipeline);
 
-			RenderScreenQuad(&renderer->screenQuad, renderPass, 1, &renderer->gbuffer->depthAttachment, &renderer->defaultSampler, cmdBuffer);
+			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, &renderer->gbuffer->depthAttachment, &renderer->defaultSampler, cmdBuffer);
 		}
 
 		// environment light
@@ -681,13 +772,14 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 			for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
 				gbufferTextures[i] = renderer->gbuffer->colorAttachments[i];
 			gbufferTextures[renderer->gbuffer->numColorAttachments] = renderer->gbuffer->depthAttachment;
-			gbufferTextures[renderer->gbuffer->numColorAttachments + 1] = renderer->environmentMap->handle;
+			gbufferTextures[renderer->gbuffer->numColorAttachments + 1] = renderer->skyCubemap->colorAttachments[0];
 
 			SDL_GPUSampler* samplers[MAX_COLOR_ATTACHMENTS + 2];
 			for (int i = 0; i < MAX_COLOR_ATTACHMENTS + 2; i++)
 				samplers[i] = renderer->defaultSampler;
+			samplers[renderer->gbuffer->numColorAttachments + 1] = renderer->linearSampler;
 
-			RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 2, gbufferTextures, samplers, cmdBuffer);
+			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, renderer->gbuffer->numColorAttachments + 2, gbufferTextures, samplers, cmdBuffer);
 		}
 
 		// directional lights
@@ -723,7 +815,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 			for (int i = 0; i < MAX_COLOR_ATTACHMENTS + 1; i++)
 				samplers[i] = renderer->defaultSampler;
 
-			RenderScreenQuad(&renderer->screenQuad, renderPass, renderer->gbuffer->numColorAttachments + 1, gbufferTextures, samplers, cmdBuffer);
+			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, renderer->gbuffer->numColorAttachments + 1, gbufferTextures, samplers, cmdBuffer);
 		}
 
 		// point lights
@@ -798,7 +890,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 			samplers[0] = renderer->clampedSampler;
 			samplers[1] = renderer->clampedSampler;
 
-			RenderScreenQuad(&renderer->screenQuad, renderPass, 2, textures, samplers, cmdBuffer);
+			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 2, textures, samplers, cmdBuffer);
 		}
 
 		SDL_EndGPURenderPass(renderPass);
@@ -817,7 +909,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->tonemappingPipeline->pipeline);
 
-		RenderScreenQuad(&renderer->screenQuad, renderPass, 1, &renderer->hdrTarget->colorAttachments[0], &renderer->defaultSampler, cmdBuffer);
+		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, &renderer->hdrTarget->colorAttachments[0], &renderer->defaultSampler, cmdBuffer);
 
 		SDL_EndGPURenderPass(renderPass);
 	}

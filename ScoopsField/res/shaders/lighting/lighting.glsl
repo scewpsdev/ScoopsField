@@ -118,15 +118,15 @@ vec3 pointLight(vec3 position, vec3 normal, vec3 view, vec3 albedo, float roughn
 
 vec3 sampleEnvironmentIrradiance(vec3 normal, samplerCube environmentMap, float environmentIntensity)
 {
-	return textureLod(environmentMap, normal, log2(textureSize(environmentMap, 0).x)).rgb * environmentIntensity;
+	return textureLod(environmentMap, normal * vec3(1, 1, -1), log2(textureSize(environmentMap, 0).x)).rgb * environmentIntensity;
 }
 
 vec3 sampleEnvironmentPrefiltered(vec3 normal, vec3 view, float roughness, samplerCube environmentMap, float environmentIntensity)
 {
 	vec3 r = reflect(-view, normal);
-	float lodFactor = 1.0 - exp(-roughness * 12);
+	float lodFactor = roughness; //1.0 - exp(-roughness * 12);
 
-	return textureLod(environmentMap, r, lodFactor * log2(textureSize(environmentMap, 0).x)).rgb * environmentIntensity;
+	return textureLod(environmentMap, r * vec3(1, 1, -1), lodFactor * log2(textureSize(environmentMap, 0).x)).rgb * environmentIntensity;
 }
 
 vec3 environmentLight(vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, samplerCube environmentMap, float environmentIntensity)

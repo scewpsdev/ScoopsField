@@ -21,7 +21,7 @@ static void InitLayer(Renderer2DLayer* layer, Renderer2DLayerInfo* layerInfo)
 	colorAttachment.loadOp = SDL_GPU_LOADOP_CLEAR;
 	colorAttachment.storeOp = SDL_GPU_STOREOP_STORE;
 	colorAttachment.clearColor = vec4(0.0f);
-	layer->renderTarget = CreateRenderTarget(layerInfo->width, layerInfo->height, 1, &colorAttachment, nullptr);
+	layer->renderTarget = CreateRenderTarget(layerInfo->width, layerInfo->height, SDL_GPU_TEXTURETYPE_2D, 1, &colorAttachment, nullptr);
 
 	SDL_GPUBufferCreateInfo spriteDataBufferInfo = {};
 	spriteDataBufferInfo.size = layerInfo->maxSprites * sizeof(SpriteData);
@@ -192,7 +192,7 @@ static void RenderLayer(Renderer2DLayer* layer, Renderer2D* renderer, SDL_GPUCom
 	if (layer->numSprites == 0)
 		return;
 
-	SDL_GPURenderPass* renderPass = BindRenderTarget(layer->renderTarget, cmdBuffer);
+	SDL_GPURenderPass* renderPass = BindRenderTarget(layer->renderTarget, 0, cmdBuffer);
 
 	SDL_BindGPUGraphicsPipeline(renderPass, renderer->spritePipeline->pipeline);
 
@@ -258,7 +258,7 @@ void EndRenderer2D(Renderer2D* renderer, SDL_GPUCommandBuffer* cmdBuffer)
 
 	for (int i = 0; i < renderer->numLayers; i++)
 	{
-		RenderScreenQuad(&renderer->screenQuad, renderPass, 1, renderer->layers[i].renderTarget->colorAttachments, &renderer->sampler, cmdBuffer);
+		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, renderer->layers[i].renderTarget->colorAttachments, &renderer->sampler, cmdBuffer);
 	}
 
 	SDL_EndGPURenderPass(renderPass);

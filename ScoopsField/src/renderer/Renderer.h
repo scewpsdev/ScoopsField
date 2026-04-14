@@ -49,6 +49,7 @@ struct Renderer
 	RenderTarget* hdrTarget;
 	RenderTarget* skyTarget;
 	RenderTarget* skyTarget2;
+	RenderTarget* skyCubemap;
 
 #define NUM_MESH_BUFFER_LAYOUTS 3
 	VertexBufferLayout meshLayout[NUM_MESH_BUFFER_LAYOUTS];
@@ -70,6 +71,7 @@ struct Renderer
 	Shader* environmentLightShader;
 	Shader* skyShader;
 	Shader* skyUpsampleShader;
+	Shader* skyCubeShader;
 	Shader* tonemappingShader;
 
 	GraphicsPipeline* geometryPipeline;
@@ -80,11 +82,13 @@ struct Renderer
 	GraphicsPipeline* environmentLightPipeline;
 	GraphicsPipeline* skyPipeline;
 	GraphicsPipeline* skyUpsamplePipeline;
+	GraphicsPipeline* skyCubePipeline;
 	GraphicsPipeline* tonemappingPipeline;
 
 	SDL_GPUSampler* defaultSampler;
 	SDL_GPUSampler* clampedSampler;
 	SDL_GPUSampler* linearSampler;
+	SDL_GPUSampler* cubemapSampler;
 	SDL_GPUBuffer* emptyBuffer;
 	SDL_GPUTexture* emptyTexture;
 
@@ -96,7 +100,7 @@ struct Renderer
 	List<LightDrawData, MAX_POINT_LIGHT_DRAWS> pointLights;
 
 	Texture* blueNoise;
-	Texture* environmentMap;
+	//Texture* environmentMap;
 
 	Texture* cloudCoverage;
 	Texture* cloudLowFrequency;

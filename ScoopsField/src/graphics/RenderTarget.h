@@ -12,6 +12,7 @@ struct ColorAttachmentInfo
 	SDL_GPUStoreOp storeOp;
 	SDL_GPUTextureUsageFlags usage;
 	vec4 clearColor;
+	bool mips;
 };
 
 struct DepthAttachmentInfo
@@ -21,11 +22,13 @@ struct DepthAttachmentInfo
 	SDL_GPUStoreOp storeOp;
 	SDL_GPUTextureUsageFlags usage;
 	float clearDepth;
+	bool mips;
 };
 
 struct RenderTarget
 {
 	int width, height;
+	SDL_GPUTextureType textureType;
 
 #define MAX_COLOR_ATTACHMENTS 8
 	SDL_GPUTexture* colorAttachments[MAX_COLOR_ATTACHMENTS];
@@ -38,9 +41,9 @@ struct RenderTarget
 };
 
 
-RenderTarget* CreateRenderTarget(int width, int height, int numColorAttachments, const ColorAttachmentInfo* colorAttachmentInfos, const DepthAttachmentInfo* depthAttachment);
+RenderTarget* CreateRenderTarget(int width, int height, SDL_GPUTextureType textureType, int numColorAttachments, const ColorAttachmentInfo* colorAttachmentInfos, const DepthAttachmentInfo* depthAttachmentInfo);
 void DestroyRenderTarget(RenderTarget* renderTarget);
 
 void ResizeRenderTarget(RenderTarget* renderTarget, int width, int height);
 
-SDL_GPURenderPass* BindRenderTarget(RenderTarget* renderTarget, SDL_GPUCommandBuffer* cmdBuffer);
+SDL_GPURenderPass* BindRenderTarget(RenderTarget* renderTarget, int layer, SDL_GPUCommandBuffer* cmdBuffer);

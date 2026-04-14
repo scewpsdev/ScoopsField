@@ -465,5 +465,8 @@
     <None Include="res\shaders\sky.frag" />
     <None Include="res\shaders\sky_upsample.frag" />
     <None Include="res\shaders\sky_upsample.vert" />
+    <None Include="res\shaders\sky_cube.vert" />
+    <None Include="res\shaders\sky_cube.frag" />
+    <None Include="res\shaders\sky.glsl" />
   </ItemGroup>
 </Project>

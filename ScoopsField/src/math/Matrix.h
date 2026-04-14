@@ -31,6 +31,8 @@ struct mat4
 
 	void decompose(vec3& translation, quat& rotation, vec3& scale) const;
 
+	mat4 transpose() const;
+
 	float determinant() const;
 	mat4 inverted() const;
 
