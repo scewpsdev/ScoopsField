@@ -62,7 +62,7 @@ struct Renderer
 	RenderTarget* skyTarget;
 	RenderTarget* skyTarget2;
 	RenderTarget* skyCubemap;
-	StorageBuffer* sunColorBuffer;
+	SDL_GPUTexture* sunColorBuffer;
 
 	ScreenQuad screenQuad;
 

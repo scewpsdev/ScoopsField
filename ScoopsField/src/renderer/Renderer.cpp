@@ -365,7 +365,16 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->cloudLowFrequency = GenerateCloudLowFrequency(cmdBuffer);
 	renderer->cloudHighFrequency = GenerateCloudHighFrequency(cmdBuffer);
 
-	renderer->sunColorBuffer = CreateStorageBuffer(sizeof(vec4), SDL_GPU_BUFFERUSAGE_COMPUTE_STORAGE_WRITE | SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ);
+	SDL_GPUTextureCreateInfo sunColorInfo = {};
+	sunColorInfo.type = SDL_GPU_TEXTURETYPE_2D;
+	sunColorInfo.format = SDL_GPU_TEXTUREFORMAT_R32G32B32A32_FLOAT;
+	sunColorInfo.usage = SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE | SDL_GPU_TEXTUREUSAGE_SAMPLER;
+	sunColorInfo.width = 4;
+	sunColorInfo.height = 4;
+	sunColorInfo.layer_count_or_depth = 1;
+	sunColorInfo.num_levels = 1;
+	sunColorInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
+	renderer->sunColorBuffer = SDL_CreateGPUTexture(device, &sunColorInfo);
 }
 
 void DestroyRenderer(Renderer* renderer)
@@ -721,11 +730,13 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 	{
 		GPU_SCOPE("sun color compute");
 
-		SDL_GPUStorageBufferReadWriteBinding bufferBinding = {};
-		bufferBinding.buffer = renderer->sunColorBuffer->buffer;
+		SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
+		bufferBinding.texture = renderer->sunColorBuffer;
+		bufferBinding.mip_level = 0;
+		bufferBinding.layer = 0;
 		bufferBinding.cycle = false;
 
-		SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, nullptr, 0, &bufferBinding, 1);
+		SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, &bufferBinding, 1, nullptr, 0);
 
 		SDL_BindGPUComputePipeline(computePass, renderer->sunColorShader->compute);
 
@@ -822,8 +833,6 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->directionalLightPipeline->pipeline);
 
-			SDL_BindGPUFragmentStorageBuffers(renderPass, 0, &renderer->sunColorBuffer->buffer, 1);
-
 			vec3 lightDirection = (view * vec4(sunDirection, 0)).xyz;
 
 			vec3 lightColor = vec3(1, 1, 1);
@@ -846,12 +855,12 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 			for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
 				gbufferTextures[i] = renderer->gbuffer->colorAttachments[i];
 			gbufferTextures[renderer->gbuffer->numColorAttachments] = renderer->gbuffer->depthAttachment;
-			gbufferTextures[renderer->gbuffer->numColorAttachments + 1] = renderer->cloudLowFrequency->handle;
+			gbufferTextures[renderer->gbuffer->numColorAttachments + 1] = renderer->sunColorBuffer;
 
 			SDL_GPUSampler* samplers[MAX_COLOR_ATTACHMENTS + 2];
 			for (int i = 0; i < MAX_COLOR_ATTACHMENTS + 2; i++)
 				samplers[i] = renderer->defaultSampler;
-			samplers[renderer->gbuffer->numColorAttachments + 1] = renderer->linearSampler;
+			samplers[renderer->gbuffer->numColorAttachments + 1] = renderer->defaultSampler;
 
 			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, renderer->gbuffer->numColorAttachments + 2, gbufferTextures, samplers, cmdBuffer);
 		}

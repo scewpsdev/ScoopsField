@@ -340,7 +340,7 @@ vec3 atmosphere(vec3 dir, vec3 lightDir, in SkySettings settings)
 	}
 
 	float sunIntensity = 25;
-	vec3 scattering = (rayleigh * rayleighScatter * phaseR + mie * mieScatter * phaseM + mie * mieScatter * phaseS * 5) * sunIntensity;
+	vec3 scattering = (rayleigh * rayleighScatter * phaseR + mie * mieScatter * phaseM /*+ mie * mieScatter * phaseS * 5*/) * sunIntensity;
 
 	return scattering;
 }

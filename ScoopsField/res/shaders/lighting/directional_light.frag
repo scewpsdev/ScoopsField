@@ -8,10 +8,7 @@ layout(set = 2, binding = 0) uniform sampler2D s_normal;
 layout(set = 2, binding = 1) uniform sampler2D s_color;
 layout(set = 2, binding = 2) uniform sampler2D s_material;
 layout(set = 2, binding = 3) uniform sampler2D s_depth;
-
-layout(set = 2, binding = 0) buffer SunData {
-	vec4 sunColor;
-};
+layout(set = 2, binding = 4) uniform sampler2D s_sunColor;
 
 #include "../common.glsl"
 #include "lighting.glsl"
@@ -92,7 +89,9 @@ void main()
 	float roughness = material.r;
 	float metallic = material.g;
 
-	vec3 radiance = directionalLight(normal, view, albedo, roughness, metallic, sunDirection, sunColor.rgb);
+	vec3 sunColor = texture(s_sunColor, vec2(0)).rgb;
+
+	vec3 radiance = directionalLight(normal, view, albedo, roughness, metallic, sunDirection, sunColor);
 
 	out_color = vec4(radiance, 1);
 }

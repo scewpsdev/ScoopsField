@@ -4,9 +4,7 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform sampler3D s_cloudLowFrequency;
 
-layout(set = 1, binding = 0) writeonly buffer SunData {
-	vec4 data;
-};
+layout(set = 1, binding = 0) uniform writeonly image2D s_sunColor;
 
 #include "../common.glsl"
 #include "sky.glsl"
@@ -27,5 +25,5 @@ void main()
 
 	vec3 result = attenuateSun(sunDirection, gameTime);
 
-	data = vec4(result, 0);
+	imageStore(s_sunColor, ivec2(0), vec4(result, 0));
 }
