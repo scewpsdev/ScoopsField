@@ -9,6 +9,21 @@ extern SDL_GPUDevice* device;
 extern GraphicsState* graphics;
 
 
+StorageBuffer* CreateStorageBuffer(uint32_t size, SDL_GPUBufferUsageFlags usageFlags)
+{
+	SDL_GPUBufferCreateInfo bufferInfo = {};
+	bufferInfo.size = size;
+	bufferInfo.usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ | usageFlags;
+	SDL_GPUBuffer* buffer = SDL_CreateGPUBuffer(device, &bufferInfo);
+
+	SDL_assert(graphics->numStorageBuffers < MAX_STORAGE_BUFFERS);
+
+	StorageBuffer* storageBuffer = &graphics->storageBuffers[graphics->numStorageBuffers++];
+	storageBuffer->buffer = buffer;
+
+	return storageBuffer;
+}
+
 StorageBuffer* CreateStorageBuffer(const uint8_t* data, uint32_t size, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	SDL_GPUBufferCreateInfo bufferInfo = {};

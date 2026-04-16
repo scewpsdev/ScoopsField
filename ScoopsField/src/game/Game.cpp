@@ -182,12 +182,12 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/directional_light.frag");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/point_light.vert");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/point_light.frag");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky.vert");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky.frag");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky_upsample.vert");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky_upsample.frag");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky_cube.vert");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky_cube.frag");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky.vert");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky.frag");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky_upsample.vert");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky_upsample.frag");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky_cube.vert");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky_cube.frag");
 
 	ResetGame(false);
 }

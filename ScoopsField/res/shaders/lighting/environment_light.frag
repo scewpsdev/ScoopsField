@@ -23,6 +23,39 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 };
 
 
+vec3 sampleEnvironmentIrradiance(vec3 normal, samplerCube environmentMap, float environmentIntensity)
+{
+	return textureLod(environmentMap, normal * vec3(1, 1, -1), log2(textureSize(environmentMap, 0).x)).rgb * environmentIntensity;
+}
+
+vec3 sampleEnvironmentPrefiltered(vec3 normal, vec3 view, float roughness, samplerCube environmentMap, float environmentIntensity)
+{
+	vec3 r = reflect(-view, normal);
+	float lodFactor = roughness; //1.0 - exp(-roughness * 12);
+
+	return textureLod(environmentMap, r * vec3(1, 1, -1), lodFactor * log2(textureSize(environmentMap, 0).x)).rgb * environmentIntensity;
+}
+
+vec3 environmentLight(vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, samplerCube environmentMap, float environmentIntensity)
+{
+	vec3 irradiance = sampleEnvironmentIrradiance(normal, environmentMap, environmentIntensity);
+
+	vec3 diffuse = irradiance * albedo;
+
+	vec3 f0 = mix(vec3(0.04), albedo, metallic);
+	vec3 ks = fresnel2(max(dot(normal, view), 0.0), f0, roughness);
+	vec3 kd = (1.0 - ks) * (1.0 - metallic);
+
+	vec3 prefiltered = sampleEnvironmentPrefiltered(normal, view, roughness, environmentMap, environmentIntensity);
+
+	vec2 brdfInteg = vec2(1.0, 0.0);
+	vec3 specular = prefiltered * (ks * brdfInteg.r + brdfInteg.g);
+
+	vec3 ambient = kd * diffuse + specular;
+
+	return ambient;
+}
+
 vec3 reconstructPosition(vec2 uv, float depth)
 {
 	vec4 ndc = vec4(uv.x * 2 - 1, uv.y * -2 + 1, depth, 1);

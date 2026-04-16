@@ -1,7 +1,5 @@
 #version 460
 
-#include "common.glsl"
-
 layout (location = 0) in vec2 v_texcoord;
 
 layout (location = 0) out vec4 out_color;
@@ -19,11 +17,12 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 	mat4 viewInv;
 
 #define lightDirection params.xyz
-#define time params.w
+#define gameTime params.w
 #define frameIdx int(params2.x + 0.5)
 };
 
 
+#include "../common.glsl"
 #include "sky.glsl"
 
 
@@ -51,13 +50,14 @@ void main()
 {
 	vec3 view = reconstructView(v_texcoord, projectionInv, viewInv); // view space direction
 
-	SkySettings settings;
-	settings.numSamples = 16;
-	settings.numLightSamples = 6;
-	settings.bluenoise = false;
-	settings.lod = true;
+	SkySettings sky;
+	sky.numSamples = 16;
+	sky.numLightSamples = 6;
+	sky.offsetRayStart = false;
+	sky.lod = true;
+	sky.time = gameTime;
 
-	vec3 color = atmosphere(view, lightDirection, settings);
+	vec3 color = atmosphere(view, lightDirection, sky);
 
 	out_color = vec4(color, 1);
 }

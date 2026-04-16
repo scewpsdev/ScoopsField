@@ -8,6 +8,7 @@
 #include "graphics/VertexBuffer.h"
 #include "graphics/IndexBuffer.h"
 #include "graphics/TransferBuffer.h"
+#include "graphics/StorageBuffer.h"
 
 #include "model/Model.h"
 #include "model/Animation.h"
@@ -47,9 +48,6 @@ struct Renderer
 	SDL_GPUTexture* depthTexture;
 	RenderTarget* gbuffer;
 	RenderTarget* hdrTarget;
-	RenderTarget* skyTarget;
-	RenderTarget* skyTarget2;
-	RenderTarget* skyCubemap;
 
 #define NUM_MESH_BUFFER_LAYOUTS 3
 	VertexBufferLayout meshLayout[NUM_MESH_BUFFER_LAYOUTS];
@@ -60,6 +58,11 @@ struct Renderer
 	IndexBuffer* cubeIndexBuffer;
 	VertexBuffer* pointLightInstanceBuffer;
 	TransferBuffer* pointLightInstanceTransferBuffer;
+
+	RenderTarget* skyTarget;
+	RenderTarget* skyTarget2;
+	RenderTarget* skyCubemap;
+	StorageBuffer* sunColorBuffer;
 
 	ScreenQuad screenQuad;
 
@@ -72,6 +75,7 @@ struct Renderer
 	Shader* skyShader;
 	Shader* skyUpsampleShader;
 	Shader* skyCubeShader;
+	Shader* sunColorShader;
 	Shader* tonemappingShader;
 
 	GraphicsPipeline* geometryPipeline;
@@ -83,6 +87,7 @@ struct Renderer
 	GraphicsPipeline* skyPipeline;
 	GraphicsPipeline* skyUpsamplePipeline;
 	GraphicsPipeline* skyCubePipeline;
+	GraphicsPipeline* sunColorPipeline;
 	GraphicsPipeline* tonemappingPipeline;
 
 	SDL_GPUSampler* defaultSampler;

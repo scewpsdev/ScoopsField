@@ -461,12 +461,13 @@
     <None Include="res\shaders\lighting\lighting.glsl" />
     <None Include="res\shaders\lighting\environment_light.vert" />
     <None Include="res\shaders\lighting\environment_light.frag" />
-    <None Include="res\shaders\sky.vert" />
-    <None Include="res\shaders\sky.frag" />
-    <None Include="res\shaders\sky_upsample.frag" />
-    <None Include="res\shaders\sky_upsample.vert" />
-    <None Include="res\shaders\sky_cube.vert" />
-    <None Include="res\shaders\sky_cube.frag" />
-    <None Include="res\shaders\sky.glsl" />
+    <None Include="res\shaders\sky\sky.vert" />
+    <None Include="res\shaders\sky\sky.frag" />
+    <None Include="res\shaders\sky\sky_upsample.frag" />
+    <None Include="res\shaders\sky\sky_upsample.vert" />
+    <None Include="res\shaders\sky\sky_cube.vert" />
+    <None Include="res\shaders\sky\sky_cube.frag" />
+    <None Include="res\shaders\sky\sky.glsl" />
+    <None Include="res\shaders\sky\sun_color.comp" />
   </ItemGroup>
 </Project>

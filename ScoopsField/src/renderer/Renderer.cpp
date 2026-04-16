@@ -300,9 +300,10 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->directionalLightShader = LoadGraphicsShader("res/shaders/lighting/directional_light.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
 	renderer->pointLightShader = LoadGraphicsShader("res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
 	renderer->environmentLightShader = LoadGraphicsShader("res/shaders/lighting/environment_light.vert.bin", "res/shaders/lighting/environment_light.frag.bin");
-	renderer->skyShader = LoadGraphicsShader("res/shaders/sky.vert.bin", "res/shaders/sky.frag.bin");
-	renderer->skyUpsampleShader = LoadGraphicsShader("res/shaders/sky_upsample.vert.bin", "res/shaders/sky_upsample.frag.bin");
-	renderer->skyCubeShader = LoadGraphicsShader("res/shaders/sky_cube.vert.bin", "res/shaders/sky_cube.frag.bin");
+	renderer->skyShader = LoadGraphicsShader("res/shaders/sky/sky.vert.bin", "res/shaders/sky/sky.frag.bin");
+	renderer->skyUpsampleShader = LoadGraphicsShader("res/shaders/sky/sky_upsample.vert.bin", "res/shaders/sky/sky_upsample.frag.bin");
+	renderer->skyCubeShader = LoadGraphicsShader("res/shaders/sky/sky_cube.vert.bin", "res/shaders/sky/sky_cube.frag.bin");
+	renderer->sunColorShader = LoadComputeShader("res/shaders/sky/sun_color.comp.bin");
 	renderer->tonemappingShader = LoadGraphicsShader("res/shaders/tonemapping.vert.bin", "res/shaders/tonemapping.frag.bin");
 
 	renderer->geometryPipeline = CreateGeometryPipeline(renderer);
@@ -363,6 +364,8 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->cloudCoverage = GenerateCloudCoverage(cmdBuffer);
 	renderer->cloudLowFrequency = GenerateCloudLowFrequency(cmdBuffer);
 	renderer->cloudHighFrequency = GenerateCloudHighFrequency(cmdBuffer);
+
+	renderer->sunColorBuffer = CreateStorageBuffer(sizeof(vec4), SDL_GPU_BUFFERUSAGE_COMPUTE_STORAGE_WRITE | SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ);
 }
 
 void DestroyRenderer(Renderer* renderer)
@@ -672,7 +675,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_NEGATIVEY] = mat4::Rotate(vec3::Right, -0.5f * PI);
 		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_POSITIVEZ] = mat4::Rotate(vec3::Up, PI);
 		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_NEGATIVEZ] = mat4::Identity;
-		
+
 		for (int i = 0; i < 6; i++)
 		{
 			SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->skyCubemap, i, cmdBuffer);
@@ -712,6 +715,37 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		}
 
 		SDL_GenerateMipmapsForGPUTexture(cmdBuffer, renderer->skyCubemap->colorAttachments[0]);
+	}
+
+	// sun color
+	{
+		GPU_SCOPE("sun color compute");
+
+		SDL_GPUStorageBufferReadWriteBinding bufferBinding = {};
+		bufferBinding.buffer = renderer->sunColorBuffer->buffer;
+		bufferBinding.cycle = false;
+
+		SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, nullptr, 0, &bufferBinding, 1);
+
+		SDL_BindGPUComputePipeline(computePass, renderer->sunColorShader->compute);
+
+		SDL_GPUTextureSamplerBinding bindings[1];
+		bindings[0].texture = renderer->cloudLowFrequency->handle;
+		bindings[0].sampler = renderer->linearSampler;
+		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 1);
+
+		struct UniformData
+		{
+			vec4 params;
+		};
+		UniformData uniforms = {};
+		uniforms.params = vec4(sunDirection, gameTime);
+
+		SDL_PushGPUComputeUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+
+		SDL_DispatchGPUCompute(computePass, 1, 1, 1);
+
+		SDL_EndGPUComputePass(computePass);
 	}
 
 	// lighting pass
@@ -788,6 +822,8 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->directionalLightPipeline->pipeline);
 
+			SDL_BindGPUFragmentStorageBuffers(renderPass, 0, &renderer->sunColorBuffer->buffer, 1);
+
 			vec3 lightDirection = (view * vec4(sunDirection, 0)).xyz;
 
 			vec3 lightColor = vec3(1, 1, 1);
@@ -801,21 +837,23 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 				mat4 projection;
 			};
 			UniformData uniforms = {};
-			uniforms.lightDirection = vec4(lightDirection, 0);
+			uniforms.lightDirection = vec4(lightDirection, gameTime);
 			uniforms.lightColor = vec4(lightColor, 0);
 			uniforms.projection = projection;
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-			SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 1];
+			SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 2];
 			for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
 				gbufferTextures[i] = renderer->gbuffer->colorAttachments[i];
 			gbufferTextures[renderer->gbuffer->numColorAttachments] = renderer->gbuffer->depthAttachment;
+			gbufferTextures[renderer->gbuffer->numColorAttachments + 1] = renderer->cloudLowFrequency->handle;
 
-			SDL_GPUSampler* samplers[MAX_COLOR_ATTACHMENTS + 1];
-			for (int i = 0; i < MAX_COLOR_ATTACHMENTS + 1; i++)
+			SDL_GPUSampler* samplers[MAX_COLOR_ATTACHMENTS + 2];
+			for (int i = 0; i < MAX_COLOR_ATTACHMENTS + 2; i++)
 				samplers[i] = renderer->defaultSampler;
+			samplers[renderer->gbuffer->numColorAttachments + 1] = renderer->linearSampler;
 
-			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, renderer->gbuffer->numColorAttachments + 1, gbufferTextures, samplers, cmdBuffer);
+			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, renderer->gbuffer->numColorAttachments + 2, gbufferTextures, samplers, cmdBuffer);
 		}
 
 		// point lights

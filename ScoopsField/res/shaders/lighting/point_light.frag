@@ -18,6 +18,39 @@ layout(std140, set = 3, binding = 0) uniform UniformBlock {
 };
 
 
+// Point light indirect specular lighting
+vec3 pointLight(vec3 position, vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, vec3 lightPosition, vec3 lightColor)
+{
+	vec3 f0 = mix(vec3(0.04), albedo, metallic);
+	vec3 fLambert = albedo / PI;
+
+	// Per light radiance
+	vec3 toLight = lightPosition - position;
+	vec3 wi = normalize(toLight);
+	vec3 h = normalize(view + wi);
+
+	float distanceSq = dot(toLight, toLight);
+	vec3 radiance = L(lightColor, distanceSq);
+
+	// Cook-Torrance BRDF
+	float d = normalDistribution(normal, h, roughness);
+	float g = geometrySmith(normal, view, wi, roughness);
+	vec3 f = fresnel2(max(dot(h, view), 0.0), f0, roughness);
+	vec3 numerator = d * f * g;
+	float denominator = 4.0 * max(dot(view, normal), 0.0) * max(dot(wi, normal), 0.0);
+	vec3 specular = numerator / max(denominator, 0.0001);
+
+	vec3 ks = f;
+	vec3 kd = (1.0 - ks) * (1.0 - metallic);
+
+	float ndotwi = max(dot(wi, normal), 0.0);
+	float shadow = 1.0; // Shadow mapping
+
+	vec3 s = (specular + fLambert * kd) * radiance * ndotwi * shadow;
+
+	return s;
+}
+
 vec3 reconstructPosition(vec2 uv, float depth)
 {
 	vec2 ndc = vec2(uv.x * 2 - 1, 1 - uv.y * 2);

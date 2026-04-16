@@ -5,8 +5,13 @@ struct SkySettings
 {
 	int numSamples;
 	int numLightSamples;
-	bool bluenoise;
+
+	bool offsetRayStart;
+	float noise;
+
 	bool lod;
+
+	float time;
 };
 
 
@@ -45,10 +50,12 @@ bool sphereIntersect(vec3 origin, vec3 dir, float radius, out float tmin, out fl
 	return true;
 }
 
+/*
 float coveragenoise(vec3 pos)
 {
 	return texture(s_cloudCoverage, pos.xz / vec2(128, 128)).r;
 }
+*/
 
 float noise(vec3 pos)
 {
@@ -151,6 +158,9 @@ float clouds3(vec3 p, float height, float t)
 
 float clouds2(vec3 p, float height, float t)
 {
+	return 0;
+
+	/*
 	float lowFrequency = texture(s_cloudLowFrequency, p.xzy / vec3(256, 256, 64) * cloudNoiseScale * 20).r;
 	lowFrequency = smoothstep(0.1, 0.5, lowFrequency);
 	float highFrequency = texture(s_cloudHighFrequency, p.xzy / vec3(32, 32, 32) * 50).r;
@@ -165,6 +175,10 @@ float clouds2(vec3 p, float height, float t)
 	cld = clamp(cld, 0, 1);
 
 	return cld * cloudDensity;
+	*/
+
+
+
 
 	/*
 	float lowFrequency = texture(s_cloudLowFrequency, p.xzy / vec3(512, 512, 64) * 5).r;
@@ -186,7 +200,7 @@ float clouds2(vec3 p, float height, float t)
 	//return cld;
 }
 
-void getDensities(vec3 position, float height, out float hr, out float hm, out float ho)
+void getDensities(vec3 position, float height, float t, out float hr, out float hm, out float ho)
 {
 	hr = exp(-height / rayleighHeightScale);
 	hm = exp(-height / mieHeightScale) + haze;
@@ -194,11 +208,11 @@ void getDensities(vec3 position, float height, out float hr, out float hm, out f
 
 	if (height > minCloudHeight && height < maxCloudHeight)
 	{
-		hm += clouds(position, height, time);
+		hm += clouds(position, height, t);
 	}
 }
 
-void getDensitiesLod(vec3 position, float height, out float hr, out float hm, out float ho)
+void getDensitiesLod(vec3 position, float height, float t, out float hr, out float hm, out float ho)
 {
 	hr = exp(-height / rayleighHeightScale);
 	hm = exp(-height / mieHeightScale) + haze;
@@ -206,15 +220,8 @@ void getDensitiesLod(vec3 position, float height, out float hr, out float hm, ou
 
 	if (height > minCloudHeight && height < maxCloudHeight)
 	{
-		hm += cloudsLod(position, height, time);
+		hm += cloudsLod(position, height, t);
 	}
-}
-
-float bluenoise(vec2 coord)
-{
-	vec2 size = textureSize(s_bluenoise, 0);
-	vec2 uv = coord / size;
-	return texture(s_bluenoise, uv).r;
 }
 
 float hash(vec2 p)
@@ -244,7 +251,7 @@ bool lightRay(vec3 origin, vec3 dir, in SkySettings settings, out float odr, out
 
 		// optical depth
 		float hr, hm, ho;
-		getDensitiesLod(samplePosition, height, hr, hm, ho);
+		getDensitiesLod(samplePosition, height, settings.time, hr, hm, ho);
 
 		hr *= segmentLength;
 		hm *= segmentLength;
@@ -288,7 +295,7 @@ vec3 atmosphere(vec3 dir, vec3 lightDir, in SkySettings settings)
 
 	for (int i = 0; i < settings.numSamples; i++)
 	{
-		float xi = settings.bluenoise ? fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5 : 0;
+		float xi = settings.offsetRayStart ? settings.noise - 0.5 : 0;
 
 		float u0 = (i + xi) * ldt;
 		float u1 = (i + 1 + xi) * ldt;
@@ -310,9 +317,9 @@ vec3 atmosphere(vec3 dir, vec3 lightDir, in SkySettings settings)
 		// optical depth
 		float hr, hm, ho;
 		if (settings.lod)
-			getDensitiesLod(samplePosition, height, hr, hm, ho);
+			getDensitiesLod(samplePosition, height, settings.time, hr, hm, ho);
 		else
-			getDensities(samplePosition, height, hr, hm, ho);
+			getDensities(samplePosition, height, settings.time, hr, hm, ho);
 
 		hr *= dt;
 		hm *= dt;
@@ -336,4 +343,43 @@ vec3 atmosphere(vec3 dir, vec3 lightDir, in SkySettings settings)
 	vec3 scattering = (rayleigh * rayleighScatter * phaseR + mie * mieScatter * phaseM + mie * mieScatter * phaseS * 5) * sunIntensity;
 
 	return scattering;
+}
+
+vec3 attenuateSun(vec3 sunDirection, float time)
+{
+	vec3 origin = vec3(0, planetRadius + 1000, 0);
+	vec3 dir = -sunDirection;
+
+	int numSamples = 128;
+
+	float odr = 0, odm = 0, odo = 0;
+
+	float tmin, tmax;
+	sphereIntersect(origin, dir, atmosphereRadius, tmin, tmax);
+
+	float segmentLength = tmax / numSamples;
+
+	for (int i = 0; i < numSamples; i++)
+	{
+		float t = i * segmentLength;
+		vec3 samplePosition = origin + t * dir;
+		float height = length(samplePosition) - planetRadius;
+
+		float hr, hm, ho;
+		getDensities(samplePosition, height, time, hr, hm, ho);
+
+		hr *= segmentLength;
+		hm *= segmentLength;
+		ho *= segmentLength;
+		
+		odr += hr;
+		odm += hm;
+		odo += ho;
+	}
+
+	vec3 tau = rayleighScatter * odr + mieScatter * odm + ozoneAbsorption * odo * 1.5;
+	vec3 attenuation = exp(-tau);
+
+	float sunIntensity = 25;
+	return attenuation * sunIntensity;
 }
