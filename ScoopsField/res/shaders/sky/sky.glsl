@@ -332,7 +332,7 @@ vec3 atmosphere(vec3 dir, vec3 lightDir, in SkySettings settings)
 		float odri = 0, odmi = 0, odoi = 0;
 		if (lightRay(samplePosition, toLight, settings, odri, odmi, odoi))
 		{
-			vec3 tau = rayleighScatter * (odr + odri) + mieScatter * (odm + odmi) + ozoneAbsorption * (odo + odoi) * 1.5;
+			vec3 tau = rayleighScatter * (odr + odri) + mieScatter * (odm + odmi) + ozoneAbsorption * (odo + odoi) * 2;
 			vec3 attenuation = exp(-tau);
 			rayleigh += attenuation * hr;
 			mie += attenuation * hm;
@@ -340,7 +340,7 @@ vec3 atmosphere(vec3 dir, vec3 lightDir, in SkySettings settings)
 	}
 
 	float sunIntensity = 25;
-	vec3 scattering = (rayleigh * rayleighScatter * phaseR + mie * mieScatter * phaseM /*+ mie * mieScatter * phaseS * 5*/) * sunIntensity;
+	vec3 scattering = (rayleigh * rayleighScatter * phaseR + mie * mieScatter * phaseM + mie * mieScatter * phaseS * 5) * sunIntensity;
 
 	return scattering;
 }
@@ -377,7 +377,7 @@ vec3 attenuateSun(vec3 sunDirection, float time)
 		odo += ho;
 	}
 
-	vec3 tau = rayleighScatter * odr + mieScatter * odm + ozoneAbsorption * odo * 1.5;
+	vec3 tau = rayleighScatter * odr + mieScatter * odm + ozoneAbsorption * odo * 2;
 	vec3 attenuation = exp(-tau);
 
 	float sunIntensity = 25;
