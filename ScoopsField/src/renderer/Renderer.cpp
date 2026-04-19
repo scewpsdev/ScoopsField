@@ -740,10 +740,14 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 		SDL_BindGPUComputePipeline(computePass, renderer->sunColorShader->compute);
 
-		SDL_GPUTextureSamplerBinding bindings[1];
+		SDL_GPUTextureSamplerBinding bindings[3];
 		bindings[0].texture = renderer->cloudLowFrequency->handle;
 		bindings[0].sampler = renderer->linearSampler;
-		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 1);
+		bindings[1].texture = renderer->emptyTexture;
+		bindings[1].sampler = renderer->defaultSampler;
+		bindings[2].texture = renderer->emptyTexture;
+		bindings[2].sampler = renderer->defaultSampler;
+		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 3);
 
 		struct UniformData
 		{

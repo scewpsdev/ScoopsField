@@ -182,6 +182,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/directional_light.frag");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/point_light.vert");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/point_light.frag");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky.glsl");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky.vert");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky.frag");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky_upsample.vert");
@@ -223,22 +224,22 @@ void GameUpdate()
 		ReloadGraphicsShader(game->renderer.pointLightShader, "res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
 		ReloadGraphicsPipeline(game->renderer.pointLightPipeline);
 	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/sky.frag"))
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky.frag") || FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky.glsl"))
 	{
 		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->renderer.skyShader, "res/shaders/sky.vert.bin", "res/shaders/sky.frag.bin");
+		ReloadGraphicsShader(game->renderer.skyShader, "res/shaders/sky/sky.vert.bin", "res/shaders/sky/sky.frag.bin");
 		ReloadGraphicsPipeline(game->renderer.skyPipeline);
 	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky_upsample.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/sky_upsample.frag"))
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky_upsample.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky_upsample.frag"))
 	{
 		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->renderer.skyUpsampleShader, "res/shaders/sky_upsample.vert.bin", "res/shaders/sky_upsample.frag.bin");
+		ReloadGraphicsShader(game->renderer.skyUpsampleShader, "res/shaders/sky/sky_upsample.vert.bin", "res/shaders/sky/sky_upsample.frag.bin");
 		ReloadGraphicsPipeline(game->renderer.skyUpsamplePipeline);
 	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky_cube.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/sky_cube.frag"))
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky_cube.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky_cube.frag"))
 	{
 		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->renderer.skyCubeShader, "res/shaders/sky_cube.vert.bin", "res/shaders/sky_cube.frag.bin");
+		ReloadGraphicsShader(game->renderer.skyCubeShader, "res/shaders/sky/sky_cube.vert.bin", "res/shaders/sky/sky_cube.frag.bin");
 		ReloadGraphicsPipeline(game->renderer.skyCubePipeline);
 	}
 

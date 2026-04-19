@@ -469,5 +469,6 @@
     <None Include="res\shaders\sky\sky_cube.frag" />
     <None Include="res\shaders\sky\sky.glsl" />
     <None Include="res\shaders\sky\sun_color.comp" />
+    <None Include="res\shaders\sky\clouds.glsl" />
   </ItemGroup>
 </Project>

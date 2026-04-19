@@ -66,6 +66,10 @@ bool FileHasChanged(const char* path)
 			SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "%s", SDL_GetError());
 		}
 	}
+	else
+	{
+		SDL_assert(false);
+	}
 	return false;
 }
 

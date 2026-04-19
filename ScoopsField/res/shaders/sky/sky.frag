@@ -29,6 +29,7 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 
 #include "../common.glsl"
 #include "sky.glsl"
+#include "clouds.glsl"
 
 
 vec3 reconstructView(vec2 uv, mat4 projectionInv, mat4 viewInv)
@@ -89,6 +90,9 @@ void main()
 	sky.time = gameTime;
 
 	vec3 color = atmosphere(view, lightDirection, sky);
+
+	vec4 cloudColor = clouds(view, lightDirection, sky);
+	color = mix(color, cloudColor.rgb, cloudColor.a);
 
 	// accumulation
 	vec2 lastUV = reconstructUV(view, lastProjection, lastView);
