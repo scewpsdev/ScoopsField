@@ -23,9 +23,9 @@ struct SkySettings
 #define mieScatter 21e-6f
 #define rayleighHeightScale 7994
 #define mieHeightScale 1200
-#define mieAnisotropy 0.45 // 0.76
+#define mieAnisotropy 0.76 // 0.76
 #define ozoneAbsorption vec3(0.65e-6, 1.88e-6, 0.085e-6)
-#define haze 0.0
+#define haze 0.01
 #define sunConcentration 0.999
 
 
