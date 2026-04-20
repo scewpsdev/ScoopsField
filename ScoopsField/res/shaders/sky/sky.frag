@@ -92,7 +92,7 @@ void main()
 	sky.time = gameTime;
 
 	vec3 color = atmosphere(view, lightDirection, sky);
-
+	
 	vec4 cloudColor = clouds(view, lightDirection, sky);
 	color = mix(color, cloudColor.rgb, cloudColor.a);
 

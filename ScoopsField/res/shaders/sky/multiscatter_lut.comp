@@ -60,16 +60,21 @@ bool raymarch(vec3 origin, vec3 dir, vec3 toLight, out vec3 singleScatter, out v
 		vec3 pos = origin + t * dir;
 		float height = length(pos) - planetRadius;
 
+		if (height < 0)
+			break;
+
 		vec3 density = getDensities(height);
-		density *= segmentLength;
 
 		vec3 sigmaS = rayleighScatter * density.x + mieScatter * density.y;
 		vec3 sigmaT = sigmaS + ozoneAbsorption * density.z;
 
-		vec3 viewTransmittance = exp(-sigmaT);
+		//vec3 safeSigmaT = max(sigmaT, vec3(1e-9));
+		vec3 viewTransmittance = exp(-sigmaT * segmentLength);
+
+		//vec3 segmentIntegral = (sigmaS / safeSigmaT) * (1 - viewTransmittance);
 
 		vec3 lightTransmittance = sampleTransmittanceLUT(height, toLight, normalize(pos));
-		singleScatter += throughput * sigmaS * lightTransmittance * segmentLength;
+		singleScatter += throughput * sigmaS * segmentLength * lightTransmittance;
 
 		energyTransfer += throughput * sigmaS * segmentLength;
 
@@ -99,7 +104,8 @@ void main()
 
 	float mu = uv.x * 2 - 1;
 	float sinTheta = sqrt(1 - mu * mu);
-	vec3 toLight = normalize(vec3(sinTheta, mu, 0));
+	vec3 sunDir = normalize(vec3(sinTheta, mu, 0));
+	vec3 toLight = -sunDir;
 
     vec3 l2 = vec3(0);
     vec3 fms = vec3(0);
@@ -118,6 +124,9 @@ void main()
 	        fms += energyTransfer * phaseMS;
 		}
     }
+
+	l2 *= 1.0 / numSamples;
+	fms *= 1.0 / numSamples;
 
     vec3 Fms = 1 / (1 - fms);
     vec3 Psims = l2 * Fms;

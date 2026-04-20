@@ -705,7 +705,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		gbufferTextures[4] = renderer->blueNoise->handle;
 		gbufferTextures[5] = rt2->colorAttachments[0];
 		gbufferTextures[6] = renderer->skyTransmittanceLUT;
-		gbufferTextures[7] = renderer->skyTransmittanceLUT;
+		gbufferTextures[7] = renderer->skyMultiScatterLUT;
 
 		SDL_GPUSampler* samplers[8];
 		samplers[0] = renderer->defaultSampler;

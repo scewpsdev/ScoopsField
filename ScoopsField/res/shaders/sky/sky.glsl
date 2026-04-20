@@ -25,7 +25,7 @@ struct SkySettings
 #define mieHeightScale 1200
 #define mieAnisotropy 0.45 // 0.76
 #define ozoneAbsorption vec3(0.65e-6, 1.88e-6, 0.085e-6)
-#define haze 0.005
+#define haze 0.0
 #define sunConcentration 0.999
 
 
@@ -49,7 +49,7 @@ vec3 getDensities(float height)
 {
 	float hr = exp(-height / rayleighHeightScale);
 	float hm = exp(-height / mieHeightScale) + haze;
-	float ho = max(1 - abs(height - 10e3) / 10e3, 0);
+	float ho = max(1 - abs(height - 25e3) / 15e3, 0);
 	return vec3(hr, hm, ho);
 }
 
@@ -107,7 +107,7 @@ vec3 sampleTransmittance(float startingHeight, vec3 dir, vec3 up)
 
 vec3 sampleMultiScatter(float height, vec3 toLight, vec3 up)
 {
-	float mu = dot(up, toLight);
+	float mu = dot(up, -toLight);
 
 	vec2 uv;
 	uv.x = mu * 0.5 + 0.5;
