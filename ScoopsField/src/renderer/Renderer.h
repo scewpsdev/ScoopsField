@@ -62,6 +62,8 @@ struct Renderer
 	RenderTarget* skyTarget;
 	RenderTarget* skyTarget2;
 	RenderTarget* skyCubemap;
+	SDL_GPUTexture* skyTransmittanceLUT;
+	SDL_GPUTexture* skyMultiScatterLUT;
 	SDL_GPUTexture* sunColorBuffer;
 
 	ScreenQuad screenQuad;
@@ -75,6 +77,8 @@ struct Renderer
 	Shader* skyShader;
 	Shader* skyUpsampleShader;
 	Shader* skyCubeShader;
+	Shader* skyTransmittaceLUTShader;
+	Shader* skyMultiScatterLUTShader;
 	Shader* sunColorShader;
 	Shader* tonemappingShader;
 
@@ -93,6 +97,7 @@ struct Renderer
 	SDL_GPUSampler* defaultSampler;
 	SDL_GPUSampler* clampedSampler;
 	SDL_GPUSampler* linearSampler;
+	SDL_GPUSampler* linearClampedSampler;
 	SDL_GPUSampler* cubemapSampler;
 	SDL_GPUBuffer* emptyBuffer;
 	SDL_GPUTexture* emptyTexture;

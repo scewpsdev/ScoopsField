@@ -189,6 +189,8 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky_upsample.frag");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky_cube.vert");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky_cube.frag");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/transmittance_lut.comp");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/multiscatter_lut.comp");
 
 	ResetGame(false);
 }
@@ -241,6 +243,16 @@ void GameUpdate()
 		app->platformCallbacks.compileResources();
 		ReloadGraphicsShader(game->renderer.skyCubeShader, "res/shaders/sky/sky_cube.vert.bin", "res/shaders/sky/sky_cube.frag.bin");
 		ReloadGraphicsPipeline(game->renderer.skyCubePipeline);
+	}
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/transmittance_lut.comp"))
+	{
+		app->platformCallbacks.compileResources();
+		ReloadComputeShader(game->renderer.skyTransmittaceLUTShader, "res/shaders/sky/transmittance_lut.comp.bin");
+	}
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/multiscatter_lut.comp"))
+	{
+		app->platformCallbacks.compileResources();
+		ReloadComputeShader(game->renderer.skyMultiScatterLUTShader, "res/shaders/sky/multiscatter_lut.comp.bin");
 	}
 
 	if (app->keys[SDL_SCANCODE_ESCAPE] && !app->lastKeys[SDL_SCANCODE_ESCAPE])
@@ -376,8 +388,8 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -(gameTime - 20) * 0.05f) * vec3(1, 0, 0);
-	sunDirection.y = -fabsf(sunDirection.y);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 1).normalized(), -34 * 0.1f) * vec3(1, 0, 0);
+	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 
 	RendererShow(&game->renderer, game->cameraPosition, game->projection, game->view, game->pv, game->frustumPlanes, game->cameraNear, sunDirection, swapchain, cmdBuffer);

@@ -12,6 +12,8 @@ layout(set = 2, binding = 3) uniform sampler3D s_cloudHighFrequency;
 
 layout(set = 2, binding = 4) uniform sampler2D s_bluenoise;
 layout(set = 2, binding = 5) uniform sampler2D s_lastFrame;
+layout(set = 2, binding = 6) uniform sampler2D s_transmittanceLUT;
+layout(set = 2, binding = 7) uniform sampler2D s_multiScatterLUT;
 
 layout(set = 3, binding = 0) uniform UniformBlock {
 	vec4 params;
@@ -83,7 +85,7 @@ void main()
 
 	SkySettings sky;
 	sky.numSamples = 16;
-	sky.numLightSamples = 6;
+	sky.numLightSamples = 4;
 	sky.offsetRayStart = true;
 	sky.noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875);
 	sky.lod = false;

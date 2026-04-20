@@ -111,3 +111,9 @@ Shader* LoadComputeShader(const char* computePath)
 
 	return shader;
 }
+
+void ReloadComputeShader(Shader* shader, const char* computePath)
+{
+	SDL_ReleaseGPUComputePipeline(device, shader->compute);
+	shader->compute = LoadComputeShaderStage(computePath);
+}

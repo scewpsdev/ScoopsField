@@ -210,6 +210,36 @@ static GraphicsPipeline* CreateTonemappingPipeline(Renderer* renderer)
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
+static SDL_GPUTexture* CreateSkyTransmittanceLUT()
+{
+	SDL_GPUTextureCreateInfo textureInfo = {};
+	textureInfo.type = SDL_GPU_TEXTURETYPE_2D;
+	textureInfo.format = SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT;
+	textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE;
+	textureInfo.width = 256;
+	textureInfo.height = 64;
+	textureInfo.layer_count_or_depth = 1;
+	textureInfo.num_levels = 1;
+	textureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
+
+	return SDL_CreateGPUTexture(device, &textureInfo);
+}
+
+static SDL_GPUTexture* CreateSkyMultiScatterLUT()
+{
+	SDL_GPUTextureCreateInfo textureInfo = {};
+	textureInfo.type = SDL_GPU_TEXTURETYPE_2D;
+	textureInfo.format = SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT;
+	textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE;
+	textureInfo.width = 32;
+	textureInfo.height = 32;
+	textureInfo.layer_count_or_depth = 1;
+	textureInfo.num_levels = 1;
+	textureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
+
+	return SDL_CreateGPUTexture(device, &textureInfo);
+}
+
 void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	renderer->width = width;
@@ -303,6 +333,8 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->skyShader = LoadGraphicsShader("res/shaders/sky/sky.vert.bin", "res/shaders/sky/sky.frag.bin");
 	renderer->skyUpsampleShader = LoadGraphicsShader("res/shaders/sky/sky_upsample.vert.bin", "res/shaders/sky/sky_upsample.frag.bin");
 	renderer->skyCubeShader = LoadGraphicsShader("res/shaders/sky/sky_cube.vert.bin", "res/shaders/sky/sky_cube.frag.bin");
+	renderer->skyTransmittaceLUTShader = LoadComputeShader("res/shaders/sky/transmittance_lut.comp.bin");
+	renderer->skyMultiScatterLUTShader = LoadComputeShader("res/shaders/sky/multiscatter_lut.comp.bin");
 	renderer->sunColorShader = LoadComputeShader("res/shaders/sky/sun_color.comp.bin");
 	renderer->tonemappingShader = LoadGraphicsShader("res/shaders/tonemapping.vert.bin", "res/shaders/tonemapping.frag.bin");
 
@@ -333,6 +365,16 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	linearSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
 	renderer->linearSampler = SDL_CreateGPUSampler(device, &linearSamplerInfo);
 
+	SDL_GPUSamplerCreateInfo linearClampedSamplerInfo = {};
+	linearSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
+	linearSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
+	linearSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
+	linearSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
+	clampedSamplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+	clampedSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+	clampedSamplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+	renderer->linearClampedSampler = SDL_CreateGPUSampler(device, &linearClampedSamplerInfo);
+
 	SDL_GPUSamplerCreateInfo cubemapSamplerInfo = {};
 	cubemapSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	cubemapSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
@@ -360,6 +402,9 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 
 	//renderer->noiseTexture = LoadTexture("res/textures/noise.png.bin", cmdBuffer);
 	//renderer->environmentMap = LoadTexture("res/textures/sky/sky_cubemap_equirect.png.bin", cmdBuffer);
+
+	renderer->skyTransmittanceLUT = CreateSkyTransmittanceLUT();
+	renderer->skyMultiScatterLUT = CreateSkyMultiScatterLUT();
 
 	renderer->cloudCoverage = GenerateCloudCoverage(cmdBuffer);
 	renderer->cloudLowFrequency = GenerateCloudLowFrequency(cmdBuffer);
@@ -652,23 +697,27 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		uniforms.lastView = renderer->lastView;
 		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-		SDL_GPUTexture* gbufferTextures[6];
+		SDL_GPUTexture* gbufferTextures[8];
 		gbufferTextures[0] = renderer->gbuffer->depthAttachment;
 		gbufferTextures[1] = renderer->cloudCoverage->handle;
 		gbufferTextures[2] = renderer->cloudLowFrequency->handle;
 		gbufferTextures[3] = renderer->cloudHighFrequency->handle;
 		gbufferTextures[4] = renderer->blueNoise->handle;
 		gbufferTextures[5] = rt2->colorAttachments[0];
+		gbufferTextures[6] = renderer->skyTransmittanceLUT;
+		gbufferTextures[7] = renderer->skyTransmittanceLUT;
 
-		SDL_GPUSampler* samplers[6];
+		SDL_GPUSampler* samplers[8];
 		samplers[0] = renderer->defaultSampler;
 		samplers[1] = renderer->linearSampler;
 		samplers[2] = renderer->linearSampler;
 		samplers[3] = renderer->linearSampler;
 		samplers[4] = renderer->defaultSampler;
 		samplers[5] = renderer->defaultSampler;
+		samplers[6] = renderer->linearClampedSampler;
+		samplers[7] = renderer->linearClampedSampler;
 
-		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 6, gbufferTextures, samplers, cmdBuffer);
+		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 8, gbufferTextures, samplers, cmdBuffer);
 
 		SDL_EndGPURenderPass(renderPass);
 	}
@@ -706,24 +755,80 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-			SDL_GPUTexture* gbufferTextures[4];
+			SDL_GPUTexture* gbufferTextures[6];
 			gbufferTextures[0] = renderer->cloudCoverage->handle;
 			gbufferTextures[1] = renderer->cloudLowFrequency->handle;
 			gbufferTextures[2] = renderer->cloudHighFrequency->handle;
 			gbufferTextures[3] = renderer->blueNoise->handle;
+			gbufferTextures[4] = renderer->skyTransmittanceLUT;
+			gbufferTextures[5] = renderer->skyMultiScatterLUT;
 
-			SDL_GPUSampler* samplers[4];
+			SDL_GPUSampler* samplers[6];
 			samplers[0] = renderer->linearSampler;
 			samplers[1] = renderer->linearSampler;
 			samplers[2] = renderer->linearSampler;
 			samplers[3] = renderer->defaultSampler;
+			samplers[4] = renderer->linearClampedSampler;
+			samplers[5] = renderer->linearClampedSampler;
 
-			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 4, gbufferTextures, samplers, cmdBuffer);
+			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 6, gbufferTextures, samplers, cmdBuffer);
 
 			SDL_EndGPURenderPass(renderPass);
 		}
 
 		SDL_GenerateMipmapsForGPUTexture(cmdBuffer, renderer->skyCubemap->colorAttachments[0]);
+	}
+
+	// transmittance lut
+	{
+		GPU_SCOPE("transmittance lut");
+
+		SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
+		bufferBinding.texture = renderer->skyTransmittanceLUT;
+		bufferBinding.mip_level = 0;
+		bufferBinding.layer = 0;
+		bufferBinding.cycle = false;
+
+		SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, &bufferBinding, 1, nullptr, 0);
+
+		SDL_BindGPUComputePipeline(computePass, renderer->skyTransmittaceLUTShader->compute);
+
+		SDL_GPUTextureSamplerBinding bindings[2];
+		bindings[0].texture = renderer->emptyTexture;
+		bindings[0].sampler = renderer->defaultSampler;
+		bindings[1].texture = renderer->emptyTexture;
+		bindings[1].sampler = renderer->defaultSampler;
+		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 2);
+
+		SDL_DispatchGPUCompute(computePass, 256 / 32, 64 / 32, 1);
+
+		SDL_EndGPUComputePass(computePass);
+	}
+
+	// multiscatter lut
+	{
+		GPU_SCOPE("multiscatter lut");
+
+		SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
+		bufferBinding.texture = renderer->skyMultiScatterLUT;
+		bufferBinding.mip_level = 0;
+		bufferBinding.layer = 0;
+		bufferBinding.cycle = false;
+
+		SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, &bufferBinding, 1, nullptr, 0);
+
+		SDL_BindGPUComputePipeline(computePass, renderer->skyMultiScatterLUTShader->compute);
+
+		SDL_GPUTextureSamplerBinding bindings[2];
+		bindings[0].texture = renderer->skyTransmittanceLUT;
+		bindings[0].sampler = renderer->linearClampedSampler;
+		bindings[1].texture = renderer->emptyTexture;
+		bindings[1].sampler = renderer->defaultSampler;
+		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 2);
+
+		SDL_DispatchGPUCompute(computePass, 32 / 32, 32 / 32, 1);
+
+		SDL_EndGPUComputePass(computePass);
 	}
 
 	// sun color
@@ -740,14 +845,18 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 		SDL_BindGPUComputePipeline(computePass, renderer->sunColorShader->compute);
 
-		SDL_GPUTextureSamplerBinding bindings[3];
+		SDL_GPUTextureSamplerBinding bindings[5];
 		bindings[0].texture = renderer->cloudLowFrequency->handle;
 		bindings[0].sampler = renderer->linearSampler;
 		bindings[1].texture = renderer->emptyTexture;
 		bindings[1].sampler = renderer->defaultSampler;
 		bindings[2].texture = renderer->emptyTexture;
 		bindings[2].sampler = renderer->defaultSampler;
-		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 3);
+		bindings[3].texture = renderer->emptyTexture;
+		bindings[3].sampler = renderer->defaultSampler;
+		bindings[4].texture = renderer->emptyTexture;
+		bindings[4].sampler = renderer->defaultSampler;
+		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 5);
 
 		struct UniformData
 		{

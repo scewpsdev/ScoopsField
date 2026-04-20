@@ -1,0 +1,49 @@
+#version 460
+
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform sampler2D s_transmittanceLUT;
+layout(set = 0, binding = 1) uniform sampler2D s_multiScatterLUT;
+
+layout(set = 1, binding = 0) uniform writeonly image2D s_output;
+
+#include "../common.glsl"
+#include "sky.glsl"
+
+
+void main()
+{
+	ivec2 gid = ivec2(gl_GlobalInvocationID.xy);
+	vec2 uv = gid / vec2(imageSize(s_output));
+
+	float startingHeight = uv.y * (atmosphereRadius - planetRadius);
+	vec3 origin = vec3(0, planetRadius + startingHeight, 0);
+
+	float mu = uv.x * 2 - 1;
+	float sinTheta = sqrt(1 - mu * mu);
+	vec3 dir = normalize(vec3(sinTheta, mu, 0));
+
+	float tmin, tmax;
+	sphereIntersect(origin, dir, atmosphereRadius, tmin, tmax);
+
+	int numLightSamples = 64;
+	float segmentLength = tmax / numLightSamples;
+
+	vec3 opticalDepth = vec3(0);
+
+	for (int i = 0; i < numLightSamples; i++)
+	{
+		float t = (i + 0.5) * segmentLength;
+		vec3 pos = origin + t * dir;
+		float height = length(pos) - planetRadius;
+
+		vec3 density = getDensities(height);
+		density *= segmentLength;
+		opticalDepth += density;
+	}
+
+	vec3 tau = rayleighScatter * opticalDepth.x + mieScatter * opticalDepth.y + ozoneAbsorption * opticalDepth.z;
+	vec3 transmittance = exp(-tau);
+
+	imageStore(s_output, gid, vec4(transmittance, 0));
+}

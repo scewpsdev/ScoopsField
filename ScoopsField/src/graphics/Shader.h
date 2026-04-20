@@ -17,3 +17,4 @@ Shader* LoadComputeShader(const char* computePath);
 void DestroyShader(Shader* shader);
 
 void ReloadGraphicsShader(Shader* shader, const char* vertexPath, const char* fragmentPath);
+void ReloadComputeShader(Shader* shader, const char* computePath);
