@@ -240,6 +240,21 @@ static SDL_GPUTexture* CreateSkyMultiScatterLUT()
 	return SDL_CreateGPUTexture(device, &textureInfo);
 }
 
+static SDL_GPUTexture* CreateSkyViewLUT()
+{
+	SDL_GPUTextureCreateInfo textureInfo = {};
+	textureInfo.type = SDL_GPU_TEXTURETYPE_2D;
+	textureInfo.format = SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT;
+	textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE;
+	textureInfo.width = 256;
+	textureInfo.height = 128;
+	textureInfo.layer_count_or_depth = 1;
+	textureInfo.num_levels = 1;
+	textureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
+
+	return SDL_CreateGPUTexture(device, &textureInfo);
+}
+
 void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	renderer->width = width;
@@ -335,6 +350,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->skyCubeShader = LoadGraphicsShader("res/shaders/sky/sky_cube.vert.bin", "res/shaders/sky/sky_cube.frag.bin");
 	renderer->skyTransmittaceLUTShader = LoadComputeShader("res/shaders/sky/transmittance_lut.comp.bin");
 	renderer->skyMultiScatterLUTShader = LoadComputeShader("res/shaders/sky/multiscatter_lut.comp.bin");
+	renderer->skyViewLUTShader = LoadComputeShader("res/shaders/sky/skyview_lut.comp.bin");
 	renderer->sunColorShader = LoadComputeShader("res/shaders/sky/sun_color.comp.bin");
 	renderer->tonemappingShader = LoadGraphicsShader("res/shaders/tonemapping.vert.bin", "res/shaders/tonemapping.frag.bin");
 
@@ -366,21 +382,22 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->linearSampler = SDL_CreateGPUSampler(device, &linearSamplerInfo);
 
 	SDL_GPUSamplerCreateInfo linearClampedSamplerInfo = {};
-	linearSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
-	linearSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
-	linearSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
-	linearSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
-	clampedSamplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-	clampedSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-	clampedSamplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+	linearClampedSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
+	linearClampedSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
+	linearClampedSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
+	linearClampedSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
+	linearClampedSamplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+	linearClampedSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+	linearClampedSamplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	renderer->linearClampedSampler = SDL_CreateGPUSampler(device, &linearClampedSamplerInfo);
 
-	SDL_GPUSamplerCreateInfo cubemapSamplerInfo = {};
-	cubemapSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
-	cubemapSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
-	cubemapSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
-	cubemapSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
-	renderer->cubemapSampler = SDL_CreateGPUSampler(device, &cubemapSamplerInfo);
+	SDL_GPUSamplerCreateInfo linearClampedVSamplerInfo = {};
+	linearClampedVSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
+	linearClampedVSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
+	linearClampedVSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
+	linearClampedVSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
+	linearClampedVSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+	renderer->linearClampedVSampler = SDL_CreateGPUSampler(device, &linearClampedSamplerInfo);
 
 	SDL_GPUBufferCreateInfo emptyBufferInfo = {};
 	emptyBufferInfo.size = 4;
@@ -405,6 +422,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 
 	renderer->skyTransmittanceLUT = CreateSkyTransmittanceLUT();
 	renderer->skyMultiScatterLUT = CreateSkyMultiScatterLUT();
+	renderer->skyViewLUT = CreateSkyViewLUT();
 
 	renderer->cloudCoverage = GenerateCloudCoverage(cmdBuffer);
 	renderer->cloudLowFrequency = GenerateCloudLowFrequency(cmdBuffer);
@@ -668,117 +686,6 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		SDL_EndGPURenderPass(renderPass);
 	}
 
-	// sky
-	{
-		GPU_SCOPE("sky");
-
-		RenderTarget* rt = app->frameIdx % 2 == 0 ? renderer->skyTarget : renderer->skyTarget2;
-		RenderTarget* rt2 = app->frameIdx % 2 == 0 ? renderer->skyTarget2 : renderer->skyTarget;
-
-		SDL_GPURenderPass* renderPass = BindRenderTarget(rt, 0, cmdBuffer);
-
-		SDL_BindGPUGraphicsPipeline(renderPass, renderer->skyPipeline->pipeline);
-
-		struct UniformData
-		{
-			vec4 params;
-			vec4 params2;
-			mat4 projectionInv;
-			mat4 viewInv;
-			mat4 lastProjection;
-			mat4 lastView;
-		};
-		UniformData uniforms = {};
-		uniforms.params = vec4(sunDirection, gameTime);
-		uniforms.params2 = vec4((float)app->frameIdx, 0, 0, 0);
-		uniforms.projectionInv = projectionInv;
-		uniforms.viewInv = viewInv;
-		uniforms.lastProjection = renderer->lastProjection;
-		uniforms.lastView = renderer->lastView;
-		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
-
-		SDL_GPUTexture* gbufferTextures[8];
-		gbufferTextures[0] = renderer->gbuffer->depthAttachment;
-		gbufferTextures[1] = renderer->cloudCoverage->handle;
-		gbufferTextures[2] = renderer->cloudLowFrequency->handle;
-		gbufferTextures[3] = renderer->cloudHighFrequency->handle;
-		gbufferTextures[4] = renderer->blueNoise->handle;
-		gbufferTextures[5] = rt2->colorAttachments[0];
-		gbufferTextures[6] = renderer->skyTransmittanceLUT;
-		gbufferTextures[7] = renderer->skyMultiScatterLUT;
-
-		SDL_GPUSampler* samplers[8];
-		samplers[0] = renderer->defaultSampler;
-		samplers[1] = renderer->linearSampler;
-		samplers[2] = renderer->linearSampler;
-		samplers[3] = renderer->linearSampler;
-		samplers[4] = renderer->defaultSampler;
-		samplers[5] = renderer->defaultSampler;
-		samplers[6] = renderer->linearClampedSampler;
-		samplers[7] = renderer->linearClampedSampler;
-
-		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 8, gbufferTextures, samplers, cmdBuffer);
-
-		SDL_EndGPURenderPass(renderPass);
-	}
-
-	// sky cubemap
-	{
-		GPU_SCOPE("sky cubemap");
-
-		mat4 cubemapViewsInv[6];
-		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_POSITIVEX] = mat4::Rotate(vec3::Up, -0.5f * PI);
-		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_NEGATIVEX] = mat4::Rotate(vec3::Up, 0.5f * PI);
-		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_POSITIVEY] = mat4::Rotate(vec3::Right, 0.5f * PI);
-		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_NEGATIVEY] = mat4::Rotate(vec3::Right, -0.5f * PI);
-		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_POSITIVEZ] = mat4::Rotate(vec3::Up, PI);
-		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_NEGATIVEZ] = mat4::Identity;
-
-		for (int i = 0; i < 6; i++)
-		{
-			SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->skyCubemap, i, cmdBuffer);
-
-			SDL_BindGPUGraphicsPipeline(renderPass, renderer->skyCubePipeline->pipeline);
-
-			struct UniformData
-			{
-				vec4 params;
-				vec4 params2;
-				mat4 projectionInv;
-				mat4 viewInv;
-			};
-			UniformData uniforms = {};
-			uniforms.params = vec4(sunDirection, gameTime);
-			uniforms.params2 = vec4((float)app->frameIdx, 0, 0, 0);
-			uniforms.projectionInv = mat4::Perspective(0.5f * PI, 1, 0.1f);
-			uniforms.viewInv = cubemapViewsInv[i];
-
-			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
-
-			SDL_GPUTexture* gbufferTextures[6];
-			gbufferTextures[0] = renderer->cloudCoverage->handle;
-			gbufferTextures[1] = renderer->cloudLowFrequency->handle;
-			gbufferTextures[2] = renderer->cloudHighFrequency->handle;
-			gbufferTextures[3] = renderer->blueNoise->handle;
-			gbufferTextures[4] = renderer->skyTransmittanceLUT;
-			gbufferTextures[5] = renderer->skyMultiScatterLUT;
-
-			SDL_GPUSampler* samplers[6];
-			samplers[0] = renderer->linearSampler;
-			samplers[1] = renderer->linearSampler;
-			samplers[2] = renderer->linearSampler;
-			samplers[3] = renderer->defaultSampler;
-			samplers[4] = renderer->linearClampedSampler;
-			samplers[5] = renderer->linearClampedSampler;
-
-			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 6, gbufferTextures, samplers, cmdBuffer);
-
-			SDL_EndGPURenderPass(renderPass);
-		}
-
-		SDL_GenerateMipmapsForGPUTexture(cmdBuffer, renderer->skyCubemap->colorAttachments[0]);
-	}
-
 	// transmittance lut
 	{
 		GPU_SCOPE("transmittance lut");
@@ -831,6 +738,34 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		SDL_EndGPUComputePass(computePass);
 	}
 
+	// sky view lut
+	{
+		GPU_SCOPE("sky view lut");
+
+		SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
+		bufferBinding.texture = renderer->skyViewLUT;
+		bufferBinding.mip_level = 0;
+		bufferBinding.layer = 0;
+		bufferBinding.cycle = false;
+
+		SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, &bufferBinding, 1, nullptr, 0);
+
+		SDL_BindGPUComputePipeline(computePass, renderer->skyViewLUTShader->compute);
+
+		SDL_GPUTextureSamplerBinding bindings[3];
+		bindings[0].texture = renderer->skyTransmittanceLUT;
+		bindings[0].sampler = renderer->linearClampedSampler;
+		bindings[1].texture = renderer->skyMultiScatterLUT;
+		bindings[1].sampler = renderer->linearClampedSampler;
+		bindings[2].texture = renderer->blueNoise->handle;
+		bindings[2].sampler = renderer->defaultSampler;
+		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 3);
+
+		SDL_DispatchGPUCompute(computePass, 256 / 32, 128 / 32, 1);
+
+		SDL_EndGPUComputePass(computePass);
+	}
+
 	// sun color
 	{
 		GPU_SCOPE("sun color compute");
@@ -870,6 +805,121 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		SDL_DispatchGPUCompute(computePass, 1, 1, 1);
 
 		SDL_EndGPUComputePass(computePass);
+	}
+
+	// sky
+	{
+		GPU_SCOPE("sky");
+
+		RenderTarget* rt = app->frameIdx % 2 == 0 ? renderer->skyTarget : renderer->skyTarget2;
+		RenderTarget* rt2 = app->frameIdx % 2 == 0 ? renderer->skyTarget2 : renderer->skyTarget;
+
+		SDL_GPURenderPass* renderPass = BindRenderTarget(rt, 0, cmdBuffer);
+
+		SDL_BindGPUGraphicsPipeline(renderPass, renderer->skyPipeline->pipeline);
+
+		struct UniformData
+		{
+			vec4 params;
+			vec4 params2;
+			mat4 projectionInv;
+			mat4 viewInv;
+			mat4 lastProjection;
+			mat4 lastView;
+		};
+		UniformData uniforms = {};
+		uniforms.params = vec4(sunDirection, gameTime);
+		uniforms.params2 = vec4((float)app->frameIdx, 0, 0, 0);
+		uniforms.projectionInv = projectionInv;
+		uniforms.viewInv = viewInv;
+		uniforms.lastProjection = renderer->lastProjection;
+		uniforms.lastView = renderer->lastView;
+		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+
+		SDL_GPUTexture* gbufferTextures[9];
+		gbufferTextures[0] = renderer->gbuffer->depthAttachment;
+		gbufferTextures[1] = renderer->cloudCoverage->handle;
+		gbufferTextures[2] = renderer->cloudLowFrequency->handle;
+		gbufferTextures[3] = renderer->cloudHighFrequency->handle;
+		gbufferTextures[4] = renderer->blueNoise->handle;
+		gbufferTextures[5] = rt2->colorAttachments[0];
+		gbufferTextures[6] = renderer->skyTransmittanceLUT;
+		gbufferTextures[7] = renderer->skyMultiScatterLUT;
+		gbufferTextures[8] = renderer->skyViewLUT;
+
+		SDL_GPUSampler* samplers[9];
+		samplers[0] = renderer->defaultSampler;
+		samplers[1] = renderer->linearSampler;
+		samplers[2] = renderer->linearSampler;
+		samplers[3] = renderer->linearSampler;
+		samplers[4] = renderer->defaultSampler;
+		samplers[5] = renderer->defaultSampler;
+		samplers[6] = renderer->linearClampedSampler;
+		samplers[7] = renderer->linearClampedSampler;
+		samplers[8] = renderer->linearClampedVSampler;
+
+		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 9, gbufferTextures, samplers, cmdBuffer);
+
+		SDL_EndGPURenderPass(renderPass);
+	}
+
+	// sky cubemap
+	{
+		GPU_SCOPE("sky cubemap");
+
+		mat4 cubemapViewsInv[6];
+		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_POSITIVEX] = mat4::Rotate(vec3::Up, -0.5f * PI);
+		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_NEGATIVEX] = mat4::Rotate(vec3::Up, 0.5f * PI);
+		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_POSITIVEY] = mat4::Rotate(vec3::Right, 0.5f * PI);
+		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_NEGATIVEY] = mat4::Rotate(vec3::Right, -0.5f * PI);
+		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_POSITIVEZ] = mat4::Rotate(vec3::Up, PI);
+		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_NEGATIVEZ] = mat4::Identity;
+
+		for (int i = 0; i < 6; i++)
+		{
+			SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->skyCubemap, i, cmdBuffer);
+
+			SDL_BindGPUGraphicsPipeline(renderPass, renderer->skyCubePipeline->pipeline);
+
+			struct UniformData
+			{
+				vec4 params;
+				vec4 params2;
+				mat4 projectionInv;
+				mat4 viewInv;
+			};
+			UniformData uniforms = {};
+			uniforms.params = vec4(sunDirection, gameTime);
+			uniforms.params2 = vec4((float)app->frameIdx, 0, 0, 0);
+			uniforms.projectionInv = mat4::Perspective(0.5f * PI, 1, 0.1f);
+			uniforms.viewInv = cubemapViewsInv[i];
+
+			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+
+			SDL_GPUTexture* gbufferTextures[7];
+			gbufferTextures[0] = renderer->cloudCoverage->handle;
+			gbufferTextures[1] = renderer->cloudLowFrequency->handle;
+			gbufferTextures[2] = renderer->cloudHighFrequency->handle;
+			gbufferTextures[3] = renderer->blueNoise->handle;
+			gbufferTextures[4] = renderer->skyTransmittanceLUT;
+			gbufferTextures[5] = renderer->skyMultiScatterLUT;
+			gbufferTextures[6] = renderer->skyViewLUT;
+
+			SDL_GPUSampler* samplers[7];
+			samplers[0] = renderer->linearSampler;
+			samplers[1] = renderer->linearSampler;
+			samplers[2] = renderer->linearSampler;
+			samplers[3] = renderer->defaultSampler;
+			samplers[4] = renderer->linearClampedSampler;
+			samplers[5] = renderer->linearClampedSampler;
+			samplers[6] = renderer->linearClampedVSampler;
+
+			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 7, gbufferTextures, samplers, cmdBuffer);
+
+			SDL_EndGPURenderPass(renderPass);
+		}
+
+		SDL_GenerateMipmapsForGPUTexture(cmdBuffer, renderer->skyCubemap->colorAttachments[0]);
 	}
 
 	// lighting pass

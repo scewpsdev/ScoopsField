@@ -191,6 +191,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky_cube.frag");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/transmittance_lut.comp");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/multiscatter_lut.comp");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/skyview_lut.comp");
 
 	ResetGame(false);
 }
@@ -226,7 +227,7 @@ void GameUpdate()
 		ReloadGraphicsShader(game->renderer.pointLightShader, "res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
 		ReloadGraphicsPipeline(game->renderer.pointLightPipeline);
 	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky.frag") || FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky.glsl"))
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky.frag"))
 	{
 		app->platformCallbacks.compileResources();
 		ReloadGraphicsShader(game->renderer.skyShader, "res/shaders/sky/sky.vert.bin", "res/shaders/sky/sky.frag.bin");
@@ -253,6 +254,11 @@ void GameUpdate()
 	{
 		app->platformCallbacks.compileResources();
 		ReloadComputeShader(game->renderer.skyMultiScatterLUTShader, "res/shaders/sky/multiscatter_lut.comp.bin");
+	}
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/skyview_lut.comp") || FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky.glsl"))
+	{
+		app->platformCallbacks.compileResources();
+		ReloadComputeShader(game->renderer.skyViewLUTShader, "res/shaders/sky/skyview_lut.comp.bin");
 	}
 
 	if (app->keys[SDL_SCANCODE_ESCAPE] && !app->lastKeys[SDL_SCANCODE_ESCAPE])
@@ -388,7 +394,7 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.1f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -5 * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 

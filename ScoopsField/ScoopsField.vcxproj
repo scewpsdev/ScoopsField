@@ -339,6 +339,7 @@
     <None Include="res\shaders\sky\sky.frag" />
     <None Include="res\shaders\sky\sky.glsl" />
     <None Include="res\shaders\sky\sky.vert" />
+    <None Include="res\shaders\sky\skyview_lut.comp" />
     <None Include="res\shaders\sky\sky_cube.frag" />
     <None Include="res\shaders\sky\sky_cube.vert" />
     <None Include="res\shaders\sky\sky_upsample.frag" />

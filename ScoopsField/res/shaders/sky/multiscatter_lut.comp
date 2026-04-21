@@ -24,27 +24,18 @@ vec3 sampleSphere(int i, int n)
     return vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
 }
 
-vec3 sampleTransmittance(vec3 pos, vec3 dir)
-{
-    float r = length(pos);
-    float height = r - planetRadius;
-
-    vec3 up = pos / r;
-
-    return sampleTransmittanceLUT(height, dir, up);
-}
-
-bool raymarch(vec3 origin, vec3 dir, vec3 toLight, out vec3 singleScatter, out vec3 energyTransfer)
+bool raymarch(vec3 origin, vec3 dir, vec3 toLight, SkySettings sky, out vec3 singleScatter, out vec3 energyTransfer)
 {
 	float tmin, tmax;
-	if (!sphereIntersect(origin, dir, atmosphereRadius, tmin, tmax))
+	if (!sphereIntersect(origin, dir, atmosphereRadius, tmin, tmax) || tmax < 0)
 		return false;
-	if (tmax < 0)
-		return false;
-	if (tmin < 0)
-		tmin = 0;
 
-	int numSamples = 20;
+	tmin = max(tmin, 0);
+
+	float tgmin, tgmax;
+	sphereIntersect(origin, dir, planetRadius, tgmin, tgmax);
+
+	int numSamples = 16;
 	float segmentLength = (tmax - tmin) / numSamples;
 
 	float phaseMS = 1 / (4 * pi);
@@ -68,25 +59,21 @@ bool raymarch(vec3 origin, vec3 dir, vec3 toLight, out vec3 singleScatter, out v
 		vec3 sigmaS = rayleighScatter * density.x + mieScatter * density.y;
 		vec3 sigmaT = sigmaS + ozoneAbsorption * density.z;
 
-		//vec3 safeSigmaT = max(sigmaT, vec3(1e-9));
-		vec3 viewTransmittance = exp(-sigmaT * segmentLength);
-
-		//vec3 segmentIntegral = (sigmaS / safeSigmaT) * (1 - viewTransmittance);
+		vec3 stepTransmittance = exp(-sigmaT * segmentLength);
 
 		vec3 lightTransmittance = sampleTransmittanceLUT(height, toLight, normalize(pos));
 		singleScatter += throughput * sigmaS * segmentLength * lightTransmittance;
 
 		energyTransfer += throughput * sigmaS * segmentLength;
 
-		throughput *= viewTransmittance;
+		throughput *= stepTransmittance;
 	}
 
-	float tgmin, tgmax;
-	if (sphereIntersect(origin, dir, planetRadius, tgmin, tgmax) && tgmax > 0)
+	if (tgmin > 0)
 	{
 		vec3 ground = origin + tgmax * dir;
 		vec3 sunToGround = sampleTransmittanceLUT(0, toLight, normalize(ground));
-		vec3 albedo = vec3(0.3);
+		vec3 albedo = sky.groundColor;
 		singleScatter += throughput * albedo * sunToGround;
 	}
 
@@ -112,13 +99,16 @@ void main()
 
     float phaseMS = 1 / (4 * pi); // isotropic phase function
 
+	SkySettings sky;
+	sky.groundColor = vec3(0.3);
+
     int numSamples = 64;
     for (int i = 0; i < numSamples; i++)
     {
         vec3 dir = sampleSphere(i, numSamples);
 
         vec3 singleScatter, energyTransfer;
-        if (raymarch(pos, dir, toLight, singleScatter, energyTransfer))
+        if (raymarch(pos, dir, toLight, sky, singleScatter, energyTransfer))
 		{
 	        l2 += singleScatter * phaseMS;
 	        fms += energyTransfer * phaseMS;

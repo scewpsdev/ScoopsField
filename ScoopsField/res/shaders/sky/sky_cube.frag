@@ -11,6 +11,7 @@ layout(set = 2, binding = 2) uniform sampler3D s_cloudHighFrequency;
 layout(set = 2, binding = 3) uniform sampler2D s_bluenoise;
 layout(set = 2, binding = 4) uniform sampler2D s_transmittanceLUT;
 layout(set = 2, binding = 5) uniform sampler2D s_multiScatterLUT;
+layout(set = 2, binding = 6) uniform sampler2D s_skyViewLUT;
 
 layout(set = 3, binding = 0) uniform UniformBlock {
 	vec4 params;
@@ -48,18 +49,34 @@ vec3 reconstructView(vec2 uv, mat4 projectionInv, mat4 viewInv)
 	return dir;
 }
 
+vec3 sampleSkyViewLUT(vec3 dir)
+{
+	float longitude = mod(atan(dir.x, dir.z) + 2 * pi, 2 * pi);
+	float latitude = asin(dir.y);
+
+	float u = longitude / pi * 0.5;
+	float v = 0.5 + 0.5 * -sign(latitude) * sqrt(abs(latitude) / pi * 2);
+
+	vec3 color = texture(s_skyViewLUT, vec2(u, v)).rgb;
+
+	return color;
+}
+
 void main()
 {
-	vec3 view = reconstructView(v_texcoord, projectionInv, viewInv); // view space direction
+	vec3 dir = reconstructView(v_texcoord, projectionInv, viewInv); // view space direction
 
+	/*
 	SkySettings sky;
-	sky.numSamples = 16;
-	sky.numLightSamples = 6;
-	sky.offsetRayStart = false;
-	sky.lod = true;
-	sky.time = gameTime;
+	sky.time = 0;
+	sky.noise = 0;
+	sky.groundColor = vec3(0.3);
 
-	vec3 color = atmosphere(view, lightDirection, sky);
+	int numSamples = 16;
+	vec3 color = atmosphere(dir, lightDirection, numSamples, sky);
+	*/
+
+	vec3 color = sampleSkyViewLUT(dir);
 
 	out_color = vec4(color, 1);
 }

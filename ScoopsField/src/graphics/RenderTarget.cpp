@@ -7,7 +7,7 @@ extern SDL_GPUDevice* device;
 extern GraphicsState* graphics;
 
 
-static int GetNumMipsForTexture(int width, int height)
+int GetNumMipsForTexture(int width, int height)
 {
 	int size = max(width, height);
 	int numMips = 0;

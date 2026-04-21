@@ -3,19 +3,12 @@
 
 struct SkySettings
 {
-	int numSamples;
-	int numLightSamples;
-
-	bool offsetRayStart;
+	float time;
 	float noise;
 
-	bool lod;
-
-	float time;
+	vec3 groundColor;
 };
 
-
-#define pi 3.14159265359
 
 #define planetRadius 6360e3
 #define atmosphereRadius 6460e3
@@ -25,7 +18,7 @@ struct SkySettings
 #define mieHeightScale 1200
 #define mieAnisotropy 0.76 // 0.76
 #define ozoneAbsorption vec3(0.65e-6, 1.88e-6, 0.085e-6)
-#define haze 0.01
+#define haze 0.0
 #define sunConcentration 0.999
 
 
@@ -118,36 +111,44 @@ vec3 sampleMultiScatter(float height, vec3 toLight, vec3 up)
 	return multi;
 }
 
-vec3 atmosphere(vec3 dir, vec3 lightDir, in SkySettings settings)
+vec3 atmosphere(vec3 dir, vec3 lightDir, int numSamples, SkySettings sky)
 {
 	vec3 origin = vec3(0, planetRadius + 100, 0);
 
 	float tmin, tmax;
 	if (!sphereIntersect(origin, dir, atmosphereRadius, tmin, tmax) || tmax < 0)
 		return vec3(0); // space color
-	if (tmin < 0)
-		tmin = 0;
+
+	tmin = max(tmin, 0);
+
+	float tgmin, tgmax;
+	if (sphereIntersect(origin, dir, planetRadius, tgmin, tgmax) && tgmax > 0)
+	{
+		tmax = max(tgmin, 0);
+	}
 
 	float l = tmax - tmin;
-	float ldt = 1.0 / settings.numSamples;
+	float ldt = 1.0 / numSamples;
 	float segmentLength = l * ldt;
 
 	vec3 rayleigh = vec3(0), mie = vec3(0), cloud = vec3(0);
-	vec3 opticalDepth = vec3(0); // cumulative optical depth
+	vec3 opticalDepth = vec3(0);
+	vec3 viewTransmittance = vec3(1);
 
 	vec3 toLight = -lightDir;
 	float m = dot(dir, toLight);
 	float phaseR = 3 / (16 * pi) * (1 + m * m);
 	float phaseM = phase(m, mieAnisotropy);
-	//float phaseC = phase(m, cloudAnisotropy);
 
+	/*
 	float ms = m > 0.9998 ? 0.9999 : m;
 	float phaseS = phase(ms, sunConcentration);
 	phaseS *= 1 - exp(-max(dir.y + 0.012, 0) * 1000);
+	*/
 
-	for (int i = 0; i < settings.numSamples; i++)
+	for (int i = 0; i < numSamples; i++)
 	{
-		float xi = settings.offsetRayStart ? settings.noise - 0.5 : 0;
+		float xi = sky.noise;
 
 		float u0 = (i + xi) * ldt;
 		float u1 = (i + 1 + xi) * ldt;
@@ -168,39 +169,42 @@ vec3 atmosphere(vec3 dir, vec3 lightDir, in SkySettings settings)
 			break;
 
 		vec3 density = getDensities(height);
-		density *= dt;
-		opticalDepth += density;
 
-		vec3 viewTransmittance = exp(-(rayleighScatter * opticalDepth.x + mieScatter * opticalDepth.y + ozoneAbsorption * opticalDepth.z));
+		vec3 sigmaS = rayleighScatter * density.x + mieScatter * density.y;
+		vec3 sigmaT = sigmaS + ozoneAbsorption * density.z;
+
+		vec3 stepTransmittance = exp(-sigmaT * dt);
+
+		opticalDepth += density * dt;
+		viewTransmittance = exp(-(rayleighScatter * opticalDepth.x + mieScatter * opticalDepth.y + ozoneAbsorption * opticalDepth.z));
 
 		vec3 lightTransmittance = sampleTransmittanceLUT(height, toLight, samplePosition / distanceFromPlanet);
-		//vec3 lightTransmittance = sampleTransmittance(height, toLight, samplePosition / distanceFromPlanet);
 
 		vec3 multiScatter = sampleMultiScatter(height, toLight, normalize(samplePosition));
 
 		vec3 transmittance = viewTransmittance * (lightTransmittance + multiScatter);
 
-		/*
-		float Tc = exp(-0.6 * (odc + odci));
-		float k = 0.01;
-		vec3 multiScatter = k * (1 - Tc) * vec3(0.2, 0.25, 0.3);
-		float inScattering = 1 - exp(-hc * 0.002);
-		*/
-
-		rayleigh += transmittance * density.x;
-		mie += transmittance * density.y;
-		//cloud += attenuation * hc; // + inScattering * 20.0; // + inScattering * 0.0;
+		rayleigh += transmittance * density.x * dt;
+		mie += transmittance * density.y * dt;
 	}
 
 	float sunIntensity = 25;
-	vec3 scattering = (rayleigh * rayleighScatter * phaseR + mie * mieScatter * phaseM + mie * mieScatter * phaseS) * sunIntensity;
+	vec3 scattering = (rayleigh * rayleighScatter * phaseR + mie * mieScatter * phaseM /*+ mie * mieScatter * phaseS*/) * sunIntensity;
+
+	if (tgmin > 0)
+	{
+		vec3 ground = origin + tgmin * dir;
+		vec3 sunToGround = sampleTransmittanceLUT(0, toLight, normalize(ground));
+		vec3 albedo = sky.groundColor;
+		scattering += viewTransmittance * albedo * sunToGround * sunIntensity * (1 / (4 * pi));
+	}
 
 	return scattering;
 }
 
 vec3 attenuateSun(vec3 sunDirection, float time)
 {
-	vec3 origin = vec3(0, planetRadius + 1000, 0);
+	vec3 origin = vec3(0, planetRadius + 100, 0);
 	vec3 dir = -sunDirection;
 
 	int numSamples = 128;

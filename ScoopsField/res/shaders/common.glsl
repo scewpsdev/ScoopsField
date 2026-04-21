@@ -1,3 +1,9 @@
+
+
+
+#define pi 3.14159265359
+
+
 float remap(float f, float min, float max, float newMin, float newMax)
 {
 	return (f - min) / (max - min) * (newMax - newMin) + newMin;

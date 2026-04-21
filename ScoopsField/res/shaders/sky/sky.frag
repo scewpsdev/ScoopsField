@@ -9,11 +9,12 @@ layout(set = 2, binding = 0) uniform sampler2D s_depth;
 layout(set = 2, binding = 1) uniform sampler2D s_cloudCoverage;
 layout(set = 2, binding = 2) uniform sampler3D s_cloudLowFrequency;
 layout(set = 2, binding = 3) uniform sampler3D s_cloudHighFrequency;
-
 layout(set = 2, binding = 4) uniform sampler2D s_bluenoise;
+
 layout(set = 2, binding = 5) uniform sampler2D s_lastFrame;
 layout(set = 2, binding = 6) uniform sampler2D s_transmittanceLUT;
 layout(set = 2, binding = 7) uniform sampler2D s_multiScatterLUT;
+layout(set = 2, binding = 8) uniform sampler2D s_skyViewLUT;
 
 layout(set = 3, binding = 0) uniform UniformBlock {
 	vec4 params;
@@ -72,6 +73,19 @@ float bluenoise(vec2 coord)
 	return texture(s_bluenoise, uv).r;
 }
 
+vec3 sampleSkyViewLUT(vec3 dir)
+{
+	float longitude = mod(atan(dir.x, dir.z) + 2 * pi, 2 * pi);
+	float latitude = asin(dir.y);
+
+	float u = longitude / pi * 0.5;
+	float v = 0.5 + 0.5 * -sign(latitude) * sqrt(abs(latitude) / pi * 2);
+
+	vec3 color = texture(s_skyViewLUT, vec2(u, v)).rgb;
+
+	return color;
+}
+
 void main()
 {
 	float depth = texture(s_depth, v_texcoord).r;
@@ -81,23 +95,24 @@ void main()
 		return;
 	}
 
-	vec3 view = reconstructView(v_texcoord, projectionInv, viewInv); // view space direction
+	vec3 dir = reconstructView(v_texcoord, projectionInv, viewInv); // view space direction
 
 	SkySettings sky;
-	sky.numSamples = 16;
-	sky.numLightSamples = 4;
-	sky.offsetRayStart = true;
-	sky.noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875);
-	sky.lod = false;
-	sky.time = gameTime;
+	//sky.noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
+	sky.groundColor = vec3(0.3);
 
-	vec3 color = atmosphere(view, lightDirection, sky);
+	/*
+	int numSamples = 16;
+	vec3 color = atmosphere(dir, lightDirection, numSamples, sky);
+	*/
+
+	vec3 color = sampleSkyViewLUT(dir);
 	
-	vec4 cloudColor = clouds(view, lightDirection, sky);
+	vec4 cloudColor = clouds(dir, lightDirection, sky);
 	color = mix(color, cloudColor.rgb, cloudColor.a);
 
 	// accumulation
-	vec2 lastUV = reconstructUV(view, lastProjection, lastView);
+	vec2 lastUV = reconstructUV(dir, lastProjection, lastView);
 	if (lastUV.x >= 0 && lastUV.x <= 1 && lastUV.y >= 0 && lastUV.y <= 1)
 	{
 		float lastDepth = texture(s_depth, lastUV).r;

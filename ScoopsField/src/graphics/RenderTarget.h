@@ -41,6 +41,8 @@ struct RenderTarget
 };
 
 
+int GetNumMipsForTexture(int width, int height);
+
 RenderTarget* CreateRenderTarget(int width, int height, SDL_GPUTextureType textureType, int numColorAttachments, const ColorAttachmentInfo* colorAttachmentInfos, const DepthAttachmentInfo* depthAttachmentInfo);
 void DestroyRenderTarget(RenderTarget* renderTarget);
 

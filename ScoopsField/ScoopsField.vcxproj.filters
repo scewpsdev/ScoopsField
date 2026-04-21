@@ -472,5 +472,6 @@
     <None Include="res\shaders\sky\clouds.glsl" />
     <None Include="res\shaders\sky\transmittance_lut.comp" />
     <None Include="res\shaders\sky\multiscatter_lut.comp" />
+    <None Include="res\shaders\sky\skyview_lut.comp" />
   </ItemGroup>
 </Project>
