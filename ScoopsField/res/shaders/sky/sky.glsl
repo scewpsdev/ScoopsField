@@ -35,6 +35,24 @@ bool sphereIntersect(vec3 origin, vec3 dir, float radius, out float tmin, out fl
 	float s = sqrt(h);
 	tmin = -b - s;
 	tmax = -b + s;
+
+	// clamp intersection to space in front of origin
+	tmin = max(tmin, 0);
+	return tmax > 0;
+}
+
+bool atmosphereIntersect(vec3 origin, vec3 dir, out float tmin, out float tmax)
+{
+	float x, y;
+	if (!sphereIntersect(origin, dir, atmosphereRadius, x, y))
+		return false;
+
+	tmin = x;
+	tmax = y;
+
+	if (sphereIntersect(origin, dir, planetRadius, x, y) && x > 0)
+		tmax = min(tmax, x);
+
 	return true;
 }
 
@@ -74,7 +92,7 @@ vec3 sampleTransmittance(float startingHeight, vec3 dir, vec3 up)
 	up = vec3(0, 1, 0);
 
 	float tmin, tmax;
-	sphereIntersect(origin, dir, atmosphereRadius, tmin, tmax);
+	atmosphereIntersect(origin, dir, tmin, tmax);
 
 	int numLightSamples = 64;
 	float segmentLength = tmax / numLightSamples;
@@ -111,21 +129,13 @@ vec3 sampleMultiScatter(float height, vec3 toLight, vec3 up)
 	return multi;
 }
 
-vec3 atmosphere(vec3 dir, vec3 lightDir, int numSamples, SkySettings sky)
+vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, int numSamples, SkySettings sky)
 {
-	vec3 origin = vec3(0, planetRadius + 100, 0);
+	origin.y += planetRadius;
 
 	float tmin, tmax;
-	if (!sphereIntersect(origin, dir, atmosphereRadius, tmin, tmax) || tmax < 0)
+	if (!atmosphereIntersect(origin, dir, tmin, tmax))
 		return vec3(0); // space color
-
-	tmin = max(tmin, 0);
-
-	float tgmin, tgmax;
-	if (sphereIntersect(origin, dir, planetRadius, tgmin, tgmax) && tgmax > 0)
-	{
-		tmax = max(tgmin, 0);
-	}
 
 	float l = tmax - tmin;
 	float ldt = 1.0 / numSamples;
@@ -182,7 +192,7 @@ vec3 atmosphere(vec3 dir, vec3 lightDir, int numSamples, SkySettings sky)
 
 		vec3 multiScatter = sampleMultiScatter(height, toLight, normalize(samplePosition));
 
-		vec3 transmittance = viewTransmittance * (lightTransmittance + multiScatter);
+		vec3 transmittance = viewTransmittance * (lightTransmittance + multiScatter * 10);
 
 		rayleigh += transmittance * density.x * dt;
 		mie += transmittance * density.y * dt;
@@ -191,7 +201,8 @@ vec3 atmosphere(vec3 dir, vec3 lightDir, int numSamples, SkySettings sky)
 	float sunIntensity = 25;
 	vec3 scattering = (rayleigh * rayleighScatter * phaseR + mie * mieScatter * phaseM /*+ mie * mieScatter * phaseS*/) * sunIntensity;
 
-	if (tgmin > 0)
+	float tgmin, tgmax;
+	if (sphereIntersect(origin, dir, planetRadius, tgmin, tgmax))
 	{
 		vec3 ground = origin + tgmin * dir;
 		vec3 sunToGround = sampleTransmittanceLUT(0, toLight, normalize(ground));

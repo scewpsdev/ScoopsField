@@ -563,64 +563,96 @@ void UpdatePlayer(Player* player)
 	ApplyAnimationToSkeleton(&player->bodyModel, &player->bodyAnim);
 
 	if (GetKeyDown(SDL_SCANCODE_F5))
-		player->cameraMode = CAMERA_MODE_FIRST_PERSON ? CAMERA_MODE_FREE : CAMERA_MODE_FIRST_PERSON;
+		player->cameraMode = player->cameraMode == CAMERA_MODE_FIRST_PERSON ? CAMERA_MODE_FREE : CAMERA_MODE_FIRST_PERSON;
 
-	if (game->mouseLocked)
+	if (player->cameraMode == CAMERA_MODE_FIRST_PERSON)
 	{
-		player->yaw -= app->mouseDelta.x * 0.001f;
-		player->pitch -= app->mouseDelta.y * 0.001f;
-
-		// TODO camera rotation bounds
-
-		if (!(GetCurrentAction(player) && GetCurrentAction(player)->lockPlayerRotation))
-			player->rotation = player->yaw;
-	}
-
-	if (!(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim))
-	{
-		SourceMovement(player, quat::FromAxisAngle(vec3::Up, player->rotation) * rootMotion);
-
-		game->cameraPosition = player->position + vec3::Up * 1.5f;
-
-		float landBob = 0.0f;
-		if (player->lastLandedTime)
+		if (game->mouseLocked)
 		{
-			float timeSinceLanding = gameTime - player->lastLandedTime;
-			landBob = (1.0f - SDL_powf(0.5f, timeSinceLanding * 4.0f)) * SDL_powf(0.1f, timeSinceLanding * 4.0f) * 5.5f;
-		}
-		game->cameraPosition.y -= landBob;
+			player->yaw -= app->mouseDelta.x * 0.001f;
+			player->pitch -= app->mouseDelta.y * 0.001f;
 
-		game->cameraRotation = quat::FromAxisAngle(vec3::Up, player->yaw) * quat::FromAxisAngle(vec3::Right, player->pitch);
+			// TODO camera rotation bounds
+
+			if (!(GetCurrentAction(player) && GetCurrentAction(player)->lockPlayerRotation))
+				player->rotation = player->yaw;
+		}
+
+		if (!(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim))
+		{
+			SourceMovement(player, quat::FromAxisAngle(vec3::Up, player->rotation) * rootMotion);
+
+			game->cameraPosition = player->position + vec3::Up * 1.5f;
+
+			float landBob = 0.0f;
+			if (player->lastLandedTime)
+			{
+				float timeSinceLanding = gameTime - player->lastLandedTime;
+				landBob = (1.0f - SDL_powf(0.5f, timeSinceLanding * 4.0f)) * SDL_powf(0.1f, timeSinceLanding * 4.0f) * 5.5f;
+			}
+			game->cameraPosition.y -= landBob;
+
+			game->cameraRotation = quat::FromAxisAngle(vec3::Up, player->yaw) * quat::FromAxisAngle(vec3::Right, player->pitch);
+		}
+		else
+		{
+			mat4 cameraNodeTransform = GetNodeTransform(&player->bodyAnim, player->bodyCameraNode);
+			game->cameraPosition = player->position + quat::FromAxisAngle(vec3::Up, player->rotation) * cameraNodeTransform.translation();
+			//game->cameraRotation = quat::FromAxisAngle(vec3::Up, PI) * cameraNodeTransform.rotation();
+			game->cameraRotation = quat::FromAxisAngle(vec3::Up, player->rotation) * quat::FromAxisAngle(vec3::Right, player->pitch) * quat::FromAxisAngle(vec3::Up, player->yaw - player->rotation);
+		}
+
+		SetAudioListener(game->cameraPosition, game->cameraRotation);
+
+		if (player->health < player->maxHealth && player->lastHit && gameTime - player->lastHit > HEALTH_REGEN_HIT_DELAY)
+		{
+			if (EveryInterval(0.1f, hash(player)))
+				player->health++;
+		}
+
+		if (player->stamina <= 0 && !player->exhausted)
+		{
+			player->exhausted = true;
+			PlaySound(&game->exhaustedSounds[game->random.next() % 2], 0.4f);
+		}
+		else if (player->stamina >= 0.5f)
+		{
+			player->exhausted = false;
+		}
+
+		if (player->stamina < 1.0f && player->actions.actions.size == 0 && !player->sprinting)
+		{
+			player->stamina = min(player->stamina + 0.2f * deltaTime, 1.0f);
+		}
 	}
 	else
 	{
-		mat4 cameraNodeTransform = GetNodeTransform(&player->bodyAnim, player->bodyCameraNode);
-		game->cameraPosition = player->position + quat::FromAxisAngle(vec3::Up, player->rotation) * cameraNodeTransform.translation();
-		//game->cameraRotation = quat::FromAxisAngle(vec3::Up, PI) * cameraNodeTransform.rotation();
-		game->cameraRotation = quat::FromAxisAngle(vec3::Up, player->rotation) * quat::FromAxisAngle(vec3::Right, player->pitch) * quat::FromAxisAngle(vec3::Up, player->yaw - player->rotation);
-	}
+		if (game->mouseLocked)
+		{
+			player->yaw -= app->mouseDelta.x * 0.001f;
+			player->pitch -= app->mouseDelta.y * 0.001f;
+		}
 
-	SetAudioListener(game->cameraPosition, game->cameraRotation);
+		quat cameraRotation = quat::FromAxisAngle(vec3::Up, player->yaw) * quat::FromAxisAngle(vec3::Right, player->pitch);
+		game->cameraRotation = cameraRotation;
 
-	if (player->health < player->maxHealth && player->lastHit && gameTime - player->lastHit > HEALTH_REGEN_HIT_DELAY)
-	{
-		if (EveryInterval(0.1f, hash(player)))
-			player->health++;
-	}
+		vec3 delta = vec3::Zero;
+		if (GetKey(SDL_SCANCODE_A)) delta += cameraRotation.left();
+		if (GetKey(SDL_SCANCODE_D)) delta += cameraRotation.right();
+		if (GetKey(SDL_SCANCODE_S)) delta += cameraRotation.back();
+		if (GetKey(SDL_SCANCODE_W)) delta += cameraRotation.forward();
+		if (GetKey(SDL_SCANCODE_SPACE)) delta += vec3::Up;
+		if (GetKey(SDL_SCANCODE_LCTRL)) delta += vec3::Down;
 
-	if (player->stamina <= 0 && !player->exhausted)
-	{
-		player->exhausted = true;
-		PlaySound(&game->exhaustedSounds[game->random.next() % 2], 0.4f);
-	}
-	else if (player->stamina >= 0.5f)
-	{
-		player->exhausted = false;
-	}
+		if (delta.lengthSquared() > 0)
+		{
+			float speed = (GetKey(SDL_SCANCODE_LSHIFT) ? 50 : GetKey(SDL_SCANCODE_LALT) ? 1 : 5) * player->walkSpeed;
+			vec3 velocity = delta.normalized() * speed;
+			vec3 displacement = velocity * deltaTime;
+			game->cameraPosition += displacement;
+		}
 
-	if (player->stamina < 1.0f && player->actions.actions.size == 0 && !player->sprinting)
-	{
-		player->stamina = min(player->stamina + 0.2f * deltaTime, 1.0f);
+		player->moving = delta.lengthSquared() > 0;
 	}
 }
 

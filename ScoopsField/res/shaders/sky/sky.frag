@@ -96,10 +96,7 @@ void main()
 	}
 
 	vec3 dir = reconstructView(v_texcoord, projectionInv, viewInv); // view space direction
-
-	SkySettings sky;
-	//sky.noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
-	sky.groundColor = vec3(0.3);
+	vec3 cameraPosition = viewInv[3].xyz;
 
 	/*
 	int numSamples = 16;
@@ -107,8 +104,12 @@ void main()
 	*/
 
 	vec3 color = sampleSkyViewLUT(dir);
+
+	SkySettings sky;
+	sky.noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
+	sky.groundColor = vec3(0.1);
 	
-	vec4 cloudColor = clouds(dir, lightDirection, sky);
+	vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, sky);
 	color = mix(color, cloudColor.rgb, cloudColor.a);
 
 	// accumulation

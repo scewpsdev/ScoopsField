@@ -10,9 +10,11 @@ layout(set = 1, binding = 0) uniform writeonly image2D s_output;
 
 layout(set = 2, binding = 0) uniform UniformBlock {
 	vec4 params;
+	vec4 params2;
 
 #define lightDirection params.xyz
 #define gameTime params.w
+#define cameraPosition params2.xyz
 };
 
 #include "../common.glsl"
@@ -43,10 +45,10 @@ void main()
 
 	SkySettings sky;
 	sky.noise = 0; //fract(bluenoise(gid)) - 0.5;
-	sky.groundColor = vec3(0.3);
+	sky.groundColor = vec3(0.1);
 
 	int numSamples = 16;
-	vec3 color = atmosphere(dir, lightDirection, numSamples, sky);
+	vec3 color = atmosphere(cameraPosition, dir, lightDirection, numSamples, sky);
 
 	imageStore(s_output, gid, vec4(color, 0));
 }

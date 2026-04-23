@@ -17,22 +17,21 @@ void InitResourceState(ResourceState* resource)
 
 void AddFileWatcher(const char* path)
 {
-	if (resource->numFileWatchers < MAX_FILE_WATCHERS)
+	SDL_assert(resource->numFileWatchers < MAX_FILE_WATCHERS);
+
+	FileWatcher* watcher = &resource->fileWatchers[resource->numFileWatchers];
+
+	SDL_PathInfo pathInfo = {};
+	if (SDL_GetPathInfo(path, &pathInfo))
 	{
-		FileWatcher* watcher = &resource->fileWatchers[resource->numFileWatchers];
+		SDL_strlcpy(watcher->path, path, sizeof(watcher->path));
+		watcher->lastWriteTime = pathInfo.modify_time;
 
-		SDL_PathInfo pathInfo = {};
-		if (SDL_GetPathInfo(path, &pathInfo))
-		{
-			SDL_strlcpy(watcher->path, path, sizeof(watcher->path));
-			watcher->lastWriteTime = pathInfo.modify_time;
-
-			resource->numFileWatchers++;
-		}
-		else
-		{
-			SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "%s", SDL_GetError());
-		}
+		resource->numFileWatchers++;
+	}
+	else
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "%s", SDL_GetError());
 	}
 }
 
@@ -50,26 +49,23 @@ static FileWatcher* GetFileWatcherFromPath(const char* path)
 
 bool FileHasChanged(const char* path)
 {
-	if (FileWatcher* watcher = GetFileWatcherFromPath(path))
+	FileWatcher* watcher = GetFileWatcherFromPath(path);
+	SDL_assert(watcher);
+
+	SDL_PathInfo pathInfo = {};
+	if (SDL_GetPathInfo(watcher->path, &pathInfo))
 	{
-		SDL_PathInfo pathInfo = {};
-		if (SDL_GetPathInfo(watcher->path, &pathInfo))
+		if (pathInfo.modify_time > watcher->lastWriteTime)
 		{
-			if (pathInfo.modify_time > watcher->lastWriteTime)
-			{
-				watcher->lastWriteTime = pathInfo.modify_time;
-				return true;
-			}
-		}
-		else
-		{
-			SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "%s", SDL_GetError());
+			watcher->lastWriteTime = pathInfo.modify_time;
+			return true;
 		}
 	}
 	else
 	{
-		SDL_assert(false);
+		SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "%s", SDL_GetError());
 	}
+
 	return false;
 }
 

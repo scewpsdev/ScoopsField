@@ -761,6 +761,17 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		bindings[2].sampler = renderer->defaultSampler;
 		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 3);
 
+		struct UniformData
+		{
+			vec4 params;
+			vec4 params2;
+		};
+		UniformData uniforms = {};
+		uniforms.params = vec4(sunDirection, gameTime);
+		uniforms.params2 = vec4(cameraPosition, 0);
+
+		SDL_PushGPUComputeUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+
 		SDL_DispatchGPUCompute(computePass, 256 / 32, 128 / 32, 1);
 
 		SDL_EndGPUComputePass(computePass);

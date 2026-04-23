@@ -111,105 +111,81 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 	Action* currentAction = GetCurrentAction(player);
 
 	player->sprinting = false;
-	if (player->cameraMode == CAMERA_MODE_FIRST_PERSON)
+
+	quat playerRotation = quat::FromAxisAngle(vec3::Up, player->rotation);
+	vec3 forward = playerRotation.forward();
+	vec3 right = playerRotation.right();
+	vec3 up = playerRotation.up();
+
+	player->sprinting = GetKey(SDL_SCANCODE_LSHIFT) && player->stamina > 0 && !player->exhausted;
+	float speed = (player->sprinting ? 1.5f : GetKey(SDL_SCANCODE_LALT) ? 0.25f : 1) * player->walkSpeed;
+	if (player->sprinting)
+		player->stamina -= 0.15f * deltaTime;
+	if (currentAction)
+		speed *= currentAction->moveSpeed;
+
+	vec3 fsu = GetMovementInputs(player, currentAction, speed);
+
+	if (GetKeyDown(SDL_SCANCODE_SPACE))
+		player->lastJumpInput = gameTime;
+	if (player->grounded && player->lastJumpInput && gameTime - player->lastJumpInput < JUMP_BUFFER)
 	{
-		quat playerRotation = quat::FromAxisAngle(vec3::Up, player->rotation);
-		vec3 forward = playerRotation.forward();
-		vec3 right = playerRotation.right();
-		vec3 up = playerRotation.up();
+		const float jumpPower = 7;
+		player->velocity.y = jumpPower;
+		player->grounded = false;
+		player->lastJumpInput = 0;
+	}
 
-		player->sprinting = GetKey(SDL_SCANCODE_LSHIFT) && player->stamina > 0 && !player->exhausted;
-		float speed = (player->sprinting ? 1.5f : GetKey(SDL_SCANCODE_LALT) ? 0.25f : 1) * player->walkSpeed;
-		if (player->sprinting)
-			player->stamina -= 0.15f * deltaTime;
-		if (currentAction)
-			speed *= currentAction->moveSpeed;
+	if (player->grounded)
+		updateVelocityGround(player->velocity, fsu, speed, forward, right, up);
+	else
+		updateVelocityAir(player->velocity, fsu, speed, forward, right, up);
 
-		vec3 fsu = GetMovementInputs(player, currentAction, speed);
+	vec3 displacement = player->velocity * deltaTime + extraDisplacement;
+	float xzSpeed = player->velocity.xz().length();
 
-		if (GetKeyDown(SDL_SCANCODE_SPACE))
-			player->lastJumpInput = gameTime;
-		if (player->grounded && player->lastJumpInput && gameTime - player->lastJumpInput < JUMP_BUFFER)
+	if (player->grounded)
+		player->distanceWalked += xzSpeed * deltaTime;
+
+	int stepIdx = (int)(player->distanceWalked * STEP_FREQUENCY);
+	if (stepIdx != player->lastStepIdx)
+	{
+		OnStep(player);
+		player->lastStepIdx = stepIdx;
+	}
+
+	ControllerCollisionFlags collisionFlags = MoveCharacterController(&player->controller, displacement, ENTITY_FILTER_DEFAULT);
+	vec3 newPosition = GetCharacterControllerPosition(&player->controller);
+
+	if (collisionFlags & CONTROLLER_COLLISION_DOWN)
+	{
+		if (player->velocity.y < -5)
 		{
-			const float jumpPower = 7;
-			player->velocity.y = jumpPower;
-			player->grounded = false;
-			player->lastJumpInput = 0;
+			player->lastLandedTime = gameTime;
+			OnLand(player);
 		}
 
-		if (player->grounded)
-			updateVelocityGround(player->velocity, fsu, speed, forward, right, up);
-		else
-			updateVelocityAir(player->velocity, fsu, speed, forward, right, up);
-
-		vec3 displacement = player->velocity * deltaTime + extraDisplacement;
-		float xzSpeed = player->velocity.xz().length();
-
-		if (player->grounded)
-			player->distanceWalked += xzSpeed * deltaTime;
-
-		int stepIdx = (int)(player->distanceWalked * STEP_FREQUENCY);
-		if (stepIdx != player->lastStepIdx)
+		if (newPosition.y < player->position.y)
 		{
-			OnStep(player);
-			player->lastStepIdx = stepIdx;
-		}
+			vec3 movedDisplacement = newPosition - player->position;
+			vec3 movedVelocity = movedDisplacement / deltaTime;
 
-		ControllerCollisionFlags collisionFlags = MoveCharacterController(&player->controller, displacement, ENTITY_FILTER_DEFAULT);
-		vec3 newPosition = GetCharacterControllerPosition(&player->controller);
-
-		if (collisionFlags & CONTROLLER_COLLISION_DOWN)
-		{
-			if (player->velocity.y < -5)
-			{
-				player->lastLandedTime = gameTime;
-				OnLand(player);
-			}
-			
-			if (newPosition.y < player->position.y)
-			{
-				vec3 movedDisplacement = newPosition - player->position;
-				vec3 movedVelocity = movedDisplacement / deltaTime;
-	
-				player->velocity.y = movedVelocity.y; //max(player->velocity.y, -player->velocity.xz().length());
-			}
-			else
-			{
-				player->velocity.y = 0;
-			}
-
-			player->grounded = true;
+			player->velocity.y = movedVelocity.y; //max(player->velocity.y, -player->velocity.xz().length());
 		}
 		else
 		{
-			player->grounded = false;
+			player->velocity.y = 0;
 		}
 
-		player->moving = xzSpeed > 1;
-
-		player->position = newPosition;
-		SetRigidBodyTransform(&player->kinematicBody, player->position, quat::Identity);
+		player->grounded = true;
 	}
 	else
 	{
-		quat cameraRotation = quat::FromAxisAngle(vec3::Up, player->yaw) * quat::FromAxisAngle(vec3::Right, player->pitch);
-
-		vec3 delta = vec3::Zero;
-		if (GetKey(SDL_SCANCODE_A)) delta += cameraRotation.left();
-		if (GetKey(SDL_SCANCODE_D)) delta += cameraRotation.right();
-		if (GetKey(SDL_SCANCODE_S)) delta += cameraRotation.back();
-		if (GetKey(SDL_SCANCODE_W)) delta += cameraRotation.forward();
-		if (GetKey(SDL_SCANCODE_SPACE)) delta += vec3::Up;
-		if (GetKey(SDL_SCANCODE_LCTRL)) delta += vec3::Down;
-
-		if (delta.lengthSquared() > 0)
-		{
-			float speed = (GetKey(SDL_SCANCODE_LSHIFT) ? 2 : GetKey(SDL_SCANCODE_LALT) ? 0.25f : 1) * player->walkSpeed;
-			vec3 velocity = delta.normalized() * speed;
-			vec3 displacement = velocity * deltaTime;
-			game->cameraPosition += displacement;
-		}
-
-		player->moving = delta.lengthSquared() > 0;
+		player->grounded = false;
 	}
+
+	player->moving = xzSpeed > 1;
+
+	player->position = newPosition;
+	SetRigidBodyTransform(&player->kinematicBody, player->position, quat::Identity);
 }

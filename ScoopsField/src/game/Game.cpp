@@ -192,6 +192,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/transmittance_lut.comp");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/multiscatter_lut.comp");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/skyview_lut.comp");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/clouds.glsl");
 
 	ResetGame(false);
 }
@@ -227,7 +228,7 @@ void GameUpdate()
 		ReloadGraphicsShader(game->renderer.pointLightShader, "res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
 		ReloadGraphicsPipeline(game->renderer.pointLightPipeline);
 	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky.frag"))
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky.frag") || FileHasChanged(PROJECT_PATH "/res/shaders/sky/clouds.glsl"))
 	{
 		app->platformCallbacks.compileResources();
 		ReloadGraphicsShader(game->renderer.skyShader, "res/shaders/sky/sky.vert.bin", "res/shaders/sky/sky.frag.bin");
