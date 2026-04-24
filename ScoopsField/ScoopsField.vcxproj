@@ -335,6 +335,9 @@
     <None Include="res\shaders\screenquad.frag" />
     <None Include="res\shaders\screenquad.vert" />
     <None Include="res\shaders\sky\clouds.glsl" />
+    <None Include="res\shaders\sky\cloud_noise.comp" />
+    <None Include="res\shaders\sky\cloud_noise_detail.comp" />
+    <None Include="res\shaders\sky\noise.glsl" />
     <None Include="res\shaders\sky\multiscatter_lut.comp" />
     <None Include="res\shaders\sky\sky.frag" />
     <None Include="res\shaders\sky\sky.glsl" />

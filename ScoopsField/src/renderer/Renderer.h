@@ -65,6 +65,8 @@ struct Renderer
 	SDL_GPUTexture* skyTransmittanceLUT;
 	SDL_GPUTexture* skyMultiScatterLUT;
 	SDL_GPUTexture* skyViewLUT;
+	SDL_GPUTexture* cloudNoise;
+	SDL_GPUTexture* cloudNoiseDetail;
 	SDL_GPUTexture* sunColorBuffer;
 
 	ScreenQuad screenQuad;
@@ -81,6 +83,8 @@ struct Renderer
 	Shader* skyTransmittaceLUTShader;
 	Shader* skyMultiScatterLUTShader;
 	Shader* skyViewLUTShader;
+	Shader* cloudNoiseShader;
+	Shader* cloudNoiseDetailShader;
 	Shader* sunColorShader;
 	Shader* tonemappingShader;
 

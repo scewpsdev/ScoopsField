@@ -1,0 +1,33 @@
+#version 460
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+layout(set = 1, binding = 0) uniform writeonly image3D s_output;
+
+#include "../common.glsl"
+#include "noise.glsl"
+
+
+void main()
+{
+	ivec3 gid = ivec3(gl_GlobalInvocationID.xyz);
+	vec3 uvw = (gid + 0.5) / vec3(imageSize(s_output));
+
+	float freq = 8;
+
+	vec4 result;
+
+	result.y = worleyFbm(uvw, freq);
+	result.z = worleyFbm(uvw, freq * 2);
+	result.w = worleyFbm(uvw, freq * 4);
+	result.x = perlinWorley(uvw, freq * 0.5);
+
+    /*
+    float wfbm = result.y * 0.625 + result.z * 0.25 + result.w * 0.125;
+    float cloud = remap(remap(abs(perlinFbm(uvw * 0.5, freq, 7)), 0, 1, worleyFbm(uvw * 0.5, freq), 1), wfbm - 1, 1, 0, 1);
+    cloud = remap(cloud, 0.85, 1, 0, 1);
+    result.x = cloud;
+    */
+
+	imageStore(s_output, gid, result);
+}

@@ -125,13 +125,11 @@ float clouds2(vec3 p, float height, float t)
 
 
 #define cloudAnisotropy 0.9
-#define minCloudHeight 2e3
-#define maxCloudHeight 6e3
+#define minCloudHeight 1.5e3
+#define maxCloudHeight 4e3
 #define cloudCoverage 0.5
-#define cloudDensity 0.0015
-#define cloudNoiseScale 2e-4
 #define cloudScatter 0.5
-#define cloudAbsorption 0.05
+#define cloudAbsorption 1.0
 
 
 bool cloudLayerIntersect(vec3 origin, vec3 dir, out float tmin, out float tmax)
@@ -162,16 +160,38 @@ float HG(float m, float g)
 	return 1 / (4 * pi) * (1 - g * g) / pow(1 + g * g - 2 * g * m, 1.5);
 }
 
+// From https://www.shadertoy.com/view/4sjBDG
+float numericalMieFit(float costh)
+{
+    // This function was optimized to minimize (delta*delta)/reference in order to capture
+    // the low intensity behavior.
+    float bestParams[10];
+    bestParams[0]=9.805233e-06;
+    bestParams[1]=-6.500000e+01;
+    bestParams[2]=-5.500000e+01;
+    bestParams[3]=8.194068e-01;
+    bestParams[4]=1.388198e-01;
+    bestParams[5]=-8.370334e+01;
+    bestParams[6]=7.810083e+00;
+    bestParams[7]=2.054747e-03;
+    bestParams[8]=2.600563e-02;
+    bestParams[9]=-4.552125e-12;
+    
+    float p1 = costh + bestParams[3];
+    vec4 expValues = exp(vec4(bestParams[1] *costh+bestParams[2], bestParams[5] *p1*p1, bestParams[6] *costh, bestParams[9] *costh));
+    vec4 expValWeight= vec4(bestParams[0], bestParams[4], bestParams[7], bestParams[8]);
+    return dot(expValues, expValWeight);
+}
+
 float cloudPhase(float m)
 {
-	float g = 0.0;
-	return HG(m, g);
+	//return numericalMieFit(m);
+	//float g = 0.5;
+	//return HG(m, g);
 
-	/*
-	float g = 0.9;
+	float g = 0.5;
 	float k = 0.6;
 	return mix(HG(m, -g), HG(m, g), k);
-	*/
 }
 
 float noise(vec3 pos)
@@ -183,19 +203,41 @@ float getCloudDensity(vec3 p, float height)
 {
 	float t = gameTime;
 
-	p += vec3(5e1 * t, 0, 6e1 * t);
+	//p += vec3(5e1 * t, 0, 6e1 * t);
 
-	p *= cloudNoiseScale;
-	p *= 0.5;
+	p *= 2e-4 * 0.5;
 
+	float heightGradient = remap(height, minCloudHeight, maxCloudHeight, 0, 1);
+	heightGradient *= heightGradient;
+
+	//float coverage = texture(s_cloudCoverage, p.xz * 0.1).x;
+
+	float perlinWorley = texture(s_cloudNoise, p * 0.25).x;
+	vec3 worley = texture(s_cloudNoise, p * 0.5 + t * 0.005).yzw;
+	vec3 detail = texture(s_cloudNoiseDetail, p * 8 + t * 0.0).xyz;
+
+	float cloud = perlinWorley;
+
+	float wfbm = worley.x * 0.625 + worley.y * 0.125 + worley.z * 0.25;
+    cloud = remap(cloud, 0.5 * (1 - wfbm), 1, 0, 1);
+
+	float dfbm = detail.x * 0.625 + detail.y * 0.25 + detail.z * 0.125;
+	cloud = remap(cloud, 0.2 * (1 - dfbm), 1, 0, 1);
+
+    cloud = remap(cloud, 0.75, 1, 0, 1);
+	
+	cloud *= sin(heightGradient * pi);
+	cloud *= heightGradient;
+
+	//cloud -= 1 - coverage;
+	//cloud = remap(cloud, 1 - coverage, 1, 0, 1);
+	//cloud = coverage * heightGradient;
+	cloud = clamp(cloud, 0, 1);
+
+	return cloud;
+
+	/*
     float cld = 0;
-
-	//cld += 0.5000 * noise(p); p = p * 3.02; // p.y -= t*.1*10; //t*.05 speed cloud changes
-	//cld += 0.2500 * noise(p); p = p * 3.03; // p.y += t*.06*10;
-	//cld += 0.1250 * noise(p); p = p * 3.01;  p.xz += t * 2; // detail noise moves at a different speed from cloud shapes
-	//cld += 0.0625 * noise(p); p =  p * 3.03;  p.xz -= t * 4; // detail noise moves at a different speed from cloud shapes
-	//cld += 0.03125 * noise(p); p =  p * 3.02;
-	//cld += 0.015625 * noise(p);
 
 	cld += 0.750000 * noise(p * 3); p = p * 9.02; p.xz += t * 0.1;
 	cld += 0.187500 * noise(p); p = p * 9.01; p.xz -= t * 0.4; // detail noise moves at a different speed from cloud shapes
@@ -215,9 +257,10 @@ float getCloudDensity(vec3 p, float height)
 	cld = clamp(cld, 0, 1);
 
 	return cld;
+	*/
 }
 
-float lightRay(vec3 origin, vec3 dir, SkySettings sky)
+float lightRay(vec3 origin, vec3 dir, float mu, SkySettings sky)
 {
 	float tmin, tmax;
 	sphereIntersect(origin, dir, planetRadius + maxCloudHeight, tmin, tmax);
@@ -249,7 +292,14 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, in SkySettings sky)
 	if (!cloudLayerIntersect(origin, dir, tmin, tmax))
 		return vec4(0);
 
+	float maxDistance = 100e3;
+	//tmin = min(tmin, maxDistance);
+	//tmax = min(tmax, maxDistance);
+
 	vec3 toLight = -lightDir;
+
+	float mu = dot(dir, toLight);
+	float phaseC = cloudPhase(mu);
 
 	int numSamples = 64;
 	float segmentLength = (tmax - tmin) / numSamples;
@@ -257,38 +307,52 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, in SkySettings sky)
 	float totalDensity = 0;
 	vec3 energy = vec3(0);
 
-	float viewTransmittance = 1;
+	float transmittance = 1;
+	float fog = tmin;
 
 	for (int i = 0; i < numSamples; i++)
 	{
 		float xi = sky.noise;
 		float t = tmin + (i + 0.5 + xi) * segmentLength;
+		if (t > maxDistance)
+			break;
 
 		vec3 pos = origin + t * dir;
 
 		float height = length(pos) - planetRadius;
 		float density = getCloudDensity(pos, height);
+		density *= segmentLength;
 
-		float densityToLight = lightRay(pos, toLight, sky);
+		float densityToLight = lightRay(pos, toLight, mu, sky);
 		float beer = exp(-densityToLight * cloudAbsorption);
-		float powder = remap(1 - exp(-density * 2), 0, 1, 0.5, 1);
-		float lighting = 0.03 + beer * powder;
 
-		vec3 atmosphereTransmittance = sampleTransmittanceLUT(height, toLight, normalize(pos));
+		float fakeScatter = mix(0.008, 1, smoothstep(0.96, 0, mu));
+		beer += 0.5 * fakeScatter * exp(-0.1 * densityToLight);
+		beer += 0.4 * fakeScatter * exp(-0.02 * densityToLight);
+		//beer *= mix(0.05 + 1.5 * pow(min(1, density / segmentLength * 8.5), 0.3 + 5.5 * clamp(remap(height, minCloudHeight, maxCloudHeight, 0, 1), 0, 1)), 1, clamp(densityToLight * 0.4, 0, 1));
 
-		energy += density * segmentLength * viewTransmittance * lighting * atmosphereTransmittance;
+		vec3 sunlight = sampleTransmittanceLUT(height, toLight, normalize(pos));
+		vec3 multiScatter = sampleMultiScatter(height, toLight, normalize(pos));
 
-		viewTransmittance *= exp(-density * segmentLength * cloudScatter);
+		float ambient = 0.003;
+		float powder = 1 - exp(-density);
+		vec3 lighting = ambient + beer * (sunlight + multiScatter * 10) * powder;
 
-		totalDensity += density * segmentLength;
+		energy += transmittance * lighting;
+
+		transmittance *= exp(-density * cloudScatter);
+		if (transmittance < 0.05)
+			break;
+
+		fog += segmentLength;
+
+		totalDensity += density;
 	}
 
-	float ambient = 0.0;
-	float phaseC = cloudPhase(dot(dir, toLight));
-	energy = ambient + energy * phaseC;
+	energy *= phaseC;
 
 	float sunIntensity = 25;
 	vec3 color = energy * sunIntensity;
 
-	return vec4(color, 1 - viewTransmittance);
+	return vec4(color, (1 - transmittance) * exp(-fog * 0.000008));
 }

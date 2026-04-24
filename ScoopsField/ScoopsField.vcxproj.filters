@@ -473,5 +473,8 @@
     <None Include="res\shaders\sky\transmittance_lut.comp" />
     <None Include="res\shaders\sky\multiscatter_lut.comp" />
     <None Include="res\shaders\sky\skyview_lut.comp" />
+    <None Include="res\shaders\sky\noise.glsl" />
+    <None Include="res\shaders\sky\cloud_noise.comp" />
+    <None Include="res\shaders\sky\cloud_noise_detail.comp" />
   </ItemGroup>
 </Project>
