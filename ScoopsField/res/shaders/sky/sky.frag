@@ -37,7 +37,7 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 #include "clouds.glsl"
 
 
-vec3 reconstructView(vec2 uv, mat4 projectionInv, mat4 viewInv)
+vec3 reconstructRay(vec2 uv, mat4 projectionInv)
 {
 	vec2 ndc = vec2(uv.x * 2 - 1, uv.y * -2 + 1);
 
@@ -51,7 +51,6 @@ vec3 reconstructView(vec2 uv, mat4 projectionInv, mat4 viewInv)
 	dir.y = ndc.y * projectionInv[1][1];
 	dir.z = -1;
 
-	dir = mat3(viewInv) * dir;
 	dir = normalize(dir);
 
 	return dir;
@@ -66,6 +65,15 @@ vec2 reconstructUV(vec3 dir, mat4 projection, mat4 view)
 	vec2 uv = vec2(ndc.x * 0.5 + 0.5, ndc.y * -0.5 + 0.5);
 	
 	return uv;
+}
+
+float reconstructDistance(float depth, vec3 viewRay)
+{
+	//float near = 1.0 / projectionInv[2][3];
+	//float viewZ = near / depth;
+	float viewZ = -1.0 / (depth * projectionInv[2][3] + projectionInv[3][3]);
+	float dist = viewZ / viewRay.z;
+	return dist;
 }
 
 float bluenoise(vec2 coord)
@@ -90,42 +98,49 @@ vec3 sampleSkyViewLUT(vec3 dir)
 
 void main()
 {
+	vec3 viewRay = reconstructRay(v_texcoord, projectionInv); // view space direction
+	vec3 dir = mat3(viewInv) * viewRay;
+	vec3 cameraPosition = viewInv[3].xyz;
+
 	float depth = texture(s_depth, v_texcoord).r;
 	if (depth != 0)
 	{
-		out_color = vec4(0);
-		return;
+		SkySettings sky;
+		sky.noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
+		sky.groundColor = vec3(0.1);
+
+		float maxDistance = reconstructDistance(depth, viewRay);
+		out_color = calculateAerial(cameraPosition, dir, maxDistance, lightDirection);
 	}
-
-	vec3 dir = reconstructView(v_texcoord, projectionInv, viewInv); // view space direction
-	vec3 cameraPosition = viewInv[3].xyz;
-
-	/*
-	int numSamples = 16;
-	vec3 color = atmosphere(dir, lightDirection, numSamples, sky);
-	*/
-
-	vec3 color = sampleSkyViewLUT(dir);
-
-	SkySettings sky;
-	sky.noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
-	sky.groundColor = vec3(0.1);
-	
-	vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, sky);
-	color = mix(color, cloudColor.rgb, cloudColor.a);
-
-	// accumulation
-	vec2 lastUV = reconstructUV(dir, lastProjection, lastView);
-	if (lastUV.x >= 0 && lastUV.x <= 1 && lastUV.y >= 0 && lastUV.y <= 1)
+	else
 	{
-		float lastDepth = texture(s_depth, lastUV).r;
-		if (lastDepth == 0)
-		{
-			vec4 lastColor = texture(s_lastFrame, lastUV);
-			if (lastColor.a == 1)
-				color = mix(color, lastColor.rgb, 0.9);
-		}
-	}
+		/*
+		int numSamples = 16;
+		vec3 color = atmosphere(dir, lightDirection, numSamples, sky);
+		*/
 
-	out_color = vec4(color, 1);
+		vec3 color = sampleSkyViewLUT(dir);
+
+		SkySettings sky;
+		sky.noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
+		sky.groundColor = vec3(0.1);
+		
+		vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, sky);
+		color = mix(cloudColor.rgb, color, cloudColor.a);
+
+		// accumulation
+		vec2 lastUV = reconstructUV(dir, lastProjection, lastView);
+		if (lastUV.x >= 0 && lastUV.x <= 1 && lastUV.y >= 0 && lastUV.y <= 1)
+		{
+			float lastDepth = texture(s_depth, lastUV).r;
+			if (lastDepth == 0)
+			{
+				vec4 lastColor = texture(s_lastFrame, lastUV);
+				if (lastColor.a == 0)
+					color = mix(color, lastColor.rgb, 0.9);
+			}
+		}
+
+		out_color = vec4(color, 0);
+	}
 }

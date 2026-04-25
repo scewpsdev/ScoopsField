@@ -107,7 +107,7 @@ float worleyFbm(vec3 p, float freq)
 
 float perlinWorley(vec3 p, float freq)
 {
-    float pfbm = perlinFbm(p, freq, 7);
-	pfbm = abs(pfbm);
+    float pfbm = mix(1, perlinFbm(p, freq, 7), 0.5);
+	pfbm = abs(pfbm * 2 - 1);
     return remap(pfbm, 0, 1, worleyFbm(p, freq), 1);
 }

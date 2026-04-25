@@ -3,7 +3,7 @@
 
 #ifdef GPU_TIMING
 
-#define GPU_TIMER_RESET 2000
+#define GPU_TIMER_RESET 5000
 
 
 void InitGPUTimer(GpuTimerContext* ctx, SDL_GPUDevice* device)

@@ -423,7 +423,7 @@ static void RenderDebugStats()
 	char physicsMemoryUsageStr[16];
 	MemoryString(physicsMemoryUsageStr, 16, memory->physicsMemoryUsage);
 
-	DebugText(0, 0, COLOR_WHITE, COLOR_BLACK, "%d fps, %.3f ms", app->fps, app->avgMs);
+	DebugText(0, 0, COLOR_WHITE, COLOR_BLACK, "%d fps, %.3f +- %.3f ms", app->fps, app->avgMs, app->avgMsVariance);
 	DebugText(0, 1, COLOR_WHITE, COLOR_BLACK, "platform %s, %d allocations, %d per frame", platformMemoryUsageStr, memory->platformAllocationCount, app->platformAllocationsPerFrame);
 	DebugText(0, 2, COLOR_WHITE, COLOR_BLACK, "physics %s, %d allocations, %d per frame", physicsMemoryUsageStr, memory->physicsAllocationCount, app->physicsAllocationsPerFrame);
 	DebugText(0, 3, COLOR_WHITE, COLOR_BLACK, "constant %s, %d allocations", memoryUsageStr, memory->constantAllocator.count);
@@ -435,7 +435,13 @@ static void RenderDebugStats()
 extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 {
 	app->now = SDL_GetTicksNS();
-	app->frameTime += app->now - app->lastFrame;
+
+	uint64_t delta = app->now - app->lastFrame;
+	app->frameTime += delta;
+
+	int framesSinceSecond = app->frameIdx - app->lastSecondFrame;
+	if (framesSinceSecond > 0)
+		app->frameTimeVariance += llabs(delta - (app->frameTime / framesSinceSecond));
 
 	int fpsCap = 0;
 	if (fpsCap)
@@ -464,12 +470,13 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 
 	if (app->now - app->lastSecond >= 1e9)
 	{
-		int numFrames = app->frameIdx - app->lastSecondFrame;
-		app->fps = numFrames;
+		app->fps = framesSinceSecond;
 
-		app->avgMs = app->frameTime / 1e6f / numFrames;
+		app->avgMs = app->frameTime / 1e6f / framesSinceSecond;
+		app->avgMsVariance = app->frameTimeVariance / 1e6f / framesSinceSecond;
 
 		app->frameTime = 0;
+		app->frameTimeVariance = 0;
 		app->lastSecondFrame = app->frameIdx;
 		app->lastSecond = app->now;
 

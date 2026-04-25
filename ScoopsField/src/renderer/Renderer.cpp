@@ -184,7 +184,17 @@ static GraphicsPipeline* CreateSkyUpsamplePipeline(Renderer* renderer)
 
 	//pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER;
 
-	//CreateBlendStateAlpha(&pipelineInfo.colorTargets[0].blend_state);
+	SDL_GPUColorTargetBlendState* blendState = &pipelineInfo.colorTargets[0].blend_state;
+
+	blendState->enable_blend = true;
+
+	blendState->src_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
+	blendState->dst_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+	blendState->color_blend_op = SDL_GPU_BLENDOP_ADD;
+
+	blendState->src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ZERO;
+	blendState->dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
+	blendState->alpha_blend_op = SDL_GPU_BLENDOP_ADD;
 
 	pipelineInfo.depthTest = false;
 	pipelineInfo.depthWrite = false;
@@ -249,6 +259,21 @@ static SDL_GPUTexture* CreateSkyViewLUT()
 	textureInfo.width = 256;
 	textureInfo.height = 128;
 	textureInfo.layer_count_or_depth = 1;
+	textureInfo.num_levels = 1;
+	textureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
+
+	return SDL_CreateGPUTexture(device, &textureInfo);
+}
+
+static SDL_GPUTexture* CreateSkyAerialLUT()
+{
+	SDL_GPUTextureCreateInfo textureInfo = {};
+	textureInfo.type = SDL_GPU_TEXTURETYPE_3D;
+	textureInfo.format = SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT;
+	textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE;
+	textureInfo.width = 32;
+	textureInfo.height = 128;
+	textureInfo.layer_count_or_depth = 32;
 	textureInfo.num_levels = 1;
 	textureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
 
@@ -413,6 +438,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->skyTransmittaceLUTShader = LoadComputeShader("res/shaders/sky/transmittance_lut.comp.bin");
 	renderer->skyMultiScatterLUTShader = LoadComputeShader("res/shaders/sky/multiscatter_lut.comp.bin");
 	renderer->skyViewLUTShader = LoadComputeShader("res/shaders/sky/skyview_lut.comp.bin");
+	renderer->skyAerialLUTShader = LoadComputeShader("res/shaders/sky/aerial_lut.comp.bin");
 	renderer->cloudNoiseShader = LoadComputeShader("res/shaders/sky/cloud_noise.comp.bin");
 	renderer->cloudNoiseDetailShader = LoadComputeShader("res/shaders/sky/cloud_noise_detail.comp.bin");
 	renderer->sunColorShader = LoadComputeShader("res/shaders/sky/sun_color.comp.bin");
@@ -487,6 +513,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->skyTransmittanceLUT = CreateSkyTransmittanceLUT();
 	renderer->skyMultiScatterLUT = CreateSkyMultiScatterLUT();
 	renderer->skyViewLUT = CreateSkyViewLUT();
+	renderer->skyAerialLUT = CreateSkyAerialLUT();
 
 	renderer->cloudNoise = CreateCloudNoiseTexture(renderer, cmdBuffer);
 	renderer->cloudNoiseDetail = CreateCloudNoiseDetailTexture(renderer, cmdBuffer);
@@ -723,36 +750,6 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 	mat4 projectionInv = projection.inverted();
 	mat4 viewInv = view.inverted();
 
-	// geometry pass
-	{
-		GPU_SCOPE("geometry pass");
-
-		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->gbuffer, 0, cmdBuffer);
-
-		SDL_BindGPUGraphicsPipeline(renderPass, renderer->geometryPipeline->pipeline);
-
-		for (int i = 0; i < renderer->meshes.size; i++)
-		{
-			Mesh* mesh = renderer->meshes[i].mesh;
-			Material* material = renderer->meshes[i].material;
-			const mat4& transform = renderer->meshes[i].transform;
-			SubmitMesh(renderer, mesh, material, nullptr, transform, view, pv, renderPass, cmdBuffer);
-		}
-
-		SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
-
-		for (int i = 0; i < renderer->animatedMeshes.size; i++)
-		{
-			Mesh* mesh = renderer->animatedMeshes[i].mesh;
-			Material* material = renderer->animatedMeshes[i].material;
-			SkeletonState* skeleton = renderer->animatedMeshes[i].skeleton;
-			const mat4& transform = renderer->animatedMeshes[i].transform;
-			SubmitMesh(renderer, mesh, material, skeleton, transform, view, pv, renderPass, cmdBuffer);
-		}
-
-		SDL_EndGPURenderPass(renderPass);
-	}
-
 	// transmittance lut
 	{
 		GPU_SCOPE("transmittance lut");
@@ -844,6 +841,27 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		SDL_EndGPUComputePass(computePass);
 	}
 
+	/*
+	// cloud noise
+	{
+		GPU_SCOPE("cloud noise");
+
+		SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
+		bufferBinding.texture = renderer->cloudNoise;
+		bufferBinding.mip_level = 0;
+		bufferBinding.layer = 0;
+		bufferBinding.cycle = false;
+
+		SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, &bufferBinding, 1, nullptr, 0);
+
+		SDL_BindGPUComputePipeline(computePass, renderer->cloudNoiseShader->compute);
+
+		SDL_DispatchGPUCompute(computePass, 128 / 8, 128 / 8, 128 / 8);
+
+		SDL_EndGPUComputePass(computePass);
+	}
+	*/
+
 	// sun color
 	{
 		GPU_SCOPE("sun color compute");
@@ -874,15 +892,46 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		struct UniformData
 		{
 			vec4 params;
+			vec4 params2;
 		};
 		UniformData uniforms = {};
 		uniforms.params = vec4(sunDirection, gameTime);
-
+		uniforms.params2 = vec4(cameraPosition, 0);
 		SDL_PushGPUComputeUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 		SDL_DispatchGPUCompute(computePass, 1, 1, 1);
 
 		SDL_EndGPUComputePass(computePass);
+	}
+
+	// geometry pass
+	{
+		GPU_SCOPE("geometry pass");
+
+		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->gbuffer, 0, cmdBuffer);
+
+		SDL_BindGPUGraphicsPipeline(renderPass, renderer->geometryPipeline->pipeline);
+
+		for (int i = 0; i < renderer->meshes.size; i++)
+		{
+			Mesh* mesh = renderer->meshes[i].mesh;
+			Material* material = renderer->meshes[i].material;
+			const mat4& transform = renderer->meshes[i].transform;
+			SubmitMesh(renderer, mesh, material, nullptr, transform, view, pv, renderPass, cmdBuffer);
+		}
+
+		SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
+
+		for (int i = 0; i < renderer->animatedMeshes.size; i++)
+		{
+			Mesh* mesh = renderer->animatedMeshes[i].mesh;
+			Material* material = renderer->animatedMeshes[i].material;
+			SkeletonState* skeleton = renderer->animatedMeshes[i].skeleton;
+			const mat4& transform = renderer->animatedMeshes[i].transform;
+			SubmitMesh(renderer, mesh, material, skeleton, transform, view, pv, renderPass, cmdBuffer);
+		}
+
+		SDL_EndGPURenderPass(renderPass);
 	}
 
 	// sky

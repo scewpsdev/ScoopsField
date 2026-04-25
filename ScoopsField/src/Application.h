@@ -98,6 +98,7 @@ struct AppState
 	uint64_t lastFrame;
 	uint64_t lastSecond;
 	uint64_t frameTime;
+	uint64_t frameTimeVariance;
 	int frameIdx;
 	int lastSecondFrame;
 
@@ -105,6 +106,7 @@ struct AppState
 	bool debugStats;
 	int fps;
 	float avgMs;
+	float avgMsVariance;
 	int platformAllocationsPerFrame;
 	int physicsAllocationsPerFrame;
 

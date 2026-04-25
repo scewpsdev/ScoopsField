@@ -476,5 +476,6 @@
     <None Include="res\shaders\sky\noise.glsl" />
     <None Include="res\shaders\sky\cloud_noise.comp" />
     <None Include="res\shaders\sky\cloud_noise_detail.comp" />
+    <None Include="res\shaders\sky\aerial_lut.comp" />
   </ItemGroup>
 </Project>

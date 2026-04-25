@@ -18,7 +18,7 @@ struct SkySettings
 #define mieHeightScale 1200
 #define mieAnisotropy 0.76 // 0.76
 #define ozoneAbsorption vec3(0.65e-6, 1.88e-6, 0.085e-6)
-#define haze 0.0
+#define haze 0.01
 #define sunConcentration 0.999
 
 
@@ -150,12 +150,6 @@ vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, int numSamples, SkySetting
 	float phaseR = 3 / (16 * pi) * (1 + m * m);
 	float phaseM = phase(m, mieAnisotropy);
 
-	/*
-	float ms = m > 0.9998 ? 0.9999 : m;
-	float phaseS = phase(ms, sunConcentration);
-	phaseS *= 1 - exp(-max(dir.y + 0.012, 0) * 1000);
-	*/
-
 	for (int i = 0; i < numSamples; i++)
 	{
 		float xi = sky.noise;
@@ -170,11 +164,12 @@ vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, int numSamples, SkySetting
 
 		float dt = t1 - t0;
 
-		vec3 samplePosition = origin + t * dir;
+		vec3 pos = origin + t * dir;
 
 		// length(samplePosition) is faster than samplePosition.y ???
-		float distanceFromPlanet = length(samplePosition);
+		float distanceFromPlanet = length(pos);
 		float height = distanceFromPlanet - planetRadius;
+		vec3 up = pos / distanceFromPlanet;
 		if (height <= 0 && dir.y < 0)
 			break;
 
@@ -188,18 +183,18 @@ vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, int numSamples, SkySetting
 		opticalDepth += density * dt;
 		viewTransmittance = exp(-(rayleighScatter * opticalDepth.x + mieScatter * opticalDepth.y + ozoneAbsorption * opticalDepth.z));
 
-		vec3 lightTransmittance = sampleTransmittanceLUT(height, toLight, samplePosition / distanceFromPlanet);
+		vec3 lightTransmittance = sampleTransmittanceLUT(height, toLight, up);
+		vec3 multiScatter = sampleMultiScatter(height, toLight, up);
+		vec3 inscatter = lightTransmittance + multiScatter * 10;
 
-		vec3 multiScatter = sampleMultiScatter(height, toLight, normalize(samplePosition));
-
-		vec3 transmittance = viewTransmittance * (lightTransmittance + multiScatter * 10);
+		vec3 transmittance = viewTransmittance * inscatter;
 
 		rayleigh += transmittance * density.x * dt;
 		mie += transmittance * density.y * dt;
 	}
 
 	float sunIntensity = 25;
-	vec3 scattering = (rayleigh * rayleighScatter * phaseR + mie * mieScatter * phaseM /*+ mie * mieScatter * phaseS*/) * sunIntensity;
+	vec3 scattering = (rayleigh * rayleighScatter * phaseR + mie * mieScatter * phaseM) * sunIntensity;
 
 	float tgmin, tgmax;
 	if (sphereIntersect(origin, dir, planetRadius, tgmin, tgmax))
@@ -213,9 +208,77 @@ vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, int numSamples, SkySetting
 	return scattering;
 }
 
-vec3 attenuateSun(vec3 sunDirection, float time)
+vec4 calculateAerial(vec3 origin, vec3 dir, float maxDistance, vec3 lightDir)
 {
-	vec3 origin = vec3(0, planetRadius + 100, 0);
+	origin.y += planetRadius;
+
+	float tmin, tmax;
+	if (!sphereIntersect(origin, dir, atmosphereRadius, tmin, tmax))
+		return vec4(0, 0, 0, 1);
+
+	tmax = min(tmax, maxDistance);
+
+	int numSamples = 3;
+
+	float l = tmax - tmin;
+	float ldt = 1.0 / numSamples;
+
+	vec3 rayleigh = vec3(0), mie = vec3(0), cloud = vec3(0);
+	vec3 opticalDepth = vec3(0);
+	vec3 viewTransmittance = vec3(1);
+
+	vec3 toLight = -lightDir;
+	float m = dot(dir, toLight);
+	float phaseR = 3 / (16 * pi) * (1 + m * m);
+	float phaseM = phase(m, mieAnisotropy);
+
+	for (int i = 0; i < numSamples; i++)
+	{
+		float xi = 0.5;
+
+		float u0 = (i + xi) * ldt;
+		float u1 = (i + 1 + xi) * ldt;
+		float u = (i + 0.5 + xi) * ldt;
+
+		float t0 = tmin + l * u0 * u0;
+		float t1 = tmin + l * u1 * u1;
+		float t = tmin + l * u * u;
+
+		float dt = t1 - t0;
+
+		vec3 pos = origin + t * dir;
+
+		float distanceFromPlanet = length(pos);
+		float height = distanceFromPlanet - planetRadius;
+		vec3 up = pos / distanceFromPlanet;
+
+		vec3 density = getDensities(height);
+
+		opticalDepth += density * dt;
+		viewTransmittance = exp(-(rayleighScatter * opticalDepth.x + mieScatter * opticalDepth.y + ozoneAbsorption * opticalDepth.z));
+
+		vec3 lightTransmittance = sampleTransmittanceLUT(height, toLight, up);
+		vec3 multiScatter = sampleMultiScatter(height, toLight, up);
+		vec3 inscatter = lightTransmittance + multiScatter * 10;
+
+		vec3 transmittance = viewTransmittance * inscatter;
+
+		rayleigh += transmittance * density.x * dt;
+		mie += transmittance * density.y * dt;
+	}
+
+	float sunIntensity = 25;
+	vec3 scattering = (rayleigh * rayleighScatter * phaseR + mie * mieScatter * phaseM) * sunIntensity;
+
+	float T = dot(viewTransmittance, vec3(0.2126, 0.7152, 0.0722));
+
+	return vec4(scattering, T);
+}
+
+vec3 attenuateSun(vec3 origin, vec3 sunDirection, float time)
+{
+	origin.y += planetRadius;
+
 	vec3 dir = -sunDirection;
 
 	int numSamples = 128;

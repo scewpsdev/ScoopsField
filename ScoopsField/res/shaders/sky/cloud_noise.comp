@@ -20,7 +20,7 @@ void main()
 	result.y = worleyFbm(uvw, freq);
 	result.z = worleyFbm(uvw, freq * 2);
 	result.w = worleyFbm(uvw, freq * 4);
-	result.x = perlinWorley(uvw, freq * 0.5);
+	result.x = perlinWorley(uvw, freq);
 
     /*
     float wfbm = result.y * 0.625 + result.z * 0.25 + result.w * 0.125;
