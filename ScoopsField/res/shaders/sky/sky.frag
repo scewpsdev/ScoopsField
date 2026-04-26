@@ -105,20 +105,11 @@ void main()
 	float depth = texture(s_depth, v_texcoord).r;
 	if (depth != 0)
 	{
-		SkySettings sky;
-		sky.noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
-		sky.groundColor = vec3(0.1);
-
 		float maxDistance = reconstructDistance(depth, viewRay);
 		out_color = calculateAerial(cameraPosition, dir, maxDistance, lightDirection);
 	}
 	else
 	{
-		/*
-		int numSamples = 16;
-		vec3 color = atmosphere(dir, lightDirection, numSamples, sky);
-		*/
-
 		vec3 color = sampleSkyViewLUT(dir);
 
 		float noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
@@ -126,7 +117,7 @@ void main()
 		vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, noise, 0);
 		color = mix(cloudColor.rgb, color, cloudColor.a);
 
-		// accumulation
+		// temporal accumulation
 		vec2 lastUV = reconstructUV(dir, lastProjection, lastView);
 		if (lastUV.x >= 0 && lastUV.x <= 1 && lastUV.y >= 0 && lastUV.y <= 1)
 		{

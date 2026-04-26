@@ -1,13 +1,11 @@
-
-
-
-struct SkySettings
+/*
+struct AtmosphereData
 {
-	float time;
-	float noise;
-
-	vec3 groundColor;
+	float haze;
+	float cloudCoverage;
+	float cloudDensity;
 };
+*/
 
 
 #define planetRadius 6360e3
@@ -19,7 +17,6 @@ struct SkySettings
 #define mieAnisotropy 0.76 // 0.76
 #define ozoneAbsorption vec3(0.65e-6, 1.88e-6, 0.085e-6)
 #define haze 0.01
-#define sunConcentration 0.999
 
 
 bool sphereIntersect(vec3 origin, vec3 dir, float radius, out float tmin, out float tmax)
@@ -132,7 +129,7 @@ vec3 sampleMultiScatter(float height, vec3 toLight, vec3 up)
 	return multi;
 }
 
-vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, int numSamples, SkySettings sky)
+vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, float noise, vec3 groundColor)
 {
 	origin.y += planetRadius;
 
@@ -140,6 +137,7 @@ vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, int numSamples, SkySetting
 	if (!atmosphereIntersect(origin, dir, tmin, tmax))
 		return vec3(0); // space color
 
+	int numSamples = 16;
 	float l = tmax - tmin;
 	float ldt = 1.0 / numSamples;
 	float segmentLength = l * ldt;
@@ -155,7 +153,7 @@ vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, int numSamples, SkySetting
 
 	for (int i = 0; i < numSamples; i++)
 	{
-		float xi = sky.noise;
+		float xi = noise;
 
 		float u0 = (i + xi) * ldt;
 		float u1 = (i + 1 + xi) * ldt;
@@ -204,7 +202,7 @@ vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, int numSamples, SkySetting
 	{
 		vec3 ground = origin + tgmin * dir;
 		vec3 sunToGround = sampleTransmittanceLUT(0, toLight, normalize(ground));
-		vec3 albedo = sky.groundColor;
+		vec3 albedo = groundColor;
 		scattering += viewTransmittance * albedo * sunToGround * sunIntensity * (1 / (4 * pi));
 	}
 

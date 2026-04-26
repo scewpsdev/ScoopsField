@@ -35,32 +35,9 @@ bool processAerialSample(vec2 uv, inout vec4 color, inout float sum)
 void main()
 {
 	vec2 texel = 1.0 / textureSize(s_sky, 0);
-
 	float depth = texture(s_depth, v_texcoord).r;
-	if (depth != 0)
-	{
-		vec4 color = vec4(0);
-		float sum = 0;
 
-		if (!processAerialSample(v_texcoord, color, sum))
-		{
-			processAerialSample(v_texcoord + texel, color, sum);
-			processAerialSample(v_texcoord - texel, color, sum);
-			processAerialSample(v_texcoord + vec2(texel.x, -texel.y), color, sum);
-			processAerialSample(v_texcoord + vec2(-texel.x, texel.y), color, sum);
-		}
-		//processSample(v_texcoord + vec2(texel.x, 0), color, sum);
-		//processSample(v_texcoord + vec2(-texel.x, 0), color, sum);
-		//processSample(v_texcoord + vec2(0, texel.y), color, sum);
-		//processSample(v_texcoord + vec2(0, -texel.y), color, sum);
-
-		if (sum > 0)
-		{
-			color /= sum;
-			out_color = color;
-		}
-	}
-	else
+	if (depth == 0)
 	{
 		vec3 color = vec3(0);
 		float sum = 0;
@@ -71,16 +48,37 @@ void main()
 			processSample(v_texcoord - texel, color, sum);
 			processSample(v_texcoord + vec2(texel.x, -texel.y), color, sum);
 			processSample(v_texcoord + vec2(-texel.x, texel.y), color, sum);
-		}
-		//processSample(v_texcoord + vec2(texel.x, 0), color, sum);
-		//processSample(v_texcoord + vec2(-texel.x, 0), color, sum);
-		//processSample(v_texcoord + vec2(0, texel.y), color, sum);
-		//processSample(v_texcoord + vec2(0, -texel.y), color, sum);
+			//processSample(v_texcoord + vec2(texel.x, 0), color, sum);
+			//processSample(v_texcoord + vec2(-texel.x, 0), color, sum);
+			//processSample(v_texcoord + vec2(0, texel.y), color, sum);
+			//processSample(v_texcoord + vec2(0, -texel.y), color, sum);
 
-		if (sum > 0)
-		{
-			color /= sum;
-			out_color = vec4(color, 1);
+			if (sum > 0)
+				color /= sum;
 		}
+
+		out_color = vec4(color, 1);
+	}
+	else
+	{
+		vec4 color = vec4(0);
+		float sum = 0;
+
+		if (!processAerialSample(v_texcoord, color, sum))
+		{
+			processAerialSample(v_texcoord + texel, color, sum);
+			processAerialSample(v_texcoord - texel, color, sum);
+			processAerialSample(v_texcoord + vec2(texel.x, -texel.y), color, sum);
+			processAerialSample(v_texcoord + vec2(-texel.x, texel.y), color, sum);
+			//processAerialSample(v_texcoord + vec2(texel.x, 0), color, sum);
+			//processAerialSample(v_texcoord + vec2(-texel.x, 0), color, sum);
+			//processAerialSample(v_texcoord + vec2(0, texel.y), color, sum);
+			//processAerialSample(v_texcoord + vec2(0, -texel.y), color, sum);
+
+			if (sum > 0)
+				color /= sum;
+		}
+
+		out_color = color;
 	}
 }

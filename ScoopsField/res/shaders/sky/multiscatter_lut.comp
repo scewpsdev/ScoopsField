@@ -24,7 +24,7 @@ vec3 sampleSphere(int i, int n)
     return vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
 }
 
-bool raymarch(vec3 origin, vec3 dir, vec3 toLight, SkySettings sky, out vec3 singleScatter, out vec3 energyTransfer)
+bool raymarch(vec3 origin, vec3 dir, vec3 toLight, vec3 groundColor, out vec3 singleScatter, out vec3 energyTransfer)
 {
 	float tmin, tmax;
 	if (!sphereIntersect(origin, dir, atmosphereRadius, tmin, tmax) || tmax < 0)
@@ -73,7 +73,7 @@ bool raymarch(vec3 origin, vec3 dir, vec3 toLight, SkySettings sky, out vec3 sin
 	{
 		vec3 ground = origin + tgmax * dir;
 		vec3 sunToGround = sampleTransmittanceLUT(0, toLight, normalize(ground));
-		vec3 albedo = sky.groundColor;
+		vec3 albedo = groundColor;
 		singleScatter += throughput * albedo * sunToGround;
 	}
 
@@ -99,16 +99,13 @@ void main()
 
     float phaseMS = 1 / (4 * pi); // isotropic phase function
 
-	SkySettings sky;
-	sky.groundColor = vec3(0.3);
-
     int numSamples = 64;
     for (int i = 0; i < numSamples; i++)
     {
         vec3 dir = sampleSphere(i, numSamples);
 
         vec3 singleScatter, energyTransfer;
-        if (raymarch(pos, dir, toLight, sky, singleScatter, energyTransfer))
+        if (raymarch(pos, dir, toLight, vec3(0.1), singleScatter, energyTransfer))
 		{
 	        l2 += singleScatter * phaseMS;
 	        fms += energyTransfer * phaseMS;

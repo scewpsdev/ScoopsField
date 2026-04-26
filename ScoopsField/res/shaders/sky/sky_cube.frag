@@ -70,16 +70,6 @@ void main()
 {
 	vec3 dir = reconstructView(v_texcoord, projectionInv, viewInv); // view space direction
 
-	/*
-	SkySettings sky;
-	sky.time = 0;
-	sky.noise = 0;
-	sky.groundColor = vec3(0.3);
-
-	int numSamples = 16;
-	vec3 color = atmosphere(dir, lightDirection, numSamples, sky);
-	*/
-
 	vec3 color = sampleSkyViewLUT(dir);
 
 	vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, 0, 2);

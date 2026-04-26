@@ -124,12 +124,10 @@ float clouds2(vec3 p, float height, float t)
 
 
 
-#define cloudAnisotropy 0.9
 #define minCloudHeight 1.5e3
 #define maxCloudHeight 4e3
-#define cloudCoverage 0.5
-#define cloudScatter 0.5
-#define cloudAbsorption 1.0
+#define cloudCoverage 0.25
+#define cloudScatter 0.0625
 
 
 bool cloudLayerIntersect(vec3 origin, vec3 dir, out float tmin, out float tmax)
@@ -211,7 +209,7 @@ float getCloudDensity(vec3 p, float height, int lod)
 
 	float perlinWorley = texture(s_cloudNoise, p * 0.25).x;
 
-	float threshold = 0.75;
+	float threshold = 1 - cloudCoverage;
 
 	float cloud = perlinWorley;
 	if (cloud < threshold)
@@ -285,7 +283,7 @@ float getCloudDensityLight(vec3 p, float height, int lod)
 
 	float perlinWorley = texture(s_cloudNoise, p * 0.25).x;
 
-	float threshold = 0.75;
+	float threshold = 1 - cloudCoverage;
 
 	float cloud = perlinWorley;
 	if (cloud < threshold)
@@ -399,7 +397,7 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod)
 		if (density > 0)
 		{
 			float densityToLight = lightRay(pos, toLight, mu, lod);
-			float beer = exp(-densityToLight * cloudAbsorption);
+			float beer = exp(-densityToLight);
 
 			float fakeScatter = mix(0.008, 1, smoothstep(0.96, 0, mu));
 			beer += 0.5 * fakeScatter * exp(-0.1 * densityToLight);
@@ -420,7 +418,7 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod)
 
 			dist = t;
 
-			if (transmittance < 0.05)
+			if (transmittance < 0.01)
 				break;
 		}
 		else
