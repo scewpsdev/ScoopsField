@@ -186,12 +186,12 @@ float numericalMieFit(float costh)
 float cloudPhase(float m)
 {
 	//return numericalMieFit(m);
-	//float g = 0.5;
-	//return HG(m, g);
-
 	float g = 0.5;
-	float k = 0.6;
-	return mix(HG(m, -g), HG(m, g), k);
+	return HG(m, g);
+
+	//float g = 0.5;
+	//float k = 0.6;
+	//return mix(HG(m, -g), HG(m, g), k);
 }
 
 float noise(vec3 pos)
@@ -199,7 +199,7 @@ float noise(vec3 pos)
 	return texture(s_cloudLowFrequency, pos.xzy / vec3(256, 256, 64)).r;
 }
 
-float getCloudDensity(vec3 p, float height)
+float getCloudDensity(vec3 p, float height, int lod)
 {
 	float t = gameTime;
 
@@ -209,11 +209,7 @@ float getCloudDensity(vec3 p, float height)
 
 	float heightGradient = remap(height, minCloudHeight, maxCloudHeight, 0, 1);
 
-	//float coverage = texture(s_cloudCoverage, p.xz * 0.1).x;
-
 	float perlinWorley = texture(s_cloudNoise, p * 0.25).x;
-	vec3 worley = texture(s_cloudNoise, p * 0.5 + t * 0.005).yzw;
-	vec3 detail = texture(s_cloudNoiseDetail, p * 4 + t * 0.01).xyz;
 
 	float threshold = 0.75;
 
@@ -221,16 +217,24 @@ float getCloudDensity(vec3 p, float height)
 	if (cloud < threshold)
 		return 0;
 
-	float wfbm = worley.x * 0.625 + worley.y * 0.125 + worley.z * 0.25;
-	cloud = remap(cloud, 0, 1, wfbm - 1, 1);
+	if (lod <= 1)
+	{
+		vec3 worley = texture(s_cloudNoise, p * 0.5 + t * 0.005).yzw;
+		float wfbm = worley.x * 0.625 + worley.y * 0.125 + worley.z * 0.25;
+		cloud = remap(cloud, 0, 1, wfbm - 1, 1);
 
-	if (cloud < threshold)
-		return 0;
+		if (cloud < threshold)
+			return 0;
 
-	float dfbm = detail.x * 0.625 + detail.y * 0.25 + detail.z * 0.125;
-	float billowRemap = remap(cloud, 0, 1, dfbm - 1, 1);
-	float whispyRemap = remap(cloud, dfbm - 0.5, 1, 0, 1);
-	cloud = mix(whispyRemap, billowRemap, smoothstep(0.5, 0.7, heightGradient));
+		if (lod == 0)
+		{
+			vec3 detail = texture(s_cloudNoiseDetail, p * 4 + t * 0.01).xyz;
+			float dfbm = detail.x * 0.625 + detail.y * 0.25 + detail.z * 0.125;
+			float billowRemap = remap(cloud, 0, 1, dfbm - 1, 1);
+			float whispyRemap = remap(cloud, dfbm - 0.5, 1, 0, 1);
+			cloud = mix(whispyRemap, billowRemap, smoothstep(0.5, 0.7, heightGradient));
+		}
+	}
 
 	cloud = smoothstep(threshold, 1, cloud);
     //cloud = remap(cloud, threshold, 1, 0, 1);
@@ -269,7 +273,7 @@ float getCloudDensity(vec3 p, float height)
 	*/
 }
 
-float getCloudDensityLod(vec3 p, float height)
+float getCloudDensityLight(vec3 p, float height, int lod)
 {
 	float t = gameTime;
 
@@ -279,11 +283,7 @@ float getCloudDensityLod(vec3 p, float height)
 
 	float heightGradient = remap(height, minCloudHeight, maxCloudHeight, 0, 1);
 
-	//float coverage = texture(s_cloudCoverage, p.xz * 0.1).x;
-
 	float perlinWorley = texture(s_cloudNoise, p * 0.25).x;
-	vec3 worley = texture(s_cloudNoise, p * 0.5 + t * 0.005).yzw;
-	vec3 detail = texture(s_cloudNoiseDetail, p * 4 + t * 0.01).xyz;
 
 	float threshold = 0.75;
 
@@ -291,16 +291,24 @@ float getCloudDensityLod(vec3 p, float height)
 	if (cloud < threshold)
 		return 0;
 
-	float wfbm = worley.x * 0.625 + worley.y * 0.125 + worley.z * 0.25;
-	cloud = remap(cloud, 0, 1, wfbm - 1, 1);
+	if (lod <= 1)
+	{
+		vec3 worley = texture(s_cloudNoise, p * 0.5 + t * 0.005).yzw;
+		float wfbm = worley.x * 0.625 + worley.y * 0.125 + worley.z * 0.25;
+		cloud = remap(cloud, 0, 1, wfbm - 1, 1);
 
-	if (cloud < threshold)
-		return 0;
+		if (cloud < threshold)
+			return 0;
 
-	float dfbm = detail.x * 0.625 + detail.y * 0.25 + detail.z * 0.125;
-	float billowRemap = remap(cloud, 0, 1, dfbm - 1, 1);
-	float whispyRemap = remap(cloud, dfbm - 0.5, 1, 0, 1);
-	cloud = mix(whispyRemap, billowRemap, smoothstep(0.5, 0.7, heightGradient));
+		if (lod == 0)
+		{
+			vec3 detail = texture(s_cloudNoiseDetail, p * 4 + t * 0.01).xyz;
+			float dfbm = detail.x * 0.625 + detail.y * 0.25 + detail.z * 0.125;
+			float billowRemap = remap(cloud, 0, 1, dfbm - 1, 1);
+			float whispyRemap = remap(cloud, dfbm - 0.5, 1, 0, 1);
+			cloud = mix(whispyRemap, billowRemap, smoothstep(0.5, 0.7, heightGradient));
+		}
+	}
 
 	cloud = smoothstep(threshold, 1, cloud);
     //cloud = remap(cloud, threshold, 1, 0, 1);
@@ -314,10 +322,11 @@ float getCloudDensityLod(vec3 p, float height)
 	return cloud;
 }
 
-float lightRay(vec3 origin, vec3 dir, float mu, SkySettings sky)
+float lightRay(vec3 origin, vec3 dir, float mu, int lod)
 {
 	float tmin, tmax;
-	sphereIntersect(origin, dir, planetRadius + maxCloudHeight, tmin, tmax);
+	cloudLayerIntersect(origin, dir, tmin, tmax);
+	//sphereIntersect(origin, dir, planetRadius + maxCloudHeight, tmin, tmax);
 
 	int numSamples = 6;
 	float ldt = 1.0 / numSamples;
@@ -339,7 +348,7 @@ float lightRay(vec3 origin, vec3 dir, float mu, SkySettings sky)
 		vec3 pos = origin + t * dir;
 
 		float height = length(pos) - planetRadius;
-		float density = getCloudDensityLod(pos, height);
+		float density = getCloudDensityLight(pos, height, lod);
 
 		totalDensity += density * dt;
 	}
@@ -347,7 +356,7 @@ float lightRay(vec3 origin, vec3 dir, float mu, SkySettings sky)
 	return totalDensity;
 }
 
-vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, in SkySettings sky)
+vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod)
 {
 	origin.y += planetRadius;
 
@@ -375,7 +384,7 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, in SkySettings sky)
 
 	for (int i = 0; i < numSamples; i++)
 	{
-		float xi = sky.noise;
+		float xi = noise;
 		float t = tmin + (i + 0.5 + xi) * segmentLength;
 		if (t > maxDistance)
 			break;
@@ -383,13 +392,12 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, in SkySettings sky)
 		vec3 pos = origin + t * dir;
 
 		float height = length(pos) - planetRadius;
-		float density = getCloudDensity(pos, height);
+		float density = getCloudDensity(pos, height, lod);
 		density *= segmentLength;
 
 		if (density > 0)
 		{
-			// TODO only trace light if density > 0
-			float densityToLight = lightRay(pos, toLight, mu, sky);
+			float densityToLight = lightRay(pos, toLight, mu, lod);
 			float beer = exp(-densityToLight * cloudAbsorption);
 
 			float fakeScatter = mix(0.008, 1, smoothstep(0.96, 0, mu));
@@ -402,10 +410,9 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, in SkySettings sky)
 
 			float ambient = 0.006;
 			float powder = 1 - exp(-density);
-			vec3 lighting = ambient + beer * (sunlight + multiScatter * 10) * powder;
+			vec3 lighting = ambient * sunlight + beer * (sunlight + multiScatter) * powder;
 
 			energy += transmittance * lighting;
-			// TODO apply atmosphere view transmittance and add inscatter from aerial perspective lut
 
 			totalDensity += density;
 			transmittance = exp(-totalDensity * cloudScatter);
@@ -414,8 +421,10 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, in SkySettings sky)
 		}
 		else
 		{
+			vec3 sunlight = sampleTransmittanceLUT(height, toLight, normalize(pos));
+
 			float ambient = 0.006;
-			energy += transmittance * ambient;
+			energy += transmittance * ambient * sunlight;
 		}
 	}
 

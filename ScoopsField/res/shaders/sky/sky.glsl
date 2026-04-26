@@ -126,6 +126,9 @@ vec3 sampleMultiScatter(float height, vec3 toLight, vec3 up)
 
 	vec3 multi = texture(s_multiScatterLUT, uv).rgb;
 
+	float scatterMultiplier = remap(max(dot(toLight, vec3(0, 1, 0)), 0), 0, 1, 1, 10);
+	multi *= scatterMultiplier;
+
 	return multi;
 }
 
@@ -185,7 +188,7 @@ vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, int numSamples, SkySetting
 
 		vec3 lightTransmittance = sampleTransmittanceLUT(height, toLight, up);
 		vec3 multiScatter = sampleMultiScatter(height, toLight, up);
-		vec3 inscatter = lightTransmittance + multiScatter * 10;
+		vec3 inscatter = lightTransmittance + multiScatter;
 
 		vec3 transmittance = viewTransmittance * inscatter;
 
@@ -259,7 +262,7 @@ vec4 calculateAerial(vec3 origin, vec3 dir, float maxDistance, vec3 lightDir)
 
 		vec3 lightTransmittance = sampleTransmittanceLUT(height, toLight, up);
 		vec3 multiScatter = sampleMultiScatter(height, toLight, up);
-		vec3 inscatter = lightTransmittance + multiScatter * 10;
+		vec3 inscatter = lightTransmittance + multiScatter;
 
 		vec3 transmittance = viewTransmittance * inscatter;
 

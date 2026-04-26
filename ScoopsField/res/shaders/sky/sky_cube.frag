@@ -12,6 +12,8 @@ layout(set = 2, binding = 3) uniform sampler2D s_bluenoise;
 layout(set = 2, binding = 4) uniform sampler2D s_transmittanceLUT;
 layout(set = 2, binding = 5) uniform sampler2D s_multiScatterLUT;
 layout(set = 2, binding = 6) uniform sampler2D s_skyViewLUT;
+layout(set = 2, binding = 7) uniform sampler3D s_cloudNoise;
+layout(set = 2, binding = 8) uniform sampler3D s_cloudNoiseDetail;
 
 layout(set = 3, binding = 0) uniform UniformBlock {
 	vec4 params;
@@ -21,12 +23,14 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 
 #define lightDirection params.xyz
 #define gameTime params.w
-#define frameIdx int(params2.x + 0.5)
+#define frameIdx int(params2.w + 0.5)
+#define cameraPosition params2.xyz
 };
 
 
 #include "../common.glsl"
 #include "sky.glsl"
+#include "clouds.glsl"
 
 
 vec3 reconstructView(vec2 uv, mat4 projectionInv, mat4 viewInv)
@@ -77,6 +81,9 @@ void main()
 	*/
 
 	vec3 color = sampleSkyViewLUT(dir);
+
+	vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, 0, 2);
+	color = mix(cloudColor.rgb, color, cloudColor.a);
 
 	out_color = vec4(color, 1);
 }

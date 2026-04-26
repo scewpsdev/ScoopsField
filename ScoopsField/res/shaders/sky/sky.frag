@@ -121,11 +121,9 @@ void main()
 
 		vec3 color = sampleSkyViewLUT(dir);
 
-		SkySettings sky;
-		sky.noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
-		sky.groundColor = vec3(0.1);
+		float noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
 		
-		vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, sky);
+		vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, noise, 0);
 		color = mix(cloudColor.rgb, color, cloudColor.a);
 
 		// accumulation

@@ -1021,13 +1021,13 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 			};
 			UniformData uniforms = {};
 			uniforms.params = vec4(sunDirection, gameTime);
-			uniforms.params2 = vec4((float)app->frameIdx, 0, 0, 0);
+			uniforms.params2 = vec4(cameraPosition, (float)app->frameIdx);
 			uniforms.projectionInv = mat4::Perspective(0.5f * PI, 1, 0.1f);
 			uniforms.viewInv = cubemapViewsInv[i];
 
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-			SDL_GPUTexture* gbufferTextures[7];
+			SDL_GPUTexture* gbufferTextures[9];
 			gbufferTextures[0] = renderer->cloudCoverage->handle;
 			gbufferTextures[1] = renderer->cloudLowFrequency->handle;
 			gbufferTextures[2] = renderer->cloudHighFrequency->handle;
@@ -1035,8 +1035,10 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 			gbufferTextures[4] = renderer->skyTransmittanceLUT;
 			gbufferTextures[5] = renderer->skyMultiScatterLUT;
 			gbufferTextures[6] = renderer->skyViewLUT;
+			gbufferTextures[7] = renderer->cloudNoise;
+			gbufferTextures[8] = renderer->cloudNoiseDetail;
 
-			SDL_GPUSampler* samplers[7];
+			SDL_GPUSampler* samplers[9];
 			samplers[0] = renderer->linearSampler;
 			samplers[1] = renderer->linearSampler;
 			samplers[2] = renderer->linearSampler;
@@ -1044,8 +1046,10 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 			samplers[4] = renderer->linearClampedSampler;
 			samplers[5] = renderer->linearClampedSampler;
 			samplers[6] = renderer->linearClampedVSampler;
+			samplers[7] = renderer->linearSampler;
+			samplers[8] = renderer->linearSampler;
 
-			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 7, gbufferTextures, samplers, cmdBuffer);
+			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 9, gbufferTextures, samplers, cmdBuffer);
 
 			SDL_EndGPURenderPass(renderPass);
 		}
