@@ -381,6 +381,7 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod)
 	vec3 energy = vec3(0);
 
 	float transmittance = 1;
+	float dist = tmin;
 
 	for (int i = 0; i < numSamples; i++)
 	{
@@ -416,6 +417,9 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod)
 
 			totalDensity += density;
 			transmittance = exp(-totalDensity * cloudScatter);
+
+			dist = t;
+
 			if (transmittance < 0.05)
 				break;
 		}
@@ -433,7 +437,7 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod)
 	float sunIntensity = 25;
 	vec3 color = energy * sunIntensity;
 
-	vec4 aerial = calculateAerial(origin - vec3(0, planetRadius, 0), dir, tmin, lightDir);
+	vec4 aerial = calculateAerial(origin - vec3(0, planetRadius, 0), dir, dist, lightDir);
 	color += aerial.rgb;
 	//transmittance *= aerial.a;
 
