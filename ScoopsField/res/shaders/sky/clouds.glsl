@@ -226,7 +226,7 @@ float getCloudDensity(vec3 p, float height, int lod)
 
 		if (lod == 0)
 		{
-			vec3 detail = texture(s_cloudNoiseDetail, p * 8 + t * 0.1 * windSpeed).xyz;
+			vec3 detail = texture(s_cloudNoiseDetail, p * 16 + t * 0.1 * windSpeed).xyz;
 			float dfbm = detail.x * 0.625 + detail.y * 0.25 + detail.z * 0.125;
 			float billowRemap = remap(cloud, 0, 1, dfbm - 1, 1);
 			float whispyRemap = remap(cloud, dfbm - 0.5, 1, 0, 1);
@@ -300,7 +300,7 @@ float getCloudDensityLight(vec3 p, float height, int lod)
 
 		if (lod == 0)
 		{
-			vec3 detail = texture(s_cloudNoiseDetail, p * 8 + t * 0.1 * windSpeed).xyz;
+			vec3 detail = texture(s_cloudNoiseDetail, p * 16 + t * 0.1 * windSpeed).xyz;
 			float dfbm = detail.x * 0.625 + detail.y * 0.25 + detail.z * 0.125;
 			float billowRemap = remap(cloud, 0, 1, dfbm - 1, 1);
 			float whispyRemap = remap(cloud, dfbm - 0.5, 1, 0, 1);

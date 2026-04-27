@@ -13,7 +13,7 @@ void main()
 	ivec3 gid = ivec3(gl_GlobalInvocationID.xyz);
 	vec3 uvw = (gid + 0.5) / vec3(imageSize(s_output));
 
-	float freq = 2;
+	float freq = 1;
 
 	vec4 result;
 

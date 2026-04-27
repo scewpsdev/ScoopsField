@@ -533,10 +533,10 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	sunColorInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
 	renderer->sunColorBuffer = SDL_CreateGPUTexture(device, &sunColorInfo);
 
-	renderer->weather.haziness = 0.0f;
+	renderer->weather.haziness = 0.01f;
 	renderer->weather.cloudCoverage = 0.25f;
 	renderer->weather.cloudDensity = 0.0625f;
-	renderer->weather.windSpeed = 1.0f;
+	renderer->weather.windSpeed = 0.1f;
 }
 
 void DestroyRenderer(Renderer* renderer)
@@ -749,11 +749,6 @@ static float CalculateLightRadius(vec3 color)
 
 void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], float near, vec3 sunDirection, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
-	renderer->weather.haziness = 0.01f;
-	renderer->weather.cloudCoverage = 0.25f;
-	renderer->weather.cloudDensity = 0.0625f;
-	renderer->weather.windSpeed = 0.1f;
-
 	GPU_SCOPE("renderer");
 
 	mat4 pvInv = pv.inverted();
@@ -874,8 +869,26 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		SDL_EndGPUComputePass(computePass);
 	}
 
-	/*
 	// cloud noise
+	{
+		GPU_SCOPE("cloud noise");
+
+		SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
+		bufferBinding.texture = renderer->cloudNoise;
+		bufferBinding.mip_level = 0;
+		bufferBinding.layer = 0;
+		bufferBinding.cycle = false;
+
+		SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, &bufferBinding, 1, nullptr, 0);
+
+		SDL_BindGPUComputePipeline(computePass, renderer->cloudNoiseShader->compute);
+
+		SDL_DispatchGPUCompute(computePass, 128 / 8, 128 / 8, 128 / 8);
+
+		SDL_EndGPUComputePass(computePass);
+	}
+
+	// cloud noise detail
 	{
 		GPU_SCOPE("cloud noise detail");
 
@@ -893,7 +906,6 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 		SDL_EndGPUComputePass(computePass);
 	}
-	*/
 
 	// sun color
 	{
