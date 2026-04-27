@@ -31,7 +31,14 @@ void main()
 	if (idx > 0)
 		return;
 
-	vec3 result = attenuateSun(cameraPosition, sunDirection, gameTime);
+	vec3 pos = cameraPosition + vec3(0, planetRadius, 0);
+	float height = length(pos);
+	vec3 up = pos / height;
+	height -= planetRadius;
 
-	imageStore(s_sunColor, ivec2(0), vec4(result, 0));
+	float sunIntensity = 25;
+	vec3 sunlight = sampleTransmittanceLUT(height, -sunDirection, up) * sunIntensity;
+	//vec3 sunlight = attenuateSun(cameraPosition, sunDirection);
+
+	imageStore(s_sunColor, ivec2(0), vec4(sunlight, 0));
 }

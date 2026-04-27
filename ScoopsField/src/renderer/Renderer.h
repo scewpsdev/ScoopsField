@@ -112,7 +112,6 @@ struct Renderer
 	GraphicsPipeline* skyPipeline;
 	GraphicsPipeline* skyUpsamplePipeline;
 	GraphicsPipeline* skyCubePipeline;
-	GraphicsPipeline* sunColorPipeline;
 	GraphicsPipeline* tonemappingPipeline;
 
 	SDL_GPUSampler* defaultSampler;

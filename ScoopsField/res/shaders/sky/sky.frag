@@ -114,8 +114,20 @@ void main()
 	{
 		vec3 color = sampleSkyViewLUT(dir);
 
+		vec3 pos = cameraPosition + vec3(0, planetRadius, 0);
+		float height = length(pos);
+		vec3 up = pos / height;
+		height -= planetRadius;
+
+		// sun
+		float sunIntensity = 25;
+		vec3 sunlight = sampleTransmittanceLUT(height, vec3(-lightDirection.x, max(-lightDirection.y, 0), -lightDirection.z), up) * sunIntensity * 10;
+		float sunSize = mix(0.0004, 0.0002, max(dot(-lightDirection, vec3(0, 1, 0)), 0));
+		float sunAlpha = smoothstep(1 - sunSize, 1.0, dot(dir, -lightDirection)) * smoothstep(-0.005, 0.002, dir.y);
+		color = mix(color, sunlight, sunAlpha);
+
+		// clouds
 		float noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
-		
 		vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, noise, 0);
 		color = mix(cloudColor.rgb, color, cloudColor.a);
 

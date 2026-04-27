@@ -749,6 +749,10 @@ static float CalculateLightRadius(vec3 color)
 
 void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], float near, vec3 sunDirection, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
+	renderer->weather.haziness = 0.01;
+	//renderer->weather.cloudCoverage = 0.25f;
+	renderer->weather.cloudDensity = 0.5f;
+
 	GPU_SCOPE("renderer");
 
 	mat4 pvInv = pv.inverted();
@@ -869,6 +873,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		SDL_EndGPUComputePass(computePass);
 	}
 
+	/*
 	// cloud noise
 	{
 		GPU_SCOPE("cloud noise");
@@ -906,6 +911,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 
 		SDL_EndGPUComputePass(computePass);
 	}
+	*/
 
 	// sun color
 	{
@@ -928,8 +934,8 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		bindings[1].sampler = renderer->defaultSampler;
 		bindings[2].texture = renderer->emptyTexture;
 		bindings[2].sampler = renderer->defaultSampler;
-		bindings[3].texture = renderer->emptyTexture;
-		bindings[3].sampler = renderer->defaultSampler;
+		bindings[3].texture = renderer->skyTransmittanceLUT;
+		bindings[3].sampler = renderer->linearClampedSampler;
 		bindings[4].texture = renderer->emptyTexture;
 		bindings[4].sampler = renderer->defaultSampler;
 		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 5);

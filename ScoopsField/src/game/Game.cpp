@@ -192,6 +192,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/transmittance_lut.comp");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/multiscatter_lut.comp");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/skyview_lut.comp");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sun_color.comp");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/clouds.glsl");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/cloud_noise.comp");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/cloud_noise_detail.comp");
@@ -262,6 +263,11 @@ void GameUpdate()
 	{
 		app->platformCallbacks.compileResources();
 		ReloadComputeShader(game->renderer.skyViewLUTShader, "res/shaders/sky/skyview_lut.comp.bin");
+	}
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/sun_color.comp"))
+	{
+		app->platformCallbacks.compileResources();
+		ReloadComputeShader(game->renderer.sunColorShader, "res/shaders/sky/sun_color.comp.bin");
 	}
 	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/cloud_noise.comp"))
 	{
@@ -407,7 +413,7 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -5 * 0.1f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -(gameTime - 1540) * 0.01f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 

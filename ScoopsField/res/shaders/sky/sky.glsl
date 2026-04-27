@@ -269,39 +269,3 @@ vec4 calculateAerial(vec3 origin, vec3 dir, float maxDistance, vec3 lightDir)
 
 	return vec4(scattering, T);
 }
-
-vec3 attenuateSun(vec3 origin, vec3 lightDir, float time)
-{
-	origin.y += planetRadius;
-
-	vec3 dir = -lightDir;
-
-	int numSamples = 128;
-
-	float odr = 0, odm = 0, odo = 0;
-
-	float tmin, tmax;
-	sphereIntersect(origin, dir, atmosphereRadius, tmin, tmax);
-
-	float segmentLength = tmax / numSamples;
-
-	for (int i = 0; i < numSamples; i++)
-	{
-		float t = i * segmentLength;
-		vec3 samplePosition = origin + t * dir;
-		float height = length(samplePosition) - planetRadius;
-
-		vec3 density = getDensities(height);
-		density *= segmentLength;
-		
-		odr += density.x;
-		odm += density.y;
-		odo += density.z;
-	}
-
-	vec3 tau = rayleighScatter * odr + mieScatter * odm + ozoneAbsorption * odo;
-	vec3 attenuation = exp(-tau);
-
-	float sunIntensity = 25;
-	return attenuation * sunIntensity;
-}

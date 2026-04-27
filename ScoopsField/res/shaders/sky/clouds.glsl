@@ -183,12 +183,13 @@ float numericalMieFit(float costh)
 
 float cloudPhase(float m)
 {
-	//return numericalMieFit(m);
-	float g = 0.5;
-	return HG(m, g);
+	//return numericalMieFit(m) * 0.2;
+	//float g = 0.7;
+	//return HG(m, g);
+	return max(HG(m, 0.5), HG(m, 0.9));
 
-	//float g = 0.5;
-	//float k = 0.6;
+	//float g = 0.8;
+	//float k = 0.95;
 	//return mix(HG(m, -g), HG(m, g), k);
 }
 
@@ -230,7 +231,7 @@ float getCloudDensity(vec3 p, float height, int lod)
 			float dfbm = detail.x * 0.625 + detail.y * 0.25 + detail.z * 0.125;
 			float billowRemap = remap(cloud, 0, 1, dfbm - 1, 1);
 			float whispyRemap = remap(cloud, dfbm - 0.5, 1, 0, 1);
-			cloud = mix(whispyRemap, billowRemap, smoothstep(0.5, 0.7, heightGradient));
+			cloud = mix(whispyRemap, billowRemap, smoothstep(0.5, 1.0, heightGradient));
 		}
 	}
 
@@ -304,7 +305,7 @@ float getCloudDensityLight(vec3 p, float height, int lod)
 			float dfbm = detail.x * 0.625 + detail.y * 0.25 + detail.z * 0.125;
 			float billowRemap = remap(cloud, 0, 1, dfbm - 1, 1);
 			float whispyRemap = remap(cloud, dfbm - 0.5, 1, 0, 1);
-			cloud = mix(whispyRemap, billowRemap, smoothstep(0.5, 0.7, heightGradient));
+			cloud = mix(whispyRemap, billowRemap, smoothstep(0.5, 1.0, heightGradient));
 		}
 	}
 
@@ -320,7 +321,7 @@ float getCloudDensityLight(vec3 p, float height, int lod)
 	return cloud;
 }
 
-float lightRay(vec3 origin, vec3 dir, float mu, int lod)
+float lightRay(vec3 origin, vec3 dir, float mu, float noise, int lod)
 {
 	float tmin, tmax;
 	cloudLayerIntersect(origin, dir, tmin, tmax);
@@ -333,9 +334,10 @@ float lightRay(vec3 origin, vec3 dir, float mu, int lod)
 
 	for (int i = 0; i < numSamples; i++)
 	{
-		float u0 = (i) * ldt;
-		float u1 = (i + 1) * ldt;
-		float u = (i + 0.5) * ldt;
+		float xi = noise;
+		float u0 = (i + xi) * ldt;
+		float u1 = (i + 1 + xi) * ldt;
+		float u = (i + 0.5 + xi) * ldt;
 
 		float t0 = tmax * u0 * u0;
 		float t1 = tmax * u1 * u1;
@@ -400,7 +402,7 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod)
 
 		if (density > 0)
 		{
-			float densityToLight = lightRay(pos, toLight, mu, lod);
+			float densityToLight = lightRay(pos, toLight, mu, noise, lod);
 			float beer = exp(-densityToLight);
 
 			float fakeScatter = mix(0.008, 1, smoothstep(0.96, 0, mu));
