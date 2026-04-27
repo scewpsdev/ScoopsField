@@ -126,8 +126,8 @@ float clouds2(vec3 p, float height, float t)
 
 #define minCloudHeight 1.5e3
 #define maxCloudHeight 4e3
-#define cloudCoverage 0.25
-#define cloudScatter 0.0625
+//#define cloudCoverage 0.25
+//#define cloudScatter 0.0625
 
 
 bool cloudLayerIntersect(vec3 origin, vec3 dir, out float tmin, out float tmax)
@@ -201,23 +201,23 @@ float getCloudDensity(vec3 p, float height, int lod)
 {
 	float t = gameTime;
 
-	p += vec3(5e1 * t, 0, 6e1 * t);
+	p += vec3(5e2 * t, 0, 6e2 * t) * windSpeed;
 
 	p *= 2e-4 * 0.5;
 
 	float heightGradient = remap(height, minCloudHeight, maxCloudHeight, 0, 1);
 
-	float perlinWorley = texture(s_cloudNoise, p * 0.25).x;
+	vec4 perlinWorley = texture(s_cloudNoise, p * 0.25);
 
 	float threshold = 1 - cloudCoverage;
 
-	float cloud = perlinWorley;
+	float cloud = perlinWorley.x;
 	if (cloud < threshold)
 		return 0;
 
 	if (lod <= 1)
 	{
-		vec3 worley = texture(s_cloudNoise, p * 0.5 + t * 0.005).yzw;
+		vec3 worley = perlinWorley.yzw; //texture(s_cloudNoise, p * 0.25 + t * 0.005).yzw;
 		float wfbm = worley.x * 0.625 + worley.y * 0.125 + worley.z * 0.25;
 		cloud = remap(cloud, 0, 1, wfbm - 1, 1);
 
@@ -226,7 +226,7 @@ float getCloudDensity(vec3 p, float height, int lod)
 
 		if (lod == 0)
 		{
-			vec3 detail = texture(s_cloudNoiseDetail, p * 4 + t * 0.01).xyz;
+			vec3 detail = texture(s_cloudNoiseDetail, p * 8 + t * 0.1 * windSpeed).xyz;
 			float dfbm = detail.x * 0.625 + detail.y * 0.25 + detail.z * 0.125;
 			float billowRemap = remap(cloud, 0, 1, dfbm - 1, 1);
 			float whispyRemap = remap(cloud, dfbm - 0.5, 1, 0, 1);
@@ -275,23 +275,23 @@ float getCloudDensityLight(vec3 p, float height, int lod)
 {
 	float t = gameTime;
 
-	p += vec3(5e1 * t, 0, 6e1 * t);
+	p += vec3(5e2 * t, 0, 6e2 * t) * windSpeed;
 
 	p *= 2e-4 * 0.5;
 
 	float heightGradient = remap(height, minCloudHeight, maxCloudHeight, 0, 1);
 
-	float perlinWorley = texture(s_cloudNoise, p * 0.25).x;
+	vec4 perlinWorley = texture(s_cloudNoise, p * 0.25);
 
 	float threshold = 1 - cloudCoverage;
 
-	float cloud = perlinWorley;
+	float cloud = perlinWorley.x;
 	if (cloud < threshold)
 		return 0;
 
 	if (lod <= 1)
 	{
-		vec3 worley = texture(s_cloudNoise, p * 0.5 + t * 0.005).yzw;
+		vec3 worley = perlinWorley.yzw; //texture(s_cloudNoise, p * 0.25 + t * 0.005).yzw;
 		float wfbm = worley.x * 0.625 + worley.y * 0.125 + worley.z * 0.25;
 		cloud = remap(cloud, 0, 1, wfbm - 1, 1);
 
@@ -300,7 +300,7 @@ float getCloudDensityLight(vec3 p, float height, int lod)
 
 		if (lod == 0)
 		{
-			vec3 detail = texture(s_cloudNoiseDetail, p * 4 + t * 0.01).xyz;
+			vec3 detail = texture(s_cloudNoiseDetail, p * 8 + t * 0.1 * windSpeed).xyz;
 			float dfbm = detail.x * 0.625 + detail.y * 0.25 + detail.z * 0.125;
 			float billowRemap = remap(cloud, 0, 1, dfbm - 1, 1);
 			float whispyRemap = remap(cloud, dfbm - 0.5, 1, 0, 1);
@@ -362,7 +362,9 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod)
 	if (!cloudLayerIntersect(origin, dir, tmin, tmax))
 		return vec4(0, 0, 0, 1);
 
-	float maxDistance = 150e3;
+	float maxDistance = 200e3;
+	float lodDistance = 50e3;
+	float lodDistance2 = 90e3;
 	//tmin = min(tmin, maxDistance);
 	//tmax = min(tmax, maxDistance);
 
@@ -387,6 +389,8 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod)
 		float t = tmin + (i + 0.5 + xi) * segmentLength;
 		if (t > maxDistance)
 			break;
+
+		lod = clamp(int(floor((t - lodDistance) / (lodDistance2 - lodDistance))), -1, 1) + 1;
 
 		vec3 pos = origin + t * dir;
 
@@ -414,7 +418,7 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod)
 			energy += transmittance * lighting;
 
 			totalDensity += density;
-			transmittance = exp(-totalDensity * cloudScatter);
+			transmittance = exp(-totalDensity * cloudDensity);
 
 			dist = t;
 

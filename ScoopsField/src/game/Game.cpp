@@ -194,6 +194,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/skyview_lut.comp");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/clouds.glsl");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/cloud_noise.comp");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/cloud_noise_detail.comp");
 
 	ResetGame(false);
 }
@@ -266,6 +267,11 @@ void GameUpdate()
 	{
 		app->platformCallbacks.compileResources();
 		ReloadComputeShader(game->renderer.cloudNoiseShader, "res/shaders/sky/cloud_noise.comp.bin");
+	}
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/cloud_noise_detail.comp"))
+	{
+		app->platformCallbacks.compileResources();
+		ReloadComputeShader(game->renderer.cloudNoiseDetailShader, "res/shaders/sky/cloud_noise_detail.comp.bin");
 	}
 
 	if (app->keys[SDL_SCANCODE_ESCAPE] && !app->lastKeys[SDL_SCANCODE_ESCAPE])

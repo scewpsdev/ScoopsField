@@ -10,17 +10,19 @@ layout(set = 0, binding = 4) uniform sampler2D s_multiScatterLUT;
 
 layout(set = 1, binding = 0) uniform writeonly image2D s_sunColor;
 
-#include "../common.glsl"
-#include "sky.glsl"
-
 layout(set = 2, binding = 0) uniform UniformBlock {
 	vec4 params;
 	vec4 params2;
+
+	vec4 weatherData;
 
 #define sunDirection params.xyz
 #define gameTime params.w
 #define cameraPosition params2.xyz
 };
+
+#include "../common.glsl"
+#include "sky.glsl"
 
 
 void main()

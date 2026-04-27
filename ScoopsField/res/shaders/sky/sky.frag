@@ -26,6 +26,8 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 	mat4 lastProjection;
 	mat4 lastView;
 
+	vec4 weatherData;
+
 #define lightDirection params.xyz
 #define gameTime params.w
 #define frameIdx int(params2.x + 0.5)

@@ -532,6 +532,11 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	sunColorInfo.num_levels = 1;
 	sunColorInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
 	renderer->sunColorBuffer = SDL_CreateGPUTexture(device, &sunColorInfo);
+
+	renderer->weather.haziness = 0.0f;
+	renderer->weather.cloudCoverage = 0.25f;
+	renderer->weather.cloudDensity = 0.0625f;
+	renderer->weather.windSpeed = 1.0f;
 }
 
 void DestroyRenderer(Renderer* renderer)
@@ -744,6 +749,11 @@ static float CalculateLightRadius(vec3 color)
 
 void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], float near, vec3 sunDirection, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
+	renderer->weather.haziness = 0.01f;
+	renderer->weather.cloudCoverage = 0.25f;
+	renderer->weather.cloudDensity = 0.0625f;
+	renderer->weather.windSpeed = 0.1f;
+
 	GPU_SCOPE("renderer");
 
 	mat4 pvInv = pv.inverted();
@@ -771,6 +781,16 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		bindings[1].sampler = renderer->defaultSampler;
 		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 2);
 
+		struct UniformData
+		{
+			vec4 weatherData;
+		};
+
+		UniformData uniforms = {};
+		uniforms.weatherData = renderer->weather.getData();
+
+		SDL_PushGPUComputeUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+
 		SDL_DispatchGPUCompute(computePass, 256 / 32, 64 / 32, 1);
 
 		SDL_EndGPUComputePass(computePass);
@@ -796,6 +816,16 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		bindings[1].texture = renderer->emptyTexture;
 		bindings[1].sampler = renderer->defaultSampler;
 		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 2);
+
+		struct UniformData
+		{
+			vec4 weatherData;
+		};
+
+		UniformData uniforms = {};
+		uniforms.weatherData = renderer->weather.getData();
+
+		SDL_PushGPUComputeUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 		SDL_DispatchGPUCompute(computePass, 32 / 32, 32 / 32, 1);
 
@@ -829,10 +859,13 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		{
 			vec4 params;
 			vec4 params2;
+
+			vec4 weatherData;
 		};
 		UniformData uniforms = {};
 		uniforms.params = vec4(sunDirection, gameTime);
 		uniforms.params2 = vec4(cameraPosition, 0);
+		uniforms.weatherData = renderer->weather.getData();
 
 		SDL_PushGPUComputeUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
@@ -844,19 +877,19 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 	/*
 	// cloud noise
 	{
-		GPU_SCOPE("cloud noise");
+		GPU_SCOPE("cloud noise detail");
 
 		SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
-		bufferBinding.texture = renderer->cloudNoise;
+		bufferBinding.texture = renderer->cloudNoiseDetail;
 		bufferBinding.mip_level = 0;
 		bufferBinding.layer = 0;
 		bufferBinding.cycle = false;
 
 		SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, &bufferBinding, 1, nullptr, 0);
 
-		SDL_BindGPUComputePipeline(computePass, renderer->cloudNoiseShader->compute);
+		SDL_BindGPUComputePipeline(computePass, renderer->cloudNoiseDetailShader->compute);
 
-		SDL_DispatchGPUCompute(computePass, 128 / 8, 128 / 8, 128 / 8);
+		SDL_DispatchGPUCompute(computePass, 32 / 8, 32 / 8, 32 / 8);
 
 		SDL_EndGPUComputePass(computePass);
 	}
@@ -893,10 +926,15 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		{
 			vec4 params;
 			vec4 params2;
+
+			vec4 weatherData;
 		};
+
 		UniformData uniforms = {};
 		uniforms.params = vec4(sunDirection, gameTime);
 		uniforms.params2 = vec4(cameraPosition, 0);
+		uniforms.weatherData = renderer->weather.getData();
+
 		SDL_PushGPUComputeUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 		SDL_DispatchGPUCompute(computePass, 1, 1, 1);
@@ -953,7 +991,10 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 			mat4 viewInv;
 			mat4 lastProjection;
 			mat4 lastView;
+
+			vec4 weatherData;
 		};
+
 		UniformData uniforms = {};
 		uniforms.params = vec4(sunDirection, gameTime);
 		uniforms.params2 = vec4((float)app->frameIdx, 0, 0, 0);
@@ -961,6 +1002,8 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		uniforms.viewInv = viewInv;
 		uniforms.lastProjection = renderer->lastProjection;
 		uniforms.lastView = renderer->lastView;
+		uniforms.weatherData = renderer->weather.getData();
+
 		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 		SDL_GPUTexture* gbufferTextures[11];
@@ -1018,12 +1061,16 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 				vec4 params2;
 				mat4 projectionInv;
 				mat4 viewInv;
+
+				vec4 weatherData;
 			};
+
 			UniformData uniforms = {};
 			uniforms.params = vec4(sunDirection, gameTime);
 			uniforms.params2 = vec4(cameraPosition, (float)app->frameIdx);
 			uniforms.projectionInv = mat4::Perspective(0.5f * PI, 1, 0.1f);
 			uniforms.viewInv = cubemapViewsInv[i];
+			uniforms.weatherData = renderer->weather.getData();
 
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
@@ -1078,7 +1125,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 			SDL_EndGPUCopyPass(copyPass); copyPass = nullptr;
 		}
 
-		GPU_SCOPE("render pass");
+		//GPU_SCOPE("render pass");
 
 		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->hdrTarget, 0, cmdBuffer);
 
@@ -1232,7 +1279,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 			textures[1] = renderer->gbuffer->depthAttachment;
 
 			SDL_GPUSampler* samplers[3];
-			samplers[0] = renderer->clampedSampler;
+			samplers[0] = renderer->linearSampler;
 			samplers[1] = renderer->clampedSampler;
 
 			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 2, textures, samplers, cmdBuffer);

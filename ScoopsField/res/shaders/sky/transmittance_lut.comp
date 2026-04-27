@@ -7,6 +7,10 @@ layout(set = 0, binding = 1) uniform sampler2D s_multiScatterLUT;
 
 layout(set = 1, binding = 0) uniform writeonly image2D s_output;
 
+layout(set = 2, binding = 0) uniform UniformBlock {
+	vec4 weatherData;
+};
+
 #include "../common.glsl"
 #include "sky.glsl"
 

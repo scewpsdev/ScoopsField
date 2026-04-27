@@ -12,6 +12,8 @@ layout(set = 2, binding = 0) uniform UniformBlock {
 	vec4 params;
 	vec4 params2;
 
+	vec4 weatherData;
+
 #define lightDirection params.xyz
 #define gameTime params.w
 #define cameraPosition params2.xyz

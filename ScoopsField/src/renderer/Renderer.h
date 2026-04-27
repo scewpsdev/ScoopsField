@@ -39,6 +39,19 @@ struct WorldDrawData
 	vec3 sunDirection;
 };
 
+struct WeatherData
+{
+	float haziness;
+	float cloudCoverage;
+	float cloudDensity;
+	float windSpeed;
+
+	vec4 getData() const
+	{
+		return vec4(haziness, cloudCoverage, cloudDensity, windSpeed);
+	}
+};
+
 struct Renderer
 {
 	int width, height;
@@ -123,6 +136,8 @@ struct Renderer
 	Texture* cloudCoverage;
 	Texture* cloudLowFrequency;
 	Texture* cloudHighFrequency;
+
+	WeatherData weather;
 };
 
 

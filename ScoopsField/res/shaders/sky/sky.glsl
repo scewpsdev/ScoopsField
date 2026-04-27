@@ -1,13 +1,3 @@
-/*
-struct AtmosphereData
-{
-	float haze;
-	float cloudCoverage;
-	float cloudDensity;
-};
-*/
-
-
 #define planetRadius 6360e3
 #define atmosphereRadius 6460e3
 #define rayleighScatter vec3(5.8e-6f, 13.5e-6f, 33.1e-6f)
@@ -16,7 +6,11 @@ struct AtmosphereData
 #define mieHeightScale 1200
 #define mieAnisotropy 0.76 // 0.76
 #define ozoneAbsorption vec3(0.65e-6, 1.88e-6, 0.085e-6)
-#define haze 0.01
+
+#define haziness weatherData.x
+#define cloudCoverage weatherData.y
+#define cloudDensity weatherData.z
+#define windSpeed weatherData.w
 
 
 bool sphereIntersect(vec3 origin, vec3 dir, float radius, out float tmin, out float tmax)
@@ -56,7 +50,7 @@ bool atmosphereIntersect(vec3 origin, vec3 dir, out float tmin, out float tmax)
 vec3 getDensities(float height)
 {
 	float hr = exp(-height / rayleighHeightScale);
-	float hm = exp(-height / mieHeightScale) + haze;
+	float hm = exp(-height / mieHeightScale) + haziness;
 	float ho = max(1 - abs(height - 25e3) / 15e3, 0);
 	return vec3(hr, hm, ho);
 }
@@ -149,7 +143,7 @@ vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, float noise, vec3 groundCo
 	vec3 toLight = -lightDir;
 	float m = dot(dir, toLight);
 	float phaseR = 3 / (16 * pi) * (1 + m * m);
-	float phaseM = phase(m, mieAnisotropy);
+	float phaseM = phase(m, mix(mieAnisotropy, 0.5, haziness));
 
 	for (int i = 0; i < numSamples; i++)
 	{
@@ -231,7 +225,7 @@ vec4 calculateAerial(vec3 origin, vec3 dir, float maxDistance, vec3 lightDir)
 	vec3 toLight = -lightDir;
 	float m = dot(dir, toLight);
 	float phaseR = 3 / (16 * pi) * (1 + m * m);
-	float phaseM = phase(m, mieAnisotropy);
+	float phaseM = phase(m, mix(mieAnisotropy, 0.5, haziness));
 
 	for (int i = 0; i < numSamples; i++)
 	{
@@ -276,11 +270,11 @@ vec4 calculateAerial(vec3 origin, vec3 dir, float maxDistance, vec3 lightDir)
 	return vec4(scattering, T);
 }
 
-vec3 attenuateSun(vec3 origin, vec3 sunDirection, float time)
+vec3 attenuateSun(vec3 origin, vec3 lightDir, float time)
 {
 	origin.y += planetRadius;
 
-	vec3 dir = -sunDirection;
+	vec3 dir = -lightDir;
 
 	int numSamples = 128;
 
