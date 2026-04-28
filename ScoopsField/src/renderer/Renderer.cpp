@@ -5,7 +5,6 @@
 #include "graphics/GPUTiming.h"
 #include "graphics/GPUVulkan.h"
 
-
 #include "CloudNoise.cpp"
 
 
@@ -85,6 +84,7 @@ static RenderTarget* CreateHDRTarget(int width, int height)
 	hdrTargetInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
 	hdrTargetInfo.storeOp = SDL_GPU_STOREOP_STORE;
 	hdrTargetInfo.clearColor = { 0, 0, 0, 0 };
+	hdrTargetInfo.mips = true;
 
 	DepthAttachmentInfo hdrDepthInfo = {};
 	hdrDepthInfo.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
@@ -505,6 +505,13 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	emptyTextureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
 	renderer->emptyTexture = SDL_CreateGPUTexture(device, &emptyTextureInfo);
 
+	SDL_GPUTransferBufferCreateInfo luminanceReadbackBufferInfo = {};
+	luminanceReadbackBufferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD;
+	luminanceReadbackBufferInfo.size = 4 * 4;
+	renderer->luminanceReadbackBuffer = SDL_CreateGPUTransferBuffer(device, &luminanceReadbackBufferInfo);
+	renderer->currentExposure = 1.0f;
+	renderer->targetExposure = 1.0f;
+
 	renderer->blueNoise = LoadTexture("res/textures/bluenoise.png.bin", cmdBuffer);
 
 	//renderer->noiseTexture = LoadTexture("res/textures/noise.png.bin", cmdBuffer);
@@ -738,18 +745,18 @@ static float CalculateLightRadius(vec3 color)
 }
 
 // TODO
-// render meshes front to back
-// frustum culling
-// stencil for light volumes
-// mesh occlusion culling
-// light occlusion culling
-// mesh instancing
-// proper pbr
-// atmospheric scattering
+// [ ] render meshes front to back
+// [ ] frustum culling
+// [ ] stencil for light volumes
+// [ ] mesh occlusion culling
+// [ ] light occlusion culling
+// [ ] mesh instancing
+// [ ] proper pbr
+// [X] atmospheric scattering
 
 void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], float near, vec3 sunDirection, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
-	renderer->weather.haziness = 0.01;
+	renderer->weather.haziness = 0.01f;
 	//renderer->weather.cloudCoverage = 0.25f;
 	renderer->weather.cloudDensity = 0.5f;
 
@@ -1170,10 +1177,12 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 				mat4 projectionViewInv;
 				mat4 viewInv;
 			};
+
 			UniformData uniforms = {};
 			uniforms.params = vec4(cameraPosition, environmentIntensity);
 			uniforms.projectionViewInv = pvInv;
 			uniforms.viewInv = viewInv;
+
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 			SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 2];
@@ -1208,10 +1217,12 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 				vec4 lightColor;
 				mat4 projection;
 			};
+
 			UniformData uniforms = {};
 			uniforms.lightDirection = vec4(lightDirection, gameTime);
 			uniforms.lightColor = vec4(lightColor, 0);
 			uniforms.projection = projection;
+
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 			SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 2];
@@ -1255,9 +1266,11 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 				mat4 pv;
 				mat4 view;
 			};
+
 			VertexUniformData vertexUniforms = {};
 			vertexUniforms.pv = pv;
 			vertexUniforms.view = view;
+
 			SDL_PushGPUVertexUniformData(cmdBuffer, 0, &vertexUniforms, sizeof(vertexUniforms));
 
 			struct UniformData
@@ -1265,9 +1278,11 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 				mat4 projection;
 				vec4 viewTexel;
 			};
+
 			UniformData uniforms = {};
 			uniforms.projection = projection;
 			uniforms.viewTexel = vec4(1.0f / renderer->hdrTarget->width, 1.0f / renderer->hdrTarget->height, 0, 0);
+
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 			SDL_GPUTextureSamplerBinding textureBindings[MAX_COLOR_ATTACHMENTS + 1];
@@ -1306,6 +1321,71 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		SDL_EndGPURenderPass(renderPass);
 	}
 
+	// auto exposure
+	if (!renderer->luminanceReadbackFence)
+	{
+		SDL_GenerateMipmapsForGPUTexture(cmdBuffer, renderer->hdrTarget->colorAttachments[0]);
+
+		SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
+
+		int mip = GetNumMipsForTexture(renderer->width, renderer->height) - 2;
+		ivec2 mipSize = GetMipSize(renderer->width, renderer->height, mip);
+
+		SDL_GPUTextureRegion src = {};
+		src.texture = renderer->hdrTarget->colorAttachments[0];  /**< The texture used in the copy operation. */
+		src.mip_level = mip;         /**< The mip level index to transfer. */
+		src.layer = 0;             /**< The layer index to transfer. */
+		src.x = 0;                 /**< The left offset of the region. */
+		src.y = 0;                 /**< The top offset of the region. */
+		src.z = 0;                 /**< The front offset of the region. */
+		src.w = 1;                 /**< The width of the region. */
+		src.h = 1;                 /**< The height of the region. */
+		src.d = 1;                 /**< The depth of the region. */
+
+		SDL_GPUTextureTransferInfo dst = {};
+		dst.transfer_buffer = renderer->luminanceReadbackBuffer;  /**< The transfer buffer used in the transfer operation. */
+		dst.offset = 0;                           /**< The starting byte of the image data in the transfer buffer. */
+		dst.pixels_per_row = mipSize.x;                   /**< The number of pixels from one row to the next. */
+		dst.rows_per_layer = mipSize.y;                   /**< The number of rows from one layer/depth-slice to the next. */
+
+		SDL_DownloadFromGPUTexture(copyPass, &src, &dst);
+
+		SDL_EndGPUCopyPass(copyPass);
+
+		app->acquireFence = true;
+		app->fenceTarget = &renderer->luminanceReadbackFence;
+	}
+	else
+	{
+		if (SDL_QueryGPUFence(device, renderer->luminanceReadbackFence))
+		{
+			int mip = GetNumMipsForTexture(renderer->width, renderer->height) - 2;
+			ivec2 mipSize = GetMipSize(renderer->width, renderer->height, mip);
+
+			uint32_t* mappedBuffer = (uint32_t*)SDL_MapGPUTransferBuffer(device, renderer->luminanceReadbackBuffer, true);
+
+			vec3 rgb = vec3(0);
+			for (int i = 0; i < mipSize.x* mipSize.y; i++)
+				rgb += DecodeRG11B10(mappedBuffer[i]);
+			rgb /= (float)(mipSize.x * mipSize.y);
+
+			float luminance = dot(rgb, vec3(0.3f, 0.59f, 0.11f));
+			float minExposure = 0.5f;
+			float maxExposure = 10;
+			renderer->targetExposure = clamp(sqrtf(0.18f / luminance * 2), minExposure, maxExposure); // luminance of 0.18 corresponds to middle gray
+
+			SDL_UnmapGPUTransferBuffer(device, renderer->luminanceReadbackBuffer);
+
+			SDL_ReleaseGPUFence(device, renderer->luminanceReadbackFence);
+			renderer->luminanceReadbackFence = nullptr;
+		}
+	}
+
+	float adaptionSpeed = renderer->currentExposure > renderer->targetExposure ? 1 : 0.5f;
+	renderer->currentExposure = mix(renderer->currentExposure, renderer->targetExposure, adaptionSpeed * deltaTime);
+	DebugText(0, app->height / 16 - 4, COLOR_WHITE, COLOR_BLACK, "%.3f, %.3f", renderer->currentExposure, renderer->targetExposure);
+
+
 	// tonemapping
 	{
 		GPU_SCOPE("tonemap");
@@ -1318,6 +1398,16 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4
 		SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(cmdBuffer, &colorTarget, 1, nullptr);
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->tonemappingPipeline->pipeline);
+
+		struct UniformData
+		{
+			vec4 params;
+		};
+
+		UniformData uniforms = {};
+		uniforms.params = vec4(renderer->currentExposure, 0, 0, 0);
+
+		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, &renderer->hdrTarget->colorAttachments[0], &renderer->defaultSampler, cmdBuffer);
 

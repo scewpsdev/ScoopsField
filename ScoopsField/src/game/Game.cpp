@@ -406,14 +406,14 @@ void GameRender()
 		}
 	}
 
-	DebugText(0, app->height / 16 - 1, "%d, %.2f, %.2f", game->round, game->roundStartTimer, game->gameOverTimer);
-	DebugText(0, app->height / 16 - 2, "%d/%d hp", game->player.health, game->player.maxHealth);
-	DebugText(0, app->height / 16 - 3, "%d entities in memory, %d skeletons remaining", game->entities.size, game->numSkeletonsRemaining);
+	DebugText(0, app->height / 16 - 1, COLOR_WHITE, COLOR_BLACK, "%d, %.2f, %.2f", game->round, game->roundStartTimer, game->gameOverTimer);
+	DebugText(0, app->height / 16 - 2, COLOR_WHITE, COLOR_BLACK, "%d/%d hp", game->player.health, game->player.maxHealth);
+	DebugText(0, app->height / 16 - 3, COLOR_WHITE, COLOR_BLACK, "%d entities in memory, %d skeletons remaining", game->entities.size, game->numSkeletonsRemaining);
 }
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -(gameTime - 1540) * 0.01f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.01f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 

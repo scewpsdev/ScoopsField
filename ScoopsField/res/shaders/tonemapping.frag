@@ -8,6 +8,12 @@ layout (location = 0) out vec4 out_color;
 
 layout(set = 2, binding = 0) uniform sampler2D s_hdrFrame;
 
+layout(set = 3, binding = 0) uniform UniformBlock {
+	vec4 params;
+
+#define exposure params.x
+};
+
 
 // sRGB => XYZ => D65_2_D60 => AP1 => RRT_SAT
 const mat3 ACESInputMat =
@@ -57,6 +63,7 @@ vec3 gammaCorrection(vec3 color)
 void main()
 {
 	vec3 color = texture(s_hdrFrame, v_texcoord).rgb;
+    color *= exposure;
 	//color = linearToSRGB(color);
 
 	color = tonemap(color);

@@ -19,6 +19,16 @@ int GetNumMipsForTexture(int width, int height)
 	return numMips;
 }
 
+ivec2 GetMipSize(int width, int height, int mip)
+{
+	for (int i = 0; i < mip; i++)
+	{
+		width = max(width / 2, 1);
+		height = max(height / 2, 1);
+	}
+	return ivec2(width, height);
+}
+
 static SDL_GPUTexture* CreateColorAttachment(int width, int height, SDL_GPUTextureType textureType, const ColorAttachmentInfo* attachmentInfo)
 {
 	if (textureType == SDL_GPU_TEXTURETYPE_CUBE)

@@ -136,6 +136,7 @@ void GUIPanel(int x, int y, Texture* texture)
 
 
 #include "graphics/GPUTiming.cpp"
+#include "renderer/Renderer.cpp"
 #include "game/Game.cpp"
 
 
@@ -532,7 +533,18 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 
 	EndGPUTimer(cmdBuffer); // frame
 
-	SDL_SubmitGPUCommandBuffer(cmdBuffer); cmdBuffer = nullptr;
+	if (app->acquireFence)
+	{
+		*app->fenceTarget = SDL_SubmitGPUCommandBufferAndAcquireFence(cmdBuffer);
+		app->acquireFence = false;
+		app->fenceTarget = nullptr;
+		cmdBuffer = nullptr;
+	}
+	else
+	{
+		SDL_SubmitGPUCommandBuffer(cmdBuffer);
+		cmdBuffer = nullptr;
+	}
 	swapchain = nullptr;
 
 	ResolveGPUTimers(&app->gpuTiming, device);

@@ -134,6 +134,26 @@ vec4 SRGBToLinear(vec4 color)
 	return vec4(SRGBToLinear(color.xyz), color.a);
 }
 
+vec3 DecodeRG11B10(uint32_t bits)
+{
+	uint32_t rb = (bits & 0b11111111111);
+	uint32_t gb = (bits & 0b1111111111100000000000) >> 11;
+	uint32_t bb = (bits & 0b11111111110000000000000000000000) >> 22;
+	//uint32_t rb = buffer[0] << 3 + (buffer[1] & 0b11100000) >> 5;
+	//uint32_t gb = buffer[1] & 0b11111 << 6 + buffer[2] & 0b11111100 >> 2;
+	//uint32_t bb = buffer[2] & 0b11 << 8 + buffer[3];
+	uint32_t expr = (rb & 0b11111000000) >> 6;
+	uint32_t expg = (gb & 0b11111000000) >> 6;
+	uint32_t expb = (bb & 0b1111100000) >> 5;
+	uint32_t manr = rb & 0b111111;
+	uint32_t mang = gb & 0b111111;
+	uint32_t manb = bb & 0b11111;
+	float r = powf(2, (float)expr - 15) * (1.0f + manr / (float)0b1000000);
+	float g = powf(2, (float)expg - 15) * (1.0f + mang / (float)0b1000000);
+	float b = powf(2, (float)expb - 15) * (1.0f + manb / (float)0b100000);
+	return vec3(r, g, b);
+}
+
 bool FrustumCulling(const Sphere& boundingSphere, vec4 planes[6])
 {
 	vec3 boundingSpherePos = boundingSphere.center;

@@ -92,6 +92,9 @@ struct AppState
 	SDL_Window* window;
 	SDL_GPUDevice* device;
 
+	bool acquireFence;
+	SDL_GPUFence** fenceTarget;
+
 	GpuTimerContext gpuTiming;
 
 	uint64_t now;

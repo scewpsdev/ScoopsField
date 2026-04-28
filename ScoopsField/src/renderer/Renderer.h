@@ -122,6 +122,11 @@ struct Renderer
 	SDL_GPUBuffer* emptyBuffer;
 	SDL_GPUTexture* emptyTexture;
 
+	SDL_GPUFence* luminanceReadbackFence;
+	SDL_GPUTransferBuffer* luminanceReadbackBuffer;
+	float targetExposure;
+	float currentExposure;
+
 #define MAX_MESH_DRAWS 1024
 	List<MeshDrawData, MAX_MESH_DRAWS> meshes;
 #define MAX_ANIMATED_MESH_DRAWS 64
