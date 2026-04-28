@@ -13,7 +13,7 @@ vec3 hash33(vec3 p)
 }
 
 // Gradient noise by iq (modified to be tileable)
-float gradientNoise(vec3 x, float freq)
+float gradientNoise(vec3 x, vec3 freq)
 {
     // grid
     vec3 p = floor(x);
@@ -55,7 +55,7 @@ float gradientNoise(vec3 x, float freq)
 }
 
 // Tileable 3D worley noise
-float worleyNoise(vec3 uv, float freq)
+float worleyNoise(vec3 uv, vec3 freq)
 {    
     vec3 id = floor(uv);
     vec3 p = fract(uv);
@@ -68,7 +68,7 @@ float worleyNoise(vec3 uv, float freq)
             for(float z = -1.; z <= 1.; ++z)
             {
                 vec3 offset = vec3(x, y, z);
-            	vec3 h = hash33(mod(id + offset, vec3(freq))) * .5 + .5;
+            	vec3 h = hash33(mod(id + offset, freq)) * .5 + .5;
     			h += offset;
             	vec3 d = p - h;
            		minDist = min(minDist, dot(d, d));
@@ -81,7 +81,7 @@ float worleyNoise(vec3 uv, float freq)
 }
 
 // Fbm for Perlin noise based on iq's blog
-float perlinFbm(vec3 p, float freq, int octaves)
+float perlinFbm(vec3 p, vec3 freq, int octaves)
 {
     float G = exp2(-.85);
     float amp = 1.;
@@ -98,16 +98,16 @@ float perlinFbm(vec3 p, float freq, int octaves)
 
 // Tileable Worley fbm inspired by Andrew Schneider's Real-Time Volumetric Cloudscapes
 // chapter in GPU Pro 7.
-float worleyFbm(vec3 p, float freq)
+float worleyFbm(vec3 p, vec3 freq)
 {
     return worleyNoise(p*freq, freq) * .625 +
         	 worleyNoise(p*freq*2., freq*2.) * .25 +
         	 worleyNoise(p*freq*4., freq*4.) * .125;
 }
 
-float perlinWorley(vec3 p, float freq)
+float perlinWorley(vec3 p, vec3 freq)
 {
     float pfbm = mix(1, perlinFbm(p, freq, 7), 0.5);
 	pfbm = abs(pfbm * 2 - 1);
-    return remap(pfbm, 0, 1, worleyFbm(p, freq), 1);
+    return remap(pfbm, 0, 1, worleyFbm(p, freq * vec3(0.25, 1, 0.25)), 1);
 }

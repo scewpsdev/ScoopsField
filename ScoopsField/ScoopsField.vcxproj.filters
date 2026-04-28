@@ -171,6 +171,18 @@
     <ClCompile Include="src\renderer\CloudNoise.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\renderer\Sky.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\renderer\AutoExposure.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\renderer\Lighting.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\renderer\ShadowMapping.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\spirv_cross\spirv.h">
@@ -476,5 +488,6 @@
     <None Include="res\shaders\sky\noise.glsl" />
     <None Include="res\shaders\sky\cloud_noise.comp" />
     <None Include="res\shaders\sky\cloud_noise_detail.comp" />
+    <None Include="res\shaders\mesh_shadow.frag" />
   </ItemGroup>
 </Project>

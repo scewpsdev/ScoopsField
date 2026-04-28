@@ -338,8 +338,8 @@ void GameUpdate()
 		}
 	}
 
-	float fov = GetKey(SDL_SCANCODE_C) ? 30.0f : 90.0f;
-	game->projection = mat4::Perspective(fov * Deg2Rad, app->width / (float)app->height, game->cameraNear);
+	game->cameraFov = GetKey(SDL_SCANCODE_C) ? 30.0f : 90.0f;
+	game->projection = mat4::Perspective(game->cameraFov * Deg2Rad, app->width / (float)app->height, game->cameraNear);
 	game->view = mat4::Rotate(game->cameraRotation.conjugated()) * mat4::Translate(-game->cameraPosition);
 	game->pv = game->projection * game->view;
 	GetFrustumPlanes(game->pv, game->frustumPlanes);
@@ -413,11 +413,11 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.01f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 
-	RendererShow(&game->renderer, game->cameraPosition, game->projection, game->view, game->pv, game->frustumPlanes, game->cameraNear, sunDirection, swapchain, cmdBuffer);
+	RendererShow(&game->renderer, game->cameraPosition, game->cameraRotation, game->cameraNear, game->cameraFov, app->width / (float)app->height, game->projection, game->view, game->pv, game->frustumPlanes, sunDirection, swapchain, cmdBuffer);
 
 	mat4 guiProjectionView = mat4::Orthographic(0, (float)app->width, 0, (float)app->height, -1, 1);
 	SetRenderer2DCamera(&game->guiRenderer, 0, guiProjectionView);

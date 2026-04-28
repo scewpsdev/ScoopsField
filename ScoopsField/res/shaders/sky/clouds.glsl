@@ -125,7 +125,7 @@ float clouds2(vec3 p, float height, float t)
 
 
 #define minCloudHeight 1.5e3
-#define maxCloudHeight 4e3
+#define maxCloudHeight 3e3
 //#define cloudCoverage 0.25
 //#define cloudScatter 0.0625
 
@@ -227,22 +227,23 @@ float getCloudDensity(vec3 p, float height, int lod)
 
 		if (lod == 0)
 		{
-			vec3 detail = texture(s_cloudNoiseDetail, p * 16 + t * 0.1 * windSpeed).xyz;
+			vec3 detail = texture(s_cloudNoiseDetail, p * 8 + t * 0.1 * windSpeed).xyz;
 			float dfbm = detail.x * 0.625 + detail.y * 0.25 + detail.z * 0.125;
 			float billowRemap = remap(cloud, 0, 1, dfbm - 1, 1);
 			float whispyRemap = remap(cloud, dfbm - 0.5, 1, 0, 1);
-			cloud = mix(whispyRemap, billowRemap, smoothstep(0.5, 1.0, heightGradient));
+			cloud = mix(whispyRemap, billowRemap, smoothstep(0.4, 0.6, heightGradient));
 		}
 	}
 
 	cloud = smoothstep(threshold, 1, cloud);
     //cloud = remap(cloud, threshold, 1, 0, 1);
 	
-	heightGradient *= heightGradient;
-	heightGradient *= sin(heightGradient * pi);
-	heightGradient *= sin(heightGradient * pi);
-	cloud *= sin(heightGradient * pi);
-	cloud *= heightGradient;
+	//heightGradient *= heightGradient;
+	//heightGradient *= sin(heightGradient * pi);
+	//heightGradient *= sin(heightGradient * pi);
+	cloud *= 1 - max(abs(heightGradient * 2 - 1) - 0.5, 0) * 2;
+	//cloud *= sin(heightGradient * pi);
+	cloud *= heightGradient * heightGradient;
 
 	cloud = clamp(cloud, 0, 1);
 
@@ -272,55 +273,6 @@ float getCloudDensity(vec3 p, float height, int lod)
 	*/
 }
 
-float getCloudDensityLight(vec3 p, float height, int lod)
-{
-	float t = gameTime;
-
-	p += vec3(5e2 * t, 0, 6e2 * t) * windSpeed;
-
-	p *= 2e-4 * 0.5;
-
-	float heightGradient = remap(height, minCloudHeight, maxCloudHeight, 0, 1);
-
-	vec4 perlinWorley = texture(s_cloudNoise, p * 0.25);
-
-	float threshold = 1 - cloudCoverage;
-
-	float cloud = perlinWorley.x;
-	if (cloud < threshold)
-		return 0;
-
-	if (lod <= 1)
-	{
-		vec3 worley = perlinWorley.yzw; //texture(s_cloudNoise, p * 0.25 + t * 0.005).yzw;
-		float wfbm = worley.x * 0.625 + worley.y * 0.125 + worley.z * 0.25;
-		cloud = remap(cloud, 0, 1, wfbm - 1, 1);
-
-		if (cloud < threshold)
-			return 0;
-
-		if (lod == 0)
-		{
-			vec3 detail = texture(s_cloudNoiseDetail, p * 16 + t * 0.1 * windSpeed).xyz;
-			float dfbm = detail.x * 0.625 + detail.y * 0.25 + detail.z * 0.125;
-			float billowRemap = remap(cloud, 0, 1, dfbm - 1, 1);
-			float whispyRemap = remap(cloud, dfbm - 0.5, 1, 0, 1);
-			cloud = mix(whispyRemap, billowRemap, smoothstep(0.5, 1.0, heightGradient));
-		}
-	}
-
-	cloud = smoothstep(threshold, 1, cloud);
-    //cloud = remap(cloud, threshold, 1, 0, 1);
-	
-	heightGradient *= heightGradient;
-	cloud *= sin(heightGradient * pi);
-	cloud *= heightGradient;
-
-	cloud = clamp(cloud, 0, 1);
-
-	return cloud;
-}
-
 float lightRay(vec3 origin, vec3 dir, float mu, float noise, int lod)
 {
 	float tmin, tmax;
@@ -348,7 +300,7 @@ float lightRay(vec3 origin, vec3 dir, float mu, float noise, int lod)
 		vec3 pos = origin + t * dir;
 
 		float height = length(pos) - planetRadius;
-		float density = getCloudDensityLight(pos, height, lod);
+		float density = getCloudDensity(pos, height, lod);
 
 		totalDensity += density * dt;
 	}

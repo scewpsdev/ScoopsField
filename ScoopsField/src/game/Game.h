@@ -28,6 +28,7 @@ struct GameState
 	vec3 cameraPosition;
 	quat cameraRotation;
 	float cameraNear /*, cameraFar*/;
+	float cameraFov;
 
 	mat4 projection, view, pv;
 	vec4 frustumPlanes[6];

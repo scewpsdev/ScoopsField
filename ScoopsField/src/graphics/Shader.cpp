@@ -55,7 +55,7 @@ static SDL_GPUShader* LoadGraphicsShaderStage(const char* path, SDL_ShaderCross_
 Shader* LoadGraphicsShader(const char* vertexPath, const char* fragmentPath)
 {
 	SDL_GPUShader* vertex = LoadGraphicsShaderStage(vertexPath, SDL_SHADERCROSS_SHADERSTAGE_VERTEX);
-	SDL_GPUShader* fragment = LoadGraphicsShaderStage(fragmentPath, SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT);
+	SDL_GPUShader* fragment = fragmentPath ? LoadGraphicsShaderStage(fragmentPath, SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) : nullptr;
 
 	SDL_assert(graphics->numShaders < MAX_SHADERS);
 

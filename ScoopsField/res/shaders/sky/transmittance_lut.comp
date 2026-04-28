@@ -49,5 +49,9 @@ void main()
 	vec3 tau = rayleighScatter * opticalDepth.x + mieScatter * opticalDepth.y + ozoneAbsorption * opticalDepth.z;
 	vec3 transmittance = exp(-tau);
 
+	float tgmin, tgmax;
+	if (sphereIntersect(origin, dir, planetRadius, tgmin, tgmax) && tgmin > 0)
+		transmittance = vec3(0);
+
 	imageStore(s_output, gid, vec4(transmittance, 0));
 }

@@ -37,7 +37,8 @@ bool raymarch(vec3 origin, vec3 dir, vec3 toLight, vec3 groundColor, out vec3 si
 	tmin = max(tmin, 0);
 
 	float tgmin, tgmax;
-	sphereIntersect(origin, dir, planetRadius, tgmin, tgmax);
+	if (sphereIntersect(origin, dir, planetRadius, tgmin, tgmax) && tgmin > 0)
+		tmax = min(tmax, tgmin);
 
 	int numSamples = 16;
 	float segmentLength = (tmax - tmin) / numSamples;
@@ -76,9 +77,11 @@ bool raymarch(vec3 origin, vec3 dir, vec3 toLight, vec3 groundColor, out vec3 si
 	if (tgmin > 0)
 	{
 		vec3 ground = origin + tgmax * dir;
-		vec3 sunToGround = sampleTransmittanceLUT(0, toLight, normalize(ground));
+		vec3 groundUp = normalize(ground);
+		vec3 sunToGround = sampleTransmittanceLUT(0, toLight, groundUp) * max(dot(groundUp, toLight), 0) / (4 * pi);
 		vec3 albedo = groundColor;
 		singleScatter += throughput * albedo * sunToGround;
+		singleScatter = vec3(0);
 	}
 
 	return true;

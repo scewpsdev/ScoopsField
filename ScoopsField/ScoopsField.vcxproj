@@ -212,17 +212,33 @@
     <ClCompile Include="src\physics\CharacterController.cpp" />
     <ClCompile Include="src\physics\Physics.cpp" />
     <ClCompile Include="src\physics\RigidBody.cpp" />
+    <ClCompile Include="src\renderer\AutoExposure.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\renderer\CloudNoise.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\renderer\DebugTextRenderer.cpp" />
+    <ClCompile Include="src\renderer\Lighting.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\renderer\Renderer.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\renderer\Renderer2D.cpp" />
     <ClCompile Include="src\renderer\ScreenQuad.cpp" />
+    <ClCompile Include="src\renderer\ShadowMapping.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\renderer\Sky.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\Resource.cpp" />
     <ClCompile Include="src\utils\BinaryReader.cpp" />
     <ClCompile Include="src\utils\Hash.cpp" />
@@ -335,6 +351,7 @@
     <None Include="res\shaders\lighting\environment_light.vert" />
     <None Include="res\shaders\lighting\lighting.glsl" />
     <None Include="res\shaders\mesh_animated.vert" />
+    <None Include="res\shaders\mesh_shadow.frag" />
     <None Include="res\shaders\screenquad.frag" />
     <None Include="res\shaders\screenquad.vert" />
     <None Include="res\shaders\sky\clouds.glsl" />

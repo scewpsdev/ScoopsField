@@ -81,10 +81,13 @@ GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveTy
 			CreateBlendStateOpaque(&pipelineInfo.colorTargets[i].blend_state);
 		}
 
-		pipelineInfo.hasDepthTarget = renderTarget->hasDepthAttachment;
-		pipelineInfo.depthFormat = renderTarget->depthAttachmentInfo.format;
-		pipelineInfo.depthTest = true;
-		pipelineInfo.depthWrite = true;
+		if (renderTarget->hasDepthAttachment)
+		{
+			pipelineInfo.hasDepthTarget = true;
+			pipelineInfo.depthFormat = renderTarget->depthAttachmentInfo.format;
+			pipelineInfo.depthTest = true;
+			pipelineInfo.depthWrite = true;
+		}
 	}
 	else
 	{

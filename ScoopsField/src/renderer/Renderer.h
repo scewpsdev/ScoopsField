@@ -72,6 +72,30 @@ struct Renderer
 	VertexBuffer* pointLightInstanceBuffer;
 	TransferBuffer* pointLightInstanceTransferBuffer;
 
+	RenderTarget* shadowMaps[3];
+	Shader* shadowShader;
+	Shader* animatedShadowShader;
+	GraphicsPipeline* shadowPipeline;
+	GraphicsPipeline* animatedShadowPipeline;
+
+	ScreenQuad screenQuad;
+
+	Shader* defaultShader;
+	Shader* animatedShader;
+	Shader* copyDepthShader;
+	Shader* directionalLightShader;
+	Shader* pointLightShader;
+	Shader* environmentLightShader;
+	Shader* tonemappingShader;
+
+	GraphicsPipeline* geometryPipeline;
+	GraphicsPipeline* animatedPipeline;
+	GraphicsPipeline* copyDepthPipeline;
+	GraphicsPipeline* directionalLightPipeline;
+	GraphicsPipeline* pointLightPipeline;
+	GraphicsPipeline* environmentLightPipeline;
+	GraphicsPipeline* tonemappingPipeline;
+
 	RenderTarget* skyTarget;
 	RenderTarget* skyTarget2;
 	RenderTarget* skyCubemap;
@@ -82,15 +106,6 @@ struct Renderer
 	SDL_GPUTexture* cloudNoise;
 	SDL_GPUTexture* cloudNoiseDetail;
 	SDL_GPUTexture* sunColorBuffer;
-
-	ScreenQuad screenQuad;
-
-	Shader* defaultShader;
-	Shader* animatedShader;
-	Shader* copyDepthShader;
-	Shader* directionalLightShader;
-	Shader* pointLightShader;
-	Shader* environmentLightShader;
 	Shader* skyShader;
 	Shader* skyUpsampleShader;
 	Shader* skyCubeShader;
@@ -101,18 +116,9 @@ struct Renderer
 	Shader* cloudNoiseShader;
 	Shader* cloudNoiseDetailShader;
 	Shader* sunColorShader;
-	Shader* tonemappingShader;
-
-	GraphicsPipeline* geometryPipeline;
-	GraphicsPipeline* animatedPipeline;
-	GraphicsPipeline* copyDepthPipeline;
-	GraphicsPipeline* directionalLightPipeline;
-	GraphicsPipeline* pointLightPipeline;
-	GraphicsPipeline* environmentLightPipeline;
 	GraphicsPipeline* skyPipeline;
 	GraphicsPipeline* skyUpsamplePipeline;
 	GraphicsPipeline* skyCubePipeline;
-	GraphicsPipeline* tonemappingPipeline;
 
 	SDL_GPUSampler* defaultSampler;
 	SDL_GPUSampler* clampedSampler;
@@ -145,11 +151,5 @@ struct Renderer
 };
 
 
-void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffer* cmdBuffer);
-void DestroyRenderer(Renderer* renderer);
-void ResizeRenderer(Renderer* renderer, int width, int height);
-
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform);
 void RenderLight(Renderer* renderer, vec3 position, vec3 color);
-
-void RendererShow(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], float near, vec3 sunDirection, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer);
