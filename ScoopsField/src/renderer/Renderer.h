@@ -125,6 +125,7 @@ struct Renderer
 	SDL_GPUSampler* linearSampler;
 	SDL_GPUSampler* linearClampedSampler;
 	SDL_GPUSampler* linearClampedVSampler;
+	SDL_GPUSampler* shadowSampler;
 	SDL_GPUBuffer* emptyBuffer;
 	SDL_GPUTexture* emptyTexture;
 

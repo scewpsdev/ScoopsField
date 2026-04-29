@@ -1,7 +1,7 @@
 
 
 
-static void Lighting(Renderer* renderer, vec3 cameraPosition, mat4 projection, mat4 view, mat4 pv, mat4 projectionInv, mat4 viewInv, mat4 pvInv, vec4 frustumPlanes[6], float near, vec3 sunDirection, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
+static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 projection, mat4 view, mat4 pv, mat4 projectionInv, mat4 viewInv, mat4 pvInv, vec4 frustumPlanes[6], vec3 sunDirection, mat4 cascadePVs[3], SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	GPU_SCOPE("lighting");
 
@@ -58,27 +58,40 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, mat4 projection, m
 			vec4 lightDirection;
 			vec4 lightColor;
 			mat4 projection;
+			mat4 toLightSpace0;
+			mat4 toLightSpace1;
+			mat4 toLightSpace2;
 		};
 
 		UniformData uniforms = {};
 		uniforms.lightDirection = vec4(lightDirection, gameTime);
 		uniforms.lightColor = vec4(lightColor, 0);
 		uniforms.projection = projection;
+		uniforms.toLightSpace0 = cascadePVs[0] * viewInv;
+		uniforms.toLightSpace1 = cascadePVs[1] * viewInv;
+		uniforms.toLightSpace2 = cascadePVs[2] * viewInv;
 
 		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-		SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 2];
+		SDL_GPUTexture* gbufferTextures[8];
 		for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
 			gbufferTextures[i] = renderer->gbuffer->colorAttachments[i];
 		gbufferTextures[renderer->gbuffer->numColorAttachments] = renderer->gbuffer->depthAttachment;
 		gbufferTextures[renderer->gbuffer->numColorAttachments + 1] = renderer->sunColorBuffer;
+		gbufferTextures[renderer->gbuffer->numColorAttachments + 2] = renderer->shadowMaps[0]->depthAttachment;
+		gbufferTextures[renderer->gbuffer->numColorAttachments + 3] = renderer->shadowMaps[1]->depthAttachment;
+		gbufferTextures[renderer->gbuffer->numColorAttachments + 4] = renderer->shadowMaps[2]->depthAttachment;
 
-		SDL_GPUSampler* samplers[MAX_COLOR_ATTACHMENTS + 2];
-		for (int i = 0; i < MAX_COLOR_ATTACHMENTS + 2; i++)
+		SDL_GPUSampler* samplers[8];
+		for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
 			samplers[i] = renderer->defaultSampler;
+		samplers[renderer->gbuffer->numColorAttachments] = renderer->defaultSampler;
 		samplers[renderer->gbuffer->numColorAttachments + 1] = renderer->defaultSampler;
+		samplers[renderer->gbuffer->numColorAttachments + 2] = renderer->shadowSampler;
+		samplers[renderer->gbuffer->numColorAttachments + 3] = renderer->shadowSampler;
+		samplers[renderer->gbuffer->numColorAttachments + 4] = renderer->shadowSampler;
 
-		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, renderer->gbuffer->numColorAttachments + 2, gbufferTextures, samplers, cmdBuffer);
+		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, renderer->gbuffer->numColorAttachments + 5, gbufferTextures, samplers, cmdBuffer);
 	}
 
 	// point lights

@@ -111,7 +111,7 @@ static RenderTarget* CreateShadowMap()
 	DepthAttachmentInfo depthInfo = {};
 	depthInfo.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
 	depthInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
-	depthInfo.storeOp = SDL_GPU_STOREOP_DONT_CARE;
+	depthInfo.storeOp = SDL_GPU_STOREOP_STORE;
 	depthInfo.clearDepth = 1;
 
 	return CreateRenderTarget(1024, 1024, SDL_GPU_TEXTURETYPE_2D, 0, nullptr, &depthInfo);
@@ -525,6 +525,17 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	linearClampedVSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	renderer->linearClampedVSampler = SDL_CreateGPUSampler(device, &linearClampedSamplerInfo);
 
+	SDL_GPUSamplerCreateInfo shadowSamplerInfo = {};
+	shadowSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
+	shadowSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
+	shadowSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
+	shadowSamplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+	shadowSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+	shadowSamplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+	shadowSamplerInfo.enable_compare = true;
+	shadowSamplerInfo.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
+	renderer->shadowSampler = SDL_CreateGPUSampler(device, &shadowSamplerInfo);
+
 	SDL_GPUBufferCreateInfo emptyBufferInfo = {};
 	emptyBufferInfo.size = 4;
 	emptyBufferInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
@@ -796,7 +807,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 	mat4 pvInv = pv.inverted();
 	mat4 projectionInv = projection.inverted();
-	mat4 viewInv = view.transpose();
+	mat4 viewInv = view.inverted();
 
 	// geometry pass
 	{
@@ -828,6 +839,8 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		SDL_EndGPURenderPass(renderPass);
 	}
 
+	mat4 cascadePVs[3];
+
 	// shadow map
 	{
 		GPU_SCOPE("shadow map");
@@ -837,11 +850,11 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 		CalculateCascadeMatrices(cameraPosition, cameraRotation, fov, aspect, sunDirection, cascadeProjections, cascadeViews);
 
-		for (int i = 0; i < 3; i++)
+		for (int cascade = 0; cascade < 3; cascade++)
 		{
-			mat4 cascadePV = cascadeProjections[i] * cascadeViews[i];
+			cascadePVs[cascade] = cascadeProjections[cascade] * cascadeViews[cascade];
 
-			SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->shadowMaps[i], 0, cmdBuffer);
+			SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->shadowMaps[cascade], 0, cmdBuffer);
 
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->shadowPipeline->pipeline);
 
@@ -850,7 +863,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 				Mesh* mesh = renderer->meshes[i].mesh;
 				Material* material = renderer->meshes[i].material;
 				const mat4& transform = renderer->meshes[i].transform;
-				SubmitMesh(renderer, mesh, material, nullptr, transform, cascadeViews[i], cascadePV, renderPass, cmdBuffer);
+				SubmitMesh(renderer, mesh, material, nullptr, transform, cascadeViews[cascade], cascadePVs[cascade], renderPass, cmdBuffer);
 			}
 
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedShadowPipeline->pipeline);
@@ -861,7 +874,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 				Material* material = renderer->animatedMeshes[i].material;
 				SkeletonState* skeleton = renderer->animatedMeshes[i].skeleton;
 				const mat4& transform = renderer->animatedMeshes[i].transform;
-				SubmitMesh(renderer, mesh, material, skeleton, transform, cascadeViews[i], cascadePV, renderPass, cmdBuffer);
+				SubmitMesh(renderer, mesh, material, skeleton, transform, cascadeViews[cascade], cascadePVs[cascade], renderPass, cmdBuffer);
 			}
 
 			SDL_EndGPURenderPass(renderPass);
@@ -896,7 +909,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, &renderer->gbuffer->depthAttachment, &renderer->defaultSampler, cmdBuffer);
 		}
 
-		Lighting(renderer, cameraPosition, projection, view, pv, projectionInv, viewInv, pvInv, frustumPlanes, near, sunDirection, renderPass, cmdBuffer);
+		Lighting(renderer, cameraPosition, near, projection, view, pv, projectionInv, viewInv, pvInv, frustumPlanes, sunDirection, cascadePVs, renderPass, cmdBuffer);
 
 		// sky upsample
 		{

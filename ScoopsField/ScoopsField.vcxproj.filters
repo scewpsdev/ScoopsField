@@ -489,5 +489,6 @@
     <None Include="res\shaders\sky\cloud_noise.comp" />
     <None Include="res\shaders\sky\cloud_noise_detail.comp" />
     <None Include="res\shaders\mesh_shadow.frag" />
+    <None Include="res\shaders\lighting\shadow_mapping.glsl" />
   </ItemGroup>
 </Project>

@@ -59,8 +59,8 @@ void CalculateCascade(vec3 position, quat rotation, float fov, float aspect, flo
 
 static void CalculateCascadeMatrices(vec3 position, quat rotation, float fov, float aspect, vec3 lightDir, mat4 projections[3], mat4 views[3])
 {
-	static float NEAR_PLANES[3] = { 0.0f, 15.0f, 60.0f };
-	static float FAR_PLANES[3] = { 15.0f, 60.0f, 150.0f };
+	static float NEAR_PLANES[3] = { 0.0f, 8.0f, 20.0f };
+	static float FAR_PLANES[3] = { 8.0f, 20.0f, 150.0f };
 
 	for (int i = 0; i < 3; i++)
 	{

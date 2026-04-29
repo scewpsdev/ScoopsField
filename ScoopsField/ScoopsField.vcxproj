@@ -350,6 +350,7 @@
     <None Include="res\shaders\lighting\environment_light.frag" />
     <None Include="res\shaders\lighting\environment_light.vert" />
     <None Include="res\shaders\lighting\lighting.glsl" />
+    <None Include="res\shaders\lighting\shadow_mapping.glsl" />
     <None Include="res\shaders\mesh_animated.vert" />
     <None Include="res\shaders\mesh_shadow.frag" />
     <None Include="res\shaders\screenquad.frag" />

@@ -9,14 +9,21 @@ layout(set = 2, binding = 1) uniform sampler2D s_color;
 layout(set = 2, binding = 2) uniform sampler2D s_material;
 layout(set = 2, binding = 3) uniform sampler2D s_depth;
 layout(set = 2, binding = 4) uniform sampler2D s_sunColor;
+layout(set = 2, binding = 5) uniform sampler2DShadow s_shadowMap0;
+layout(set = 2, binding = 6) uniform sampler2DShadow s_shadowMap1;
+layout(set = 2, binding = 7) uniform sampler2DShadow s_shadowMap2;
 
 #include "../common.glsl"
 #include "lighting.glsl"
+#include "shadow_mapping.glsl"
 
 layout(set = 3, binding = 0) uniform UniformBlock {
 	vec4 lightData0;
 	vec4 lightData1;
 	mat4 projection;
+	mat4 toLightSpace0;
+	mat4 toLightSpace1;
+	mat4 toLightSpace2;
 
 #define sunDirection lightData0.xyz
 #define gameTime lightData0.w
@@ -93,5 +100,14 @@ void main()
 
 	vec3 radiance = directionalLight(normal, view, albedo, roughness, metallic, sunDirection, sunColor);
 
+	float shadow = 1;
+	if (-position.z < 8)
+		shadow = calculateShadow(position, s_shadowMap0, toLightSpace0);
+	else if (-position.z < 20)
+		shadow = calculateShadow(position, s_shadowMap1, toLightSpace1);
+	else
+		shadow = calculateShadow(position, s_shadowMap2, toLightSpace2);
+	radiance *= shadow;
+		
 	out_color = vec4(radiance, 1);
 }
