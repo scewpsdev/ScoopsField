@@ -35,7 +35,7 @@ void AddFileWatcher(const char* path)
 	}
 }
 
-static FileWatcher* GetFileWatcherFromPath(const char* path)
+FileWatcher* GetFileWatcherFromPath(const char* path)
 {
 	for (int i = 0; i < resource->numFileWatchers; i++)
 	{

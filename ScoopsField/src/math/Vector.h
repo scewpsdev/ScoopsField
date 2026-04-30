@@ -367,5 +367,6 @@ T mix(const T& a, const T& b, float t)
 	return t * b + (1 - t) * a;
 }
 
+vec2 floor(const vec2& v);
 vec3 floor(const vec3& v);
 vec3 pow(const vec3& a, float b);

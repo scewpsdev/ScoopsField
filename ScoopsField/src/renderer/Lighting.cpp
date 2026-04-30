@@ -1,7 +1,7 @@
 
 
 
-static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 projection, mat4 view, mat4 pv, mat4 projectionInv, mat4 viewInv, mat4 pvInv, vec4 frustumPlanes[6], vec3 sunDirection, mat4 cascadePVs[3], SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
+static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 projection, mat4 view, mat4 pv, mat4 projectionInv, mat4 viewInv, mat4 pvInv, vec4 frustumPlanes[6], vec3 sunDirection, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	GPU_SCOPE("lighting");
 
@@ -58,40 +58,32 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 			vec4 lightDirection;
 			vec4 lightColor;
 			mat4 projection;
-			mat4 toLightSpace0;
-			mat4 toLightSpace1;
-			mat4 toLightSpace2;
 		};
 
 		UniformData uniforms = {};
 		uniforms.lightDirection = vec4(lightDirection, gameTime);
 		uniforms.lightColor = vec4(lightColor, 0);
 		uniforms.projection = projection;
-		uniforms.toLightSpace0 = cascadePVs[0] * viewInv;
-		uniforms.toLightSpace1 = cascadePVs[1] * viewInv;
-		uniforms.toLightSpace2 = cascadePVs[2] * viewInv;
 
 		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-		SDL_GPUTexture* gbufferTextures[8];
-		for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
-			gbufferTextures[i] = renderer->gbuffer->colorAttachments[i];
-		gbufferTextures[renderer->gbuffer->numColorAttachments] = renderer->gbuffer->depthAttachment;
-		gbufferTextures[renderer->gbuffer->numColorAttachments + 1] = renderer->sunColorBuffer;
-		gbufferTextures[renderer->gbuffer->numColorAttachments + 2] = renderer->shadowMaps[0]->depthAttachment;
-		gbufferTextures[renderer->gbuffer->numColorAttachments + 3] = renderer->shadowMaps[1]->depthAttachment;
-		gbufferTextures[renderer->gbuffer->numColorAttachments + 4] = renderer->shadowMaps[2]->depthAttachment;
+		SDL_GPUTexture* gbufferTextures[6];
+		gbufferTextures[0] = renderer->gbuffer->colorAttachments[0];
+		gbufferTextures[1] = renderer->gbuffer->colorAttachments[1];
+		gbufferTextures[2] = renderer->gbuffer->colorAttachments[2];
+		gbufferTextures[3] = renderer->gbuffer->depthAttachment;
+		gbufferTextures[4] = renderer->sunColorBuffer;
+		gbufferTextures[5] = renderer->shadowBuffer0->colorAttachments[0];
 
-		SDL_GPUSampler* samplers[8];
-		for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
-			samplers[i] = renderer->defaultSampler;
-		samplers[renderer->gbuffer->numColorAttachments] = renderer->defaultSampler;
-		samplers[renderer->gbuffer->numColorAttachments + 1] = renderer->defaultSampler;
-		samplers[renderer->gbuffer->numColorAttachments + 2] = renderer->shadowSampler;
-		samplers[renderer->gbuffer->numColorAttachments + 3] = renderer->shadowSampler;
-		samplers[renderer->gbuffer->numColorAttachments + 4] = renderer->shadowSampler;
+		SDL_GPUSampler* samplers[6];
+		samplers[0] = renderer->defaultSampler;
+		samplers[1] = renderer->defaultSampler;
+		samplers[2] = renderer->defaultSampler;
+		samplers[3] = renderer->defaultSampler;
+		samplers[4] = renderer->defaultSampler;
+		samplers[5] = renderer->clampedSampler;
 
-		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, renderer->gbuffer->numColorAttachments + 5, gbufferTextures, samplers, cmdBuffer);
+		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 6, gbufferTextures, samplers, cmdBuffer);
 	}
 
 	// point lights

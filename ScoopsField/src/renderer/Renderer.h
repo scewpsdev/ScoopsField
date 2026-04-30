@@ -73,10 +73,18 @@ struct Renderer
 	TransferBuffer* pointLightInstanceTransferBuffer;
 
 	RenderTarget* shadowMaps[3];
+	RenderTarget* shadowBuffer0;
+	RenderTarget* shadowBuffer1;
+	Shader* depthShader;
+	Shader* animatedDepthShader;
 	Shader* shadowShader;
-	Shader* animatedShadowShader;
+	Shader* blurHShader;
+	Shader* blurVShader;
+	GraphicsPipeline* shadowMapPipeline;
+	GraphicsPipeline* animatedShadowMapPipeline;
 	GraphicsPipeline* shadowPipeline;
-	GraphicsPipeline* animatedShadowPipeline;
+	GraphicsPipeline* blurHPipeline;
+	GraphicsPipeline* blurVPipeline;
 
 	ScreenQuad screenQuad;
 

@@ -147,7 +147,7 @@ Texture* LoadTextureFromData(const uint8_t* data, uint32_t size, const TextureIn
 	textureInfo.layer_count_or_depth = info->depth > 1 ? info->depth : info->numFaces > 1 ? info->numFaces : info->numLayers;
 	textureInfo.num_levels = info->numMips;
 	textureInfo.type = info->depth > 1 ? SDL_GPU_TEXTURETYPE_3D : info->numLayers > 1 && info->numFaces == 1 ? SDL_GPU_TEXTURETYPE_2D_ARRAY : info->numFaces > 1 ? SDL_GPU_TEXTURETYPE_CUBE : info->numLayers > 1 && info->numFaces > 1 ? SDL_GPU_TEXTURETYPE_CUBE_ARRAY : SDL_GPU_TEXTURETYPE_2D;
-	textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+	textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | (info->numMips > 1 ? SDL_GPU_TEXTUREUSAGE_COLOR_TARGET : 0);
 
 	SDL_GPUTexture* handle = SDL_CreateGPUTexture(device, &textureInfo);
 	if (!handle)
@@ -183,6 +183,9 @@ Texture* LoadTextureFromData(const uint8_t* data, uint32_t size, const TextureIn
 	SDL_ReleaseGPUTransferBuffer(device, transferBuffer);
 
 	SDL_EndGPUCopyPass(copyPass);
+
+	if (info->numMips > 1)
+		SDL_GenerateMipmapsForGPUTexture(cmdBuffer, handle);
 
 	SDL_assert(graphics->numTextures < MAX_TEXTURES);
 

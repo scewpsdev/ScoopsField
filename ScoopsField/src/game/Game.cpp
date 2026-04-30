@@ -178,6 +178,10 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 
 	AddFileWatcher(PROJECT_PATH "/res/shaders/mesh.vert");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/mesh.frag");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/shadow.frag");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/blurh.frag");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/blurv.frag");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/shadow.frag");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/directional_light.vert");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/directional_light.frag");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/point_light.vert");
@@ -219,10 +223,28 @@ void GameUpdate()
 		ReloadGraphicsShader(game->renderer.defaultShader, "res/shaders/mesh.vert.bin", "res/shaders/mesh.frag.bin");
 		ReloadGraphicsPipeline(game->renderer.geometryPipeline);
 	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/lighting/directional_light.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/lighting/directional_light.frag"))
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/lighting/shadow.frag"))
 	{
 		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->renderer.directionalLightShader, "res/shaders/lighting/directional_light.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
+		ReloadGraphicsShader(game->renderer.shadowShader, "res/shaders/screenquad.vert.bin", "res/shaders/lighting/shadow.frag.bin");
+		ReloadGraphicsPipeline(game->renderer.shadowPipeline);
+	}
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/blurh.frag"))
+	{
+		app->platformCallbacks.compileResources();
+		ReloadGraphicsShader(game->renderer.blurHShader, "res/shaders/screenquad.vert.bin", "res/shaders/blurh.frag.bin");
+		ReloadGraphicsPipeline(game->renderer.blurHPipeline);
+	}
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/blurv.frag"))
+	{
+		app->platformCallbacks.compileResources();
+		ReloadGraphicsShader(game->renderer.blurVShader, "res/shaders/screenquad.vert.bin", "res/shaders/blurv.frag.bin");
+		ReloadGraphicsPipeline(game->renderer.blurVPipeline);
+	}
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/lighting/directional_light.frag"))
+	{
+		app->platformCallbacks.compileResources();
+		ReloadGraphicsShader(game->renderer.directionalLightShader, "res/shaders/lighting/screenquad.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
 		ReloadGraphicsPipeline(game->renderer.directionalLightPipeline);
 	}
 	if (FileHasChanged(PROJECT_PATH "/res/shaders/lighting/point_light.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/lighting/point_light.frag"))

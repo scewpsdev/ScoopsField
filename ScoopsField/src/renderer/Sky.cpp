@@ -260,7 +260,7 @@ static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionIn
 		samplers[2] = renderer->linearSampler;
 		samplers[3] = renderer->linearSampler;
 		samplers[4] = renderer->defaultSampler;
-		samplers[5] = renderer->defaultSampler;
+		samplers[5] = renderer->linearClampedSampler;
 		samplers[6] = renderer->linearClampedSampler;
 		samplers[7] = renderer->linearClampedSampler;
 		samplers[8] = renderer->linearClampedVSampler;

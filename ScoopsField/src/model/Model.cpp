@@ -174,12 +174,14 @@ static Texture* ReadTexture(BinaryReader& reader, const char* scenePath, SDL_GPU
 			info.width = width;
 			info.height = height;
 			info.depth = 1;
-			info.numMips = 1;
+			info.numMips = GetNumMipsForTexture(info.width, info.height);
 			info.numLayers = 1;
 			info.numFaces = 1;
 			info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 
-			return LoadTextureFromData(data, size, &info, cmdBuffer);
+			Texture* texture = LoadTextureFromData(data, size, &info, cmdBuffer);
+
+			return texture;
 		}
 		else if (width > 0 && height == 0)
 		{
@@ -192,7 +194,7 @@ static Texture* ReadTexture(BinaryReader& reader, const char* scenePath, SDL_GPU
 			uint32_t size = info.width * info.height * 4;
 
 			info.depth = 1;
-			info.numMips = 1;
+			info.numMips = GetNumMipsForTexture(info.width, info.height);
 			info.numLayers = 1;
 			info.numFaces = 1;
 			info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;

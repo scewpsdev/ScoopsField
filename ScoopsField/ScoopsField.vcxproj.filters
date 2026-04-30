@@ -453,7 +453,7 @@
   <ItemGroup>
     <None Include="res\shaders\clear_buffer.comp" />
     <None Include="res\shaders\lighting\directional_light.frag" />
-    <None Include="res\shaders\lighting\directional_light.vert" />
+    <None Include="res\shaders\screenquad.vert" />
     <None Include="res\shaders\sprite.frag" />
     <None Include="res\shaders\sprite.vert" />
     <None Include="res\shaders\glyph.frag" />
@@ -469,9 +469,7 @@
     <None Include="res\shaders\copy_depth.vert" />
     <None Include="res\shaders\mesh_animated.vert" />
     <None Include="res\shaders\screenquad.frag" />
-    <None Include="res\shaders\screenquad.vert" />
     <None Include="res\shaders\lighting\lighting.glsl" />
-    <None Include="res\shaders\lighting\environment_light.vert" />
     <None Include="res\shaders\lighting\environment_light.frag" />
     <None Include="res\shaders\sky\sky.vert" />
     <None Include="res\shaders\sky\sky.frag" />
@@ -488,7 +486,9 @@
     <None Include="res\shaders\sky\noise.glsl" />
     <None Include="res\shaders\sky\cloud_noise.comp" />
     <None Include="res\shaders\sky\cloud_noise_detail.comp" />
-    <None Include="res\shaders\mesh_shadow.frag" />
-    <None Include="res\shaders\lighting\shadow_mapping.glsl" />
+    <None Include="res\shaders\mesh_depth.frag" />
+    <None Include="res\shaders\lighting\shadow.frag" />
+    <None Include="res\shaders\blurh.frag" />
+    <None Include="res\shaders\blurv.frag" />
   </ItemGroup>
 </Project>

@@ -94,7 +94,7 @@ vec3 sampleTransmittance(float startingHeight, vec3 dir, vec3 up)
 	{
 		float t = (i + 0.5) * segmentLength;
 		vec3 pos = origin + t * dir;
-		float height = length(pos) - planetRadius;
+		float height = max(length(pos) - planetRadius, 0);
 
 		vec3 density = getDensities(height);
 		density *= segmentLength;
@@ -165,7 +165,7 @@ vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, float noise, vec3 groundCo
 		float distanceFromPlanet = length(pos);
 		float height = distanceFromPlanet - planetRadius;
 		vec3 up = pos / distanceFromPlanet;
-		if (height <= 0 && dir.y < 0)
+		if (height < 0)
 			break;
 
 		vec3 density = getDensities(height);
@@ -246,6 +246,8 @@ vec4 calculateAerial(vec3 origin, vec3 dir, float maxDistance, vec3 lightDir)
 		float distanceFromPlanet = length(pos);
 		float height = distanceFromPlanet - planetRadius;
 		vec3 up = pos / distanceFromPlanet;
+		if (height <= 0)
+			break;
 
 		vec3 density = getDensities(height);
 

@@ -9,21 +9,15 @@ layout(set = 2, binding = 1) uniform sampler2D s_color;
 layout(set = 2, binding = 2) uniform sampler2D s_material;
 layout(set = 2, binding = 3) uniform sampler2D s_depth;
 layout(set = 2, binding = 4) uniform sampler2D s_sunColor;
-layout(set = 2, binding = 5) uniform sampler2DShadow s_shadowMap0;
-layout(set = 2, binding = 6) uniform sampler2DShadow s_shadowMap1;
-layout(set = 2, binding = 7) uniform sampler2DShadow s_shadowMap2;
+layout(set = 2, binding = 5) uniform sampler2D s_shadows;
 
 #include "../common.glsl"
 #include "lighting.glsl"
-#include "shadow_mapping.glsl"
 
 layout(set = 3, binding = 0) uniform UniformBlock {
 	vec4 lightData0;
 	vec4 lightData1;
 	mat4 projection;
-	mat4 toLightSpace0;
-	mat4 toLightSpace1;
-	mat4 toLightSpace2;
 
 #define sunDirection lightData0.xyz
 #define gameTime lightData0.w
@@ -80,6 +74,42 @@ vec3 reconstructPosition(vec2 uv, float depth)
 	//return viewSpacePosition.xyz / viewSpacePosition.w;
 }
 
+void getShadowSample(vec2 uv, float depth, vec2 texel, inout float shadow, inout float sum)
+{
+	vec2 snappedUv = uv / texel;
+	snappedUv = floor(snappedUv) + 0.25;
+	snappedUv *= texel;
+
+	float shadowDepth = texture(s_depth, snappedUv).r;
+
+	float epsilon = 0.01;
+	float weight = shadowDepth > 0 && abs(shadowDepth - depth) < epsilon ? 1 : 0;
+	shadow += texture(s_shadows, uv).r * weight;
+	sum += weight;
+}
+
+float upsampleShadowBuffer(vec2 uv, float depth)
+{
+	vec2 texel = 1.0 / textureSize(s_shadows, 0);
+	float shadow = 0;
+	float sum = 0;
+
+	getShadowSample(uv, depth, texel, shadow, sum);
+	getShadowSample(uv + 0.5 * vec2(texel.x, 0), depth, texel, shadow, sum);
+	getShadowSample(uv + 0.5 * vec2(-texel.x, 0), depth, texel, shadow, sum);
+	getShadowSample(uv + 0.5 * vec2(0, texel.y), depth, texel, shadow, sum);
+	getShadowSample(uv + 0.5 * vec2(0, -texel.y), depth, texel, shadow, sum);
+	//getShadowSample(uv + 0.5 * texel, depth, texel, shadow, sum);
+	//getShadowSample(uv - 0.5 * texel, depth, texel, shadow, sum);
+	//getShadowSample(uv + 0.5 * vec2(-texel.x, texel.y), depth, texel, shadow, sum);
+	//getShadowSample(uv + 0.5 * vec2(texel.x, -texel.y), depth, texel, shadow, sum);
+
+	if (sum > 0)
+		shadow /= sum;
+
+	return shadow;
+}
+
 void main()
 {
 	float depth = texture(s_depth, v_texcoord).r;
@@ -100,14 +130,7 @@ void main()
 
 	vec3 radiance = directionalLight(normal, view, albedo, roughness, metallic, sunDirection, sunColor);
 
-	float shadow = 1;
-	if (-position.z < 8)
-		shadow = calculateShadow(position, s_shadowMap0, toLightSpace0);
-	else if (-position.z < 20)
-		shadow = calculateShadow(position, s_shadowMap1, toLightSpace1);
-	else
-		shadow = calculateShadow(position, s_shadowMap2, toLightSpace2);
-	radiance *= shadow;
+	radiance *= upsampleShadowBuffer(v_texcoord, depth);
 		
 	out_color = vec4(radiance, 1);
 }

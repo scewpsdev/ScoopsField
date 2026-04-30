@@ -43,6 +43,11 @@ vec3 reconstructRay(vec2 uv, mat4 projectionInv)
 {
 	vec2 ndc = vec2(uv.x * 2 - 1, uv.y * -2 + 1);
 
+	vec4 viewSpacePosition = projectionInv * vec4(ndc, 1, 1);
+	viewSpacePosition.xyz /= viewSpacePosition.w;
+
+	return normalize(viewSpacePosition.xyz);
+
 	//float aspect = projection[1][1] / projection[0][0];
 	//ndc.x *= aspect;
 

@@ -95,7 +95,7 @@ static RenderTarget* CreateHDRTarget(int width, int height)
 	return CreateRenderTarget(width, height, SDL_GPU_TEXTURETYPE_2D, 1, &hdrTargetInfo, &hdrDepthInfo);
 }
 
-static RenderTarget* CreateHalfResTarget(int width, int height)
+static RenderTarget* CreateSkyTarget(int width, int height)
 {
 	ColorAttachmentInfo hdrTargetInfo = {};
 	hdrTargetInfo.format = SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT;
@@ -103,10 +103,10 @@ static RenderTarget* CreateHalfResTarget(int width, int height)
 	hdrTargetInfo.storeOp = SDL_GPU_STOREOP_STORE;
 	hdrTargetInfo.clearColor = { 0, 0, 0, 0 };
 
-	return CreateRenderTarget(width / 2, height / 2, SDL_GPU_TEXTURETYPE_2D, 1, &hdrTargetInfo, nullptr);
+	return CreateRenderTarget(width, height, SDL_GPU_TEXTURETYPE_2D, 1, &hdrTargetInfo, nullptr);
 }
 
-static RenderTarget* CreateShadowMap()
+static RenderTarget* CreateShadowMap(int resolution)
 {
 	DepthAttachmentInfo depthInfo = {};
 	depthInfo.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
@@ -114,7 +114,17 @@ static RenderTarget* CreateShadowMap()
 	depthInfo.storeOp = SDL_GPU_STOREOP_STORE;
 	depthInfo.clearDepth = 1;
 
-	return CreateRenderTarget(1024, 1024, SDL_GPU_TEXTURETYPE_2D, 0, nullptr, &depthInfo);
+	return CreateRenderTarget(resolution, resolution, SDL_GPU_TEXTURETYPE_2D, 0, nullptr, &depthInfo);
+}
+
+static RenderTarget* CreateShadowBuffer(int width, int height)
+{
+	ColorAttachmentInfo targetInfo = {};
+	targetInfo.format = SDL_GPU_TEXTUREFORMAT_R8_UNORM;
+	targetInfo.loadOp = SDL_GPU_LOADOP_DONT_CARE;
+	targetInfo.storeOp = SDL_GPU_STOREOP_STORE;
+
+	return CreateRenderTarget(width, height, SDL_GPU_TEXTURETYPE_2D, 1, &targetInfo, nullptr);
 }
 
 static GraphicsPipeline* CreateGeometryPipeline(Renderer* renderer)
@@ -131,17 +141,46 @@ static GraphicsPipeline* CreateAnimatedPipeline(Renderer* renderer)
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
-static GraphicsPipeline* CreateShadowPipeline(Renderer* renderer)
+static GraphicsPipeline* CreateShadowMapPipeline(Renderer* renderer)
 {
-	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_FRONT, renderer->shadowShader, renderer->shadowMaps[0], NUM_MESH_BUFFER_LAYOUTS, renderer->meshLayout);
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_NONE, renderer->depthShader, renderer->shadowMaps[0], NUM_MESH_BUFFER_LAYOUTS, renderer->meshLayout);
 	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_LESS;
+	pipelineInfo.depthClamp = true;
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
-static GraphicsPipeline* CreateAnimatedShadowPipeline(Renderer* renderer)
+static GraphicsPipeline* CreateAnimatedShadowMapPipeline(Renderer* renderer)
 {
-	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_FRONT, renderer->animatedShadowShader, renderer->shadowMaps[0], NUM_ANIMATED_MESH_BUFFER_LAYOUTS, renderer->animatedLayout);
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_NONE, renderer->animatedDepthShader, renderer->shadowMaps[0], NUM_ANIMATED_MESH_BUFFER_LAYOUTS, renderer->animatedLayout);
 	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_LESS;
+	pipelineInfo.depthClamp = true;
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
+static GraphicsPipeline* CreateShadowPipeline(Renderer* renderer)
+{
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->shadowShader, renderer->shadowBuffer0, 1, &renderer->screenQuad.vertexBuffer->layout);
+
+	pipelineInfo.depthWrite = false;
+
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
+static GraphicsPipeline* CreateBlurHPipeline(Renderer* renderer)
+{
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->blurHShader, renderer->shadowBuffer1, 1, &renderer->screenQuad.vertexBuffer->layout);
+
+	pipelineInfo.depthWrite = false;
+
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
+static GraphicsPipeline* CreateBlurVPipeline(Renderer* renderer)
+{
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->blurVShader, renderer->shadowBuffer1, 1, &renderer->screenQuad.vertexBuffer->layout);
+
+	pipelineInfo.depthWrite = false;
+
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
@@ -367,6 +406,8 @@ static SDL_GPUTexture* CreateCloudNoiseDetailTexture(Renderer* renderer, SDL_GPU
 	return texture;
 }
 
+#define SHADOW_MAP_RESOLUTION 1024
+
 #include "Sky.cpp"
 #include "AutoExposure.cpp"
 #include "Lighting.cpp"
@@ -383,10 +424,13 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->depthTexture = CreateDepthTarget(width, height);
 	renderer->gbuffer = CreateGBuffer(width, height);
 	renderer->hdrTarget = CreateHDRTarget(width, height);
-	renderer->skyTarget = CreateHalfResTarget(width, height);
-	renderer->skyTarget2 = CreateHalfResTarget(width, height);
-	for (int i = 0; i < 3; i++)
-		renderer->shadowMaps[i] = CreateShadowMap();
+	renderer->skyTarget = CreateSkyTarget(width / 2, height / 2);
+	renderer->skyTarget2 = CreateSkyTarget(width / 2, height / 2);
+	renderer->shadowMaps[0] = CreateShadowMap(SHADOW_MAP_RESOLUTION);
+	renderer->shadowMaps[1] = CreateShadowMap(SHADOW_MAP_RESOLUTION * 2);
+	renderer->shadowMaps[2] = CreateShadowMap(SHADOW_MAP_RESOLUTION * 4);
+	renderer->shadowBuffer0 = CreateShadowBuffer(width / 2, height / 2);
+	renderer->shadowBuffer1 = CreateShadowBuffer(width / 2, height / 2);
 
 	{
 		ColorAttachmentInfo hdrTargetInfo = {};
@@ -460,12 +504,15 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 
 	renderer->defaultShader = LoadGraphicsShader("res/shaders/mesh.vert.bin", "res/shaders/mesh.frag.bin");
 	renderer->animatedShader = LoadGraphicsShader("res/shaders/mesh_animated.vert.bin", "res/shaders/mesh.frag.bin");
-	renderer->shadowShader = LoadGraphicsShader("res/shaders/mesh.vert.bin", "res/shaders/mesh.frag.bin");
-	renderer->animatedShadowShader = LoadGraphicsShader("res/shaders/mesh_animated.vert.bin", "res/shaders/mesh.frag.bin");
+	renderer->depthShader = LoadGraphicsShader("res/shaders/mesh.vert.bin", "res/shaders/mesh_depth.frag.bin");
+	renderer->animatedDepthShader = LoadGraphicsShader("res/shaders/mesh_animated.vert.bin", "res/shaders/mesh_depth.frag.bin");
+	renderer->shadowShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/lighting/shadow.frag.bin");
+	renderer->blurHShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/blurh.frag.bin");
+	renderer->blurVShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/blurv.frag.bin");
 	renderer->copyDepthShader = LoadGraphicsShader("res/shaders/copy_depth.vert.bin", "res/shaders/copy_depth.frag.bin");
-	renderer->directionalLightShader = LoadGraphicsShader("res/shaders/lighting/directional_light.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
+	renderer->directionalLightShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
 	renderer->pointLightShader = LoadGraphicsShader("res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
-	renderer->environmentLightShader = LoadGraphicsShader("res/shaders/lighting/environment_light.vert.bin", "res/shaders/lighting/environment_light.frag.bin");
+	renderer->environmentLightShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/lighting/environment_light.frag.bin");
 	renderer->skyShader = LoadGraphicsShader("res/shaders/sky/sky.vert.bin", "res/shaders/sky/sky.frag.bin");
 	renderer->skyUpsampleShader = LoadGraphicsShader("res/shaders/sky/sky_upsample.vert.bin", "res/shaders/sky/sky_upsample.frag.bin");
 	renderer->skyCubeShader = LoadGraphicsShader("res/shaders/sky/sky_cube.vert.bin", "res/shaders/sky/sky_cube.frag.bin");
@@ -480,8 +527,11 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 
 	renderer->geometryPipeline = CreateGeometryPipeline(renderer);
 	renderer->animatedPipeline = CreateAnimatedPipeline(renderer);
+	renderer->shadowMapPipeline = CreateShadowMapPipeline(renderer);
+	renderer->animatedShadowMapPipeline = CreateAnimatedShadowMapPipeline(renderer);
 	renderer->shadowPipeline = CreateShadowPipeline(renderer);
-	renderer->animatedShadowPipeline = CreateAnimatedShadowPipeline(renderer);
+	renderer->blurHPipeline = CreateBlurHPipeline(renderer);
+	renderer->blurVPipeline = CreateBlurVPipeline(renderer);
 	renderer->copyDepthPipeline = CreateCopyDepthPipeline(renderer);
 	renderer->directionalLightPipeline = CreateDirectionalLightPipeline(renderer);
 	renderer->pointLightPipeline = CreatePointLightPipeline(renderer);
@@ -638,11 +688,19 @@ void ResizeRenderer(Renderer* renderer, int width, int height)
 
 	if (renderer->skyTarget)
 		DestroyRenderTarget(renderer->skyTarget);
-	renderer->skyTarget = CreateHalfResTarget(width, height);
+	renderer->skyTarget = CreateSkyTarget(width / 2, height / 2);
 
 	if (renderer->skyTarget2)
 		DestroyRenderTarget(renderer->skyTarget2);
-	renderer->skyTarget2 = CreateHalfResTarget(width, height);
+	renderer->skyTarget2 = CreateSkyTarget(width / 2, height / 2);
+
+	if (renderer->shadowBuffer0)
+		DestroyRenderTarget(renderer->shadowBuffer0);
+	renderer->shadowBuffer0 = CreateShadowBuffer(width / 2, height / 2);
+
+	if (renderer->shadowBuffer1)
+		DestroyRenderTarget(renderer->shadowBuffer1);
+	renderer->shadowBuffer1 = CreateShadowBuffer(width / 2, height / 2);
 }
 
 void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonState* skeleton, mat4 transform)
@@ -839,47 +897,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		SDL_EndGPURenderPass(renderPass);
 	}
 
-	mat4 cascadePVs[3];
-
-	// shadow map
-	{
-		GPU_SCOPE("shadow map");
-
-		mat4 cascadeProjections[3];
-		mat4 cascadeViews[3];
-
-		CalculateCascadeMatrices(cameraPosition, cameraRotation, fov, aspect, sunDirection, cascadeProjections, cascadeViews);
-
-		for (int cascade = 0; cascade < 3; cascade++)
-		{
-			cascadePVs[cascade] = cascadeProjections[cascade] * cascadeViews[cascade];
-
-			SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->shadowMaps[cascade], 0, cmdBuffer);
-
-			SDL_BindGPUGraphicsPipeline(renderPass, renderer->shadowPipeline->pipeline);
-
-			for (int i = 0; i < renderer->meshes.size; i++)
-			{
-				Mesh* mesh = renderer->meshes[i].mesh;
-				Material* material = renderer->meshes[i].material;
-				const mat4& transform = renderer->meshes[i].transform;
-				SubmitMesh(renderer, mesh, material, nullptr, transform, cascadeViews[cascade], cascadePVs[cascade], renderPass, cmdBuffer);
-			}
-
-			SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedShadowPipeline->pipeline);
-
-			for (int i = 0; i < renderer->animatedMeshes.size; i++)
-			{
-				Mesh* mesh = renderer->animatedMeshes[i].mesh;
-				Material* material = renderer->animatedMeshes[i].material;
-				SkeletonState* skeleton = renderer->animatedMeshes[i].skeleton;
-				const mat4& transform = renderer->animatedMeshes[i].transform;
-				SubmitMesh(renderer, mesh, material, skeleton, transform, cascadeViews[cascade], cascadePVs[cascade], renderPass, cmdBuffer);
-			}
-
-			SDL_EndGPURenderPass(renderPass);
-		}
-	}
+	ShadowMapping(renderer, cameraPosition, cameraRotation, near, fov, aspect, projection, viewInv, sunDirection);
 
 	RenderSky(renderer, cameraPosition, projectionInv, viewInv, sunDirection, cmdBuffer);
 
@@ -909,7 +927,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, &renderer->gbuffer->depthAttachment, &renderer->defaultSampler, cmdBuffer);
 		}
 
-		Lighting(renderer, cameraPosition, near, projection, view, pv, projectionInv, viewInv, pvInv, frustumPlanes, sunDirection, cascadePVs, renderPass, cmdBuffer);
+		Lighting(renderer, cameraPosition, near, projection, view, pv, projectionInv, viewInv, pvInv, frustumPlanes, sunDirection, renderPass, cmdBuffer);
 
 		// sky upsample
 		{

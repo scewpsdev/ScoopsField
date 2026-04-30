@@ -859,6 +859,11 @@ vec3 mix(const vec3& a, const vec3& b, float t)
 	);
 }
 
+vec2 floor(const vec2& v)
+{
+	return vec2(SDL_floorf(v.x), SDL_floorf(v.y));
+}
+
 vec3 floor(const vec3& v)
 {
 	return vec3(SDL_floorf(v.x), SDL_floorf(v.y), SDL_floorf(v.z));

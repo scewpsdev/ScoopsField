@@ -36,6 +36,7 @@ void InitResourceState(ResourceState* resource);
 
 void AddFileWatcher(const char* path);
 bool FileHasChanged(const char* path);
+FileWatcher* GetFileWatcherFromPath(const char* path);
 
 StringView GetDirectory(const char* path);
 void GetAbsolutePath(char* str, int maxLen, const char* relativePath, const char* relativeTo);

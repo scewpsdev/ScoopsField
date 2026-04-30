@@ -41,6 +41,7 @@ void ReloadGraphicsPipeline(GraphicsPipeline* pipeline)
 	createInfo.rasterizer_state.cull_mode = pipelineInfo->cullMode;
 	createInfo.rasterizer_state.fill_mode = pipelineInfo->fillMode;
 	createInfo.rasterizer_state.front_face = pipelineInfo->frontFace;
+	createInfo.rasterizer_state.enable_depth_clip = !pipelineInfo->depthClamp;
 
 	createInfo.target_info.num_color_targets = pipeline->pipelineInfo.numColorTargets;
 	createInfo.target_info.color_target_descriptions = pipeline->pipelineInfo.colorTargets;
@@ -71,6 +72,7 @@ GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveTy
 
 	pipelineInfo.fillMode = SDL_GPU_FILLMODE_FILL;
 	pipelineInfo.frontFace = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+	pipelineInfo.depthClamp = false;
 
 	if (renderTarget)
 	{

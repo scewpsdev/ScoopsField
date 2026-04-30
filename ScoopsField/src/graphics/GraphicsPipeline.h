@@ -14,6 +14,7 @@ struct GraphicsPipelineInfo
 	SDL_GPUCullMode cullMode;
 	SDL_GPUFillMode fillMode;
 	SDL_GPUFrontFace frontFace;
+	bool depthClamp;
 
 #define MAX_PIPELINE_COLOR_TARGETS 8
 	int numColorTargets;
