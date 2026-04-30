@@ -109,7 +109,7 @@ static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionIn
 			vec4 weatherData;
 		};
 		UniformData uniforms = {};
-		uniforms.params = vec4(sunDirection, gameTime);
+		uniforms.params = vec4(sunDirection, 0);
 		uniforms.params2 = vec4(cameraPosition, 0);
 		uniforms.weatherData = renderer->weather.getData();
 
@@ -174,7 +174,7 @@ static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionIn
 
 		SDL_BindGPUComputePipeline(computePass, renderer->sunColorShader->compute);
 
-		SDL_GPUTextureSamplerBinding bindings[5];
+		SDL_GPUTextureSamplerBinding bindings[7];
 		bindings[0].texture = renderer->cloudLowFrequency->handle;
 		bindings[0].sampler = renderer->linearSampler;
 		bindings[1].texture = renderer->emptyTexture;
@@ -185,7 +185,11 @@ static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionIn
 		bindings[3].sampler = renderer->linearClampedSampler;
 		bindings[4].texture = renderer->emptyTexture;
 		bindings[4].sampler = renderer->defaultSampler;
-		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 5);
+		bindings[5].texture = renderer->cloudNoise;
+		bindings[5].sampler = renderer->linearSampler;
+		bindings[6].texture = renderer->cloudNoiseDetail;
+		bindings[6].sampler = renderer->linearSampler;
+		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 7);
 
 		struct UniformData
 		{

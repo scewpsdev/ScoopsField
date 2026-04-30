@@ -7,6 +7,8 @@ layout(set = 0, binding = 1) uniform sampler3D s_cloudHighFrequency;
 layout(set = 0, binding = 2) uniform sampler2D s_cloudCoverage;
 layout(set = 0, binding = 3) uniform sampler2D s_transmittanceLUT;
 layout(set = 0, binding = 4) uniform sampler2D s_multiScatterLUT;
+layout(set = 0, binding = 5) uniform sampler3D s_cloudNoise;
+layout(set = 0, binding = 6) uniform sampler3D s_cloudNoiseDetail;
 
 layout(set = 1, binding = 0) uniform writeonly image2D s_sunColor;
 
@@ -23,6 +25,7 @@ layout(set = 2, binding = 0) uniform UniformBlock {
 
 #include "../common.glsl"
 #include "sky.glsl"
+#include "clouds.glsl"
 
 
 void main()
@@ -38,6 +41,9 @@ void main()
 
 	float sunIntensity = 25;
 	vec3 sunlight = sampleTransmittanceLUT(height, -sunDirection, up) * sunIntensity;
+
+	vec4 cloudColor = clouds(cameraPosition, -sunDirection, sunDirection, 0, 0);
+	sunlight *= cloudColor.a;
 	//vec3 sunlight = attenuateSun(cameraPosition, sunDirection);
 
 	imageStore(s_sunColor, ivec2(0), vec4(sunlight, 0));
