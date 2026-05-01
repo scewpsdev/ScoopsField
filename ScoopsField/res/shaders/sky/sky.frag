@@ -43,10 +43,12 @@ vec3 reconstructRay(vec2 uv, mat4 projectionInv)
 {
 	vec2 ndc = vec2(uv.x * 2 - 1, uv.y * -2 + 1);
 
+	/*
 	vec4 viewSpacePosition = projectionInv * vec4(ndc, 1, 1);
 	viewSpacePosition.xyz /= viewSpacePosition.w;
 
 	return normalize(viewSpacePosition.xyz);
+	*/
 
 	//float aspect = projection[1][1] / projection[0][0];
 	//ndc.x *= aspect;
@@ -133,7 +135,7 @@ void main()
 
 		// clouds
 		float noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
-		vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, noise, 0);
+		vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, noise);
 		color = mix(cloudColor.rgb, color, cloudColor.a);
 
 		// temporal accumulation

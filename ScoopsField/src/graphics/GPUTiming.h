@@ -10,7 +10,10 @@
 
 #define GPU_SCOPE(name) \
 	BeginGPUTimer(cmdBuffer, name); \
-	SDL_InsertGPUDebugLabel(cmdBuffer, name);\
+	SDL_PushGPUDebugGroup(cmdBuffer, name);\
+	defer( EndGPUTimer(cmdBuffer); SDL_PopGPUDebugGroup(cmdBuffer); );
+#define GPU_TIMER(name) \
+	BeginGPUTimer(cmdBuffer, name); \
 	defer( EndGPUTimer(cmdBuffer); );
 
 

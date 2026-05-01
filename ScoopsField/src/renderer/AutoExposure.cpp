@@ -3,6 +3,8 @@
 
 static void AutoExposure(Renderer* renderer)
 {
+	GPU_SCOPE("AutoExposure");
+	
 	if (!renderer->luminanceReadbackFence)
 	{
 		SDL_GenerateMipmapsForGPUTexture(cmdBuffer, renderer->hdrTarget->colorAttachments[0]);

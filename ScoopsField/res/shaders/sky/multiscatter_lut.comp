@@ -106,7 +106,7 @@ void main()
 
     float phaseMS = 1 / (4 * pi); // isotropic phase function
 
-    int numSamples = 64;
+    int numSamples = 16;
     for (int i = 0; i < numSamples; i++)
     {
         vec3 dir = sampleSphere(i, numSamples);

@@ -308,7 +308,7 @@ float lightRay(vec3 origin, vec3 dir, float mu, float noise, int lod)
 	return totalDensity;
 }
 
-vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod)
+vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod, int numSamples)
 {
 	origin.y += planetRadius;
 
@@ -327,7 +327,6 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod)
 	float mu = dot(dir, toLight);
 	float phaseC = cloudPhase(mu);
 
-	int numSamples = 32;
 	float segmentLength = (tmax - tmin) / numSamples;
 	// TODO use variable segment length and lod levels depending on current density
 
@@ -344,7 +343,7 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod)
 		if (t > maxDistance)
 			break;
 
-		lod = clamp(int(floor((t - lodDistance) / (lodDistance2 - lodDistance))), -1, 1) + 1;
+		lod = max(lod, clamp(int(floor((t - lodDistance) / (lodDistance2 - lodDistance))), -1, 1) + 1);
 
 		vec3 pos = origin + t * dir;
 
@@ -398,4 +397,9 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod)
 	//transmittance *= aerial.a;
 
 	return vec4(color, transmittance);
+}
+
+vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise)
+{
+	return clouds(origin, dir, lightDir, noise, 0, 32);
 }

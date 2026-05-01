@@ -56,9 +56,9 @@ bool GetMouseButtonUp(uint32_t button)
 
 void DebugTextEx(int x, int y, const char* txt, int len, uint32_t color, uint32_t bgcolor)
 {
-#ifdef _DEBUG
+//#ifdef _DEBUG
 	DebugTextRendererSubmit(&app->debugTextRenderer, x, y, txt, len, color, bgcolor);
-#endif
+//#endif
 }
 
 void DebugText(int x, int y, uint32_t color, uint32_t bgcolor, const char* fmt, ...)
@@ -220,10 +220,10 @@ static AppState* InitAppState()
 	memory->appState = appState;
 	InitPlatformCallbacks(&appState->platformCallbacks);
 
-#if _DEBUG
+//#if _DEBUG
 	SDL_GetOriginalMemoryFunctions(&memory->defaultMalloc, &memory->defaultCalloc, &memory->defaultRealloc, &memory->defaultFree);
 	SDL_SetMemoryFunctions(SDLmalloc, SDLcalloc, SDLrealloc, SDLfree);
-#endif
+//#endif
 
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS))
 	{
@@ -429,8 +429,12 @@ static void RenderDebugStats()
 	DebugText(0, 2, COLOR_WHITE, COLOR_BLACK, "physics %s, %d allocations, %d per frame", physicsMemoryUsageStr, memory->physicsAllocationCount, app->physicsAllocationsPerFrame);
 	DebugText(0, 3, COLOR_WHITE, COLOR_BLACK, "constant %s, %d allocations", memoryUsageStr, memory->constantAllocator.count);
 	DebugText(0, 4, COLOR_WHITE, COLOR_BLACK, "transient %s, %d allocations", transientMemoryUsageStr, memory->transientAllocator.count);
+	DebugText(0, 6, COLOR_WHITE, COLOR_BLACK, "update %.3f ms", app->updateTimeMs);
+	DebugText(0, 7, COLOR_WHITE, COLOR_BLACK, "cpu frame %.3f ms", app->cpuFrameMs);
+	DebugText(0, 8, COLOR_WHITE, COLOR_BLACK, "  scene fetch %.3f ms", app->swapchainWaitMs);
+	DebugText(0, 9, COLOR_WHITE, COLOR_BLACK, "  draw submit %.3f ms", app->gpuSubmitMs);
 
-	PrintGPUTimers(&app->gpuTiming, 0, 5);
+	PrintGPUTimers(&app->gpuTiming, 0, 11);
 }
 
 extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
@@ -476,14 +480,26 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 		app->avgMs = app->frameTime / 1e6f / framesSinceSecond;
 		app->avgMsVariance = app->frameTimeVariance / 1e6f / framesSinceSecond;
 
+		app->updateTimeMs = app->updateTime / 1e6f / framesSinceSecond;
+		app->cpuFrameMs = app->cpuFrame / 1e6f / framesSinceSecond;
+		app->swapchainWaitMs = app->swapchainWait / 1e6f / framesSinceSecond;
+		app->gpuSubmitMs = app->gpuSubmit / 1e6f / framesSinceSecond;
+
 		app->frameTime = 0;
 		app->frameTimeVariance = 0;
 		app->lastSecondFrame = app->frameIdx;
 		app->lastSecond = app->now;
 
+		app->updateTime = 0;
+		app->cpuFrame = 0;
+		app->swapchainWait = 0;
+		app->gpuSubmit = 0;
+
 		app->platformAllocationsPerFrame = 0;
 		app->physicsAllocationsPerFrame = 0;
 	}
+
+	uint64_t updateStart = SDL_GetTicksNS();
 
 	SDL_Event event = {};
 	while (SDL_PollEvent(&event))
@@ -506,11 +522,15 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 
 	BeginGPUTimerFrame(&app->gpuTiming, device, cmdBuffer);
 
-	BeginGPUTimer(cmdBuffer, "frame");
+	BeginGPUTimer(cmdBuffer, "Frame");
 
 	EndPhysicsFrame(&app->physics);
 
 	GameUpdate();
+
+	StartPhysicsFrame(&app->physics);
+
+	int64_t cpuFrameStart = SDL_GetTicksNS();
 
 	DebugTextRendererBegin(&app->debugTextRenderer);
 
@@ -523,7 +543,7 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 
 	GameRender();
 
-	StartPhysicsFrame(&app->physics);
+	uint64_t submitStart = SDL_GetTicksNS();
 
 	Uint32 swapchainWidth, swapchainHeight;
 	SDL_WaitAndAcquireGPUSwapchainTexture(cmdBuffer, app->window, &swapchain, &swapchainWidth, &swapchainHeight);
@@ -546,6 +566,13 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 		cmdBuffer = nullptr;
 	}
 	swapchain = nullptr;
+
+	uint64_t cpuFrameEnd = SDL_GetTicksNS();
+
+	app->updateTime += cpuFrameStart - updateStart;
+	app->cpuFrame += cpuFrameEnd - cpuFrameStart;
+	app->swapchainWait += submitStart - cpuFrameStart;
+	app->gpuSubmit += cpuFrameEnd - submitStart;
 
 	ResolveGPUTimers(&app->gpuTiming, device);
 

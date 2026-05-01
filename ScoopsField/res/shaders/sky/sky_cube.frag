@@ -74,7 +74,7 @@ void main()
 
 	vec3 color = sampleSkyViewLUT(dir);
 
-	vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, 0, 2);
+	vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, 0, 2, 8);
 	color = mix(cloudColor.rgb, color, cloudColor.a);
 
 	out_color = vec4(color, 1);

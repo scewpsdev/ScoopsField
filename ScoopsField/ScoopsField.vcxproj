@@ -371,7 +371,6 @@
     <None Include="res\shaders\sky\sun_color.comp" />
     <None Include="res\shaders\sky\transmittance_lut.comp" />
     <None Include="res\shaders\tonemapping.frag" />
-    <None Include="res\shaders\tonemapping.vert" />
     <None Include="res\shaders\glyph.frag" />
     <None Include="res\shaders\glyph.vert" />
     <None Include="res\shaders\lighting\directional_light.frag" />

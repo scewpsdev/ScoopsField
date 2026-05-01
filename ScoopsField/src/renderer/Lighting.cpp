@@ -3,11 +3,11 @@
 
 static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 projection, mat4 view, mat4 pv, mat4 projectionInv, mat4 viewInv, mat4 pvInv, vec4 frustumPlanes[6], vec3 sunDirection, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
 {
-	GPU_SCOPE("lighting");
+	GPU_SCOPE("Lighting");
 
 	// environment light
 	{
-		GPU_SCOPE("environment");
+		GPU_TIMER("environment");
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->environmentLightPipeline->pipeline);
 
@@ -43,7 +43,7 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 
 	// directional lights
 	{
-		GPU_SCOPE("sun");
+		GPU_TIMER("sun");
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->directionalLightPipeline->pipeline);
 
@@ -88,7 +88,7 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 
 	// point lights
 	{
-		GPU_SCOPE("point lights");
+		GPU_TIMER("point lights");
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->pointLightPipeline->pipeline);
 

@@ -464,7 +464,6 @@
     <None Include="res\shaders\lighting\point_light.vert" />
     <None Include="res\shaders\common.glsl" />
     <None Include="res\shaders\tonemapping.frag" />
-    <None Include="res\shaders\tonemapping.vert" />
     <None Include="res\shaders\copy_depth.frag" />
     <None Include="res\shaders\copy_depth.vert" />
     <None Include="res\shaders\mesh_animated.vert" />

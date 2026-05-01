@@ -97,19 +97,28 @@ struct AppState
 
 	GpuTimerContext gpuTiming;
 
+	int width, height;
+	bool debugStats;
+	int frameIdx;
+	int lastSecondFrame;
+
 	uint64_t now;
 	uint64_t lastFrame;
 	uint64_t lastSecond;
 	uint64_t frameTime;
 	uint64_t frameTimeVariance;
-	int frameIdx;
-	int lastSecondFrame;
-
-	int width, height;
-	bool debugStats;
+	uint64_t updateTime;
+	uint64_t cpuFrame;
+	uint64_t swapchainWait;
+	uint64_t gpuSubmit;
 	int fps;
 	float avgMs;
 	float avgMsVariance;
+	float updateTimeMs;
+	float cpuFrameMs;
+	float swapchainWaitMs;
+	float gpuSubmitMs;
+
 	int platformAllocationsPerFrame;
 	int physicsAllocationsPerFrame;
 

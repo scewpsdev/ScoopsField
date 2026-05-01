@@ -5,21 +5,21 @@ layout (location = 0) in vec2 v_texcoord;
 layout (location = 0) out vec4 out_color;
 
 layout(set = 2, binding = 0) uniform sampler2D s_depth;
-layout(set = 2, binding = 1) uniform sampler2DShadow s_shadowMap0;
-layout(set = 2, binding = 2) uniform sampler2DShadow s_shadowMap1;
-layout(set = 2, binding = 3) uniform sampler2DShadow s_shadowMap2;
+layout(set = 2, binding = 1) uniform sampler2D s_normal;
+layout(set = 2, binding = 2) uniform sampler2DShadow s_shadowMap0;
+layout(set = 2, binding = 3) uniform sampler2DShadow s_shadowMap1;
+layout(set = 2, binding = 4) uniform sampler2DShadow s_shadowMap2;
 
 #include "../common.glsl"
 
 layout(set = 3, binding = 0) uniform UniformBlock {
+	vec4 params;
 	mat4 projection;
 	mat4 toLightSpace0;
 	mat4 toLightSpace1;
 	mat4 toLightSpace2;
 
-#define sunDirection lightData0.xyz
-#define gameTime lightData0.w
-//#define sunColor lightData1.rgb
+#define lightDir params.xyz
 };
 
 
@@ -49,7 +49,7 @@ vec2 stratifiedPoisson(int hash)
 	return poissonDisk[hash % 16];
 }
 
-float calculateShadow(vec3 position, int cascade, sampler2DShadow shadowMap, mat4 toLightSpace)
+float calculateShadow(vec3 position, vec3 normal, vec3 toLight, int cascade, sampler2DShadow shadowMap, mat4 toLightSpace)
 {
 	vec4 lightSpacePosition = toLightSpace * vec4(position, 1);
 	vec3 projectedCoords = lightSpacePosition.xyz / lightSpacePosition.w;
@@ -59,7 +59,10 @@ float calculateShadow(vec3 position, int cascade, sampler2DShadow shadowMap, mat
 	//	return 1.0;
 
 	ivec2 shadowMapSize = textureSize(shadowMap, 0);
-	float epsilon = 0.001 * (3 - cascade);
+	
+	float shadowBias = 0.00000; //0.00002 + 0.0001 * (3 - cascade);
+	shadowBias += max(0.006 * (1 - dot(normal, toLight)), 0);
+	shadowBias /= cascade * 2 + 1;
 
 	float result = 0.0;
 	for (int i = 0; i < 16; i++)
@@ -69,7 +72,7 @@ float calculateShadow(vec3 position, int cascade, sampler2DShadow shadowMap, mat
 		vec2 sampleStride = 1.0 / shadowMapSize;
 		vec2 sampleOffset = stratifiedPoisson(i) * sampleStride;
 		//vec4 shadowSample = textureGather(shadowMap, sampleCoords.xy + sampleOffset, 0);
-		result += texture(shadowMap, vec3(sampleCoords.xy + sampleOffset, projectedCoords.z - epsilon));
+		result += texture(shadowMap, vec3(sampleCoords.xy + sampleOffset, projectedCoords.z - shadowBias));
 		//result += texture2D(shadowMap, sampleCoords + sampleOffset).r <= projectedCoords.z - SHADOW_MAP_EPSILON ? 0.0 : 1.0;
 	}
 	result /= 16;
@@ -112,14 +115,16 @@ void main()
 		discard;
 
 	vec3 position = reconstructPosition(v_texcoord, depth);
+	vec3 normal = texture(s_normal, v_texcoord).rgb;
+	vec3 toLight = -lightDir;
 
 	float shadow = 1;
 	if (-position.z < 15)
-		shadow = calculateShadow(position, 0, s_shadowMap0, toLightSpace0);
+		shadow = calculateShadow(position, normal, toLight, 0, s_shadowMap0, toLightSpace0);
 	else if (-position.z < 60)
-		shadow = calculateShadow(position, 1, s_shadowMap1, toLightSpace1);
+		shadow = calculateShadow(position, normal, toLight, 1, s_shadowMap1, toLightSpace1);
 	else
-		shadow = calculateShadow(position, 2, s_shadowMap2, toLightSpace2);
+		shadow = calculateShadow(position, normal, toLight, 2, s_shadowMap2, toLightSpace2);
 		
 	out_color = vec4(shadow, 0, 0, 0);
 }

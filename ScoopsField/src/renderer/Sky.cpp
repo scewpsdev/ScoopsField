@@ -4,11 +4,11 @@
 
 static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionInv, mat4 viewInv, vec3 sunDirection, SDL_GPUCommandBuffer* cmdBuffer)
 {
-	GPU_SCOPE("sky");
+	GPU_SCOPE("Sky");
 
 	// transmittance lut
 	{
-		GPU_SCOPE("transmittance lut");
+		GPU_TIMER("transmittance lut");
 
 		SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
 		bufferBinding.texture = renderer->skyTransmittanceLUT;
@@ -44,7 +44,7 @@ static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionIn
 
 	// multiscatter lut
 	{
-		GPU_SCOPE("multiscatter lut");
+		GPU_TIMER("multiscatter lut");
 
 		SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
 		bufferBinding.texture = renderer->skyMultiScatterLUT;
@@ -80,7 +80,7 @@ static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionIn
 
 	// sky view lut
 	{
-		GPU_SCOPE("sky view lut");
+		GPU_TIMER("sky view lut");
 
 		SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
 		bufferBinding.texture = renderer->skyViewLUT;
@@ -123,7 +123,7 @@ static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionIn
 	/*
 	// cloud noise
 	{
-		GPU_SCOPE("cloud noise");
+		GPU_TIMER("cloud noise");
 
 		SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
 		bufferBinding.texture = renderer->cloudNoise;
@@ -142,7 +142,7 @@ static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionIn
 
 	// cloud noise detail
 	{
-		GPU_SCOPE("cloud noise detail");
+		GPU_TIMER("cloud noise detail");
 
 		SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
 		bufferBinding.texture = renderer->cloudNoiseDetail;
@@ -162,7 +162,7 @@ static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionIn
 
 	// sun color
 	{
-		GPU_SCOPE("sun color compute");
+		GPU_TIMER("sun color");
 
 		SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
 		bufferBinding.texture = renderer->sunColorBuffer;
@@ -213,7 +213,7 @@ static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionIn
 
 	// sky
 	{
-		GPU_SCOPE("sky & clouds");
+		GPU_TIMER("clouds");
 
 		RenderTarget* rt = app->frameIdx % 2 == 0 ? renderer->skyTarget : renderer->skyTarget2;
 		RenderTarget* rt2 = app->frameIdx % 2 == 0 ? renderer->skyTarget2 : renderer->skyTarget;
@@ -278,7 +278,7 @@ static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionIn
 
 	// sky cubemap
 	{
-		GPU_SCOPE("sky cubemap");
+		GPU_TIMER("cubemap");
 
 		mat4 cubemapViewsInv[6];
 		cubemapViewsInv[SDL_GPU_CUBEMAPFACE_POSITIVEX] = mat4::Rotate(vec3::Up, -0.5f * PI);

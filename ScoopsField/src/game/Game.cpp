@@ -184,6 +184,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/shadow.frag");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/directional_light.vert");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/directional_light.frag");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/environment_light.frag");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/point_light.vert");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/point_light.frag");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky.glsl");
@@ -200,6 +201,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/clouds.glsl");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/cloud_noise.comp");
 	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/cloud_noise_detail.comp");
+	AddFileWatcher(PROJECT_PATH "/res/shaders/tonemapping.frag");
 
 	ResetGame(false);
 }
@@ -244,8 +246,14 @@ void GameUpdate()
 	if (FileHasChanged(PROJECT_PATH "/res/shaders/lighting/directional_light.frag"))
 	{
 		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->renderer.directionalLightShader, "res/shaders/lighting/screenquad.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
+		ReloadGraphicsShader(game->renderer.directionalLightShader, "res/shaders/screenquad.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
 		ReloadGraphicsPipeline(game->renderer.directionalLightPipeline);
+	}
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/lighting/environment_light.frag"))
+	{
+		app->platformCallbacks.compileResources();
+		ReloadGraphicsShader(game->renderer.environmentLightShader, "res/shaders/screenquad.vert.bin", "res/shaders/lighting/environment_light.frag.bin");
+		ReloadGraphicsPipeline(game->renderer.environmentLightPipeline);
 	}
 	if (FileHasChanged(PROJECT_PATH "/res/shaders/lighting/point_light.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/lighting/point_light.frag"))
 	{
@@ -300,6 +308,12 @@ void GameUpdate()
 	{
 		app->platformCallbacks.compileResources();
 		ReloadComputeShader(game->renderer.cloudNoiseDetailShader, "res/shaders/sky/cloud_noise_detail.comp.bin");
+	}
+	if (FileHasChanged(PROJECT_PATH "/res/shaders/tonemapping.frag"))
+	{
+		app->platformCallbacks.compileResources();
+		ReloadGraphicsShader(game->renderer.tonemappingShader, "res/shaders/screenquad.vert.bin", "res/shaders/tonemapping.frag.bin");
+		ReloadGraphicsPipeline(game->renderer.tonemappingPipeline);
 	}
 
 	if (app->keys[SDL_SCANCODE_ESCAPE] && !app->lastKeys[SDL_SCANCODE_ESCAPE])
@@ -435,7 +449,7 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.1f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -1 * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 

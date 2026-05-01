@@ -87,9 +87,9 @@ static void CalculateCascadeMatrices(vec3 position, quat rotation, float fov, fl
 	}
 }
 
-static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, float near, float fov, float aspect, mat4 projection, mat4 viewInv, vec3 sunDirection)
+static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, float near, float fov, float aspect, mat4 projection, mat4 view, mat4 viewInv, vec3 sunDirection)
 {
-	GPU_SCOPE("shadows");
+	GPU_SCOPE("Shadow Pass");
 
 	mat4 cascadeProjections[3];
 	mat4 cascadeViews[3];
@@ -102,10 +102,13 @@ static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRo
 
 	// shadow map
 	{
-		GPU_SCOPE("shadow map");
+		GPU_TIMER("shadow map");
 
 		for (int cascade = 0; cascade < 3; cascade++)
 		{
+			vec4 frustumPlanes[6];
+			GetFrustumPlanes(cascadePVs[cascade], frustumPlanes);
+
 			SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->shadowMaps[cascade], 0, cmdBuffer);
 
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->shadowMapPipeline->pipeline);
@@ -115,7 +118,8 @@ static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRo
 				Mesh* mesh = renderer->meshes[i].mesh;
 				Material* material = renderer->meshes[i].material;
 				const mat4& transform = renderer->meshes[i].transform;
-				SubmitMesh(renderer, mesh, material, nullptr, transform, cascadeViews[cascade], cascadePVs[cascade], renderPass, cmdBuffer);
+				if (FrustumCulling(mesh->boundingSphere, transform, frustumPlanes))
+					SubmitMesh(renderer, mesh, material, nullptr, transform, cascadeViews[cascade], cascadePVs[cascade], renderPass, cmdBuffer);
 			}
 
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedShadowMapPipeline->pipeline);
@@ -126,7 +130,8 @@ static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRo
 				Material* material = renderer->animatedMeshes[i].material;
 				SkeletonState* skeleton = renderer->animatedMeshes[i].skeleton;
 				const mat4& transform = renderer->animatedMeshes[i].transform;
-				SubmitMesh(renderer, mesh, material, skeleton, transform, cascadeViews[cascade], cascadePVs[cascade], renderPass, cmdBuffer);
+				if (FrustumCulling(mesh->boundingSphere, transform, frustumPlanes))
+					SubmitMesh(renderer, mesh, material, skeleton, transform, cascadeViews[cascade], cascadePVs[cascade], renderPass, cmdBuffer);
 			}
 
 			SDL_EndGPURenderPass(renderPass);
@@ -135,7 +140,7 @@ static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRo
 
 	// shadow pass
 	{
-		GPU_SCOPE("shadow buffer");
+		GPU_TIMER("shadow buffer");
 
 		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->shadowBuffer0, 0, cmdBuffer);
 
@@ -143,13 +148,17 @@ static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRo
 
 		struct UniformData
 		{
+			vec4 params;
 			mat4 projection;
 			mat4 toLightSpace0;
 			mat4 toLightSpace1;
 			mat4 toLightSpace2;
 		};
 
+		vec3 lightDirection = (view * vec4(sunDirection, 0)).xyz;
+
 		UniformData uniforms = {};
+		uniforms.params = vec4(lightDirection, 0);
 		uniforms.projection = projection;
 		uniforms.toLightSpace0 = cascadePVs[0] * viewInv;
 		uniforms.toLightSpace1 = cascadePVs[1] * viewInv;
@@ -157,26 +166,28 @@ static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRo
 
 		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-		SDL_GPUTexture* gbufferTextures[4];
+		SDL_GPUTexture* gbufferTextures[5];
 		gbufferTextures[0] = renderer->gbuffer->depthAttachment;
-		gbufferTextures[1] = renderer->shadowMaps[0]->depthAttachment;
-		gbufferTextures[2] = renderer->shadowMaps[1]->depthAttachment;
-		gbufferTextures[3] = renderer->shadowMaps[2]->depthAttachment;
+		gbufferTextures[1] = renderer->gbuffer->colorAttachments[0];
+		gbufferTextures[2] = renderer->shadowMaps[0]->depthAttachment;
+		gbufferTextures[3] = renderer->shadowMaps[1]->depthAttachment;
+		gbufferTextures[4] = renderer->shadowMaps[2]->depthAttachment;
 
-		SDL_GPUSampler* samplers[4];
+		SDL_GPUSampler* samplers[5];
 		samplers[0] = renderer->defaultSampler;
-		samplers[1] = renderer->shadowSampler;
+		samplers[1] = renderer->defaultSampler;
 		samplers[2] = renderer->shadowSampler;
 		samplers[3] = renderer->shadowSampler;
+		samplers[4] = renderer->shadowSampler;
 
-		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 4, gbufferTextures, samplers, cmdBuffer);
+		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 5, gbufferTextures, samplers, cmdBuffer);
 
 		SDL_EndGPURenderPass(renderPass);
 	}
 
 	// blurh
 	{
-		GPU_SCOPE("horizontal blur");
+		GPU_TIMER("horizontal blur");
 
 		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->shadowBuffer1, 0, cmdBuffer);
 
@@ -207,7 +218,7 @@ static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRo
 
 	// blurv
 	{
-		GPU_SCOPE("vertical blur");
+		GPU_TIMER("vertical blur");
 
 		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->shadowBuffer0, 0, cmdBuffer);
 

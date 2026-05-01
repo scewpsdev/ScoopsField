@@ -137,11 +137,8 @@ static void ReadMesh(Mesh* mesh, BinaryReader& reader, bool cacheData, SDL_GPUCo
 	mesh->materialID = reader.ReadInt32();
 	mesh->skeletonID = reader.ReadInt32();
 
-	AABB boundingBox;
-	reader.Read(&boundingBox);
-
-	Sphere boundingSphere;
-	reader.Read(&boundingSphere);
+	reader.Read(&mesh->boundingBox);
+	reader.Read(&mesh->boundingSphere);
 
 	InitMesh(mesh, vertexCount, positions, normals, weights, texcoords, indexCount, indices, indexElementSize, cmdBuffer);
 

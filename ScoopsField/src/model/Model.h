@@ -44,6 +44,9 @@ struct Mesh
 	int skeletonID;
 	int materialID;
 
+	AABB boundingBox;
+	Sphere boundingSphere;
+
 	vec3* cachedPositions;
 	uint8_t* cachedIndices;
 };
