@@ -127,7 +127,8 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	LoadModel(&game->cube, "res/models/cube.glb.bin", false, cmdBuffer);
 
 	//LoadModel(&game->mapModel, "res/maps/testmap/testmap.gltf.bin", true, cmdBuffer);
-	LoadModel(&game->mapModel, "res/maps/painted_world/painted_world.glb.bin", true, cmdBuffer);
+	//LoadModel(&game->mapModel, "res/maps/painted_world/painted_world.glb.bin", true, cmdBuffer);
+	LoadModel(&game->mapModel, "res/maps/testmap/testmap.glb.bin", true, cmdBuffer);
 
 	InitRigidBody(&game->mapCollider, RIGID_BODY_STATIC, vec3::Zero, quat::Identity);
 	AddModelCollider(&game->mapCollider, &game->mapModel, vec3::Zero, quat::Identity, vec3::One, 1, 1, false);
@@ -452,6 +453,7 @@ void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -1 * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
+	sunDirection = vec3(0.5f, -1, -1).normalized();
 
 	RendererShow(&game->renderer, game->cameraPosition, game->cameraRotation, game->cameraNear, game->cameraFov, app->width / (float)app->height, game->projection, game->view, game->pv, game->frustumPlanes, sunDirection, swapchain, cmdBuffer);
 

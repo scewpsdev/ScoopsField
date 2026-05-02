@@ -28,7 +28,7 @@ vec3 sampleSphere(int i, int n)
     return vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
 }
 
-bool raymarch(vec3 origin, vec3 dir, vec3 toLight, vec3 groundColor, out vec3 singleScatter, out vec3 energyTransfer)
+bool raymarch(vec3 origin, vec3 dir, vec3 toLight, out vec3 singleScatter, out vec3 energyTransfer)
 {
 	float tmin, tmax;
 	if (!sphereIntersect(origin, dir, atmosphereRadius, tmin, tmax) || tmax < 0)
@@ -112,7 +112,7 @@ void main()
         vec3 dir = sampleSphere(i, numSamples);
 
         vec3 singleScatter, energyTransfer;
-        if (raymarch(pos, dir, toLight, vec3(0.1), singleScatter, energyTransfer))
+        if (raymarch(pos, dir, toLight, singleScatter, energyTransfer))
 		{
 	        l2 += singleScatter * phaseMS;
 	        fms += energyTransfer * phaseMS;

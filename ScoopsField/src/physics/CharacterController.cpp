@@ -31,7 +31,7 @@ void InitCharacterController(CharacterController* controller, float radius, floa
 	PxCapsuleControllerDesc desc = {};
 	desc.material = physics->material;
 	desc.radius = radius;
-	desc.height = height + 2 * radius;
+	desc.height = height - 2 * radius;
 	desc.stepOffset = stepOffset;
 	desc.climbingMode = PxCapsuleClimbingMode::eEASY;
 	desc.nonWalkableMode = PxControllerNonWalkableMode::ePREVENT_CLIMBING_AND_FORCE_SLIDING;
@@ -68,4 +68,9 @@ vec3 GetCharacterControllerPosition(CharacterController* controller)
 void SetCharacterControllerPosition(CharacterController* controller, const vec3& position)
 {
 	controller->controller->setFootPosition(PxVectord(position));
+}
+
+void ResizeCharacterController(CharacterController* controller, float height)
+{
+	controller->controller->resize(height - 2 * controller->controller->getRadius());
 }

@@ -1,5 +1,6 @@
 
 #define JUMP_BUFFER 0.3f
+#define DUCK_TRANSITION 0.15f
 
 
 static void OnStep(Player* player)
@@ -39,12 +40,12 @@ static vec3 GetMovementInputs(Player* player, Action* currentAction, float speed
 	return fsu;
 }
 
-static vec3 friction(const vec3& velocity)
+static vec3 friction(const vec3& velocity, bool ducked)
 {
 	float entityFriction = 1.0f;
 	float edgeFriction = 1.0f;
 #define FRICTION 6.0f
-	float fric = FRICTION * entityFriction * edgeFriction; // sv_friction * ke * ef
+	float fric = FRICTION * (ducked ? 2 : 1) * entityFriction * edgeFriction; // sv_friction * ke * ef
 
 	float l = velocity.length();
 	vec3 vn = velocity / l;
@@ -58,7 +59,7 @@ static vec3 friction(const vec3& velocity)
 		return vec3::Zero;
 }
 
-static vec3 updateVelocityGround(vec3& velocity, const vec3& wishdir, float maxSpeed, const vec3& forward, const vec3& right, const vec3& up)
+static vec3 updateVelocityGround(vec3& velocity, const vec3& wishdir, float maxSpeed, bool ducked, const vec3& forward, const vec3& right, const vec3& up)
 {
 #define GRAVITY -20
 	velocity.y = velocity.y + 0.5f * GRAVITY * deltaTime;
@@ -69,7 +70,7 @@ static vec3 updateVelocityGround(vec3& velocity, const vec3& wishdir, float maxS
 
 	float entityFriction = 1.0f;
 
-	velocity = friction(velocity);
+	velocity = friction(velocity, ducked);
 	float m = min(maxSpeed, wishdir.length());
 	float currentSpeed = dot(velocity, accelDir);
 	float l = m;
@@ -106,6 +107,133 @@ static vec3 updateVelocityAir(vec3& velocity, const vec3& wishdir, float maxSpee
 	return velocity;
 }
 
+static void SetDuckState(Player* player, bool ducked)
+{
+	if (ducked && !player->ducked)
+	{
+		player->ducked = true;
+		ResizeCharacterController(&player->controller, CONTROLLER_HEIGHT_DUCKED);
+	}
+	else if (!ducked && player->ducked)
+	{
+		player->ducked = false;
+		ResizeCharacterController(&player->controller, CONTROLLER_HEIGHT);
+	}
+
+	player->duckTimer = -1;
+}
+
+static void UpdateDuckState(Player* player)
+{
+	bool inputDuck = GetKey(SDL_SCANCODE_LCTRL);
+	if (inputDuck)
+	{
+		if (player->duckTimer == -1.0f)
+		{
+			if (!player->ducked)
+			{
+				if (player->grounded)
+					player->duckTimer = 0.0f;
+				else
+				{
+					SetDuckState(player, true);
+					MoveCharacterController(&player->controller, vec3::Up * (CONTROLLER_HEIGHT - CONTROLLER_HEIGHT_DUCKED), 1);
+				}
+			}
+		}
+		else
+		{
+			player->duckTimer += deltaTime;
+			if (/*!player->grounded ||*/ player->duckTimer >= DUCK_TRANSITION)
+			{
+				SetDuckState(player, true);
+				/*
+				if (!player->grounded)
+				{
+					MoveCharacterController(&player->controller, vec3::Up * (CONTROLLER_HEIGHT - CONTROLLER_HEIGHT_DUCKED), 0);
+				}
+				*/
+				//player->ducked = true;
+			}
+		}
+	}
+	else
+	{
+		if (player->ducked)
+		{
+			PhysicsHit hits[16];
+			int numHits = SweepSphere(physics, player->controller.getRadius(), player->position + vec3(0.0f, player->controller.getHeight() - player->controller.getRadius(), 0.0f), vec3::Up, 0.5f, hits, 16, ENTITY_FILTER_DEFAULT);
+
+			bool headBlocked = false;
+			for (int i = 0; i < numHits; i++)
+			{
+				if (!hits[i].trigger)
+				{
+					headBlocked = true;
+					break;
+				}
+			}
+
+			if (!headBlocked)
+			{
+				SetDuckState(player, false);
+
+				if (!player->grounded)
+				{
+					MoveCharacterController(&player->controller, vec3::Up * (CONTROLLER_HEIGHT_DUCKED - CONTROLLER_HEIGHT), 1);
+				}
+
+
+				/*
+				player->duckTimer = -1.0f;
+
+				if (!player->grounded)
+				{
+				}
+				*/
+			}
+		}
+		else if (player->duckTimer != -1)
+		{
+			SetDuckState(player, false);
+
+			if (!player->grounded)
+			{
+				MoveCharacterController(&player->controller, vec3::Up * (CONTROLLER_HEIGHT_DUCKED - CONTROLLER_HEIGHT), 0);
+			}
+
+			//player->duckTimer = -1;
+			//player->ducked = false;
+		}
+	}
+
+	if (player->duckTimer >= 0.0f)
+	{
+		/*
+		player->duckTimer += deltaTime;
+		if (!player->grounded || player->duckTimer >= DUCK_TRANSITION)
+		{
+			SetDuckState(player, true);
+			//player->ducked = true;
+		}
+		*/
+	}
+
+	if (player->ducked)
+	{
+		//ResizeCharacterController(&player->controller, CONTROLLER_HEIGHT_DUCKED);
+		//if (player->grounded)
+		//	controller.offset = Vector3.Zero;
+		//else
+		//	controller.offset = new Vector3(0, CONTROLLER_HEIGHT - CONTROLLER_HEIGHT_DUCKED, 0);
+	}
+	else
+	{
+		//ResizeCharacterController(&player->controller, CONTROLLER_HEIGHT);
+		//controller.offset = Vector3.Zero;
+	}
+}
+
 static void SourceMovement(Player* player, vec3 extraDisplacement)
 {
 	Action* currentAction = GetCurrentAction(player);
@@ -124,6 +252,8 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 	if (currentAction)
 		speed *= currentAction->moveSpeed;
 
+	UpdateDuckState(player);
+
 	vec3 fsu = GetMovementInputs(player, currentAction, speed);
 
 	if (GetKeyDown(SDL_SCANCODE_SPACE))
@@ -137,7 +267,7 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 	}
 
 	if (player->grounded)
-		updateVelocityGround(player->velocity, fsu, speed, forward, right, up);
+		updateVelocityGround(player->velocity, fsu, speed, player->ducked, forward, right, up);
 	else
 		updateVelocityAir(player->velocity, fsu, speed, forward, right, up);
 

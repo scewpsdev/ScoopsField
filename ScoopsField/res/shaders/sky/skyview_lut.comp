@@ -44,7 +44,7 @@ void main()
         cos(latitude) * cos(phi)
     );
 
-	vec3 color = atmosphere(cameraPosition, dir, lightDirection, 0, vec3(0.1));
+	vec3 color = atmosphere(cameraPosition, dir, lightDirection, 0);
 
 	imageStore(s_output, gid, vec4(color, 0));
 }

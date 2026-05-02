@@ -850,13 +850,23 @@ static float CalculateLightRadius(vec3 color)
 }
 
 // TODO
+// [ ] reflection probes
+// [ ] point light shadows
+// [ ] sunrays
+// [ ] particles
+// [ ] bloom
+// [ ] ambient occlusion
+// [ ] TAA
 // [ ] render meshes front to back
 // [ ] frustum culling
+// [ ] reduce cascade updates
+// [ ] dont update sky luts
+// [ ] reduce sky cubemap updates
 // [ ] stencil for light volumes
 // [ ] mesh occlusion culling
 // [ ] light occlusion culling
 // [ ] mesh instancing
-// [ ] proper pbr
+// [ ] better pbr (convolution, specular cubemaps)
 // [X] atmospheric scattering
 
 void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, float near, float fov, float aspect, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], vec3 sunDirection, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)

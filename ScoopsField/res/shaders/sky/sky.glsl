@@ -6,6 +6,7 @@
 #define mieHeightScale 1200
 #define mieAnisotropy 0.76 // 0.76
 #define ozoneAbsorption vec3(0.65e-6, 1.88e-6, 0.085e-6)
+#define groundColor vec3(0.05)
 
 #define haziness weatherData.x
 #define cloudCoverage weatherData.y
@@ -41,8 +42,13 @@ bool atmosphereIntersect(vec3 origin, vec3 dir, out float tmin, out float tmax)
 	tmin = x;
 	tmax = y;
 
-	if (sphereIntersect(origin, dir, planetRadius, x, y) && x > 0)
-		tmax = min(tmax, x);
+	if (sphereIntersect(origin, dir, planetRadius, x, y))
+	{
+		if (x > 0)
+			tmax = min(tmax, x);
+		else if (y > 0 && dir.y >= 0)
+			tmin = max(tmin, y);
+	}
 
 	return true;
 }
@@ -123,7 +129,7 @@ vec3 sampleMultiScatter(float height, vec3 toLight, vec3 up)
 	return multi;
 }
 
-vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, float noise, vec3 groundColor)
+vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, float noise)
 {
 	origin.y += planetRadius;
 

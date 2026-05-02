@@ -314,6 +314,9 @@ static void ReadNode(Node* node, BinaryReader& reader)
 	node->numChildren = reader.ReadInt32();
 	node->numMeshes = reader.ReadInt32();
 
+	SDL_assert(node->numChildren <= MAX_NODE_CHILDREN);
+	SDL_assert(node->numMeshes <= MAX_NODE_MESHES);
+
 	reader.ReadBytes(node->children, node->numChildren * sizeof(int));
 	reader.ReadBytes(node->meshes, node->numMeshes * sizeof(int));
 

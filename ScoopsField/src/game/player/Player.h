@@ -25,11 +25,14 @@ struct Player : Entity
 	vec3 position;
 	float rotation;
 	float pitch, yaw;
+	float cameraHeight;
 
 	vec3 velocity;
 	bool grounded;
 	bool moving;
 	bool sprinting;
+	bool ducked;
+	float duckTimer;
 
 	float walkSpeed;
 

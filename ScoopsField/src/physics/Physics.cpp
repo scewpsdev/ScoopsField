@@ -238,3 +238,41 @@ int OverlapSphere(PhysicsState* physics, const vec3& position, float radius, Phy
 
 	return (int)hitBuffer.getNbAnyHits();
 }
+
+static int Sweep(PhysicsState* physics, const PxGeometry& geometry, const vec3& position, const quat& rotation, const vec3& direction, float maxDistance, PhysicsHit* hits, int maxHits, uint32_t filterMask)
+{
+	if (direction.lengthSquared() == 0.0f)
+		return 0;
+
+	PxHitFlags hitFlags = PxHitFlags(PxHitFlag::eDEFAULT | PxHitFlag::eMTD);
+	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);
+	filterData.data.word0 = filterMask;
+
+	static PxSweepHit hitData[256];
+	PxSweepBuffer hitBuffer(hitData, maxHits);
+
+	PxTransform transform(PxVec3(position.x, position.y, position.z), PxQuat(rotation.x, rotation.y, rotation.z, rotation.w));
+	if (geometry.getType() == PxGeometryType::eCAPSULE)
+		transform.q = transform.q * PxQuat(PxHalfPi, PxVec3(0, 0, 1));
+
+	if (physics->scene->sweep(geometry, transform, PxVec3(direction.x, direction.y, direction.z), maxDistance, hitBuffer, hitFlags, filterData))
+	{
+		for (uint32_t i = 0; i < hitBuffer.getNbAnyHits(); i++)
+		{
+			const PxSweepHit* hit = &hitBuffer.getAnyHit(i);
+
+			hits[i].distance = hit->distance;
+			hits[i].position = vec3(hit->position.x, hit->position.y, hit->position.z);
+			hits[i].normal = vec3(hit->normal.x, hit->normal.y, hit->normal.z);
+			hits[i].trigger = hit->shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE ? 1 : 0;
+			hits[i].body = (RigidBody*)hit->actor->userData;
+		}
+	}
+
+	return hitBuffer.getNbAnyHits();
+}
+
+int SweepSphere(PhysicsState* physics, float radius, const vec3& position, const vec3& direction, float maxDistance, PhysicsHit* hits, int maxHits, uint32_t filterMask)
+{
+	return Sweep(physics, PxSphereGeometry(radius), position, quat::Identity, direction, maxDistance, hits, maxHits, filterMask);
+}

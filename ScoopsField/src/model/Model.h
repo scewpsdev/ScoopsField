@@ -74,7 +74,7 @@ struct Node
 	int armatureID;
 	mat4 transform;
 
-#define MAX_NODE_CHILDREN 16
+#define MAX_NODE_CHILDREN 64
 	int children[MAX_NODE_CHILDREN];
 	int numChildren;
 
@@ -136,7 +136,7 @@ struct Model
 	Mesh meshes[MAX_MESHES];
 	int numMeshes;
 
-#define MAX_MATERIALS 8
+#define MAX_MATERIALS 16
 	Material materials[MAX_MATERIALS];
 	int numMaterials;
 
