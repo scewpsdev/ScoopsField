@@ -126,7 +126,7 @@ void main()
 	float roughness = material.r;
 	float metallic = material.g;
 
-	vec3 sunColor = texture(s_sunColor, vec2(0)).rgb;
+	vec3 sunColor = texture(s_sunColor, vec2(0.0)).rgb;
 
 	vec3 radiance = directionalLight(normal, view, albedo, roughness, metallic, sunDirection, sunColor);
 

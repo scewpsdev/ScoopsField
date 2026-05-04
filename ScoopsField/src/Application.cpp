@@ -310,9 +310,6 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, int a
 	if (app->platformCallbacks.compileResources)
 		app->platformCallbacks.compileResources();
 
-	app->lastFrame = SDL_GetTicksNS();
-	app->lastSecond = SDL_GetTicksNS();
-
 	SDL_GetKeyboardState(&app->numKeys);
 	app->lastKeys = (bool*)BumpAllocatorCalloc(&memory->constantAllocator, app->numKeys, sizeof(bool));
 
@@ -341,6 +338,9 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, int a
 
 	SDL_SubmitGPUCommandBuffer(cmdBuffer); cmdBuffer = nullptr;
 
+	app->lastFrame = SDL_GetTicksNS();
+	app->lastSecond = SDL_GetTicksNS();
+
 	if (!SDL_ShowWindow(window))
 	{
 		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", SDL_GetError());
@@ -361,7 +361,7 @@ void AppResize(int newWidth, int newHeight)
 	GameResize(newWidth, newHeight);
 }
 
-extern "C" __declspec(dllexport) void AppDestroy(GameMemory* memory, AppState* appState, SDL_AppResult result)
+extern "C" __declspec(dllexport) void AppDestroy(SDL_AppResult result)
 {
 	SDL_Log("Shutting down");
 
@@ -448,7 +448,7 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 	if (framesSinceSecond > 0)
 		app->frameTimeVariance += llabs(delta - (app->frameTime / framesSinceSecond));
 
-	int fpsCap = 0;
+	int fpsCap = 60;
 	if (fpsCap)
 	{
 		uint64_t remaining = 1000000000 / fpsCap - (app->now - app->lastFrame);

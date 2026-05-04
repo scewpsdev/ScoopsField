@@ -307,7 +307,7 @@ static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionIn
 			UniformData uniforms = {};
 			uniforms.params = vec4(sunDirection, gameTime);
 			uniforms.params2 = vec4(cameraPosition, (float)app->frameIdx);
-			uniforms.projectionInv = mat4::Perspective(0.5f * PI, 1, 0.1f);
+			uniforms.projectionInv = mat4::Perspective(0.5f * PI, 1, 0.1f).inverted();
 			uniforms.viewInv = cubemapViewsInv[i];
 			uniforms.weatherData = renderer->weather.getData();
 

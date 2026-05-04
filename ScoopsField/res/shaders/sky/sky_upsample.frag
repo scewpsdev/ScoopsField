@@ -67,10 +67,14 @@ void main()
 			processSample(v_texcoord - texel, texel, color, sum);
 			processSample(v_texcoord + vec2(texel.x, -texel.y), texel, color, sum);
 			processSample(v_texcoord + vec2(-texel.x, texel.y), texel, color, sum);
-			//processSample(v_texcoord + vec2(texel.x, 0), color, sum);
-			//processSample(v_texcoord + vec2(-texel.x, 0), color, sum);
-			//processSample(v_texcoord + vec2(0, texel.y), color, sum);
-			//processSample(v_texcoord + vec2(0, -texel.y), color, sum);
+
+			if (sum == 0)
+			{
+				processSample(v_texcoord + vec2(texel.x, 0), texel, color, sum);
+				processSample(v_texcoord + vec2(-texel.x, 0), texel, color, sum);
+				processSample(v_texcoord + vec2(0, texel.y), texel, color, sum);
+				processSample(v_texcoord + vec2(0, -texel.y), texel, color, sum);
+			}
 
 			if (sum > 0)
 				color /= sum;

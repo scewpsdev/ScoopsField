@@ -201,6 +201,7 @@
     <ClCompile Include="src\graphics\Texture.cpp" />
     <ClCompile Include="src\graphics\TransferBuffer.cpp" />
     <ClCompile Include="src\graphics\VertexBuffer.cpp" />
+    <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\math\Math.cpp" />
     <ClCompile Include="src\math\Matrix.cpp" />
     <ClCompile Include="src\math\Quaternion.cpp" />

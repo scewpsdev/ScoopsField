@@ -177,32 +177,25 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	game->roundCounter = LoadTexture("res/textures/counter.png.bin", cmdBuffer);
 	game->digits = LoadTexture("res/textures/digits.png.bin", cmdBuffer);
 
-	AddFileWatcher(PROJECT_PATH "/res/shaders/mesh.vert");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/mesh.frag");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/shadow.frag");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/blurh.frag");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/blurv.frag");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/shadow.frag");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/directional_light.vert");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/directional_light.frag");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/environment_light.frag");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/point_light.vert");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/lighting/point_light.frag");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky.glsl");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky.vert");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky.frag");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky_upsample.vert");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky_upsample.frag");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky_cube.vert");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sky_cube.frag");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/transmittance_lut.comp");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/multiscatter_lut.comp");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/skyview_lut.comp");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/sun_color.comp");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/clouds.glsl");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/cloud_noise.comp");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/sky/cloud_noise_detail.comp");
-	AddFileWatcher(PROJECT_PATH "/res/shaders/tonemapping.frag");
+#ifdef _DEBUG
+	AddHotReloadedShader("shaders/mesh.vert", "shaders/mesh.frag", game->renderer.defaultShader, game->renderer.geometryPipeline);
+	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/shadow.frag", game->renderer.shadowShader, game->renderer.shadowPipeline);
+	AddHotReloadedShader("shaders/screenquad.vert", "shaders/blurh.frag", game->renderer.blurHShader, game->renderer.blurHPipeline);
+	AddHotReloadedShader("shaders/screenquad.vert", "shaders/blurv.frag", game->renderer.blurVShader, game->renderer.blurVPipeline);
+	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/directional_light.frag", game->renderer.directionalLightShader, game->renderer.directionalLightPipeline);
+	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/environment_light.frag", game->renderer.environmentLightShader, game->renderer.environmentLightPipeline);
+	AddHotReloadedShader("shaders/lighting/point_light.vert", "shaders/lighting/point_light.frag", game->renderer.pointLightShader, game->renderer.pointLightPipeline);
+	AddHotReloadedShader("shaders/sky/sky.vert", "shaders/sky/sky.frag", game->renderer.skyShader, game->renderer.skyPipeline);
+	AddHotReloadedShader("shaders/sky/sky_upsample.vert", "shaders/sky/sky_upsample.frag", game->renderer.skyUpsampleShader, game->renderer.skyUpsamplePipeline);
+	AddHotReloadedShader("shaders/sky/sky_cube.vert", "shaders/sky/sky_cube.frag", game->renderer.skyCubeShader, game->renderer.skyCubePipeline);
+	AddHotReloadedComputeShader("shaders/sky/transmittance_lut.comp", game->renderer.skyTransmittaceLUTShader);
+	AddHotReloadedComputeShader("shaders/sky/multiscatter_lut.comp", game->renderer.skyMultiScatterLUTShader);
+	AddHotReloadedComputeShader("shaders/sky/skyview_lut.comp", game->renderer.skyViewLUTShader);
+	AddHotReloadedComputeShader("shaders/sky/sun_color.comp", game->renderer.sunColorShader);
+	AddHotReloadedComputeShader("shaders/sky/cloud_noise.comp", game->renderer.cloudNoiseShader);
+	AddHotReloadedComputeShader("shaders/sky/cloud_noise_detail.comp", game->renderer.cloudNoiseDetailShader);
+	AddHotReloadedShader("shaders/screenquad.vert", "shaders/tonemapping.frag", game->renderer.tonemappingShader, game->renderer.tonemappingPipeline);
+#endif
 
 	ResetGame(false);
 }
@@ -220,102 +213,7 @@ void GameResize(int newWidth, int newHeight)
 
 void GameUpdate()
 {
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/mesh.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/mesh.frag"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->renderer.defaultShader, "res/shaders/mesh.vert.bin", "res/shaders/mesh.frag.bin");
-		ReloadGraphicsPipeline(game->renderer.geometryPipeline);
-	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/lighting/shadow.frag"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->renderer.shadowShader, "res/shaders/screenquad.vert.bin", "res/shaders/lighting/shadow.frag.bin");
-		ReloadGraphicsPipeline(game->renderer.shadowPipeline);
-	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/blurh.frag"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->renderer.blurHShader, "res/shaders/screenquad.vert.bin", "res/shaders/blurh.frag.bin");
-		ReloadGraphicsPipeline(game->renderer.blurHPipeline);
-	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/blurv.frag"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->renderer.blurVShader, "res/shaders/screenquad.vert.bin", "res/shaders/blurv.frag.bin");
-		ReloadGraphicsPipeline(game->renderer.blurVPipeline);
-	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/lighting/directional_light.frag"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->renderer.directionalLightShader, "res/shaders/screenquad.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
-		ReloadGraphicsPipeline(game->renderer.directionalLightPipeline);
-	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/lighting/environment_light.frag"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->renderer.environmentLightShader, "res/shaders/screenquad.vert.bin", "res/shaders/lighting/environment_light.frag.bin");
-		ReloadGraphicsPipeline(game->renderer.environmentLightPipeline);
-	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/lighting/point_light.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/lighting/point_light.frag"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->renderer.pointLightShader, "res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
-		ReloadGraphicsPipeline(game->renderer.pointLightPipeline);
-	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky.frag") || FileHasChanged(PROJECT_PATH "/res/shaders/sky/clouds.glsl"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->renderer.skyShader, "res/shaders/sky/sky.vert.bin", "res/shaders/sky/sky.frag.bin");
-		ReloadGraphicsPipeline(game->renderer.skyPipeline);
-	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky_upsample.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky_upsample.frag"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->renderer.skyUpsampleShader, "res/shaders/sky/sky_upsample.vert.bin", "res/shaders/sky/sky_upsample.frag.bin");
-		ReloadGraphicsPipeline(game->renderer.skyUpsamplePipeline);
-	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky_cube.vert") || FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky_cube.frag"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->renderer.skyCubeShader, "res/shaders/sky/sky_cube.vert.bin", "res/shaders/sky/sky_cube.frag.bin");
-		ReloadGraphicsPipeline(game->renderer.skyCubePipeline);
-	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/transmittance_lut.comp"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadComputeShader(game->renderer.skyTransmittaceLUTShader, "res/shaders/sky/transmittance_lut.comp.bin");
-	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/multiscatter_lut.comp"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadComputeShader(game->renderer.skyMultiScatterLUTShader, "res/shaders/sky/multiscatter_lut.comp.bin");
-	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/skyview_lut.comp") || FileHasChanged(PROJECT_PATH "/res/shaders/sky/sky.glsl"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadComputeShader(game->renderer.skyViewLUTShader, "res/shaders/sky/skyview_lut.comp.bin");
-	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/sun_color.comp"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadComputeShader(game->renderer.sunColorShader, "res/shaders/sky/sun_color.comp.bin");
-	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/cloud_noise.comp"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadComputeShader(game->renderer.cloudNoiseShader, "res/shaders/sky/cloud_noise.comp.bin");
-	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/sky/cloud_noise_detail.comp"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadComputeShader(game->renderer.cloudNoiseDetailShader, "res/shaders/sky/cloud_noise_detail.comp.bin");
-	}
-	if (FileHasChanged(PROJECT_PATH "/res/shaders/tonemapping.frag"))
-	{
-		app->platformCallbacks.compileResources();
-		ReloadGraphicsShader(game->renderer.tonemappingShader, "res/shaders/screenquad.vert.bin", "res/shaders/tonemapping.frag.bin");
-		ReloadGraphicsPipeline(game->renderer.tonemappingPipeline);
-	}
+	UpdateHotReloadedResources();
 
 	if (app->keys[SDL_SCANCODE_ESCAPE] && !app->lastKeys[SDL_SCANCODE_ESCAPE])
 		game->mouseLocked = !game->mouseLocked;

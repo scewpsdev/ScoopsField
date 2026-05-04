@@ -17,6 +17,23 @@ struct FileWatcher
 	int64_t lastWriteTime;
 };
 
+enum ResourceType
+{
+	RESOURCE_TYPE_NULL = 0,
+
+	RESOURCE_TYPE_GRAPHICS_SHADER,
+	RESOURCE_TYPE_COMPUTE_SHADER,
+};
+
+struct ResourceWatcher
+{
+	ResourceType type;
+	char path[256];
+	char path1[256];
+	FileWatcher* file, * file1;
+	void* handle, * handle1;
+};
+
 struct ResourceState
 {
 #define MAX_MODELS 64
@@ -29,14 +46,26 @@ struct ResourceState
 #define MAX_FILE_WATCHERS 32
 	FileWatcher fileWatchers[MAX_FILE_WATCHERS];
 	int numFileWatchers;
+
+	void* directoryChangedHandle;
+#define MAX_RESOURCE_WATCHERS 32
+	ResourceWatcher resourceWatchers[MAX_RESOURCE_WATCHERS];
+	int numResourceWatchers;
 };
+
+struct Shader;
+struct GraphicsPipeline;
 
 
 void InitResourceState(ResourceState* resource);
 
-void AddFileWatcher(const char* path);
-bool FileHasChanged(const char* path);
+FileWatcher* AddFileWatcher(const char* path);
+bool FileHasChanged(FileWatcher* file);
 FileWatcher* GetFileWatcherFromPath(const char* path);
+
+void AddHotReloadedShader(const char* vertex, const char* fragment, Shader* shader, GraphicsPipeline* pipeline);
+void AddHotReloadedComputeShader(const char* path, Shader* shader);
+void UpdateHotReloadedResources();
 
 StringView GetDirectory(const char* path);
 void GetAbsolutePath(char* str, int maxLen, const char* relativePath, const char* relativeTo);

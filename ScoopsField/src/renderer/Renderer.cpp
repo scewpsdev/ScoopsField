@@ -270,6 +270,8 @@ static GraphicsPipeline* CreateSkyCubePipeline(Renderer* renderer)
 {
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->skyCubeShader, renderer->skyCubemap, 1, &renderer->screenQuad.vertexBuffer->layout);
 
+	CreateBlendStateAlpha(&pipelineInfo.colorTargets[0].blend_state);
+
 	//pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER_OR_EQUAL;
 
 	pipelineInfo.depthTest = false;
@@ -435,9 +437,9 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	{
 		ColorAttachmentInfo hdrTargetInfo = {};
 		hdrTargetInfo.format = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
-		hdrTargetInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
+		hdrTargetInfo.loadOp = SDL_GPU_LOADOP_LOAD;
 		hdrTargetInfo.storeOp = SDL_GPU_STOREOP_STORE;
-		hdrTargetInfo.clearColor = { 0, 0, 0, 0 };
+		//hdrTargetInfo.clearColor = { 0, 0, 0, 0 };
 		hdrTargetInfo.mips = true;
 
 		renderer->skyCubemap = CreateRenderTarget(32, 32, SDL_GPU_TEXTURETYPE_CUBE, 1, &hdrTargetInfo, nullptr);
@@ -952,7 +954,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 			textures[1] = renderer->gbuffer->depthAttachment;
 
 			SDL_GPUSampler* samplers[3];
-			samplers[0] = renderer->linearSampler;
+			samplers[0] = renderer->linearClampedSampler;
 			samplers[1] = renderer->clampedSampler;
 
 			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 2, textures, samplers, cmdBuffer);

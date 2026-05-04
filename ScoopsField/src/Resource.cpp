@@ -2,6 +2,8 @@
 
 #include "Application.h"
 
+#include <Windows.h>
+
 
 extern AppState* app;
 extern ResourceState* resource;
@@ -9,13 +11,19 @@ extern ResourceState* resource;
 extern SDL_GPUCommandBuffer* cmdBuffer;
 
 
+#define RESOURCE_FOLDER "res"
+#define RESOURCE_PATH (PROJECT_PATH "/" RESOURCE_FOLDER "/")
+
+
 void InitResourceState(ResourceState* resource)
 {
 	InitHashMap(&resource->modelNameMap);
 	InitAnimationCache(&resource->animationCache);
+
+	resource->directoryChangedHandle = FindFirstChangeNotificationA(PROJECT_PATH "/" RESOURCE_FOLDER, true, FILE_NOTIFY_CHANGE_LAST_WRITE);
 }
 
-void AddFileWatcher(const char* path)
+FileWatcher* AddFileWatcher(const char* path)
 {
 	SDL_assert(resource->numFileWatchers < MAX_FILE_WATCHERS);
 
@@ -26,13 +34,14 @@ void AddFileWatcher(const char* path)
 	{
 		SDL_strlcpy(watcher->path, path, sizeof(watcher->path));
 		watcher->lastWriteTime = pathInfo.modify_time;
-
 		resource->numFileWatchers++;
 	}
 	else
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "%s", SDL_GetError());
 	}
+
+	return watcher;
 }
 
 FileWatcher* GetFileWatcherFromPath(const char* path)
@@ -47,17 +56,17 @@ FileWatcher* GetFileWatcherFromPath(const char* path)
 	return nullptr;
 }
 
-bool FileHasChanged(const char* path)
+bool FileHasChanged(FileWatcher* file)
 {
-	FileWatcher* watcher = GetFileWatcherFromPath(path);
-	SDL_assert(watcher);
+	//FileWatcher* watcher = GetFileWatcherFromPath(path);
+	//SDL_assert(watcher);
 
 	SDL_PathInfo pathInfo = {};
-	if (SDL_GetPathInfo(watcher->path, &pathInfo))
+	if (SDL_GetPathInfo(file->path, &pathInfo))
 	{
-		if (pathInfo.modify_time > watcher->lastWriteTime)
+		if (pathInfo.modify_time > file->lastWriteTime)
 		{
-			watcher->lastWriteTime = pathInfo.modify_time;
+			file->lastWriteTime = pathInfo.modify_time;
 			return true;
 		}
 	}
@@ -67,6 +76,103 @@ bool FileHasChanged(const char* path)
 	}
 
 	return false;
+}
+
+static void AddHotReloadedResource(ResourceType type, const char* path, const char* path1, void* handle, void* handle1)
+{
+	SDL_assert(resource->numResourceWatchers < MAX_RESOURCE_WATCHERS);
+
+	ResourceWatcher* watcher = &resource->resourceWatchers[resource->numResourceWatchers++];
+
+	watcher->type = type;
+	SDL_strlcpy(watcher->path, path, 256);
+
+	char fullPath[256] = "";
+	SDL_strlcpy(fullPath, RESOURCE_PATH, 256);
+	SDL_strlcat(fullPath, path, 256);
+
+	char fullPath1[256] = "";
+	if (path1)
+	{
+		SDL_strlcpy(watcher->path1, path1, 256);
+
+		SDL_strlcpy(fullPath1, RESOURCE_PATH, 256);
+		SDL_strlcat(fullPath1, path1, 256);
+	}
+
+	watcher->file = AddFileWatcher(fullPath);
+	watcher->file1 = path1 ? AddFileWatcher(fullPath1) : nullptr;
+	watcher->handle = handle;
+	watcher->handle1 = handle1;
+}
+
+void AddHotReloadedShader(const char* vertex, const char* fragment, Shader* shader, GraphicsPipeline* pipeline)
+{
+	AddHotReloadedResource(RESOURCE_TYPE_GRAPHICS_SHADER, vertex, fragment, shader, pipeline);
+}
+
+void AddHotReloadedComputeShader(const char* path, Shader* shader)
+{
+	AddHotReloadedResource(RESOURCE_TYPE_COMPUTE_SHADER, path, nullptr, shader, nullptr);
+}
+
+void UpdateHotReloadedResources()
+{
+	if (WaitForSingleObject(resource->directoryChangedHandle, 0) == WAIT_OBJECT_0)
+	{
+		FindNextChangeNotification(resource->directoryChangedHandle);
+
+		for (int i = 0; i < resource->numResourceWatchers; i++)
+		{
+			ResourceWatcher* watcher = &resource->resourceWatchers[i];
+
+			if (watcher->type == RESOURCE_TYPE_GRAPHICS_SHADER)
+			{
+				SDL_assert(watcher->file && watcher->file1 && watcher->handle && watcher->handle1);
+				if (FileHasChanged(watcher->file) || FileHasChanged(watcher->file1))
+				{
+					Shader* shader = (Shader*)watcher->handle;
+					GraphicsPipeline* pipeline = (GraphicsPipeline*)watcher->handle1;
+
+					app->platformCallbacks.compileResources();
+
+					char fullPath[256] = "";
+					SDL_strlcpy(fullPath, RESOURCE_FOLDER "/", 256);
+					SDL_strlcat(fullPath, watcher->path, 256);
+					SDL_strlcat(fullPath, ".bin", 256);
+
+					char fullPath1[256] = "";
+					SDL_strlcpy(fullPath1, RESOURCE_FOLDER "/", 256);
+					SDL_strlcat(fullPath1, watcher->path1, 256);
+					SDL_strlcat(fullPath1, ".bin", 256);
+
+					ReloadGraphicsShader(shader, fullPath, fullPath1);
+					ReloadGraphicsPipeline(pipeline);
+				}
+			}
+			else if (watcher->type == RESOURCE_TYPE_COMPUTE_SHADER)
+			{
+				SDL_assert(watcher->file && watcher->handle);
+				if (FileHasChanged(watcher->file))
+				{
+					Shader* shader = (Shader*)watcher->handle;
+
+					app->platformCallbacks.compileResources();
+
+					char fullPath[256] = "";
+					SDL_strlcpy(fullPath, RESOURCE_FOLDER "/", 256);
+					SDL_strlcat(fullPath, watcher->path, 256);
+					SDL_strlcat(fullPath, ".bin", 256);
+
+					ReloadComputeShader(shader, fullPath);
+				}
+			}
+			else
+			{
+				SDL_assert(false);
+			}
+		}
+	}
 }
 
 StringView GetDirectory(const char* path)

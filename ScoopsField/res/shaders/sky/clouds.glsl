@@ -276,7 +276,8 @@ float getCloudDensity(vec3 p, float height, int lod)
 float lightRay(vec3 origin, vec3 dir, float mu, float noise, int lod)
 {
 	float tmin, tmax;
-	cloudLayerIntersect(origin, dir, tmin, tmax);
+	if (!cloudLayerIntersect(origin, dir, tmin, tmax))
+		return 0;
 	//sphereIntersect(origin, dir, planetRadius + maxCloudHeight, tmin, tmax);
 
 	int numSamples = 6;

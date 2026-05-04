@@ -183,6 +183,9 @@
     <ClCompile Include="src\renderer\ShadowMapping.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\spirv_cross\spirv.h">

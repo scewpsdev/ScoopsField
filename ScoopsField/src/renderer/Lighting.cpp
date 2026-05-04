@@ -80,7 +80,7 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 		samplers[1] = renderer->defaultSampler;
 		samplers[2] = renderer->defaultSampler;
 		samplers[3] = renderer->defaultSampler;
-		samplers[4] = renderer->defaultSampler;
+		samplers[4] = renderer->clampedSampler;
 		samplers[5] = renderer->clampedSampler;
 
 		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 6, gbufferTextures, samplers, cmdBuffer);
