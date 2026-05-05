@@ -226,6 +226,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="src\renderer\ReflectionProbe.cpp" />
     <ClCompile Include="src\renderer\Renderer.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -294,6 +295,7 @@
     <ClInclude Include="src\physics\Physics.h" />
     <ClInclude Include="src\physics\RigidBody.h" />
     <ClInclude Include="src\renderer\DebugTextRenderer.h" />
+    <ClInclude Include="src\renderer\ReflectionProbe.h" />
     <ClInclude Include="src\renderer\Renderer.h" />
     <ClInclude Include="src\renderer\Renderer2D.h" />
     <ClInclude Include="src\renderer\ScreenQuad.h" />
@@ -352,6 +354,8 @@
     <None Include="res\shaders\copy_depth.vert" />
     <None Include="res\shaders\lighting\environment_light.frag" />
     <None Include="res\shaders\lighting\lighting.glsl" />
+    <None Include="res\shaders\lighting\reflection_probe.frag" />
+    <None Include="res\shaders\lighting\reflection_probe.vert" />
     <None Include="res\shaders\lighting\shadow.frag" />
     <None Include="res\shaders\mesh_animated.vert" />
     <None Include="res\shaders\mesh_depth.frag" />

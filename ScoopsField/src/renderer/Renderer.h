@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ScreenQuad.h"
+#include "ReflectionProbe.h"
 
 #include "graphics/RenderTarget.h"
 #include "graphics/Shader.h"
@@ -32,6 +33,11 @@ struct LightDrawData
 {
 	vec3 position;
 	vec3 color;
+};
+
+struct ReflectionProbeDrawData
+{
+	ReflectionProbe* probe;
 };
 
 struct WorldDrawData
@@ -94,6 +100,7 @@ struct Renderer
 	Shader* directionalLightShader;
 	Shader* pointLightShader;
 	Shader* environmentLightShader;
+	Shader* reflectionProbeShader;
 	Shader* tonemappingShader;
 
 	GraphicsPipeline* geometryPipeline;
@@ -102,6 +109,7 @@ struct Renderer
 	GraphicsPipeline* directionalLightPipeline;
 	GraphicsPipeline* pointLightPipeline;
 	GraphicsPipeline* environmentLightPipeline;
+	GraphicsPipeline* reflectionProbePipeline;
 	GraphicsPipeline* tonemappingPipeline;
 
 	RenderTarget* skyTarget;
@@ -148,6 +156,9 @@ struct Renderer
 	List<MeshDrawData, MAX_MESH_DRAWS> animatedMeshes;
 #define MAX_POINT_LIGHT_DRAWS 256
 	List<LightDrawData, MAX_POINT_LIGHT_DRAWS> pointLights;
+#define MAX_REFLECTION_PROBES 16
+	List<ReflectionProbeDrawData, MAX_REFLECTION_PROBES> reflectionProbes;
+	List<ReflectionProbe*, MAX_REFLECTION_PROBES> reflectionProbeUpdates;
 
 	Texture* blueNoise;
 	//Texture* environmentMap;
@@ -162,3 +173,5 @@ struct Renderer
 
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform);
 void RenderLight(Renderer* renderer, vec3 position, vec3 color);
+void RenderReflectionProbe(Renderer* renderer, ReflectionProbe* probe);
+void UpdateReflectionProbe(Renderer* renderer, ReflectionProbe* probe);

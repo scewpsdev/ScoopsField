@@ -177,6 +177,8 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	game->roundCounter = LoadTexture("res/textures/counter.png.bin", cmdBuffer);
 	game->digits = LoadTexture("res/textures/digits.png.bin", cmdBuffer);
 
+	InitReflectionProbe(&game->reflectionProbe, vec3(0, 29, -58), vec3(9, 13, 9));
+
 #ifdef _DEBUG
 	AddHotReloadedShader("shaders/mesh.vert", "shaders/mesh.frag", game->renderer.defaultShader, game->renderer.geometryPipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/shadow.frag", game->renderer.shadowShader, game->renderer.shadowPipeline);
@@ -185,6 +187,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/directional_light.frag", game->renderer.directionalLightShader, game->renderer.directionalLightPipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/environment_light.frag", game->renderer.environmentLightShader, game->renderer.environmentLightPipeline);
 	AddHotReloadedShader("shaders/lighting/point_light.vert", "shaders/lighting/point_light.frag", game->renderer.pointLightShader, game->renderer.pointLightPipeline);
+	AddHotReloadedShader("shaders/lighting/reflection_probe.vert", "shaders/lighting/reflection_probe.frag", game->renderer.reflectionProbeShader, game->renderer.reflectionProbePipeline);
 	AddHotReloadedShader("shaders/sky/sky.vert", "shaders/sky/sky.frag", game->renderer.skyShader, game->renderer.skyPipeline);
 	AddHotReloadedShader("shaders/sky/sky_upsample.vert", "shaders/sky/sky_upsample.frag", game->renderer.skyUpsampleShader, game->renderer.skyUpsamplePipeline);
 	AddHotReloadedShader("shaders/sky/sky_cube.vert", "shaders/sky/sky_cube.frag", game->renderer.skyCubeShader, game->renderer.skyCubePipeline);
@@ -309,6 +312,8 @@ void GameRender()
 
 	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 50);
 	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * 0.5f * PI * 0.7f) * vec3(2, 2, 0), vec3(0.5f, 1, 0.5f) * 50);
+
+	RenderReflectionProbe(&game->renderer, &game->reflectionProbe);
 
 	// round counter
 	{

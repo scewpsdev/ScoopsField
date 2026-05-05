@@ -230,6 +230,19 @@ static GraphicsPipeline* CreateEnvironmentLightPipeline(Renderer* renderer)
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
+static GraphicsPipeline* CreateReflectionProbePipeline(Renderer* renderer)
+{
+	VertexBufferLayout bufferLayouts[1] = { renderer->cubeVertexBuffer->layout };
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_FRONT, renderer->reflectionProbeShader, renderer->hdrTarget, 1, bufferLayouts);
+
+	CreateBlendStateAlpha(&pipelineInfo.colorTargets[0].blend_state);
+
+	pipelineInfo.depthWrite = false;
+	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
+
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
 static GraphicsPipeline* CreateSkyPipeline(Renderer* renderer)
 {
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->skyShader, renderer->skyTarget, 1, &renderer->screenQuad.vertexBuffer->layout);
@@ -515,6 +528,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->directionalLightShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
 	renderer->pointLightShader = LoadGraphicsShader("res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
 	renderer->environmentLightShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/lighting/environment_light.frag.bin");
+	renderer->reflectionProbeShader = LoadGraphicsShader("res/shaders/lighting/reflection_probe.vert.bin", "res/shaders/lighting/reflection_probe.frag.bin");
 	renderer->skyShader = LoadGraphicsShader("res/shaders/sky/sky.vert.bin", "res/shaders/sky/sky.frag.bin");
 	renderer->skyUpsampleShader = LoadGraphicsShader("res/shaders/sky/sky_upsample.vert.bin", "res/shaders/sky/sky_upsample.frag.bin");
 	renderer->skyCubeShader = LoadGraphicsShader("res/shaders/sky/sky_cube.vert.bin", "res/shaders/sky/sky_cube.frag.bin");
@@ -538,6 +552,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->directionalLightPipeline = CreateDirectionalLightPipeline(renderer);
 	renderer->pointLightPipeline = CreatePointLightPipeline(renderer);
 	renderer->environmentLightPipeline = CreateEnvironmentLightPipeline(renderer);
+	renderer->reflectionProbePipeline = CreateReflectionProbePipeline(renderer);
 	renderer->skyPipeline = CreateSkyPipeline(renderer);
 	renderer->skyUpsamplePipeline = CreateSkyUpsamplePipeline(renderer);
 	renderer->skyCubePipeline = CreateSkyCubePipeline(renderer);
@@ -750,6 +765,18 @@ void RenderLight(Renderer* renderer, vec3 position, vec3 color)
 	data.position = position;
 	data.color = color;
 	renderer->pointLights.add(data);
+}
+
+void RenderReflectionProbe(Renderer* renderer, ReflectionProbe* probe)
+{
+	ReflectionProbeDrawData data = {};
+	data.probe = probe;
+	renderer->reflectionProbes.add(data);
+}
+
+void UpdateReflectionProbe(Renderer* renderer, ReflectionProbe* probe)
+{
+	renderer->reflectionProbeUpdates.add(probe);
 }
 
 static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& view, const mat4& pv, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
@@ -999,4 +1026,5 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 	renderer->meshes.clear();
 	renderer->animatedMeshes.clear();
 	renderer->pointLights.clear();
+	renderer->reflectionProbes.clear();
 }

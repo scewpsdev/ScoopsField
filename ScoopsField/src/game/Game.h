@@ -74,6 +74,8 @@ struct GameState
 	Texture* vignette;
 	Texture* roundCounter;
 	Texture* digits;
+
+	ReflectionProbe reflectionProbe;
 };
 
 

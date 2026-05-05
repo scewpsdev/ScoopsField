@@ -41,6 +41,79 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, renderer->gbuffer->numColorAttachments + 2, gbufferTextures, samplers, cmdBuffer);
 	}
 
+	// reflection probes
+	{
+		GPU_TIMER("reflection probe");
+
+		SDL_BindGPUGraphicsPipeline(renderPass, renderer->reflectionProbePipeline->pipeline);
+
+		SDL_GPUBufferBinding vertexBindings[1];
+		vertexBindings[0] = {};
+		vertexBindings[0].buffer = renderer->cubeVertexBuffer->buffer;
+		vertexBindings[0].offset = 0;
+
+		SDL_BindGPUVertexBuffers(renderPass, 0, vertexBindings, 1);
+
+		SDL_GPUBufferBinding indexBinding = {};
+		indexBinding.buffer = renderer->cubeIndexBuffer->buffer;
+		indexBinding.offset = 0;
+
+		SDL_BindGPUIndexBuffer(renderPass, &indexBinding, renderer->cubeIndexBuffer->elementSize);
+
+		for (int i = 0; i < renderer->reflectionProbes.size; i++)
+		{
+			ReflectionProbe* probe = renderer->reflectionProbes[i].probe;
+
+			struct VertexUniformData
+			{
+				mat4 projectionView;
+				vec4 params;
+				vec4 params2;
+			};
+
+			VertexUniformData vertexUniforms = {};
+			vertexUniforms.projectionView = pv;
+			vertexUniforms.params = vec4(probe->position, 0);
+			vertexUniforms.params2 = vec4(probe->size, 0);
+
+			SDL_PushGPUVertexUniformData(cmdBuffer, 0, &vertexUniforms, sizeof(vertexUniforms));
+
+			struct UniformData
+			{
+				mat4 projection;
+				mat4 viewInv;
+				vec4 viewTexel;
+				vec4 params;
+				vec4 params2;
+			};
+
+			UniformData uniforms = {};
+			uniforms.projection = projection;
+			uniforms.viewInv = viewInv;
+			uniforms.viewTexel = vec4(1.0f / renderer->hdrTarget->width, 1.0f / renderer->hdrTarget->height, 0, 0);
+			uniforms.params = vec4(probe->position, 0);
+			uniforms.params2 = vec4(probe->size, 0);
+
+			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+
+			SDL_GPUTextureSamplerBinding textureBindings[5];
+			textureBindings[0].texture = renderer->gbuffer->colorAttachments[0];
+			textureBindings[1].texture = renderer->gbuffer->colorAttachments[1];
+			textureBindings[2].texture = renderer->gbuffer->colorAttachments[2];
+			textureBindings[3].texture = renderer->gbuffer->depthAttachment;
+			textureBindings[4].texture = probe->renderTarget->colorAttachments[0];
+			textureBindings[0].sampler = renderer->defaultSampler;
+			textureBindings[1].sampler = renderer->defaultSampler;
+			textureBindings[2].sampler = renderer->defaultSampler;
+			textureBindings[3].sampler = renderer->defaultSampler;
+			textureBindings[4].sampler = renderer->linearSampler;
+
+			SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, 5);
+
+			SDL_DrawGPUIndexedPrimitives(renderPass, renderer->cubeIndexBuffer->numIndices, 1, 0, 0, 0);
+		}
+	}
+
 	// directional lights
 	{
 		GPU_TIMER("sun");
