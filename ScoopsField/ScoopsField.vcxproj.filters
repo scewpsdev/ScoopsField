@@ -500,5 +500,6 @@
     <None Include="res\shaders\blurv.frag" />
     <None Include="res\shaders\lighting\reflection_probe.frag" />
     <None Include="res\shaders\lighting\reflection_probe.vert" />
+    <None Include="res\shaders\lighting\deferred_diffuse.frag" />
   </ItemGroup>
 </Project>

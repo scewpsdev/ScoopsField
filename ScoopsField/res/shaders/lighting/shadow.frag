@@ -115,7 +115,7 @@ void main()
 		discard;
 
 	vec3 position = reconstructPosition(v_texcoord, depth);
-	vec3 normal = texture(s_normal, v_texcoord).rgb;
+	vec3 normal = texture(s_normal, v_texcoord).rgb * 2 - 1;
 	vec3 toLight = -lightDir;
 
 	float shadow = 1;

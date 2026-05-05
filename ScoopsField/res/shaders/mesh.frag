@@ -34,7 +34,7 @@ void main()
 	float roughness = mix(1, texture(s_roughness, v_texcoord).g, hasRoughness);
 	float metallic = mix(0, texture(s_metallic, v_texcoord).b, hasMetallic);
 
-	out_normal = vec4(normalize(v_normal), 1);
+	out_normal = vec4(normalize(v_normal) * 0.5 + 0.5, 0);
 	out_color = textureColor.rgb * materialColor;
 	out_material = vec4(roughness, metallic, 0, 0);
 }

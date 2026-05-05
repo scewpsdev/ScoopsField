@@ -87,7 +87,7 @@ static void CalculateCascadeMatrices(vec3 position, quat rotation, float fov, fl
 	}
 }
 
-static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, float near, float fov, float aspect, mat4 projection, mat4 view, mat4 viewInv, vec3 sunDirection)
+static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, float near, float fov, float aspect, mat4 projection, mat4 view, mat4 viewInv, vec3 sunDirection, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	GPU_SCOPE("Shadow Pass");
 

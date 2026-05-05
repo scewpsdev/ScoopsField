@@ -11,19 +11,17 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->environmentLightPipeline->pipeline);
 
-		float environmentIntensity = 1.0f;
-
 		struct UniformData
 		{
-			vec4 params;
 			mat4 projectionViewInv;
 			mat4 viewInv;
+			vec4 params;
 		};
 
 		UniformData uniforms = {};
-		uniforms.params = vec4(cameraPosition, environmentIntensity);
 		uniforms.projectionViewInv = pvInv;
 		uniforms.viewInv = viewInv;
+		uniforms.params = vec4(cameraPosition, 0);
 
 		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
@@ -80,19 +78,21 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 
 			struct UniformData
 			{
-				mat4 projection;
+				mat4 projectionViewInv;
 				mat4 viewInv;
 				vec4 viewTexel;
 				vec4 params;
 				vec4 params2;
+				vec4 params3;
 			};
 
 			UniformData uniforms = {};
-			uniforms.projection = projection;
+			uniforms.projectionViewInv = pvInv;
 			uniforms.viewInv = viewInv;
 			uniforms.viewTexel = vec4(1.0f / renderer->hdrTarget->width, 1.0f / renderer->hdrTarget->height, 0, 0);
 			uniforms.params = vec4(probe->position, 0);
 			uniforms.params2 = vec4(probe->size, 0);
+			uniforms.params3 = vec4(cameraPosition, 0);
 
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
@@ -122,20 +122,14 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 
 		vec3 lightDirection = (view * vec4(sunDirection, 0)).xyz;
 
-		vec3 lightColor = vec3(1, 1, 1);
-		float lightIntensity = 10;
-		lightColor *= lightIntensity;
-
 		struct UniformData
 		{
 			vec4 lightDirection;
-			vec4 lightColor;
 			mat4 projection;
 		};
 
 		UniformData uniforms = {};
-		uniforms.lightDirection = vec4(lightDirection, gameTime);
-		uniforms.lightColor = vec4(lightColor, 0);
+		uniforms.lightDirection = vec4(lightDirection, 0);
 		uniforms.projection = projection;
 
 		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));

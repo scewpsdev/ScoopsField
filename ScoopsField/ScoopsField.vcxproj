@@ -352,6 +352,7 @@
     <None Include="res\shaders\common.glsl" />
     <None Include="res\shaders\copy_depth.frag" />
     <None Include="res\shaders\copy_depth.vert" />
+    <None Include="res\shaders\lighting\deferred_diffuse.frag" />
     <None Include="res\shaders\lighting\environment_light.frag" />
     <None Include="res\shaders\lighting\lighting.glsl" />
     <None Include="res\shaders\lighting\reflection_probe.frag" />

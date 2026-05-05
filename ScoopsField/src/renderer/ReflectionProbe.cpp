@@ -8,6 +8,9 @@ extern SDL_GPUDevice* device;
 
 void InitReflectionProbe(ReflectionProbe* probe, vec3 position, vec3 size)
 {
+	probe->position = position;
+	probe->size = size;
+
 	ColorAttachmentInfo targetInfo = {};
 	targetInfo.format = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
 	targetInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
@@ -15,14 +18,13 @@ void InitReflectionProbe(ReflectionProbe* probe, vec3 position, vec3 size)
 	targetInfo.clearColor = { 0, 0, 0, 0 };
 	targetInfo.mips = true;
 
-	DepthAttachmentInfo depthInfo = {};
-	depthInfo.format = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
-	depthInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
-	depthInfo.storeOp = SDL_GPU_STOREOP_DONT_CARE;
-	depthInfo.clearDepth = 0;
-	depthInfo.mips = true;
+	probe->cubemap = CreateRenderTarget(32, 32, SDL_GPU_TEXTURETYPE_CUBE, 1, &targetInfo, nullptr);
 
-	probe->renderTarget = CreateRenderTarget(32, 32, SDL_GPU_TEXTURETYPE_CUBE, 1, &targetInfo, &depthInfo);
-	probe->position = position;
-	probe->size = size;
+	ColorAttachmentInfo irradianceInfo = {};
+	irradianceInfo.format = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
+	irradianceInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
+	irradianceInfo.storeOp = SDL_GPU_STOREOP_STORE;
+	irradianceInfo.clearColor = { 0, 0, 0, 0 };
+
+	probe->irradiance = CreateRenderTarget(32, 32, SDL_GPU_TEXTURETYPE_CUBE, 1, &irradianceInfo, nullptr);
 }

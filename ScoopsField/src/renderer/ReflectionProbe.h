@@ -10,9 +10,11 @@ struct RenderTarget;
 
 struct ReflectionProbe
 {
-	RenderTarget* renderTarget;
 	vec3 position;
 	vec3 size;
+
+	RenderTarget* cubemap;
+	RenderTarget* irradiance;
 };
 
 

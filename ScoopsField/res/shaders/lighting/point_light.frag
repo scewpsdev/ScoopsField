@@ -76,7 +76,7 @@ void main()
 	vec3 position = reconstructPosition(uv, depth);
 	vec3 view = normalize(-position);
 
-	vec3 normal = texture(s_normal, uv).rgb;
+	vec3 normal = texture(s_normal, uv).rgb * 2 - 1;
 	vec3 albedo = texture(s_color, uv).rgb;
 
 	vec4 material = texture(s_material, uv);

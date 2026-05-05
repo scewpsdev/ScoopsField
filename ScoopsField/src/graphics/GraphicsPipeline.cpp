@@ -62,7 +62,7 @@ void ReloadGraphicsPipeline(GraphicsPipeline* pipeline)
 	pipeline->pipeline = SDL_CreateGPUGraphicsPipeline(device, &createInfo);
 }
 
-GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, Shader* shader, RenderTarget* renderTarget, int numVertexBuffers, const VertexBufferLayout* vertexLayouts)
+GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, Shader* shader, int numColorAttachments, SDL_GPUTextureFormat* colorAttachmentFormats, bool hasDepthAttachment, SDL_GPUTextureFormat depthAttachmentFormat, int numVertexBuffers, const VertexBufferLayout* vertexLayouts)
 {
 	GraphicsPipelineInfo pipelineInfo = {};
 
@@ -74,31 +74,16 @@ GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveTy
 	pipelineInfo.frontFace = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
 	pipelineInfo.depthClamp = false;
 
-	if (renderTarget)
+	pipelineInfo.numColorTargets = numColorAttachments;
+	for (int i = 0; i < numColorAttachments; i++)
 	{
-		pipelineInfo.numColorTargets = renderTarget->numColorAttachments;
-		for (int i = 0; i < renderTarget->numColorAttachments; i++)
-		{
-			pipelineInfo.colorTargets[i].format = renderTarget->colorAttachmentInfos[i].format;
-			CreateBlendStateOpaque(&pipelineInfo.colorTargets[i].blend_state);
-		}
-
-		if (renderTarget->hasDepthAttachment)
-		{
-			pipelineInfo.hasDepthTarget = true;
-			pipelineInfo.depthFormat = renderTarget->depthAttachmentInfo.format;
-			pipelineInfo.depthTest = true;
-			pipelineInfo.depthWrite = true;
-		}
+		pipelineInfo.colorTargets[i].format = colorAttachmentFormats[i];
 	}
-	else
-	{
-		pipelineInfo.numColorTargets = 1;
-		pipelineInfo.colorTargets[0].format = SDL_GetGPUSwapchainTextureFormat(device, window);
-		CreateBlendStateOpaque(&pipelineInfo.colorTargets[0].blend_state);
 
-		pipelineInfo.hasDepthTarget = false;
-		pipelineInfo.depthFormat = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+	if (hasDepthAttachment)
+	{
+		pipelineInfo.hasDepthTarget = true;
+		pipelineInfo.depthFormat = depthAttachmentFormat;
 		pipelineInfo.depthTest = true;
 		pipelineInfo.depthWrite = true;
 	}
@@ -133,4 +118,29 @@ GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveTy
 	}
 
 	return pipelineInfo;
+}
+
+GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, Shader* shader, RenderTarget* renderTarget, int numVertexBuffers, const VertexBufferLayout* vertexLayouts)
+{
+	int numColorAttachments = 0;
+	SDL_GPUTextureFormat colorAttachmentFormats[MAX_COLOR_ATTACHMENTS];
+	bool hasDepthAttachment = false;
+	SDL_GPUTextureFormat depthAttachmentFormat = SDL_GPU_TEXTUREFORMAT_INVALID;
+	if (renderTarget)
+	{
+		numColorAttachments = renderTarget->numColorAttachments;
+		for (int i = 0; i < renderTarget->numColorAttachments; i++)
+		{
+			colorAttachmentFormats[i] = renderTarget->colorAttachmentInfos[i].format;
+		}
+		hasDepthAttachment = renderTarget->hasDepthAttachment;
+		depthAttachmentFormat = renderTarget->depthAttachmentInfo.format;
+	}
+	else
+	{
+		numColorAttachments = 1;
+		colorAttachmentFormats[0] = SDL_GetGPUSwapchainTextureFormat(device, window);
+	}
+
+	return CreateGraphicsPipelineInfo(primitiveType, cullMode, shader, numColorAttachments, colorAttachmentFormats, hasDepthAttachment, depthAttachmentFormat, numVertexBuffers, vertexLayouts);
 }

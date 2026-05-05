@@ -47,6 +47,7 @@ void DestroyGraphicsPipeline(GraphicsPipeline* pipeline);
 
 void ReloadGraphicsPipeline(GraphicsPipeline* pipeline);
 
+GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, Shader* shader, int numColorAttachments, SDL_GPUTextureFormat* colorAttachmentFormats, bool hasDepthAttachment, SDL_GPUTextureFormat depthAttachmentFormat, int numVertexBuffers, const VertexBufferLayout* vertexLayouts);
 GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, Shader* shader, RenderTarget* renderTarget, int numVertexBuffers, const VertexBufferLayout* vertexLayouts);
 
 

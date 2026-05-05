@@ -69,7 +69,7 @@ static RenderTarget* CreateGBuffer(int width, int height)
 	colorAttachments[2].storeOp = SDL_GPU_STOREOP_STORE;
 
 	DepthAttachmentInfo depthAttachment = {};
-	depthAttachment.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+	depthAttachment.format = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
 	depthAttachment.loadOp = SDL_GPU_LOADOP_CLEAR;
 	depthAttachment.storeOp = SDL_GPU_STOREOP_STORE;
 	depthAttachment.clearDepth = 0;
@@ -87,7 +87,7 @@ static RenderTarget* CreateHDRTarget(int width, int height)
 	hdrTargetInfo.mips = true;
 
 	DepthAttachmentInfo hdrDepthInfo = {};
-	hdrDepthInfo.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+	hdrDepthInfo.format = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
 	hdrDepthInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
 	hdrDepthInfo.storeOp = SDL_GPU_STOREOP_DONT_CARE;
 	hdrDepthInfo.clearDepth = 1;
@@ -239,6 +239,20 @@ static GraphicsPipeline* CreateReflectionProbePipeline(Renderer* renderer)
 
 	pipelineInfo.depthWrite = false;
 	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
+
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
+static GraphicsPipeline* CreateDeferredDiffusePipeline(Renderer* renderer)
+{
+	SDL_GPUTextureFormat colorAttachmentFormat = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
+
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->deferredDiffuseShader,
+		1, &colorAttachmentFormat, false, SDL_GPU_TEXTUREFORMAT_INVALID, 1, &renderer->screenQuad.vertexBuffer->layout);
+
+	CreateBlendStateOpaque(&pipelineInfo.colorTargets[0].blend_state);
+
+	pipelineInfo.depthWrite = false;
 
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
@@ -422,11 +436,13 @@ static SDL_GPUTexture* CreateCloudNoiseDetailTexture(Renderer* renderer, SDL_GPU
 }
 
 #define SHADOW_MAP_RESOLUTION 1024
+#define REFLECTION_PROBE_RESOLUTION 32
 
 #include "Sky.cpp"
 #include "AutoExposure.cpp"
 #include "Lighting.cpp"
 #include "ShadowMapping.cpp"
+#include "ReflectionProbeUpdate.cpp"
 
 void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffer* cmdBuffer)
 {
@@ -439,6 +455,8 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->depthTexture = CreateDepthTarget(width, height);
 	renderer->gbuffer = CreateGBuffer(width, height);
 	renderer->hdrTarget = CreateHDRTarget(width, height);
+	for (int i = 0; i < 6; i++)
+		renderer->cubemapGbuffers[i] = CreateGBuffer(REFLECTION_PROBE_RESOLUTION, REFLECTION_PROBE_RESOLUTION);
 	renderer->skyTarget = CreateSkyTarget(width / 2, height / 2);
 	renderer->skyTarget2 = CreateSkyTarget(width / 2, height / 2);
 	renderer->shadowMaps[0] = CreateShadowMap(SHADOW_MAP_RESOLUTION);
@@ -529,6 +547,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->pointLightShader = LoadGraphicsShader("res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
 	renderer->environmentLightShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/lighting/environment_light.frag.bin");
 	renderer->reflectionProbeShader = LoadGraphicsShader("res/shaders/lighting/reflection_probe.vert.bin", "res/shaders/lighting/reflection_probe.frag.bin");
+	renderer->deferredDiffuseShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/lighting/deferred_diffuse.frag.bin");
 	renderer->skyShader = LoadGraphicsShader("res/shaders/sky/sky.vert.bin", "res/shaders/sky/sky.frag.bin");
 	renderer->skyUpsampleShader = LoadGraphicsShader("res/shaders/sky/sky_upsample.vert.bin", "res/shaders/sky/sky_upsample.frag.bin");
 	renderer->skyCubeShader = LoadGraphicsShader("res/shaders/sky/sky_cube.vert.bin", "res/shaders/sky/sky_cube.frag.bin");
@@ -553,6 +572,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->pointLightPipeline = CreatePointLightPipeline(renderer);
 	renderer->environmentLightPipeline = CreateEnvironmentLightPipeline(renderer);
 	renderer->reflectionProbePipeline = CreateReflectionProbePipeline(renderer);
+	renderer->deferredDiffusePipeline = CreateDeferredDiffusePipeline(renderer);
 	renderer->skyPipeline = CreateSkyPipeline(renderer);
 	renderer->skyUpsamplePipeline = CreateSkyUpsamplePipeline(renderer);
 	renderer->skyCubePipeline = CreateSkyCubePipeline(renderer);
@@ -936,9 +956,11 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		SDL_EndGPURenderPass(renderPass);
 	}
 
-	ShadowMapping(renderer, cameraPosition, cameraRotation, near, fov, aspect, projection, view, viewInv, sunDirection);
+	ShadowMapping(renderer, cameraPosition, cameraRotation, near, fov, aspect, projection, view, viewInv, sunDirection, cmdBuffer);
 
 	RenderSky(renderer, cameraPosition, projectionInv, viewInv, sunDirection, cmdBuffer);
+
+	UpdateReflectionProbes(renderer, sunDirection, cmdBuffer);
 
 	// lighting pass
 	{

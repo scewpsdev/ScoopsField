@@ -259,6 +259,11 @@ mat4 mat4::Transform(const vec3& position, const quat& rotation, const vec3& sca
 	return mat4::Translate(position) * mat4::Rotate(rotation) * mat4::Scale(scale);
 }
 
+mat4 mat4::Transform(const vec3& position, const quat& rotation)
+{
+	return mat4::Translate(position) * mat4::Rotate(rotation);
+}
+
 mat4 mat4::Perspective(float fovy, float aspect, float near)
 {
 	float y = 1 / tanf(0.5f * fovy);

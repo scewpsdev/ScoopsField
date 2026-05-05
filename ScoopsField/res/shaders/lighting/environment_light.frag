@@ -14,31 +14,30 @@ layout(set = 2, binding = 3) uniform sampler2D s_depth;
 layout(set = 2, binding = 4) uniform samplerCube s_environment;
 
 layout(set = 3, binding = 0) uniform UniformBlock {
-	vec4 params;
 	mat4 projectionViewInv;
 	mat4 viewInv;
+	vec4 params;
 
 #define cameraPosition params.xyz
-#define intensity params.w
 };
 
 
-vec3 sampleEnvironmentIrradiance(vec3 normal, samplerCube environmentMap, float environmentIntensity)
+vec3 sampleEnvironmentIrradiance(vec3 normal, samplerCube environmentMap)
 {
-	return textureLod(environmentMap, normal * vec3(1, 1, -1), log2(textureSize(environmentMap, 0).x)).rgb * environmentIntensity;
+	return textureLod(environmentMap, normal * vec3(1, 1, -1), log2(textureSize(environmentMap, 0).x)).rgb;
 }
 
-vec3 sampleEnvironmentPrefiltered(vec3 normal, vec3 view, float roughness, samplerCube environmentMap, float environmentIntensity)
+vec3 sampleEnvironmentPrefiltered(vec3 normal, vec3 view, float roughness, samplerCube environmentMap)
 {
 	vec3 r = reflect(-view, normal);
 	float lodFactor = roughness; //1.0 - exp(-roughness * 12);
 
-	return textureLod(environmentMap, r * vec3(1, 1, -1), lodFactor * log2(textureSize(environmentMap, 0).x)).rgb * environmentIntensity;
+	return textureLod(environmentMap, r * vec3(1, 1, -1), lodFactor * log2(textureSize(environmentMap, 0).x)).rgb;
 }
 
-vec3 environmentLight(vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, samplerCube environmentMap, float environmentIntensity)
+vec3 environmentLight(vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, samplerCube environmentMap)
 {
-	vec3 irradiance = sampleEnvironmentIrradiance(normal, environmentMap, environmentIntensity);
+	vec3 irradiance = sampleEnvironmentIrradiance(normal, environmentMap);
 
 	vec3 diffuse = irradiance * albedo;
 
@@ -46,7 +45,7 @@ vec3 environmentLight(vec3 normal, vec3 view, vec3 albedo, float roughness, floa
 	vec3 ks = fresnel2(max(dot(normal, view), 0.0), f0, roughness);
 	vec3 kd = (1.0 - ks) * (1.0 - metallic);
 
-	vec3 prefiltered = sampleEnvironmentPrefiltered(normal, view, roughness, environmentMap, environmentIntensity);
+	vec3 prefiltered = sampleEnvironmentPrefiltered(normal, view, roughness, environmentMap);
 
 	vec2 brdfInteg = vec2(1.0, 0.0);
 	vec3 specular = prefiltered * (ks * brdfInteg.r + brdfInteg.g);
@@ -72,7 +71,7 @@ void main()
 	vec3 position = reconstructPosition(v_texcoord, depth); // world space position
 	vec3 view = normalize(cameraPosition - position); // world space view
 
-	vec3 viewSpaceNormal = texture(s_normal, v_texcoord).rgb;
+	vec3 viewSpaceNormal = texture(s_normal, v_texcoord).rgb * 2 - 1;
 	vec3 normal = (viewInv * vec4(viewSpaceNormal, 0)).xyz; // world space normal
 	vec3 albedo = texture(s_color, v_texcoord).rgb;
 
@@ -80,7 +79,7 @@ void main()
 	float roughness = material.r;
 	float metallic = material.g;
 
-	vec3 radiance = environmentLight(normal, view, albedo, roughness, metallic, s_environment, intensity);
+	vec3 radiance = environmentLight(normal, view, albedo, roughness, metallic, s_environment);
 
 	out_color = vec4(radiance, 1);
 }

@@ -56,9 +56,9 @@ bool GetMouseButtonUp(uint32_t button)
 
 void DebugTextEx(int x, int y, const char* txt, int len, uint32_t color, uint32_t bgcolor)
 {
-//#ifdef _DEBUG
+	//#ifdef _DEBUG
 	DebugTextRendererSubmit(&app->debugTextRenderer, x, y, txt, len, color, bgcolor);
-//#endif
+	//#endif
 }
 
 void DebugText(int x, int y, uint32_t color, uint32_t bgcolor, const char* fmt, ...)
@@ -207,7 +207,7 @@ void* SDLrealloc(void* mem, size_t size)
 void SDLfree(void* mem)
 {
 	memory->defaultFree(mem);
-	if (uint64_t* memsize = HashMapRemove(&memory->platformAllocations, mem))
+	uint64_t* memsize = HashMapRemove(&memory->platformAllocations, mem);
 	{
 		memory->platformMemoryUsage -= *memsize;
 		memory->platformAllocationCount--;
@@ -220,10 +220,10 @@ static AppState* InitAppState()
 	memory->appState = appState;
 	InitPlatformCallbacks(&appState->platformCallbacks);
 
-//#if _DEBUG
+	//#if _DEBUG
 	SDL_GetOriginalMemoryFunctions(&memory->defaultMalloc, &memory->defaultCalloc, &memory->defaultRealloc, &memory->defaultFree);
 	SDL_SetMemoryFunctions(SDLmalloc, SDLcalloc, SDLrealloc, SDLfree);
-//#endif
+	//#endif
 
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS))
 	{
@@ -332,7 +332,7 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, int a
 
 	cmdBuffer = SDL_AcquireGPUCommandBuffer(device);
 
-	InitDebugTextRenderer(&app->debugTextRenderer, 1000, cmdBuffer);
+	InitDebugTextRenderer(&app->debugTextRenderer, 2048, cmdBuffer);
 
 	GameInit(cmdBuffer);
 

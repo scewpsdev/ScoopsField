@@ -24,7 +24,7 @@ struct GameMemory
 	BumpAllocator constantAllocator;
 	BumpAllocator transientAllocator;
 
-	HashMap<void*, uint64_t, 4000> platformAllocations;
+	HashMap<void*, uint64_t, 10000> platformAllocations;
 	uint64_t platformMemoryUsage;
 	int platformAllocationCount;
 	int platformAllocationsPerFrame;

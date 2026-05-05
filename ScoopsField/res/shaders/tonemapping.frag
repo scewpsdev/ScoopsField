@@ -110,7 +110,8 @@ void main()
     color *= exposure;
 	//color = linearToSRGB(color);
 
-	color = acesFitted(color);
+	//color = acesFitted(color);
+    color = color / (color + 1);
 	color = gammaCorrection(color);
 
 	out_color = vec4(color, 1);

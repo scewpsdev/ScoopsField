@@ -9,16 +9,20 @@ layout(set = 2, binding = 1) uniform sampler2D s_color;
 layout(set = 2, binding = 2) uniform sampler2D s_material;
 layout(set = 2, binding = 3) uniform sampler2D s_depth;
 layout(set = 2, binding = 4) uniform sampler2D s_sunColor;
-layout(set = 2, binding = 5) uniform sampler2D s_shadows;
+layout(set = 2, binding = 5) uniform samplerCube s_skybox;
 
 #include "../common.glsl"
 #include "lighting.glsl"
 
 layout(set = 3, binding = 0) uniform UniformBlock {
-	vec4 lightData0;
-	mat4 projection;
+	mat4 projectionViewInv;
+	mat4 projectionInv;
+	mat4 viewInv;
+	vec4 params;
+	vec4 params2;
 
-#define sunDirection lightData0.xyz
+#define sunDirection params.xyz
+#define cameraPosition params2.xyz
 };
 
 
@@ -53,69 +57,48 @@ vec3 directionalLight(vec3 normal, vec3 view, vec3 albedo, float roughness, floa
 	return s;
 }
 
-// reconstruct without matrix multiplication just using near plane and fov
 vec3 reconstructPosition(vec2 uv, float depth)
 {
-	vec2 ndc = vec2(uv.x * 2 - 1, 1 - uv.y * 2);
-	float near = projection[3][2];
-	float x = projection[0][0];
-	float y = projection[1][1];
-
-	vec3 view;
-	view.z = near / depth;
-	view.x = ndc.x * view.z / x;
-	view.y = ndc.y * view.z / y;
-	view.z *= -1; // right handed coordinate system
-	return view;
-	//vec4 viewSpacePosition = projectionInv * ndc;
-	//return viewSpacePosition.xyz / viewSpacePosition.w;
+	vec4 ndc = vec4(uv.x * 2 - 1, uv.y * -2 + 1, depth, 1);
+	vec4 worldPosition = projectionViewInv * ndc;
+	return worldPosition.xyz / worldPosition.w;
 }
 
-void getShadowSample(vec2 uv, float depth, vec2 texel, inout float shadow, inout float sum)
+vec3 reconstructView(vec2 uv, mat4 projectionInv, mat4 viewInv)
 {
-	vec2 snappedUv = uv / texel;
-	snappedUv = floor(snappedUv) + 0.25;
-	snappedUv *= texel;
+	vec2 ndc = vec2(uv.x * 2 - 1, uv.y * -2 + 1);
 
-	float shadowDepth = texture(s_depth, snappedUv).r;
+	//float aspect = projection[1][1] / projection[0][0];
+	//ndc.x *= aspect;
 
-	float epsilon = 0.01;
-	float weight = shadowDepth > 0 && abs(shadowDepth - depth) < epsilon ? 1 : 0;
-	shadow += texture(s_shadows, uv).r * weight;
-	sum += weight;
-}
+	//float tanHalfFov = 1.0 / projection[1][1]; //tan(fov * 0.5);
 
-float upsampleShadowBuffer(vec2 uv, float depth)
-{
-	vec2 texel = 1.0 / textureSize(s_shadows, 0);
-	float shadow = 0;
-	float sum = 0;
+	vec3 dir;
+	dir.x = ndc.x * projectionInv[0][0];
+	dir.y = ndc.y * projectionInv[1][1];
+	dir.z = -1;
 
-	getShadowSample(uv, depth, texel, shadow, sum);
-	getShadowSample(uv + 0.5 * vec2(texel.x, 0), depth, texel, shadow, sum);
-	getShadowSample(uv + 0.5 * vec2(-texel.x, 0), depth, texel, shadow, sum);
-	getShadowSample(uv + 0.5 * vec2(0, texel.y), depth, texel, shadow, sum);
-	getShadowSample(uv + 0.5 * vec2(0, -texel.y), depth, texel, shadow, sum);
-	//getShadowSample(uv + 0.5 * texel, depth, texel, shadow, sum);
-	//getShadowSample(uv - 0.5 * texel, depth, texel, shadow, sum);
-	//getShadowSample(uv + 0.5 * vec2(-texel.x, texel.y), depth, texel, shadow, sum);
-	//getShadowSample(uv + 0.5 * vec2(texel.x, -texel.y), depth, texel, shadow, sum);
+	dir = mat3(viewInv) * dir;
+	dir = normalize(dir);
 
-	if (sum > 0)
-		shadow /= sum;
-
-	return shadow;
+	return dir;
 }
 
 void main()
 {
 	float depth = texture(s_depth, v_texcoord).r;
+
 	if (depth == 0)
-		discard;
+	{
+		vec3 view = reconstructView(v_texcoord, projectionInv, viewInv);
+		out_color = vec4(texture(s_skybox, view).rgb, 1);
+		return;
+	}
 
 	vec3 position = reconstructPosition(v_texcoord, depth);
-	vec3 view = normalize(-position);
+	vec3 view = normalize(position - cameraPosition);
 
+	/*
 	vec3 normal = texture(s_normal, v_texcoord).rgb * 2 - 1;
 	vec3 albedo = texture(s_color, v_texcoord).rgb;
 
@@ -130,4 +113,6 @@ void main()
 	radiance *= upsampleShadowBuffer(v_texcoord, depth);
 		
 	out_color = vec4(radiance, 1);
+	*/
+	out_color = vec4(0, 0, 0, 1);
 }

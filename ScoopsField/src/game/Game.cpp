@@ -313,6 +313,7 @@ void GameRender()
 	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 50);
 	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * 0.5f * PI * 0.7f) * vec3(2, 2, 0), vec3(0.5f, 1, 0.5f) * 50);
 
+	UpdateReflectionProbe(&game->renderer, &game->reflectionProbe);
 	RenderReflectionProbe(&game->renderer, &game->reflectionProbe);
 
 	// round counter
