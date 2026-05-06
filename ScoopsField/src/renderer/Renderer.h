@@ -103,6 +103,7 @@ struct Renderer
 	Shader* environmentLightShader;
 	Shader* reflectionProbeShader;
 	Shader* deferredDiffuseShader;
+	Shader* shConvoluteShader;
 	Shader* tonemappingShader;
 
 	GraphicsPipeline* geometryPipeline;

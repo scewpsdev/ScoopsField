@@ -111,59 +111,27 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, SDL_GP
 			}
 		}
 
-		{
-			GPU_SCOPE("Convolution");
-
-			for (int i = 0; i < 6; i++)
-			{
-				mat4 pvInv = pvs[i].inverted();
-				mat4 projectionInv = projection.inverted();
-				mat4 viewInv = views[i].inverted();
-
-				SDL_GPURenderPass* renderPass = BindRenderTarget(probe->cubemap, i, cmdBuffer);
-
-				SDL_BindGPUGraphicsPipeline(renderPass, renderer->deferredDiffusePipeline->pipeline);
-
-				struct UniformData
-				{
-					mat4 projectionViewInv;
-					mat4 projectionInv;
-					mat4 viewInv;
-					vec4 params;
-					vec4 params2;
-				};
-
-				UniformData uniforms = {};
-				uniforms.projectionViewInv = pvInv;
-				uniforms.projectionInv = projectionInv;
-				uniforms.viewInv = viewInv;
-				uniforms.params = vec4(sunDirection, 0);
-				uniforms.params2 = vec4(probe->position, 0);
-
-				SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
-
-				SDL_GPUTexture* textures[6];
-				textures[0] = renderer->cubemapGbuffers[i]->colorAttachments[0];
-				textures[1] = renderer->cubemapGbuffers[i]->colorAttachments[1];
-				textures[2] = renderer->cubemapGbuffers[i]->colorAttachments[2];
-				textures[3] = renderer->cubemapGbuffers[i]->depthAttachment;
-				textures[4] = renderer->sunColorBuffer;
-				textures[5] = renderer->skyCubemap->colorAttachments[0];
-
-				SDL_GPUSampler* samplers[6];
-				samplers[0] = renderer->defaultSampler;
-				samplers[1] = renderer->defaultSampler;
-				samplers[2] = renderer->defaultSampler;
-				samplers[3] = renderer->defaultSampler;
-				samplers[4] = renderer->clampedSampler;
-				samplers[5] = renderer->linearSampler;
-
-				RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 6, textures, samplers, cmdBuffer);
-
-				SDL_EndGPURenderPass(renderPass);
-			}
-		}
-
 		SDL_GenerateMipmapsForGPUTexture(cmdBuffer, probe->cubemap->colorAttachments[0]);
+
+		{
+			GPU_TIMER("Convolution");
+
+			SDL_GPUStorageBufferReadWriteBinding bufferBinding = {};
+			bufferBinding.buffer = probe->irradiance;
+			bufferBinding.cycle = false;
+
+			SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, nullptr, 0, &bufferBinding, 1);
+
+			SDL_BindGPUComputePipeline(computePass, renderer->shConvoluteShader->compute);
+
+			SDL_GPUTextureSamplerBinding bindings[1];
+			bindings[0].texture = probe->cubemap->colorAttachments[0];
+			bindings[0].sampler = renderer->defaultSampler;
+			SDL_BindGPUComputeSamplers(computePass, 0, bindings, 1);
+
+			SDL_DispatchGPUCompute(computePass, 1, 1, 1);
+
+			SDL_EndGPUComputePass(computePass);
+		}
 	}
 }

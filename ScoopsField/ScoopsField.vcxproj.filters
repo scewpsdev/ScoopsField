@@ -501,5 +501,6 @@
     <None Include="res\shaders\lighting\reflection_probe.frag" />
     <None Include="res\shaders\lighting\reflection_probe.vert" />
     <None Include="res\shaders\lighting\deferred_diffuse.frag" />
+    <None Include="res\shaders\lighting\sh_convolute.comp" />
   </ItemGroup>
 </Project>

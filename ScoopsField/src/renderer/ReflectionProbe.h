@@ -14,7 +14,7 @@ struct ReflectionProbe
 	vec3 size;
 
 	RenderTarget* cubemap;
-	RenderTarget* irradiance;
+	SDL_GPUBuffer* irradiance;
 };
 
 

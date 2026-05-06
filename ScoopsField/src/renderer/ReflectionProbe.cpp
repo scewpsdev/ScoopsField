@@ -20,11 +20,9 @@ void InitReflectionProbe(ReflectionProbe* probe, vec3 position, vec3 size)
 
 	probe->cubemap = CreateRenderTarget(32, 32, SDL_GPU_TEXTURETYPE_CUBE, 1, &targetInfo, nullptr);
 
-	ColorAttachmentInfo irradianceInfo = {};
-	irradianceInfo.format = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
-	irradianceInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
-	irradianceInfo.storeOp = SDL_GPU_STOREOP_STORE;
-	irradianceInfo.clearColor = { 0, 0, 0, 0 };
+	SDL_GPUBufferCreateInfo bufferInfo = {};
+	bufferInfo.usage = SDL_GPU_BUFFERUSAGE_COMPUTE_STORAGE_WRITE | SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ;
+	bufferInfo.size = 9 * sizeof(vec4);
 
-	probe->irradiance = CreateRenderTarget(32, 32, SDL_GPU_TEXTURETYPE_CUBE, 1, &irradianceInfo, nullptr);
+	probe->irradiance = SDL_CreateGPUBuffer(device, &bufferInfo);
 }

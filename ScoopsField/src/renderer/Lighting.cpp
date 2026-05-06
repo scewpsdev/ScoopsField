@@ -101,7 +101,7 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 			textureBindings[1].texture = renderer->gbuffer->colorAttachments[1];
 			textureBindings[2].texture = renderer->gbuffer->colorAttachments[2];
 			textureBindings[3].texture = renderer->gbuffer->depthAttachment;
-			textureBindings[4].texture = probe->renderTarget->colorAttachments[0];
+			textureBindings[4].texture = probe->cubemap->colorAttachments[0];
 			textureBindings[0].sampler = renderer->defaultSampler;
 			textureBindings[1].sampler = renderer->defaultSampler;
 			textureBindings[2].sampler = renderer->defaultSampler;
@@ -109,6 +109,8 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 			textureBindings[4].sampler = renderer->linearSampler;
 
 			SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, 5);
+
+			SDL_BindGPUFragmentStorageBuffers(renderPass, 0, &probe->irradiance, 1);
 
 			SDL_DrawGPUIndexedPrimitives(renderPass, renderer->cubeIndexBuffer->numIndices, 1, 0, 0, 0);
 		}

@@ -548,6 +548,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->environmentLightShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/lighting/environment_light.frag.bin");
 	renderer->reflectionProbeShader = LoadGraphicsShader("res/shaders/lighting/reflection_probe.vert.bin", "res/shaders/lighting/reflection_probe.frag.bin");
 	renderer->deferredDiffuseShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/lighting/deferred_diffuse.frag.bin");
+	renderer->shConvoluteShader = LoadComputeShader("res/shaders/lighting/sh_convolute.comp.bin");
 	renderer->skyShader = LoadGraphicsShader("res/shaders/sky/sky.vert.bin", "res/shaders/sky/sky.frag.bin");
 	renderer->skyUpsampleShader = LoadGraphicsShader("res/shaders/sky/sky_upsample.vert.bin", "res/shaders/sky/sky_upsample.frag.bin");
 	renderer->skyCubeShader = LoadGraphicsShader("res/shaders/sky/sky_cube.vert.bin", "res/shaders/sky/sky_cube.frag.bin");
