@@ -36,7 +36,7 @@ const float SH_C3 = 0.315392;
 const float SH_C4 = 0.546274;
 
 
-vec3 getIrradiance(vec3 dir)
+vec3 sampleSH(vec3 dir)
 {
 	 return (
         coefficients[0] * SH_C0 +
@@ -53,7 +53,6 @@ vec3 getIrradiance(vec3 dir)
     );
 }
 
-
 vec3 parallaxCorrect(vec3 position, vec3 dir, vec3 size)
 {
 	vec3 boxMin = -size;
@@ -68,7 +67,31 @@ vec3 parallaxCorrect(vec3 position, vec3 dir, vec3 size)
 	float distance = min(min(furthestPlane.x, furthestPlane.y), furthestPlane.z);
 	distance = abs(distance);
 
-	return position + dir * distance;
+	return normalize(position + dir * distance);
+}
+
+vec3 getIrradiance(vec3 position, vec3 normal)
+{
+	vec3 worldUp = abs(normal.y) > 0.99 ? vec3(0, 0, 1) : vec3(0, 1, 0); // Avoid gimbal lock
+
+	vec3 tangent = normalize(cross(worldUp, normal));
+	vec3 bitangent = cross(normal, tangent);
+	
+	// Your 4 side directions
+	vec3 sampleRight = normalize(normal + tangent);
+	vec3 sampleLeft  = normalize(normal - tangent);
+	vec3 sampleFwd   = normalize(normal + bitangent);
+	vec3 sampleBack  = normalize(normal - bitangent);
+
+	vec3 irradiance = sampleSH(parallaxCorrect(position - probePosition, normal, probeSize));
+	irradiance += sampleSH(parallaxCorrect(position - probePosition, sampleRight, probeSize));
+	irradiance += sampleSH(parallaxCorrect(position - probePosition, sampleLeft, probeSize));
+	irradiance += sampleSH(parallaxCorrect(position - probePosition, sampleFwd, probeSize));
+	irradiance += sampleSH(parallaxCorrect(position - probePosition, sampleBack, probeSize));
+
+	irradiance /= 5;
+
+	return irradiance;
 }
 
 vec3 getBentNormal(vec3 position, vec3 normal, vec3 size)
@@ -133,9 +156,9 @@ vec3 sampleEnvironmentPrefiltered(vec3 position, vec3 normal, vec3 view, float r
 
 vec3 environmentLight(vec3 position, vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, samplerCube environmentMap)
 {
-	vec3 bentNormal = getBentNormal(position - probePosition, normal, probeSize);
-	vec3 dir = normalize(parallaxCorrect(position - probePosition, bentNormal, probeSize));
-	vec3 irradiance = getIrradiance(dir); //sampleEnvironmentIrradiance(position, normal, environmentMap);
+	//vec3 bentNormal = getBentNormal(position - probePosition, normal, probeSize);
+	//bentNormal = mix(normalize(probePosition - position), normal, 0.5);
+	vec3 irradiance = getIrradiance(position, normal); //sampleEnvironmentIrradiance(position, normal, environmentMap);
 
 	vec3 diffuse = irradiance * albedo;
 
