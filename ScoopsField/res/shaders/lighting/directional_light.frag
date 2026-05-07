@@ -46,9 +46,8 @@ vec3 directionalLight(vec3 normal, vec3 view, vec3 albedo, float roughness, floa
 	vec3 radiance = lightColor;
 
 	float ndotwi = max(dot(wi, normal), 0.0);
-	float shadow = 1.0; // Shadow mapping
 
-	vec3 s = (specular + fLambert * kd) * radiance * ndotwi * shadow;
+	vec3 s = (specular + fLambert * kd) * radiance * ndotwi;
 
 	return s;
 }

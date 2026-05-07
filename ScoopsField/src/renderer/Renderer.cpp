@@ -667,7 +667,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	SDL_GPUTextureCreateInfo sunColorInfo = {};
 	sunColorInfo.type = SDL_GPU_TEXTURETYPE_2D;
 	sunColorInfo.format = SDL_GPU_TEXTUREFORMAT_R32G32B32A32_FLOAT;
-	sunColorInfo.usage = SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE | SDL_GPU_TEXTUREUSAGE_SAMPLER;
+	sunColorInfo.usage = SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_SIMULTANEOUS_READ_WRITE | SDL_GPU_TEXTUREUSAGE_SAMPLER;
 	sunColorInfo.width = 4;
 	sunColorInfo.height = 4;
 	sunColorInfo.layer_count_or_depth = 1;

@@ -50,9 +50,8 @@ vec3 directionalLight(vec3 normal, vec3 view, vec3 albedo, float roughness, floa
 	vec3 radiance = lightColor;
 
 	float ndotwi = max(dot(wi, normal), 0.0);
-	float shadow = 1.0; // Shadow mapping
 
-	vec3 s = (specular + fLambert * kd) * radiance * ndotwi * shadow;
+	vec3 s = (specular + fLambert * kd) * radiance * ndotwi;
 
 	return s;
 }
@@ -96,10 +95,10 @@ void main()
 	}
 
 	vec3 position = reconstructPosition(v_texcoord, depth);
-	vec3 view = normalize(position - cameraPosition);
+	vec3 view = normalize(cameraPosition - position);
 
-	/*
-	vec3 normal = texture(s_normal, v_texcoord).rgb * 2 - 1;
+	vec3 viewSpaceNormal = texture(s_normal, v_texcoord).rgb * 2 - 1;
+	vec3 normal = (viewInv * vec4(viewSpaceNormal, 0)).xyz; // world space normal
 	vec3 albedo = texture(s_color, v_texcoord).rgb;
 
 	vec4 material = texture(s_material, v_texcoord);
@@ -108,11 +107,10 @@ void main()
 
 	vec3 sunColor = texture(s_sunColor, vec2(0.0)).rgb;
 
-	vec3 radiance = directionalLight(normal, view, albedo, roughness, metallic, sunDirection, sunColor);
+	//vec3 radiance = directionalLight(normal, view, albedo, roughness, metallic, sunDirection, sunColor);
+	vec3 radiance = vec3(0);
 
-	radiance *= upsampleShadowBuffer(v_texcoord, depth);
+	//radiance *= upsampleShadowBuffer(v_texcoord, depth);
 		
 	out_color = vec4(radiance, 1);
-	*/
-	out_color = vec4(0, 0, 0, 1);
 }
