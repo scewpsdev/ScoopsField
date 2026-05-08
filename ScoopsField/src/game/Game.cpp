@@ -354,10 +354,10 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -1 * 0.1f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
-	sunDirection = vec3(0.5f, -1, -1).normalized();
+	//sunDirection = vec3(0.5f, -1, -1).normalized();
 
 	RendererShow(&game->renderer, game->cameraPosition, game->cameraRotation, game->cameraNear, game->cameraFov, app->width / (float)app->height, game->projection, game->view, game->pv, game->frustumPlanes, sunDirection, swapchain, cmdBuffer);
 

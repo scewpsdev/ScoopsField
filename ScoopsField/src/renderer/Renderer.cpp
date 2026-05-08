@@ -464,6 +464,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->shadowMaps[2] = CreateShadowMap(SHADOW_MAP_RESOLUTION * 2);
 	renderer->shadowBuffer0 = CreateShadowBuffer(width / 2, height / 2);
 	renderer->shadowBuffer1 = CreateShadowBuffer(width / 2, height / 2);
+	renderer->reflectionProbeShadowMap = CreateShadowMap(256);
 
 	{
 		ColorAttachmentInfo hdrTargetInfo = {};

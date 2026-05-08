@@ -58,6 +58,26 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, SDL_GP
 			}
 		}
 
+		mat4 shadowPV;
+
+		{
+			GPU_SCOPE("Shadow Map");
+
+			mat4 projection, view, pv;
+			CalculateShadowMatricesForAABB(probe->position, probe->size, sunDirection, &projection, &view);
+
+			shadowPV = projection * view;
+
+			vec4 frustumPlanes[6];
+			GetFrustumPlanes(shadowPV, frustumPlanes);
+
+			SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->reflectionProbeShadowMap, 0, cmdBuffer);
+
+			RenderShadowMapGeometry(renderer, renderPass, view, shadowPV, frustumPlanes, cmdBuffer);
+
+			SDL_EndGPURenderPass(renderPass);
+		}
+
 		{
 			GPU_SCOPE("Deferred");
 
@@ -76,6 +96,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, SDL_GP
 					mat4 projectionViewInv;
 					mat4 projectionInv;
 					mat4 viewInv;
+					mat4 toLightSpace;
 					vec4 params;
 					vec4 params2;
 				};
@@ -84,28 +105,31 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, SDL_GP
 				uniforms.projectionViewInv = pvInv;
 				uniforms.projectionInv = projectionInv;
 				uniforms.viewInv = viewInv;
+				uniforms.toLightSpace = shadowPV;
 				uniforms.params = vec4(sunDirection, 0);
 				uniforms.params2 = vec4(probe->position, 0);
 
 				SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-				SDL_GPUTexture* textures[6];
+				SDL_GPUTexture* textures[7];
 				textures[0] = renderer->cubemapGbuffers[i]->colorAttachments[0];
 				textures[1] = renderer->cubemapGbuffers[i]->colorAttachments[1];
 				textures[2] = renderer->cubemapGbuffers[i]->colorAttachments[2];
 				textures[3] = renderer->cubemapGbuffers[i]->depthAttachment;
 				textures[4] = renderer->sunColorBuffer;
-				textures[5] = renderer->skyCubemap->colorAttachments[0];
+				textures[5] = renderer->reflectionProbeShadowMap->depthAttachment;
+				textures[6] = renderer->skyCubemap->colorAttachments[0];
 
-				SDL_GPUSampler* samplers[6];
+				SDL_GPUSampler* samplers[7];
 				samplers[0] = renderer->defaultSampler;
 				samplers[1] = renderer->defaultSampler;
 				samplers[2] = renderer->defaultSampler;
 				samplers[3] = renderer->defaultSampler;
 				samplers[4] = renderer->clampedSampler;
-				samplers[5] = renderer->linearSampler;
+				samplers[5] = renderer->shadowSampler;
+				samplers[6] = renderer->linearSampler;
 
-				RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 6, textures, samplers, cmdBuffer);
+				RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 7, textures, samplers, cmdBuffer);
 
 				SDL_EndGPURenderPass(renderPass);
 			}

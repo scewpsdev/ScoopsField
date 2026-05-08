@@ -3,7 +3,56 @@
 
 static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& view, const mat4& pv, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer);
 
-void CalculateCascade(vec3 position, quat rotation, float fov, float aspect, float near, float far, int resolution, vec3 lightDir, mat4* lightProjection, mat4* lightView)
+static void CalculateShadowMatricesForAABB(vec3 position, vec3 halfExtents, vec3 lightDir, mat4* lightProjection, mat4* lightView)
+{
+	vec3 corners[8];
+	corners[0] = position - halfExtents;
+	corners[1] = position + halfExtents * vec3(1, -1, -1);
+	corners[2] = position + halfExtents * vec3(-1, -1, 1);
+	corners[3] = position + halfExtents * vec3(1, -1, 1);
+	corners[4] = position + halfExtents * vec3(-1, 1, -1);
+	corners[5] = position + halfExtents * vec3(1, 1, -1);
+	corners[6] = position + halfExtents * vec3(-1, 1, 1);
+	corners[7] = position + halfExtents;
+
+	float size = max((corners[7] - corners[0]).length(), (corners[3] - corners[0]).length());
+
+	quat lightRotation = quat::LookAt(lightDir, vec3(0, 1, 0));
+	quat lightRotationInv = lightRotation.conjugated();
+
+	for (int i = 0; i < 8; i++)
+		corners[i] = lightRotationInv * corners[i];
+
+	vec3 vmin = corners[0];
+	vec3 vmax = corners[0];
+	for (int i = 0; i < 8; i++)
+	{
+		vmin = min(vmin, corners[i]);
+		vmax = max(vmax, corners[i]);
+	}
+
+	vec3 center = 0.5f * (vmin + vmax);
+
+	//vec3 localMin = vmin - center;
+	//vec3 localMax = vmax - center;
+
+	SDL_assert(fabs(vmin.x - center.x) <= 0.5f * size);
+	SDL_assert(fabs(vmax.x - center.x) <= 0.5f * size);
+	SDL_assert(fabs(vmin.y - center.y) <= 0.5f * size);
+	SDL_assert(fabs(vmax.y - center.y) <= 0.5f * size);
+	SDL_assert(fabs(vmin.z - center.z) <= 0.5f * size);
+	SDL_assert(fabs(vmax.z - center.z) <= 0.5f * size);
+
+	vec3 localMin = vec3(-0.5f * size);
+	vec3 localMax = vec3(0.5f * size);
+
+	vec3 boxPosition = lightRotation * center;
+
+	*lightProjection = mat4::Orthographic(localMin.x, localMax.x, localMin.y, localMax.y, localMin.z, localMax.z);
+	*lightView = (mat4::Translate(boxPosition) * mat4::Rotate(lightRotation)).inverted();
+}
+
+static void CalculateShadowMatricesForCascade(vec3 position, quat rotation, float fov, float aspect, float near, float far, int resolution, vec3 lightDir, mat4* lightProjection, mat4* lightView)
 {
 	vec3 forward = rotation.forward();
 	vec3 up = rotation.up();
@@ -76,14 +125,40 @@ void CalculateCascade(vec3 position, quat rotation, float fov, float aspect, flo
 	*lightView = (mat4::Translate(boxPosition) * mat4::Rotate(lightRotation)).inverted();
 }
 
-static void CalculateCascadeMatrices(vec3 position, quat rotation, float fov, float aspect, int resolution, vec3 lightDir, mat4 projections[3], mat4 views[3])
+static void CalculateShadowMatricesForFrustum(vec3 position, quat rotation, float fov, float aspect, int resolution, vec3 lightDir, mat4 projections[3], mat4 views[3])
 {
 	static float NEAR_PLANES[3] = { 0.0f, 15.0f, 60.0f };
 	static float FAR_PLANES[3] = { 15.0f, 60.0f, 150.0f };
 
 	for (int i = 0; i < 3; i++)
 	{
-		CalculateCascade(position, rotation, fov, aspect, NEAR_PLANES[i], FAR_PLANES[i], resolution, lightDir, &projections[i], &views[i]);
+		CalculateShadowMatricesForCascade(position, rotation, fov, aspect, NEAR_PLANES[i], FAR_PLANES[i], resolution, lightDir, &projections[i], &views[i]);
+	}
+}
+
+static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* renderPass, mat4 view, mat4 pv, vec4 frustumPlanes[6], SDL_GPUCommandBuffer* cmdBuffer)
+{
+	SDL_BindGPUGraphicsPipeline(renderPass, renderer->shadowMapPipeline->pipeline);
+
+	for (int i = 0; i < renderer->meshes.size; i++)
+	{
+		Mesh* mesh = renderer->meshes[i].mesh;
+		Material* material = renderer->meshes[i].material;
+		const mat4& transform = renderer->meshes[i].transform;
+		if (FrustumCulling(mesh->boundingSphere, transform, frustumPlanes))
+			SubmitMesh(renderer, mesh, material, nullptr, transform, view, pv, renderPass, cmdBuffer);
+	}
+
+	SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedShadowMapPipeline->pipeline);
+
+	for (int i = 0; i < renderer->animatedMeshes.size; i++)
+	{
+		Mesh* mesh = renderer->animatedMeshes[i].mesh;
+		Material* material = renderer->animatedMeshes[i].material;
+		SkeletonState* skeleton = renderer->animatedMeshes[i].skeleton;
+		const mat4& transform = renderer->animatedMeshes[i].transform;
+		if (FrustumCulling(mesh->boundingSphere, transform, frustumPlanes))
+			SubmitMesh(renderer, mesh, material, skeleton, transform, view, pv, renderPass, cmdBuffer);
 	}
 }
 
@@ -95,7 +170,7 @@ static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRo
 	mat4 cascadeViews[3];
 	mat4 cascadePVs[3];
 
-	CalculateCascadeMatrices(cameraPosition, cameraRotation, fov, aspect, SHADOW_MAP_RESOLUTION, sunDirection, cascadeProjections, cascadeViews);
+	CalculateShadowMatricesForFrustum(cameraPosition, cameraRotation, fov, aspect, SHADOW_MAP_RESOLUTION, sunDirection, cascadeProjections, cascadeViews);
 
 	for (int i = 0; i < 3; i++)
 		cascadePVs[i] = cascadeProjections[i] * cascadeViews[i];
@@ -111,28 +186,7 @@ static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRo
 
 			SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->shadowMaps[cascade], 0, cmdBuffer);
 
-			SDL_BindGPUGraphicsPipeline(renderPass, renderer->shadowMapPipeline->pipeline);
-
-			for (int i = 0; i < renderer->meshes.size; i++)
-			{
-				Mesh* mesh = renderer->meshes[i].mesh;
-				Material* material = renderer->meshes[i].material;
-				const mat4& transform = renderer->meshes[i].transform;
-				if (FrustumCulling(mesh->boundingSphere, transform, frustumPlanes))
-					SubmitMesh(renderer, mesh, material, nullptr, transform, cascadeViews[cascade], cascadePVs[cascade], renderPass, cmdBuffer);
-			}
-
-			SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedShadowMapPipeline->pipeline);
-
-			for (int i = 0; i < renderer->animatedMeshes.size; i++)
-			{
-				Mesh* mesh = renderer->animatedMeshes[i].mesh;
-				Material* material = renderer->animatedMeshes[i].material;
-				SkeletonState* skeleton = renderer->animatedMeshes[i].skeleton;
-				const mat4& transform = renderer->animatedMeshes[i].transform;
-				if (FrustumCulling(mesh->boundingSphere, transform, frustumPlanes))
-					SubmitMesh(renderer, mesh, material, skeleton, transform, cascadeViews[cascade], cascadePVs[cascade], renderPass, cmdBuffer);
-			}
+			RenderShadowMapGeometry(renderer, renderPass, cascadeViews[cascade], cascadePVs[cascade], frustumPlanes, cmdBuffer);
 
 			SDL_EndGPURenderPass(renderPass);
 		}

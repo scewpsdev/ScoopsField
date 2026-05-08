@@ -60,6 +60,8 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 
 		for (int i = 0; i < renderer->reflectionProbes.size; i++)
 		{
+			// TODO frustum culling
+
 			ReflectionProbe* probe = renderer->reflectionProbes[i].probe;
 
 			struct VertexUniformData

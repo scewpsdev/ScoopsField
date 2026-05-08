@@ -9,7 +9,8 @@ layout(set = 2, binding = 1) uniform sampler2D s_color;
 layout(set = 2, binding = 2) uniform sampler2D s_material;
 layout(set = 2, binding = 3) uniform sampler2D s_depth;
 layout(set = 2, binding = 4) uniform sampler2D s_sunColor;
-layout(set = 2, binding = 5) uniform samplerCube s_skybox;
+layout(set = 2, binding = 5) uniform sampler2DShadow s_shadowMap;
+layout(set = 2, binding = 6) uniform samplerCube s_skybox;
 
 #include "../common.glsl"
 #include "lighting.glsl"
@@ -18,6 +19,7 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 	mat4 projectionViewInv;
 	mat4 projectionInv;
 	mat4 viewInv;
+	mat4 toLightSpace;
 	vec4 params;
 	vec4 params2;
 
@@ -83,6 +85,25 @@ vec3 reconstructView(vec2 uv, mat4 projectionInv, mat4 viewInv)
 	return dir;
 }
 
+float calculateShadow(vec3 position, vec3 normal, vec3 toLight, sampler2DShadow shadowMap, mat4 toLightSpace)
+{
+	vec4 lightSpacePosition = toLightSpace * vec4(position, 1);
+	vec3 projectedCoords = lightSpacePosition.xyz / lightSpacePosition.w;
+	vec2 sampleCoords = 0.5 * projectedCoords.xy * vec2(1, -1) + 0.5;
+
+	//if (sampleCoords.x < 0.0 || sampleCoords.x > 1.0 || sampleCoords.y < 0.0 || sampleCoords.y > 1.0)
+	//	return 1.0;
+
+	ivec2 shadowMapSize = textureSize(shadowMap, 0);
+	
+	float shadowBias = 0.01; //0.00002 + 0.0001 * (3 - cascade);
+	shadowBias += max(0.006 * (1 - dot(normal, toLight)), 0);
+
+	float shadow = texture(shadowMap, vec3(sampleCoords.xy, projectedCoords.z - shadowBias));
+
+	return shadow;
+}
+
 void main()
 {
 	float depth = texture(s_depth, v_texcoord).r;
@@ -107,10 +128,9 @@ void main()
 
 	vec3 sunColor = texture(s_sunColor, vec2(0.0)).rgb;
 
-	//vec3 radiance = directionalLight(normal, view, albedo, roughness, metallic, sunDirection, sunColor);
-	vec3 radiance = vec3(0);
+	vec3 radiance = directionalLight(normal, view, albedo, roughness, metallic, sunDirection, sunColor);
 
-	//radiance *= upsampleShadowBuffer(v_texcoord, depth);
+	radiance *= calculateShadow(position, normal, -sunDirection, s_shadowMap, toLightSpace);
 		
 	out_color = vec4(radiance, 1);
 }

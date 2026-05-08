@@ -67,7 +67,6 @@ struct Renderer
 	SDL_GPUTexture* depthTexture;
 	RenderTarget* gbuffer;
 	RenderTarget* hdrTarget;
-	RenderTarget* cubemapGbuffers[6];
 
 #define NUM_MESH_BUFFER_LAYOUTS 3
 	VertexBufferLayout meshLayout[NUM_MESH_BUFFER_LAYOUTS];
@@ -76,6 +75,8 @@ struct Renderer
 
 	VertexBuffer* cubeVertexBuffer;
 	IndexBuffer* cubeIndexBuffer;
+	ScreenQuad screenQuad;
+
 	VertexBuffer* pointLightInstanceBuffer;
 	TransferBuffer* pointLightInstanceTransferBuffer;
 
@@ -93,7 +94,8 @@ struct Renderer
 	GraphicsPipeline* blurHPipeline;
 	GraphicsPipeline* blurVPipeline;
 
-	ScreenQuad screenQuad;
+	RenderTarget* cubemapGbuffers[6];
+	RenderTarget* reflectionProbeShadowMap;
 
 	Shader* defaultShader;
 	Shader* animatedShader;
