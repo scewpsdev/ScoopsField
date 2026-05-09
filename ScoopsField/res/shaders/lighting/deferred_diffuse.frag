@@ -12,8 +12,9 @@ layout(set = 2, binding = 4) uniform sampler2D s_sunColor;
 layout(set = 2, binding = 5) uniform sampler2DShadow s_shadowMap;
 layout(set = 2, binding = 6) uniform samplerCube s_skybox;
 
-#include "../common.glsl"
-#include "lighting.glsl"
+layout(set = 2, binding = 7) readonly buffer SHBuffer {
+	vec3 coefficients[9];
+};
 
 layout(set = 3, binding = 0) uniform UniformBlock {
 	mat4 projectionViewInv;
@@ -22,10 +23,18 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 	mat4 toLightSpace;
 	vec4 params;
 	vec4 params2;
+	vec4 params3;
+	vec4 params4;
 
 #define sunDirection params.xyz
 #define cameraPosition params2.xyz
+#define probePosition params3.xyz
+#define probeSize params4.xyz
 };
+
+#include "../common.glsl"
+#include "lighting.glsl"
+#include "sh_reconstruct.glsl"
 
 
 // Directional light indirect specular lighting
@@ -58,6 +67,43 @@ vec3 directionalLight(vec3 normal, vec3 view, vec3 albedo, float roughness, floa
 	return s;
 }
 
+float calculateShadow(vec3 position, vec3 normal, vec3 toLight, sampler2DShadow shadowMap, mat4 toLightSpace)
+{
+	vec4 lightSpacePosition = toLightSpace * vec4(position, 1);
+	vec3 projectedCoords = lightSpacePosition.xyz / lightSpacePosition.w;
+	vec2 sampleCoords = 0.5 * projectedCoords.xy * vec2(1, -1) + 0.5;
+
+	//if (sampleCoords.x < 0.0 || sampleCoords.x > 1.0 || sampleCoords.y < 0.0 || sampleCoords.y > 1.0)
+	//	return 1.0;
+
+	ivec2 shadowMapSize = textureSize(shadowMap, 0);
+	
+	float shadowBias = 0.01; //0.00002 + 0.0001 * (3 - cascade);
+	shadowBias += max(0.006 * (1 - dot(normal, toLight)), 0);
+
+	float shadow = texture(shadowMap, vec3(sampleCoords.xy, projectedCoords.z - shadowBias));
+
+	return shadow;
+}
+
+vec3 environmentLight(vec3 position, vec3 normal, vec3 albedo, float roughness, float metallic)
+{
+	//vec3 irradiance = getIrradiance(position, normal);
+
+	float irradianceWeight;
+	vec3 irradiance = getIrradianceSample(position, normal, irradianceWeight) * irradianceWeight;
+
+	vec3 diffuse = irradiance * albedo;
+
+	vec3 f0 = mix(vec3(0.04), albedo, metallic);
+	vec3 ks = f0; //fresnel2(max(dot(normal, view), 0.0), f0, roughness);
+	vec3 kd = (1.0 - ks) * (1.0 - metallic);
+
+	vec3 ambient = kd * diffuse;
+
+	return ambient;
+}
+
 vec3 reconstructPosition(vec2 uv, float depth)
 {
 	vec4 ndc = vec4(uv.x * 2 - 1, uv.y * -2 + 1, depth, 1);
@@ -83,25 +129,6 @@ vec3 reconstructView(vec2 uv, mat4 projectionInv, mat4 viewInv)
 	dir = normalize(dir);
 
 	return dir;
-}
-
-float calculateShadow(vec3 position, vec3 normal, vec3 toLight, sampler2DShadow shadowMap, mat4 toLightSpace)
-{
-	vec4 lightSpacePosition = toLightSpace * vec4(position, 1);
-	vec3 projectedCoords = lightSpacePosition.xyz / lightSpacePosition.w;
-	vec2 sampleCoords = 0.5 * projectedCoords.xy * vec2(1, -1) + 0.5;
-
-	//if (sampleCoords.x < 0.0 || sampleCoords.x > 1.0 || sampleCoords.y < 0.0 || sampleCoords.y > 1.0)
-	//	return 1.0;
-
-	ivec2 shadowMapSize = textureSize(shadowMap, 0);
-	
-	float shadowBias = 0.01; //0.00002 + 0.0001 * (3 - cascade);
-	shadowBias += max(0.006 * (1 - dot(normal, toLight)), 0);
-
-	float shadow = texture(shadowMap, vec3(sampleCoords.xy, projectedCoords.z - shadowBias));
-
-	return shadow;
 }
 
 void main()
@@ -131,6 +158,8 @@ void main()
 	vec3 radiance = directionalLight(normal, view, albedo, roughness, metallic, sunDirection, sunColor);
 
 	radiance *= calculateShadow(position, normal, -sunDirection, s_shadowMap, toLightSpace);
+
+	radiance += environmentLight(position, normal, albedo, roughness, metallic);
 		
 	out_color = vec4(radiance, 1);
 }

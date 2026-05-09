@@ -1,8 +1,5 @@
 #version 460
 
-#include "../common.glsl"
-#include "lighting.glsl"
-
 layout (location = 0) out vec4 out_color;
 
 layout(set = 2, binding = 0) uniform sampler2D s_normal;
@@ -28,145 +25,26 @@ layout(std140, set = 3, binding = 0) uniform UniformBlock {
 #define cameraPosition params3.xyz
 };
 
+#include "../common.glsl"
+#include "lighting.glsl"
+#include "sh_reconstruct.glsl"
 
-const float SH_C0 = 0.282095;
-const float SH_C1 = 0.488603;
-const float SH_C2 = 1.092548;
-const float SH_C3 = 0.315392;
-const float SH_C4 = 0.546274;
-
-
-vec3 sampleSH(vec3 dir)
-{
-	 return (
-		coefficients[0] * SH_C0 +
-
-		coefficients[1] * SH_C1 * dir.y +
-		coefficients[2] * SH_C1 * dir.z +
-		coefficients[3] * SH_C1 * dir.x +
-
-		coefficients[4] * SH_C2 * (dir.x * dir.y) +
-		coefficients[5] * SH_C2 * (dir.y * dir.z) +
-		coefficients[6] * SH_C3 * (3 * dir.z * dir.z - 1) +
-		coefficients[7] * SH_C2 * (dir.x * dir.z) +
-		coefficients[8] * SH_C4 * (dir.x * dir.x - dir.y * dir.y)
-	);
-}
-
-vec3 parallaxCorrect(vec3 position, vec3 dir, vec3 size, out float weight)
-{
-	vec3 boxMin = -size;
-	vec3 boxMax = size;
-
-	position = clamp(position, boxMin + 0.1, boxMax - 0.1);
-
-	vec3 firstPlaneIntersect = (boxMax - position) / dir;
-	vec3 secondPlaneIntersect = (boxMin - position) / dir;
-
-	vec3 furthestPlane = max(firstPlaneIntersect, secondPlaneIntersect);
-	float distance = min(min(furthestPlane.x, furthestPlane.y), furthestPlane.z);
-	distance = abs(distance);
-
-	// weigh the irradiance samples by their hit distance so that distant light sources get properly attenuated
-	float r = length(abs(dir * distance) / size);
-	weight = exp(-r * 1);
-
-	return normalize(position + dir * distance);
-}
-
-vec3 getIrradiance(vec3 position, vec3 normal)
-{
-	vec3 worldUp = abs(normal.y) > 0.99 ? vec3(0, 0, 1) : vec3(0, 1, 0); // Avoid gimbal lock
-
-	vec3 tangent = normalize(cross(worldUp, normal));
-	vec3 bitangent = cross(normal, tangent);
-	
-	// Your 4 side directions
-	vec3 sampleRight = normalize(normal + tangent);
-	vec3 sampleLeft  = normalize(normal - tangent);
-	vec3 sampleFwd   = normalize(normal + bitangent);
-	vec3 sampleBack  = normalize(normal - bitangent);
-
-	float weight0, weight1, weight2, weight3, weight4;
-
-	vec3 irradiance = sampleSH(parallaxCorrect(position - probePosition, normal, probeSize, weight0)) * weight0;
-	irradiance += sampleSH(parallaxCorrect(position - probePosition, sampleRight, probeSize, weight1)) * weight1;
-	irradiance += sampleSH(parallaxCorrect(position - probePosition, sampleLeft, probeSize, weight2)) * weight2;
-	irradiance += sampleSH(parallaxCorrect(position - probePosition, sampleFwd, probeSize, weight3)) * weight3;
-	irradiance += sampleSH(parallaxCorrect(position - probePosition, sampleBack, probeSize, weight4)) * weight4;
-
-	irradiance /= (weight0 + weight1 + weight2 + weight3 + weight4);
-
-	return irradiance;
-}
-
-vec3 getBentNormal(vec3 position, vec3 normal, vec3 size)
-{
-	vec3 boxMin = -size;
-	vec3 boxMax = size;
-
-	 // 1. Calculate distance to each wall [0.0 = on the wall, 1.0 = center/far]
-	// Normalized distance: 0 at wall, 1 at center
-	vec3 distToMax = boxMax - position;
-	vec3 distToMin = position - boxMin;
-	
-	// 2. Identify which wall we are closest to
-	// 'closeness' is 1.0 when touching a wall, 0.0 when far away
-	float falloff = 0.5; // Controls how far from the wall the "bending" starts
-	vec3 closenessMax = clamp(1.0 - (distToMax / falloff), 0.0, 1.0);
-	vec3 closenessMin = clamp(1.0 - (distToMin / falloff), 0.0, 1.0);
-	
-	// 3. Create a vector pointing AWAY from the nearest walls
-	// If close to +X wall, bend toward -X
-	vec3 bendDir = vec3(0.0);
-	bendDir.x = closenessMin.x - closenessMax.x; 
-	bendDir.y = closenessMin.y - closenessMax.y;
-	bendDir.z = closenessMin.z - closenessMax.z;
-
-	// 4. Mix the original normal with the bend direction
-	// Strength 0.5 means at the very corner, the normal is 50% geometry, 50% bent
-	float bendStrength = 0.5; 
-	vec3 bentN = normalize(mix(normal, normalize(bendDir + normal), bendStrength));
-	
-	return bentN;
-}
-
-vec3 sampleEnvironmentIrradiance(vec3 position, vec3 normal, samplerCube environmentMap)
-{
-	/*
-	vec3 worldUp = abs(normal.y) > 0.99 ? vec3(0, 0, 1) : vec3(0, 1, 0); // Avoid gimbal lock
-
-	vec3 tangent = normalize(cross(worldUp, normal));
-	vec3 bitangent = cross(normal, tangent);
-	
-	// Your 4 side directions
-	vec3 sampleRight = normalize(normal + tangent);
-	vec3 sampleLeft  = normalize(normal - tangent);
-	vec3 sampleFwd   = normalize(normal + bitangent);
-	vec3 sampleBack  = normalize(normal - bitangent);
-	*/
-
-	float weight;
-	vec3 dir = parallaxCorrect(position - probePosition, normal, probeSize, weight);
-	return textureLod(environmentMap, dir * vec3(1, 1, -1), log2(textureSize(environmentMap, 0).x)).rgb;
-}
 
 vec3 sampleEnvironmentPrefiltered(vec3 position, vec3 normal, vec3 view, float roughness, samplerCube environmentMap)
 {
 	vec3 r = reflect(-view, normal);
 	float lodFactor = roughness; //1.0 - exp(-roughness * 12);
 
-	float weight;
-	vec3 dir = parallaxCorrect(position - probePosition, r, probeSize, weight);
+	vec3 localPos = position - probePosition;
+	vec3 toSample = parallaxCorrect(localPos, r, probeSize);
+	vec3 dir = localPos + toSample;
 
 	return textureLod(environmentMap, dir * vec3(1, 1, -1), lodFactor * log2(textureSize(environmentMap, 0).x)).rgb;
 }
 
 vec3 environmentLight(vec3 position, vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, samplerCube environmentMap)
 {
-	//vec3 bentNormal = getBentNormal(position - probePosition, normal, probeSize);
-	//bentNormal = mix(normalize(probePosition - position), normal, 0.5);
-	vec3 irradiance = getIrradiance(position, normal); //sampleEnvironmentIrradiance(position, normal, environmentMap);
+	vec3 irradiance = getIrradiance(position, normal);
 
 	vec3 diffuse = irradiance * albedo;
 

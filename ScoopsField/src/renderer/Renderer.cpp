@@ -233,12 +233,13 @@ static GraphicsPipeline* CreateEnvironmentLightPipeline(Renderer* renderer)
 static GraphicsPipeline* CreateReflectionProbePipeline(Renderer* renderer)
 {
 	VertexBufferLayout bufferLayouts[1] = { renderer->cubeVertexBuffer->layout };
-	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_FRONT, renderer->reflectionProbeShader, renderer->hdrTarget, 1, bufferLayouts);
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_NONE, renderer->reflectionProbeShader, renderer->hdrTarget, 1, bufferLayouts);
 
 	CreateBlendStateAlpha(&pipelineInfo.colorTargets[0].blend_state);
 
 	pipelineInfo.depthWrite = false;
-	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
+	pipelineInfo.depthClamp = true;
+	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER;
 
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
@@ -436,7 +437,6 @@ static SDL_GPUTexture* CreateCloudNoiseDetailTexture(Renderer* renderer, SDL_GPU
 }
 
 #define SHADOW_MAP_RESOLUTION 1024
-#define REFLECTION_PROBE_RESOLUTION 32
 
 #include "Sky.cpp"
 #include "AutoExposure.cpp"
@@ -455,8 +455,6 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->depthTexture = CreateDepthTarget(width, height);
 	renderer->gbuffer = CreateGBuffer(width, height);
 	renderer->hdrTarget = CreateHDRTarget(width, height);
-	for (int i = 0; i < 6; i++)
-		renderer->cubemapGbuffers[i] = CreateGBuffer(REFLECTION_PROBE_RESOLUTION, REFLECTION_PROBE_RESOLUTION);
 	renderer->skyTarget = CreateSkyTarget(width / 2, height / 2);
 	renderer->skyTarget2 = CreateSkyTarget(width / 2, height / 2);
 	renderer->shadowMaps[0] = CreateShadowMap(SHADOW_MAP_RESOLUTION);
@@ -464,6 +462,8 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->shadowMaps[2] = CreateShadowMap(SHADOW_MAP_RESOLUTION * 2);
 	renderer->shadowBuffer0 = CreateShadowBuffer(width / 2, height / 2);
 	renderer->shadowBuffer1 = CreateShadowBuffer(width / 2, height / 2);
+	for (int i = 0; i < 6; i++)
+		renderer->cubemapGbuffers[i] = CreateGBuffer(REFLECTION_PROBE_RESOLUTION, REFLECTION_PROBE_RESOLUTION);
 	renderer->reflectionProbeShadowMap = CreateShadowMap(256);
 
 	{

@@ -18,7 +18,7 @@ void InitReflectionProbe(ReflectionProbe* probe, vec3 position, vec3 size)
 	targetInfo.clearColor = { 0, 0, 0, 0 };
 	targetInfo.mips = true;
 
-	probe->cubemap = CreateRenderTarget(32, 32, SDL_GPU_TEXTURETYPE_CUBE, 1, &targetInfo, nullptr);
+	probe->cubemap = CreateRenderTarget(REFLECTION_PROBE_RESOLUTION, REFLECTION_PROBE_RESOLUTION, SDL_GPU_TEXTURETYPE_CUBE, 1, &targetInfo, nullptr);
 
 	SDL_GPUBufferCreateInfo bufferInfo = {};
 	bufferInfo.usage = SDL_GPU_BUFFERUSAGE_COMPUTE_STORAGE_WRITE | SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ;

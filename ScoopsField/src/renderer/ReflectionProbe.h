@@ -6,6 +6,9 @@
 #include <SDL3/SDL.h>
 
 
+#define REFLECTION_PROBE_RESOLUTION 128
+
+
 struct RenderTarget;
 
 struct ReflectionProbe

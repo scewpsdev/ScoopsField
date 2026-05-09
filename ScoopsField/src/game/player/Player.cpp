@@ -173,6 +173,12 @@ void DestroyPlayer(Player* player)
 	//DestroyAnimationState(&player->anim);
 }
 
+void TeleportPlayer(Player* player, vec3 position)
+{
+	SetCharacterControllerPosition(&player->controller, position);
+	player->position = position;
+}
+
 static void OnDeath(Player* player)
 {
 	SDL_assert(game->gameOverTimer == -1);

@@ -198,6 +198,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddHotReloadedComputeShader("shaders/sky/cloud_noise.comp", game->renderer.cloudNoiseShader);
 	AddHotReloadedComputeShader("shaders/sky/cloud_noise_detail.comp", game->renderer.cloudNoiseDetailShader);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/tonemapping.frag", game->renderer.tonemappingShader, game->renderer.tonemappingPipeline);
+	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/deferred_diffuse.frag", game->renderer.deferredDiffuseShader, game->renderer.deferredDiffusePipeline);
 #endif
 
 	ResetGame(false);
@@ -282,15 +283,21 @@ void GameUpdate()
 	game->pv = game->projection * game->view;
 	GetFrustumPlanes(game->pv, game->frustumPlanes);
 
-	vec3 test = vec3(0, 0, -5);
-	vec4 a = game->projection * vec4(test, 1);
-
 	if (GetKeyDown(SDL_SCANCODE_P))
 	{
 		PlaySound(&game->testSound);
 
 		Entity* kingsSword = PoolAlloc(&game->entities);
 		InitItemEntity(kingsSword, GetItem(ITEM_TYPE_KINGS_SWORD), vec3(0, 2, 0), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
+	}
+
+	// discard fragments in front of reflection probe volume
+
+	if (GetKeyDown(SDL_SCANCODE_R))
+	{
+		TeleportPlayer(&game->player, game->playerSpawn.translation());
+		game->player.velocity = vec3::Zero;
+		game->player.rotation = game->playerSpawn.rotation().getAngle();
 	}
 }
 
@@ -357,7 +364,7 @@ void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
-	//sunDirection = vec3(0.5f, -1, -1).normalized();
+	sunDirection = vec3(0.5f, -1, -1).normalized();
 
 	RendererShow(&game->renderer, game->cameraPosition, game->cameraRotation, game->cameraNear, game->cameraFov, app->width / (float)app->height, game->projection, game->view, game->pv, game->frustumPlanes, sunDirection, swapchain, cmdBuffer);
 

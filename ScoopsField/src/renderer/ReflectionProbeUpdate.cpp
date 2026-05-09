@@ -99,6 +99,8 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, SDL_GP
 					mat4 toLightSpace;
 					vec4 params;
 					vec4 params2;
+					vec4 params3;
+					vec4 params4;
 				};
 
 				UniformData uniforms = {};
@@ -108,8 +110,12 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, SDL_GP
 				uniforms.toLightSpace = shadowPV;
 				uniforms.params = vec4(sunDirection, 0);
 				uniforms.params2 = vec4(probe->position, 0);
+				uniforms.params3 = vec4(probe->position, 0);
+				uniforms.params4 = vec4(probe->size, 0);
 
 				SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+
+				SDL_BindGPUFragmentStorageBuffers(renderPass, 0, &probe->irradiance, 1);
 
 				SDL_GPUTexture* textures[7];
 				textures[0] = renderer->cubemapGbuffers[i]->colorAttachments[0];
