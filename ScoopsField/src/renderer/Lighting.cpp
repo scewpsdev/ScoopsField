@@ -45,38 +45,11 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->reflectionProbePipeline->pipeline);
 
-		SDL_GPUBufferBinding vertexBindings[1];
-		vertexBindings[0] = {};
-		vertexBindings[0].buffer = renderer->cubeVertexBuffer->buffer;
-		vertexBindings[0].offset = 0;
-
-		SDL_BindGPUVertexBuffers(renderPass, 0, vertexBindings, 1);
-
-		SDL_GPUBufferBinding indexBinding = {};
-		indexBinding.buffer = renderer->cubeIndexBuffer->buffer;
-		indexBinding.offset = 0;
-
-		SDL_BindGPUIndexBuffer(renderPass, &indexBinding, renderer->cubeIndexBuffer->elementSize);
-
 		for (int i = 0; i < renderer->reflectionProbes.size; i++)
 		{
 			// TODO frustum culling
 
 			ReflectionProbe* probe = renderer->reflectionProbes[i].probe;
-
-			struct VertexUniformData
-			{
-				mat4 projectionView;
-				vec4 params;
-				vec4 params2;
-			};
-
-			VertexUniformData vertexUniforms = {};
-			vertexUniforms.projectionView = pv;
-			vertexUniforms.params = vec4(probe->position, 0);
-			vertexUniforms.params2 = vec4(probe->size, 0);
-
-			SDL_PushGPUVertexUniformData(cmdBuffer, 0, &vertexUniforms, sizeof(vertexUniforms));
 
 			struct UniformData
 			{
@@ -114,7 +87,61 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 
 			SDL_BindGPUFragmentStorageBuffers(renderPass, 0, &probe->irradiance, 1);
 
-			SDL_DrawGPUIndexedPrimitives(renderPass, renderer->cubeIndexBuffer->numIndices, 1, 0, 0, 0);
+			if (IsInBounds(cameraPosition, probe->position - probe->size - 0.999f, probe->position + probe->size + 0.999f))
+			{
+				SDL_GPUBufferBinding bufferBindings[1];
+				bufferBindings[0].buffer = renderer->screenQuad.vertexBuffer->buffer;
+				bufferBindings[0].offset = 0;
+
+				SDL_BindGPUVertexBuffers(renderPass, 0, bufferBindings, 1);
+
+				struct VertexUniformData
+				{
+					mat4 projectionView;
+					vec4 params;
+					vec4 params2;
+				};
+
+				VertexUniformData vertexUniforms = {};
+				vertexUniforms.projectionView = mat4::Identity;
+				vertexUniforms.params = vec4(0, 0, 1, 0);
+				vertexUniforms.params2 = vec4(0);
+
+				SDL_PushGPUVertexUniformData(cmdBuffer, 0, &vertexUniforms, sizeof(vertexUniforms));
+
+				SDL_DrawGPUPrimitives(renderPass, 3, 1, 0, 0);
+			}
+			else
+			{
+				SDL_GPUBufferBinding vertexBindings[1];
+				vertexBindings[0] = {};
+				vertexBindings[0].buffer = renderer->cubeVertexBuffer->buffer;
+				vertexBindings[0].offset = 0;
+
+				SDL_BindGPUVertexBuffers(renderPass, 0, vertexBindings, 1);
+
+				SDL_GPUBufferBinding indexBinding = {};
+				indexBinding.buffer = renderer->cubeIndexBuffer->buffer;
+				indexBinding.offset = 0;
+
+				SDL_BindGPUIndexBuffer(renderPass, &indexBinding, renderer->cubeIndexBuffer->elementSize);
+
+				struct VertexUniformData
+				{
+					mat4 projectionView;
+					vec4 params;
+					vec4 params2;
+				};
+
+				VertexUniformData vertexUniforms = {};
+				vertexUniforms.projectionView = pv;
+				vertexUniforms.params = vec4(probe->position, 0);
+				vertexUniforms.params2 = vec4(probe->size, 0);
+
+				SDL_PushGPUVertexUniformData(cmdBuffer, 0, &vertexUniforms, sizeof(vertexUniforms));
+
+				SDL_DrawGPUIndexedPrimitives(renderPass, renderer->cubeIndexBuffer->numIndices, 1, 0, 0, 0);
+			}
 		}
 	}
 

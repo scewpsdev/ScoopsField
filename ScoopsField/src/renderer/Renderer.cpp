@@ -233,7 +233,7 @@ static GraphicsPipeline* CreateEnvironmentLightPipeline(Renderer* renderer)
 static GraphicsPipeline* CreateReflectionProbePipeline(Renderer* renderer)
 {
 	VertexBufferLayout bufferLayouts[1] = { renderer->cubeVertexBuffer->layout };
-	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_NONE, renderer->reflectionProbeShader, renderer->hdrTarget, 1, bufferLayouts);
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->reflectionProbeShader, renderer->hdrTarget, 1, bufferLayouts);
 
 	CreateBlendStateAlpha(&pipelineInfo.colorTargets[0].blend_state);
 
@@ -515,7 +515,6 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	cubeLayout.numAttributes = 1;
 	cubeLayout.attributes[0].location = 0;
 	cubeLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-	cubeLayout.perInstance = false;
 
 	renderer->cubeVertexBuffer = CreateVertexBuffer(8, &cubeLayout, 0);
 	UpdateVertexBuffer(renderer->cubeVertexBuffer, 0, (const uint8_t*)cubeVertices, sizeof(cubeVertices), cmdBuffer);

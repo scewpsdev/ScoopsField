@@ -14,7 +14,7 @@ layout(std140, set = 1, binding = 0) uniform UniformBlock {
 
 void main()
 {
-	vec3 worldPosition = a_position * (probeSize + 1) + probePosition;
+	vec3 worldPosition = a_position * (probeSize + 0.999) + probePosition;
 
 	gl_Position = projectionView * vec4(worldPosition, 1.0);
 }

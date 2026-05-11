@@ -90,6 +90,7 @@ float lerpAngle(float a, float b, float t);
 vec3 RandomPointOnSphere(struct Random& random);
 AABB TransformBoundingBox(const AABB& localBox, const mat4& transform);
 ivec2 WorldToScreenSpace(const vec3& p, const mat4& vp, int displayWidth, int displayHeight);
+bool IsInBounds(const vec3& p, const vec3& min, const vec3& max);
 vec4 ARGBToVector(uint32_t argb);
 vec3 SRGBToLinear(vec3 color);
 vec4 SRGBToLinear(vec4 color);

@@ -1,5 +1,6 @@
 
 #define JUMP_BUFFER 0.3f
+#define COYOTE_TIME 0.1f
 #define DUCK_TRANSITION 0.15f
 
 
@@ -258,7 +259,9 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 
 	if (GetKeyDown(SDL_SCANCODE_SPACE))
 		player->lastJumpInput = gameTime;
-	if (player->grounded && player->lastJumpInput && gameTime - player->lastJumpInput < JUMP_BUFFER)
+	if (player->grounded)
+		player->lastGroundedTime = gameTime;
+	if ((player->grounded || gameTime - player->lastGroundedTime < COYOTE_TIME) && player->lastJumpInput && gameTime - player->lastJumpInput < JUMP_BUFFER)
 	{
 		const float jumpPower = 7;
 		player->velocity.y = jumpPower;
@@ -289,7 +292,7 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 
 	if (collisionFlags & CONTROLLER_COLLISION_DOWN)
 	{
-		if (player->velocity.y < -5)
+		if (player->velocity.y < -5 && gameTime - player->lastLandedTime > 0.2f)
 		{
 			player->lastLandedTime = gameTime;
 			OnLand(player);

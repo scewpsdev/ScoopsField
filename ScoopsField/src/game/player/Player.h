@@ -86,6 +86,7 @@ struct Player : Entity
 	CharacterController controller;
 	float distanceWalked;
 	float lastJumpInput;
+	float lastGroundedTime;
 	float lastLandedTime;
 
 	RigidBody kinematicBody;

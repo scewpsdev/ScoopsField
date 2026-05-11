@@ -111,6 +111,7 @@ void SwitchLoadout(Player* player, int loadout)
 {
 	if (player->currentLoadout != loadout)
 	{
+		// TODO sheathe animation when switching to hands
 		Action action;
 		InitEquipAction(&action, player->rightWeapons[loadout], loadout);
 		QueueAction(player->actions, action, *player);
