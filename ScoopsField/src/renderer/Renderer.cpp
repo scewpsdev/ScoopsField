@@ -677,7 +677,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 
 	renderer->weather.haziness = 0.0f;
 	renderer->weather.cloudCoverage = 0.25f;
-	renderer->weather.cloudDensity = 0.5f;
+	renderer->weather.cloudDensity = 5.0f;
 	renderer->weather.windSpeed = 0.1f;
 }
 

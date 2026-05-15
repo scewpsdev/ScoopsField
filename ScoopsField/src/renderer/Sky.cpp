@@ -120,7 +120,6 @@ static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionIn
 		SDL_EndGPUComputePass(computePass);
 	}
 
-	/*
 	// cloud noise
 	{
 		GPU_TIMER("cloud noise");
@@ -158,6 +157,7 @@ static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionIn
 
 		SDL_EndGPUComputePass(computePass);
 	}
+	/*
 	*/
 
 	// sun color

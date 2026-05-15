@@ -215,6 +215,7 @@ void GameResize(int newWidth, int newHeight)
 	ResizeRenderer2D(&game->guiRenderer, newWidth, newHeight);
 }
 
+static bool cameraZoom = false;
 void GameUpdate()
 {
 	UpdateHotReloadedResources();
@@ -277,7 +278,9 @@ void GameUpdate()
 		}
 	}
 
-	game->cameraFov = GetKey(SDL_SCANCODE_C) ? 30.0f : 90.0f;
+	if (GetKeyDown(SDL_SCANCODE_C))
+		cameraZoom = !cameraZoom;
+	game->cameraFov = cameraZoom ? 30.0f : 90.0f;
 	game->projection = mat4::Perspective(game->cameraFov * Deg2Rad, app->width / (float)app->height, game->cameraNear);
 	game->view = mat4::Rotate(game->cameraRotation.conjugated()) * mat4::Translate(-game->cameraPosition);
 	game->pv = game->projection * game->view;

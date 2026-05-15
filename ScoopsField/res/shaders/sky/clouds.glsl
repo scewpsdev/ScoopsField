@@ -208,7 +208,7 @@ float getCloudDensity(vec3 p, float height, int lod)
 
 	float heightGradient = remap(height, minCloudHeight, maxCloudHeight, 0, 1);
 
-	vec4 perlinWorley = texture(s_cloudNoise, p * 0.25);
+	vec4 perlinWorley = texture(s_cloudNoise, p * 0.5);
 
 	float threshold = 1 - cloudCoverage;
 
