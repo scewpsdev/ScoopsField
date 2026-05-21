@@ -31,29 +31,25 @@ static int AddAttack(Item* item, const char* name, const char* animation, float 
 	attack->damageWindow = vec2((float)damageStartFrame, (float)damageEndFrame) / 24.0f / animationSpeed;
 	attack->followUpCancelTime = cancelFrame / 24.0f / animationSpeed;
 	attack->damageMultiplier = damageMultiplier;
+	attack->staminaCost = 0.1f;
 	attack->followUp = followUp;
 
 	return attackID;
 }
 
-static void InitShield(ItemDatabase* items, Item* item, const char* name, bool twoHanded)
+static int AddBlock(Item* item, const char* name, const char* animation, float animationSpeed, int parryEndFrame)
 {
-	item->twoHanded = twoHanded;
+	int attackID = item->weapon.numAttacks++;
+	Attack* attack = &item->weapon.attacks[attackID];
+	attack->name = name;
+	attack->secondary = true;
+	attack->stance = true;
+	attack->animation = animation;
+	attack->animationSpeed = animationSpeed;
+	attack->parryWindow = vec2(0, (float)parryEndFrame) / 24.0f / animationSpeed;
+	attack->blockWindow = vec2((float)parryEndFrame, 1000) / 24.0f / animationSpeed;
 
-	char modelPath[256];
-	SDL_snprintf(modelPath, 256, "res/items/%s/%s.glb.bin", name, name);
-	LoadModel(&item->model, modelPath, false, cmdBuffer);
-
-	char movesetPath[256];
-	SDL_snprintf(movesetPath, 256, "res/items/%s/%s_moveset.glb.bin", name, name);
-	LoadModel(&item->moveset, movesetPath, false, cmdBuffer);
-
-	item->equipSound = &items->equipLightSound;
-
-	item->weapon.damage = 0;
-	item->weapon.damageRange = vec2(0);
-
-	item->weapon.runningAttack = -1;
+	return attackID;
 }
 
 static void InitWeapons(ItemDatabase* items)
@@ -78,7 +74,28 @@ static void InitWeapons(ItemDatabase* items)
 
 		AddAttack(item, "attack1", "attack1", 1, 15, 24, 32, 1.0f, "attack2");
 		AddAttack(item, "attack2", "attack2", 1, 15, 24, 32, 1.0f, "attack1");
+		AddBlock(item, "block", "block", 1, 12);
 	}
+}
+
+static void InitShield(ItemDatabase* items, Item* item, const char* name, bool twoHanded)
+{
+	item->twoHanded = twoHanded;
+
+	char modelPath[256];
+	SDL_snprintf(modelPath, 256, "res/items/%s/%s.glb.bin", name, name);
+	LoadModel(&item->model, modelPath, false, cmdBuffer);
+
+	char movesetPath[256];
+	SDL_snprintf(movesetPath, 256, "res/items/%s/%s_moveset.glb.bin", name, name);
+	LoadModel(&item->moveset, movesetPath, false, cmdBuffer);
+
+	item->equipSound = &items->equipLightSound;
+
+	item->weapon.damage = 0;
+	item->weapon.damageRange = vec2(0);
+
+	item->weapon.runningAttack = -1;
 }
 
 static void InitShields(ItemDatabase* items)
@@ -113,6 +130,16 @@ Attack* GetAttackByName(Item* item, const char* name)
 	for (int i = 0; i < item->weapon.numAttacks; i++)
 	{
 		if (SDL_strcmp(item->weapon.attacks[i].animation, name) == 0)
+			return &item->weapon.attacks[i];
+	}
+	return nullptr;
+}
+
+Attack* GetFirstAttack(Item* item, bool secondary)
+{
+	for (int i = 0; i < item->weapon.numAttacks; i++)
+	{
+		if (item->weapon.attacks[i].secondary == secondary)
 			return &item->weapon.attacks[i];
 	}
 	return nullptr;

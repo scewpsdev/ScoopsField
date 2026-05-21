@@ -29,6 +29,7 @@ static vec3 FromPxVectord(const PxVec3d& v)
 void InitCharacterController(CharacterController* controller, float radius, float height, float stepOffset, const vec3& position)
 {
 	PxCapsuleControllerDesc desc = {};
+	desc.position = PxVectord(position + vec3::Up * (height * 0.5f + desc.contactOffset));
 	desc.material = physics->material;
 	desc.radius = radius;
 	desc.height = height - 2 * radius;

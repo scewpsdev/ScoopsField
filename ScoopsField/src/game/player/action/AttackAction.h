@@ -13,13 +13,15 @@ struct AttackAction
 	Attack* attack;
 	int attackIdx;
 
+	uint32_t button;
+
 	List<RigidBody*, 16> hitEntities;
 
 	float lastHitTime;
 };
 
 
-void InitAttackAction(struct Action* action, Item* weapon, Attack* attack, int attackIdx);
+void InitAttackAction(struct Action* action, Item* weapon, Attack* attack, int attackIdx, uint32_t button);
 void StartAttackAction(struct Action* action, struct Player* player);
 void StopAttackAction(struct Action* action, struct Player* player);
 void UpdateAttackAction(struct Action* action, struct Player* player);

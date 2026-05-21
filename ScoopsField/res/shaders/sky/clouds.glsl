@@ -217,6 +217,7 @@ float getCloudDensity(vec3 p, float height, int lod)
 		return 0;
 
 	if (lod <= 1)
+	//if (false)
 	{
 		vec3 worley = perlinWorley.yzw; //texture(s_cloudNoise, p * 0.25 + t * 0.005).yzw;
 		float wfbm = worley.x * 0.625 + worley.y * 0.125 + worley.z * 0.25;
@@ -235,6 +236,8 @@ float getCloudDensity(vec3 p, float height, int lod)
 		}
 	}
 
+	//cloud -= max(abs(heightGradient * 2 - 1) - 0.5, 0) * 0.5;
+
 	cloud = smoothstep(threshold, 1, cloud);
     //cloud = remap(cloud, threshold, 1, 0, 1);
 	
@@ -242,6 +245,7 @@ float getCloudDensity(vec3 p, float height, int lod)
 	//heightGradient *= sin(heightGradient * pi);
 	//heightGradient *= sin(heightGradient * pi);
 	cloud *= 1 - max(abs(heightGradient * 2 - 1) - 0.5, 0) * 2;
+	//cloud *= 1 - max(abs(heightGradient * 2 - 1) - 0.5, 0) * 2;
 	//cloud *= sin(heightGradient * pi);
 	cloud *= heightGradient * heightGradient;
 

@@ -28,12 +28,6 @@ static bool EveryInterval(float seconds, uint32_t h)
 #include "entity/component/RestingSpot.cpp"
 
 
-static void StartRound(int round)
-{
-	game->round = round;
-	game->roundStartTimer = 0;
-}
-
 static void ResetGame(bool destroy)
 {
 	if (destroy)
@@ -59,12 +53,6 @@ static void ResetGame(bool destroy)
 
 
 	InitPool(&game->entities);
-
-	game->round = 0;
-	game->points = 0;
-	game->roundStartTimer = -1;
-	game->numSkeletonsRemaining = 0;
-	game->gameOverTimer = -1;
 
 	//game->ambientSource = PlaySound(&game->ambientSound, 0.5f);
 
@@ -106,7 +94,9 @@ static void ResetGame(bool destroy)
 
 	InitPlayer(&game->player, cmdBuffer, game->playerSpawn.translation(), game->playerSpawn.rotation().getAngle());
 
-	StartRound(1);
+	Entity* skeleton = PoolAlloc(&game->entities);
+	SDL_assert(skeleton);
+	InitKnight(skeleton, vec3(0, 0, -5), 0, 100);
 }
 
 void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
@@ -225,43 +215,6 @@ void GameUpdate()
 
 	SDL_SetWindowRelativeMouseMode(window, game->mouseLocked);
 
-	if (game->roundStartTimer != -1)
-	{
-		game->roundStartTimer += deltaTime;
-		if (game->roundStartTimer >= ROUND_START_DELAY)
-		{
-			game->roundStartTimer = -1;
-
-			// init round
-			int numSkeletons = 3 + game->round * 2;
-			int skeletonHealth = 60 + game->round * 10;
-			for (int i = 0; i < numSkeletons; i++)
-			{
-				vec2 position = game->random.nextVector2(-9, 9);
-				Entity* skeleton = PoolAlloc(&game->entities);
-				SDL_assert(skeleton);
-				InitSkeleton(skeleton, vec3(position.x, 0, position.y), 0, skeletonHealth);
-			}
-
-			game->numSkeletonsRemaining = numSkeletons;
-		}
-	}
-	else if (game->numSkeletonsRemaining == 0)
-	{
-		StartRound(game->round + 1);
-	}
-
-	if (game->gameOverTimer != -1)
-	{
-		game->gameOverTimer += deltaTime;
-		if (game->gameOverTimer >= GAME_OVER_DELAY)
-		{
-			game->gameOverTimer = -1;
-			ResetGame(true);
-			return;
-		}
-	}
-
 	UpdatePlayer(&game->player);
 
 	for (int i = 0; i < game->entities.capacity; i++)
@@ -326,6 +279,7 @@ void GameRender()
 	UpdateReflectionProbe(&game->renderer, &game->reflectionProbe);
 	RenderReflectionProbe(&game->renderer, &game->reflectionProbe);
 
+	/*
 	// round counter
 	{
 		int numGroups = (game->round + 4) / 5;
@@ -356,10 +310,15 @@ void GameRender()
 			GUIPanel(x + w - padding - len * 16 + i * 16, y, game->digits, ivec4(u, 0, 16, 32), vec4(0.5f, 0, 0, 1));
 		}
 	}
+	*/
 
-	DebugText(0, app->height / 16 - 1, COLOR_WHITE, COLOR_BLACK, "%d, %.2f, %.2f", game->round, game->roundStartTimer, game->gameOverTimer);
-	DebugText(0, app->height / 16 - 2, COLOR_WHITE, COLOR_BLACK, "%d/%d hp", game->player.health, game->player.maxHealth);
-	DebugText(0, app->height / 16 - 3, COLOR_WHITE, COLOR_BLACK, "%d entities in memory, %d skeletons remaining", game->entities.size, game->numSkeletonsRemaining);
+	//DebugText(0, app->height / 16 - 1, COLOR_WHITE, COLOR_BLACK, "%d, %.2f, %.2f", game->round, game->roundStartTimer, game->gameOverTimer);
+	DebugText(0, app->height / 16 - 1, COLOR_WHITE, COLOR_BLACK, "(%d,%d,%d) %d/%d hp",
+		(int)(game->player.position.x * 100),
+		(int)(game->player.position.y * 100),
+		(int)(game->player.position.z * 100),
+		game->player.health, game->player.maxHealth);
+	//DebugText(0, app->height / 16 - 3, COLOR_WHITE, COLOR_BLACK, "%d entities in memory, %d skeletons remaining", game->entities.size, game->numSkeletonsRemaining);
 }
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)

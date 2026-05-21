@@ -10,7 +10,7 @@ void DestroyEntity(Entity* entity)
 {
 	switch (entity->type)
 	{
-	case ENTITY_TYPE_SKELETON:
+	case ENTITY_TYPE_CREATURE:
 		DestroyCreature(&entity->creature, entity);
 		break;
 	case ENTITY_TYPE_ITEM:
@@ -30,7 +30,7 @@ bool HitEntity(Entity* entity, HitParams* hit, Entity* by)
 {
 	switch (entity->type)
 	{
-	case ENTITY_TYPE_SKELETON:
+	case ENTITY_TYPE_CREATURE:
 		return HitCreature(&entity->creature, entity, hit, by);
 	default:
 		return false;
@@ -54,7 +54,7 @@ void UpdateEntity(Entity* entity)
 {
 	switch (entity->type)
 	{
-	case ENTITY_TYPE_SKELETON:
+	case ENTITY_TYPE_CREATURE:
 		UpdateCreature(&entity->creature, entity);
 		break;
 	case ENTITY_TYPE_ITEM:
@@ -72,7 +72,7 @@ void RenderEntity(Entity* entity)
 {
 	switch (entity->type)
 	{
-	case ENTITY_TYPE_SKELETON:
+	case ENTITY_TYPE_CREATURE:
 		RenderCreature(&entity->creature, entity);
 		break;
 	case ENTITY_TYPE_ITEM:

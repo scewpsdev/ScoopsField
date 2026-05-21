@@ -182,8 +182,8 @@ void TeleportPlayer(Player* player, vec3 position)
 
 static void OnDeath(Player* player)
 {
-	SDL_assert(game->gameOverTimer == -1);
-	game->gameOverTimer = 0;
+	//SDL_assert(game->gameOverTimer == -1);
+	//game->gameOverTimer = 0;
 }
 
 void HitPlayer(Player* player, HitParams hit, Entity* by)
@@ -385,12 +385,29 @@ void UpdatePlayer(Player* player)
 				}
 				else
 				{
-					nextAttack = &right->weapon.attacks[0];
+					nextAttack = GetFirstAttack(right, false);
 				}
 
-				Action action;
-				InitAttackAction(&action, right, nextAttack, attackIdx);
-				QueueAction(player->actions, action, *player);
+				if (nextAttack)
+				{
+					Action action;
+					InitAttackAction(&action, right, nextAttack, attackIdx, SDL_BUTTON_LEFT);
+					QueueAction(player->actions, action, *player);
+				}
+			}
+		}
+		if (GetMouseButtonDown(SDL_BUTTON_RIGHT) && !offHand && player->stamina > 0)
+		{
+			if (player->actions.actions.size < player->actions.actions.capacity /* !currentAction || currentAction->elapsedTime > currentAction->followUpCancelTime*/)
+			{
+				if (Attack* nextAttack = GetFirstAttack(right, true))
+				{
+					int attackIdx = 0;
+
+					Action action;
+					InitAttackAction(&action, right, nextAttack, attackIdx, SDL_BUTTON_RIGHT);
+					QueueAction(player->actions, action, *player);
+				}
 			}
 		}
 	}

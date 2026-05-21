@@ -1,5 +1,7 @@
 #include "AttackAction.h"
 
+#include "Application.h"
+
 #include "Action.h"
 
 #include "physics/Physics.h"
@@ -40,7 +42,7 @@
 // [ ] game over screen
 
 
-void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackIdx)
+void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackIdx, uint32_t button)
 {
 	InitAction(action, ACTION_TYPE_ATTACK);
 
@@ -61,14 +63,23 @@ void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackId
 	action->attack.attack = attack;
 	action->attack.attackIdx = attackIdx;
 
-	AddActionSound(action, game->swingSounds, 3, attack->damageWindow.x, 1, (attackIdx % 2 * -2 + 1) * 0.2f);
+	action->attack.button = button;
+
+	if (attack->stance)
+	{
+		action->duration = 1000;
+	}
+	else
+	{
+		AddActionSound(action, game->swingSounds, 3, attack->damageWindow.x, 1, (attackIdx % 2 * -2 + 1) * 0.2f);
+	}
 
 	InitList(&action->attack.hitEntities);
 }
 
 void StartAttackAction(Action* action, Player* player)
 {
-	player->stamina -= 0.1f;
+	player->stamina -= action->attack.attack->staminaCost;
 }
 
 void StopAttackAction(Action* action, Player* player)
@@ -81,42 +92,54 @@ void UpdateAttackAction(Action* action, Player* player)
 	action->rightAnim.speed = action->animationSpeed;
 	//action->speed = action->attack.attack->animationSpeed * (action->attack.lastHitTime && gameTime - action->attack.lastHitTime < HIT_FREEZE_DURATION ? 0.2f : 1);
 
-	bool damage = action->elapsedTime >= action->attack.attack->damageWindow.x && action->elapsedTime <= action->attack.attack->damageWindow.y;
-
-	action->moveSpeed = action->elapsedTime >= action->attack.attack->damageWindow.y ? 0.5f : 1.0f; // damage ? 0.5f : 1.0f;
-
-	if (damage)
+	if (action->attack.attack->stance)
 	{
-		mat4 weaponTransform = GetRightWeaponTransform(player);
-		vec3 direction = weaponTransform.rotation().up();
-		vec3 origin = weaponTransform.translation() + action->attack.weapon->weapon.damageRange.x * direction;
-		float range = action->attack.weapon->weapon.damageRange.y - action->attack.weapon->weapon.damageRange.x;
+		bool parry = action->elapsedTime <= action->attack.attack->parryWindow.y;
 
-		PhysicsHit hits[16];
-		int numHits = Raycast(physics, origin, direction, range, hits, 16, ENTITY_FILTER_ENEMY);
-		for (int i = 0; i < numHits; i++)
+		action->moveSpeed = parry ? 0.5f : 1.0f;
+
+		if (!GetMouseButton(action->attack.button) && !parry)
+			CancelAction(player->actions, *player);
+	}
+	else
+	{
+		bool damage = action->elapsedTime >= action->attack.attack->damageWindow.x && action->elapsedTime <= action->attack.attack->damageWindow.y;
+
+		action->moveSpeed = action->elapsedTime >= action->attack.attack->damageWindow.y ? 0.5f : 1.0f; // damage ? 0.5f : 1.0f;
+
+		if (damage)
 		{
-			PhysicsHit* hit = &hits[i];
+			mat4 weaponTransform = GetRightWeaponTransform(player);
+			vec3 direction = weaponTransform.rotation().up();
+			vec3 origin = weaponTransform.translation() + action->attack.weapon->weapon.damageRange.x * direction;
+			float range = action->attack.weapon->weapon.damageRange.y - action->attack.weapon->weapon.damageRange.x;
 
-			if (!action->attack.hitEntities.contains(hit->body))
+			PhysicsHit hits[16];
+			int numHits = Raycast(physics, origin, direction, range, hits, 16, ENTITY_FILTER_ENEMY);
+			for (int i = 0; i < numHits; i++)
 			{
-				Entity* hitEntity = (Entity*)hit->body->userPtr;
+				PhysicsHit* hit = &hits[i];
 
-				HitParams params = {};
-				params.damage = action->attack.weapon->weapon.damage;
-				params.damageMultiplier = action->attack.attack->damageMultiplier;
-				params.position = hit->position;
-
-				if (HitEntity(hitEntity, &params, player))
+				if (!action->attack.hitEntities.contains(hit->body))
 				{
-					action->attack.lastHitTime = gameTime;
+					Entity* hitEntity = (Entity*)hit->body->userPtr;
 
-					game->points += 10;
+					HitParams params = {};
+					params.damage = action->attack.weapon->weapon.damage;
+					params.damageMultiplier = action->attack.attack->damageMultiplier;
+					params.position = hit->position;
 
-					PlaySound(&game->slashHitSounds[game->random.next() % 2], hit->position);
+					if (HitEntity(hitEntity, &params, player))
+					{
+						action->attack.lastHitTime = gameTime;
+
+						//game->points += 10;
+
+						PlaySound(&game->slashHitSounds[game->random.next() % 2], hit->position);
+					}
+
+					action->attack.hitEntities.add(hit->body);
 				}
-
-				action->attack.hitEntities.add(hit->body);
 			}
 		}
 	}

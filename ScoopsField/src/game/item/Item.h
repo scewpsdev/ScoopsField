@@ -19,11 +19,17 @@ enum ItemType
 struct Attack
 {
 	const char* name;
+	bool secondary;
+	bool stance;
+
 	const char* animation;
 	float animationSpeed;
 	vec2 damageWindow;
+	vec2 blockWindow;
+	vec2 parryWindow;
 	float followUpCancelTime;
 	float damageMultiplier;
+	float staminaCost;
 
 	const char* followUp;
 };
@@ -66,4 +72,5 @@ void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer);
 
 Item* GetItem(ItemType type);
 
+Attack* GetFirstAttack(Item* item, bool secondary);
 Attack* GetNextAttack(Attack* attack, Item* item);

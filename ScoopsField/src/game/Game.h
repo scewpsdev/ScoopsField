@@ -47,12 +47,6 @@ struct GameState
 
 	mat4 playerSpawn;
 
-	int round;
-	int points;
-	float roundStartTimer;
-	int numSkeletonsRemaining;
-	float gameOverTimer;
-
 	Model mapModel;
 	Navmesh mapNavmesh;
 	RigidBody mapCollider;

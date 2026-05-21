@@ -39,8 +39,8 @@ static void OnDeath(Creature* creature)
 
 	RemoveColliders(&creature->body);
 
-	SDL_assert(game->numSkeletonsRemaining > 0);
-	game->numSkeletonsRemaining--;
+	//SDL_assert(game->numSkeletonsRemaining > 0);
+	//game->numSkeletonsRemaining--;
 }
 
 bool HitCreature(Creature* creature, Entity* entity, HitParams* hit, Entity* by)
@@ -211,9 +211,16 @@ void RenderCreature(Creature* creature, Entity* entity)
 
 void InitSkeleton(Entity* skeleton, const vec3& position, float rotation, int health)
 {
-	InitEntity(skeleton, ENTITY_TYPE_SKELETON);
-
+	InitEntity(skeleton, ENTITY_TYPE_CREATURE);
 	skeleton->position = position;
 
 	InitCreature(&skeleton->creature, skeleton, "entities/skeleton/skeleton.glb", rotation, health);
+}
+
+void InitKnight(Entity* creature, const vec3& position, float rotation, int health)
+{
+	InitEntity(creature, ENTITY_TYPE_CREATURE);
+	creature->position = position;
+
+	InitCreature(&creature->creature, creature, "entities/creature/knight/knight.glb", rotation, health);
 }

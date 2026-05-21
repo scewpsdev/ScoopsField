@@ -96,15 +96,17 @@ bool InitPhysics(PhysicsState* physics)
 
 #if _DEBUG
 	physics->pvd = PxCreatePvd(*physics->foundation);
-	if (!physics->pvd)
+	if (physics->pvd)
+	{
+		PxPvdTransport* pvdTransport = PxDefaultPvdSocketTransportCreate("localhost", 5425, 10);
+		if (!physics->pvd->connect(*pvdTransport, PxPvdInstrumentationFlag::eALL))
+		{
+			SDL_LogError(SDL_LOG_CATEGORY_CUSTOM, "Failed to connect PVD instance");
+		}
+	}
+	else
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_CUSTOM, "Failed to initialize PVD instance");
-	}
-
-	PxPvdTransport* pvdTransport = PxDefaultPvdSocketTransportCreate("localhost", 5425, 10);
-	if (!physics->pvd->connect(*pvdTransport, PxPvdInstrumentationFlag::eALL))
-	{
-		SDL_LogError(SDL_LOG_CATEGORY_CUSTOM, "Failed to connect PVD instance");
 	}
 #endif
 

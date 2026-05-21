@@ -145,3 +145,12 @@ struct AppState
 
 	DebugTextRenderer debugTextRenderer;
 };
+
+
+
+bool GetKey(SDL_Scancode key);
+bool GetKeyDown(SDL_Scancode key);
+bool GetKeyUp(SDL_Scancode key);
+bool GetMouseButton(uint32_t button);
+bool GetMouseButtonDown(uint32_t button);
+bool GetMouseButtonUp(uint32_t button);
