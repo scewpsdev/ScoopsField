@@ -52,19 +52,25 @@ bool HitCreature(Creature* creature, Entity* entity, HitParams* hit, Entity* by)
 
 	if (creature->health <= 0)
 	{
-		EntityAction action;
-		InitEntityDeathAction(&action);
-		CancelAction(creature->actions, *entity);
-		QueueAction(creature->actions, action, *entity);
+		if (GetAnimationByName(creature->model, "death"))
+		{
+			EntityAction action;
+			InitEntityDeathAction(&action);
+			CancelAction(creature->actions, *entity);
+			QueueAction(creature->actions, action, *entity);
+		}
 
 		OnDeath(creature);
 	}
 	else
 	{
-		EntityAction action;
-		InitEntityStaggerAction(&action, 1.0f);
-		CancelAction(creature->actions, *entity);
-		QueueAction(creature->actions, action, *entity);
+		if (GetAnimationByName(creature->model, "stagger"))
+		{
+			EntityAction action;
+			InitEntityStaggerAction(&action, 1.0f);
+			CancelAction(creature->actions, *entity);
+			QueueAction(creature->actions, action, *entity);
+		}
 	}
 
 	return true;

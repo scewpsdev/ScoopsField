@@ -64,6 +64,16 @@ struct Player : Entity
 	float leftBlendDuration;
 	float leftBlendStart;
 
+	Animation* lastBodyAnim;
+	float lastBodyAnimTimer;
+	bool lastBodyAnimLoop;
+
+	Animation* bodyBlendAnim;
+	float bodyBlendAnimTimer;
+	bool bodyBlendAnimLoop;
+	float bodyBlendDuration;
+	float bodyBlendStart;
+
 	Node* rightWeaponNode, * leftWeaponNode;
 	Node* rightShoulderNode, * leftShoulderNode;
 	Node* rootNode, * neckNode, * spineNode;
@@ -71,6 +81,7 @@ struct Player : Entity
 	mat4 lastRootNodeTransform;
 
 	AnimationPlayback idleAnim;
+	AnimationPlayback bodyIdleAnim, bodyRunAnim, bodyDuckAnim, bodySneakAnim;
 
 	float viewBobVerticalSpeedAnim;
 	vec3 viewBobLookSwayAnim;
