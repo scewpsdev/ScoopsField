@@ -59,7 +59,7 @@ static void ResetGame(bool destroy)
 	game->cameraPosition = vec3(0, 0, 3);
 	//game->cameraPitch = -0.4f * PI;
 	//game->cameraYaw = 0.25f * PI;
-	game->cameraNear = 0.1f;
+	game->cameraNear = 0.01f;
 	//game->cameraFar = 1000;
 
 	game->mouseLocked = true;

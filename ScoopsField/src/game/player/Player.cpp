@@ -92,6 +92,8 @@ Item* GetLeftApparentWeapon(Player* player)
 
 quat GetCameraRotation(Player* player)
 {
+	if (GetKey(SDL_SCANCODE_O))
+		return quat::Identity;
 	return quat::FromAxisAngle(vec3::Up, player->yaw) * quat::FromAxisAngle(vec3::Right, player->pitch);
 }
 
@@ -102,9 +104,9 @@ mat4 GetCameraTransform(Player* player)
 
 mat4 GetRightWeaponTransform(Player* player)
 {
-	mat4 cameraTransform = mat4::Translate(game->cameraPosition) * mat4::Rotate(GetCameraRotation(player));
-	mat4 viewmodelTransform = cameraTransform * mat4::Rotate(vec3::Up, PI);
-	return viewmodelTransform * GetNodeTransform(&player->anim, player->rightWeaponNode);
+	//mat4 cameraTransform = mat4::Translate(game->cameraPosition) * mat4::Rotate(GetCameraRotation(player));
+	mat4 viewmodelTransform = mat4::Translate(player->position) * mat4::Rotate(vec3::Up, player->rotation + PI);
+	return viewmodelTransform * GetNodeTransform(&player->bodyAnim, player->rightWeaponNode);
 }
 
 void SwitchLoadout(Player* player, int loadout)
@@ -134,20 +136,21 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 	LoadModel(&player->model, "res/models/viewmodel.glb.bin", false, cmdBuffer);
 	InitAnimationState(&player->anim, &player->model);
 
-	LoadModel(&player->bodyModel, "res/models/bodymodel.glb.bin", false, cmdBuffer);
+	LoadModel(&player->bodyModel, "res/models/bodymodel_.glb.bin", false, cmdBuffer);
 	InitAnimationState(&player->bodyAnim, &player->bodyModel);
 
-	player->rightWeaponNode = GetNodeByName(&player->model, "weapon_r");
-	player->leftWeaponNode = GetNodeByName(&player->model, "weapon_l");
-	player->rightShoulderNode = GetNodeByName(&player->model, "clavicle_r");
-	player->leftShoulderNode = GetNodeByName(&player->model, "clavicle_l");
+	player->rightWeaponNode = GetNodeByName(&player->bodyModel, "weapon_r");
+	player->leftWeaponNode = GetNodeByName(&player->bodyModel, "weapon_l");
 	player->rootNode = GetNodeByName(&player->model, "root");
 
-	player->bodyCameraNode = GetNodeByName(&player->bodyModel, "Camera");
+	player->rightShoulderNode = GetNodeByName(&player->bodyModel, "clavicle_r");
+	player->leftShoulderNode = GetNodeByName(&player->bodyModel, "clavicle_l");
+	player->neckNode = GetNodeByName(&player->bodyModel, "neck_01");
+	player->spineNode = GetNodeByName(&player->bodyModel, "spine_03");
 
 	InitAnimation(&player->idleAnim, "idle", &player->model, 0.005f, true, false);
 
-	InitCharacterController(&player->controller, 0.3f, CONTROLLER_HEIGHT, 0.2f, player->position);
+	InitCharacterController(&player->controller, 0.5f, CONTROLLER_HEIGHT, 0.2f, player->position);
 	InitRigidBody(&player->kinematicBody, RIGID_BODY_KINEMATIC, player->position, quat::Identity);
 	AddCapsuleCollider(&player->kinematicBody, 0.2f, 1.5f, vec3(0, 1, 0), quat::Identity, ENTITY_FILTER_PLAYER, ENTITY_FILTER_ENEMY, false);
 	player->kinematicBody.userPtr = player;
@@ -248,8 +251,22 @@ bool DropItem(Player* player, Item* item)
 
 static bool ArmAnimChannelFilter(Node* node, bool* right)
 {
-	if (*right) return !EndsWith(node->name, "_l");
-	else return EndsWith(node->name, "_l"); /*!EndsWith(node->name, "_r")*/;
+	bool arm = StartsWith(node->name, "clavicle")
+		|| StartsWith(node->name, "upperarm")
+		|| StartsWith(node->name, "lowerarm")
+		|| StartsWith(node->name, "hand")
+		|| StartsWith(node->name, "thumb")
+		|| StartsWith(node->name, "index")
+		|| StartsWith(node->name, "middle")
+		|| StartsWith(node->name, "ring")
+		|| StartsWith(node->name, "pinky")
+		|| StartsWith(node->name, "weapon");
+	if (arm)
+	{
+		if (*right) return !EndsWith(node->name, "_l");
+		else return EndsWith(node->name, "_l"); /*!EndsWith(node->name, "_r")*/;
+	}
+	return false;
 }
 
 static mat4 CalculateViewBobbing(Player* player, int side)
@@ -318,6 +335,17 @@ void UpdatePlayer(Player* player)
 		game->cameraPosition.y = mix(game->cameraPosition.y, player->position.y + 0.2f, 5 * deltaTime);
 		player->pitch = mix(player->pitch, 0.0f, 5 * deltaTime);
 		return;
+	}
+
+	if (game->mouseLocked)
+	{
+		player->yaw -= app->mouseDelta.x * 0.001f;
+		player->pitch -= app->mouseDelta.y * 0.001f;
+
+		player->pitch = clamp(player->pitch, -0.5f * PI, 0.5f * PI);
+
+		if (!(GetCurrentAction(player) && GetCurrentAction(player)->lockPlayerRotation))
+			player->rotation = player->yaw;
 	}
 
 	for (int i = 0; i < NUM_LOADOUTS; i++)
@@ -446,6 +474,7 @@ void UpdatePlayer(Player* player)
 	{
 		leftAnimation = GetAnimationByName(&left->moveset, "idle");
 	}
+
 	bodyAnimation = GetAnimationByName(&player->bodyModel, "idle");
 
 	if (GetCurrentAction(player))
@@ -557,22 +586,105 @@ void UpdatePlayer(Player* player)
 		AnimateModel(&player->bodyModel, &player->bodyAnim, bodyAnimation, bodyAnimationTimer, bodyAnimationLoop, nullptr, nullptr);
 	}
 
+	{
+		//Animation* bodyAnimation2 = GetAnimationByName(&player->bodyModel, "run");
+		//AnimateModel(&player->bodyModel, &player->bodyAnim, bodyAnimation2, gameTime, true, nullptr, nullptr);
+		//
+		AnimateModel(&player->bodyModel, &player->bodyAnim, moveAnimation->animation, moveAnimation->timer, moveAnimation->loop, nullptr, nullptr);
+
+		if (rightAnimation)
+		{
+			bool right = true;
+			AnimateModel(&player->bodyModel, &player->bodyAnim, rightAnimation, rightAnimationTimer, rightAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+		}
+
+		if (leftAnimation)
+		{
+			bool right = false;
+			AnimateModel(&player->bodyModel, &player->bodyAnim, leftAnimation, leftAnimationTimer, leftAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+		}
+	}
+
 	bool proceduralViewmodelAnim = !(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim);
 	if (proceduralViewmodelAnim)
 	{
 		mat4 rightViewBob = CalculateViewBobbing(player, 0);
-		mat4& rightShoulderTransform = GetNodeTransform(&player->anim, player->rightShoulderNode);
-		rightShoulderTransform = rightViewBob * rightShoulderTransform;
+		mat4 leftViewBob = CalculateViewBobbing(player, GetLeftApparentWeapon(player) == GetLeftWeapon(player) ? 1 : 0);
 
-		mat4& rightWeaponTransform = GetNodeTransform(&player->anim, player->rightWeaponNode);
+		//mat4& rightShoulderTransform = GetNodeTransform(&player->anim, player->rightShoulderNode);
+		//rightShoulderTransform = rightViewBob * rightShoulderTransform;
+
+		//mat4& leftShoulderTransform = GetNodeTransform(&player->anim, player->leftShoulderNode);
+		//leftShoulderTransform = leftViewBob * leftShoulderTransform;
+
+		mat4& clavicleRightTransform = GetNodeTransform(&player->bodyAnim, player->rightShoulderNode);
+		clavicleRightTransform = rightViewBob * clavicleRightTransform;
+
+		mat4& clavicleLeftTransform = GetNodeTransform(&player->bodyAnim, player->leftShoulderNode);
+		clavicleLeftTransform = leftViewBob * clavicleLeftTransform;
+
+		mat4& rightWeaponTransform = GetNodeTransform(&player->bodyAnim, player->rightWeaponNode);
 		rightWeaponTransform = rightViewBob * rightWeaponTransform;
 
-		mat4 leftViewBob = CalculateViewBobbing(player, GetLeftApparentWeapon(player) == GetLeftWeapon(player) ? 1 : 0);
-		mat4& leftShoulderTransform = GetNodeTransform(&player->anim, player->leftShoulderNode);
-		leftShoulderTransform = leftViewBob * leftShoulderTransform;
-
-		mat4& leftWeaponTransform = GetNodeTransform(&player->anim, player->leftWeaponNode);
+		mat4& leftWeaponTransform = GetNodeTransform(&player->bodyAnim, player->leftWeaponNode);
 		leftWeaponTransform = leftViewBob * leftWeaponTransform;
+	}
+
+	{
+		//mat4 viewmodelToBodymodel = mat4::Translate(0, (1.4283f - 1.29552f) - -0.0573f, (0.027168f - -0.023689f) - -0.025745f);
+		vec3 neckViewmodelDifference = vec3(0, (1.50345f - 1.4283f) - 0.0573f, (0.014949f - 0.027168f) - -0.025745f);
+		mat4 viewmodelToBodymodel = mat4::Translate(GetNodeTransform(&player->bodyAnim, player->neckNode).translation() - neckViewmodelDifference);
+		//viewmodelToBodymodel = mat4::Rotate(GetNodeTransform(&player->bodyAnim2, GetNodeByName(&player->bodyModel2, "spine_03")).rotation()) * viewmodelToBodymodel;
+
+		mat4& clavicleRightTransform = GetNodeTransform(&player->bodyAnim, player->rightShoulderNode);
+		clavicleRightTransform = viewmodelToBodymodel * clavicleRightTransform;
+
+		mat4& clavicleLeftTransform = GetNodeTransform(&player->bodyAnim, player->leftShoulderNode);
+		clavicleLeftTransform = viewmodelToBodymodel * clavicleLeftTransform;
+
+		mat4& rightWeaponTransform = GetNodeTransform(&player->bodyAnim, player->rightWeaponNode);
+		rightWeaponTransform = viewmodelToBodymodel * rightWeaponTransform;
+
+		mat4& leftWeaponTransform = GetNodeTransform(&player->bodyAnim, player->leftWeaponNode);
+		leftWeaponTransform = viewmodelToBodymodel * leftWeaponTransform;
+	}
+
+	{
+		mat4& spineTransform = GetNodeTransform(&player->bodyAnim, player->spineNode);
+		spineTransform = mat4::Transform(spineTransform.translation() + vec3(0, max(SDL_sinf(-player->pitch), 0.0f) * 0.2f, 0), quat::FromAxisAngle(vec3::AxisX, -player->pitch * 0.5f) * spineTransform.rotation());
+
+		mat4& spine2Transform = GetNodeTransform(&player->bodyAnim, GetNodeByName(&player->bodyModel, "spine_02"));
+		spine2Transform = mat4::Transform(spine2Transform.translation(), quat::FromAxisAngle(vec3::AxisX, -player->pitch * 0.5f) * spine2Transform.rotation());
+
+		mat4& neckTransform = GetNodeTransform(&player->bodyAnim, player->neckNode);
+		neckTransform = mat4::Transform(neckTransform.translation(), neckTransform.rotation(), vec3(0.01f));
+
+		/*
+		mat4& neckTransform = GetNodeTransform(&player->bodyAnim, player->neckNode);
+		neckTransform = mat4::Transform(neckTransform.translation(), quat::FromAxisAngle(vec3::AxisX, -player->pitch * 0.5f) * neckTransform.rotation());
+		//neckTransform = mat4::Rotate(vec3::AxisX, -player->pitch * 0.5f) * neckTransform;
+		neckTransform = mat4::Transform(neckTransform.translation(), neckTransform.rotation(), vec3(0.01f));
+
+		mat4& clavicleRightTransform = GetNodeTransform(&player->bodyAnim, player->rightShoulderNode);
+		//clavicleRightTransform = mat4::Transform(clavicleRightTransform.translation(), quat::FromAxisAngle(vec3::AxisX, -player->pitch * 0.5f) * clavicleRightTransform.rotation());
+		//clavicleRightTransform = mat4::Rotate(vec3::AxisX, -player->pitch * 0.5f) * clavicleRightTransform;
+		clavicleRightTransform = neckTransform * mat4::Rotate(vec3::AxisX, -player->pitch * 0.5f) * neckTransform.inverted() * clavicleRightTransform;
+
+		mat4& clavicleLeftTransform = GetNodeTransform(&player->bodyAnim, player->leftShoulderNode);
+		//clavicleLeftTransform = mat4::Transform(clavicleLeftTransform.translation(), quat::FromAxisAngle(vec3::AxisX, -player->pitch * 0.5f) * clavicleLeftTransform.rotation());
+		//clavicleLeftTransform = mat4::Rotate(vec3::AxisX, -player->pitch * 0.5f) * clavicleLeftTransform;
+		clavicleLeftTransform = neckTransform * mat4::Rotate(vec3::AxisX, -player->pitch * 0.5f) * neckTransform.inverted() * clavicleLeftTransform;
+
+		mat4& weaponRightTransform = GetNodeTransform(&player->bodyAnim, player->rightWeaponNode);
+		//weaponRightTransform = mat4::Transform(weaponRightTransform.translation(), quat::FromAxisAngle(vec3::AxisX, -player->pitch * 0.5f) * weaponRightTransform.rotation());
+		//weaponRightTransform = mat4::Rotate(vec3::AxisX, -player->pitch * 0.5f) * weaponRightTransform;
+		weaponRightTransform = neckTransform * mat4::Rotate(vec3::AxisX, -player->pitch * 0.5f) * neckTransform.inverted() * weaponRightTransform;
+
+		mat4& weaponLeftTransform = GetNodeTransform(&player->bodyAnim, player->leftWeaponNode);
+		//weaponLeftTransform = mat4::Transform(weaponLeftTransform.translation(), quat::FromAxisAngle(vec3::AxisX, -player->pitch * 0.5f) * weaponLeftTransform.rotation());
+		//weaponLeftTransform = mat4::Rotate(vec3::AxisX, -player->pitch * 0.5f) * weaponLeftTransform;
+		weaponLeftTransform = neckTransform * mat4::Rotate(vec3::AxisX, -player->pitch * 0.5f) * neckTransform.inverted() * weaponLeftTransform;
+		*/
 	}
 
 	vec3 rootMotion = vec3::Zero;
@@ -595,17 +707,6 @@ void UpdatePlayer(Player* player)
 
 	if (player->cameraMode == CAMERA_MODE_FIRST_PERSON)
 	{
-		if (game->mouseLocked)
-		{
-			player->yaw -= app->mouseDelta.x * 0.001f;
-			player->pitch -= app->mouseDelta.y * 0.001f;
-
-			player->pitch = clamp(player->pitch, -0.5f * PI, 0.5f * PI);
-
-			if (!(GetCurrentAction(player) && GetCurrentAction(player)->lockPlayerRotation))
-				player->rotation = player->yaw;
-		}
-
 		if (!(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim))
 		{
 			SourceMovement(player, quat::FromAxisAngle(vec3::Up, player->rotation) * rootMotion);
@@ -626,10 +727,18 @@ void UpdatePlayer(Player* player)
 			game->cameraPosition.y -= landBob;
 
 			game->cameraRotation = quat::FromAxisAngle(vec3::Up, player->yaw) * quat::FromAxisAngle(vec3::Right, player->pitch);
+
+			//if (GetKey(SDL_SCANCODE_O))
+			{
+				game->cameraPosition = player->position + quat::FromAxisAngle(vec3::Up, player->rotation + PI) * (GetNodeTransform(&player->bodyAnim, player->neckNode).translation() + vec3(0, 0, 0.03f));
+				game->cameraRotation = GetNodeTransform(&player->bodyAnim, player->neckNode).rotation();
+				game->cameraRotation = quat::Identity;
+				game->cameraRotation = quat::FromAxisAngle(vec3::Up, player->yaw) * quat::FromAxisAngle(vec3::Right, player->pitch);
+			}
 		}
 		else
 		{
-			mat4 cameraNodeTransform = GetNodeTransform(&player->bodyAnim, player->bodyCameraNode);
+			mat4 cameraNodeTransform = GetNodeTransform(&player->bodyAnim, player->neckNode);
 			game->cameraPosition = player->position + quat::FromAxisAngle(vec3::Up, player->rotation) * cameraNodeTransform.translation();
 			//game->cameraRotation = quat::FromAxisAngle(vec3::Up, PI) * cameraNodeTransform.rotation();
 			game->cameraRotation = quat::FromAxisAngle(vec3::Up, player->rotation) * quat::FromAxisAngle(vec3::Right, player->pitch) * quat::FromAxisAngle(vec3::Up, player->yaw - player->rotation);
@@ -694,15 +803,12 @@ void UpdatePlayer(Player* player)
 void RenderPlayer(Player* player)
 {
 	mat4 bodyTransform = mat4::Translate(player->position) * mat4::Rotate(vec3::Up, player->rotation + PI);
-	if (!(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim))
-	{
-		bodyTransform = bodyTransform * mat4::Translate(0, 0, -0.3f);
-	}
 	RenderModel(&game->renderer, &player->bodyModel, &player->bodyAnim, bodyTransform);
 
 	mat4 cameraTransform = GetCameraTransform(player);
 
-	mat4 viewmodelTransform;
+	mat4 viewmodelTransform = mat4::Translate(player->position) * mat4::Rotate(vec3::Up, player->rotation + PI);
+	/*
 	if (!(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim))
 	{
 		viewmodelTransform = cameraTransform * mat4::Rotate(vec3::Up, PI);
@@ -713,6 +819,7 @@ void RenderPlayer(Player* player)
 	}
 
 	RenderModel(&game->renderer, &player->model, &player->anim, viewmodelTransform);
+	*/
 
 	Item* rightWeapon = GetRightWeapon(player);
 	Item* leftWeapon = GetLeftWeapon(player);
@@ -728,13 +835,13 @@ void RenderPlayer(Player* player)
 
 	if (rightWeapon)
 	{
-		mat4 weaponTransform = viewmodelTransform * GetNodeTransform(&player->anim, player->rightWeaponNode);
-		RenderModel(&game->renderer, &rightWeapon->model, &player->anim, weaponTransform);
+		mat4 weaponTransform = viewmodelTransform * GetNodeTransform(&player->bodyAnim, player->rightWeaponNode);
+		RenderModel(&game->renderer, &rightWeapon->model, nullptr, weaponTransform);
 	}
 	if (leftWeapon)
 	{
-		mat4 weaponTransform = viewmodelTransform * GetNodeTransform(&player->anim, player->leftWeaponNode);
-		RenderModel(&game->renderer, &leftWeapon->model, &player->anim, weaponTransform);
+		mat4 weaponTransform = viewmodelTransform * GetNodeTransform(&player->bodyAnim, player->leftWeaponNode);
+		RenderModel(&game->renderer, &leftWeapon->model, nullptr, weaponTransform);
 	}
 
 	// vignette

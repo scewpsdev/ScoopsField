@@ -66,9 +66,7 @@ struct Player : Entity
 
 	Node* rightWeaponNode, * leftWeaponNode;
 	Node* rightShoulderNode, * leftShoulderNode;
-	Node* rootNode;
-
-	Node* bodyCameraNode;
+	Node* rootNode, * neckNode, * spineNode;
 
 	mat4 lastRootNodeTransform;
 

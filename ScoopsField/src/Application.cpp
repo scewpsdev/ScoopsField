@@ -275,10 +275,6 @@ static AppState* InitAppState()
 
 	InitGPUTimer(&appState->gpuTiming, device);
 
-#if _DEBUG
-	appState->debugStats = true;
-#endif
-
 	return appState;
 }
 

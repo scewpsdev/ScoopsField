@@ -309,6 +309,8 @@ static void ReadNode(Node* node, BinaryReader& reader)
 
 	node->armatureID = reader.ReadInt32();
 
+	node->parent = -1;
+
 	node->transform = reader.ReadMatrix4();
 
 	node->numChildren = reader.ReadInt32();
@@ -353,6 +355,16 @@ static void ReadLight(BinaryReader& reader)
 	vec3 position = reader.ReadVector3();
 	vec3 direction = reader.ReadVector3();
 	vec3 color = reader.ReadVector3();
+}
+
+static void FindNodeParents(Model* model, Node* node)
+{
+	for (int i = 0; i < node->numChildren; i++)
+	{
+		Node* child = &model->nodes[node->children[i]];
+		child->parent = node->id;
+		FindNodeParents(model, child);
+	}
 }
 
 bool LoadModel(Model* model, const char* path, bool cacheMeshes, SDL_GPUCommandBuffer* cmdBuffer)
@@ -402,6 +414,8 @@ bool LoadModel(Model* model, const char* path, bool cacheMeshes, SDL_GPUCommandB
 		reader.Read(&model->boundingSphere);
 
 		SDL_free(data);
+
+		FindNodeParents(model, &model->nodes[0]);
 
 		return true;
 	}

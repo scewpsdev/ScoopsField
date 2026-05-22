@@ -63,6 +63,8 @@ mat4 operator*(const mat4& left, const mat4& right);
 vec4 operator*(const mat4& left, const vec4& right);
 vec3 operator*(const mat4& left, const vec3& right);
 
+mat4 operator-(const mat4& left, const mat4& right);
+
 bool operator==(const mat4& a, const mat4& b);
 bool operator!=(const mat4& a, const mat4& b);
 

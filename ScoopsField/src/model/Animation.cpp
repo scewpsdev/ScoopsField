@@ -5,6 +5,7 @@
 
 void InitAnimationState(AnimationState* animationState, Model* model)
 {
+	animationState->model = model;
 	for (int i = 0; i < model->numNodes; i++)
 	{
 		animationState->nodeTransforms[i] = model->nodes[i].transform;
@@ -265,7 +266,21 @@ void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState)
 
 mat4& GetNodeTransform(AnimationState* animationState, Node* node)
 {
+	//SDL_assert(HashMapGet(&animationState->channelMap, node));
+	SDL_assert(GetNodeByName(animationState->model, node->name) == node);
 	return animationState->nodeTransforms[node->id];
+}
+
+mat4 CalculateNodeDefaultWorldTransform(Model* model, Node* node)
+{
+	mat4 transform = node->transform;
+	while (node->parent != -1)
+	{
+		Node* parentNode = &model->nodes[node->parent];
+		transform = parentNode->transform * transform;
+		node = parentNode;
+	}
+	return transform;
 }
 
 void InitAnimation(AnimationPlayback* animation, const char* name, Model* moveset, float speed, bool loop, bool mirror)

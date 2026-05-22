@@ -25,6 +25,7 @@ struct SkeletonState
 
 struct AnimationState
 {
+	Model* model;
 	mat4 nodeTransforms[MAX_NODES];
 	SkeletonState skeletons[MAX_SKELETONS];
 
@@ -41,5 +42,6 @@ void BlendAnimation(Model* model, AnimationState* animationState, Animation* ani
 void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState);
 
 mat4& GetNodeTransform(AnimationState* animationState, Node* node);
+mat4 CalculateNodeDefaultWorldTransform(Model* model, Node* node);
 
 void InitAnimation(AnimationPlayback* animation, const char* name, Model* moveset, float speed, bool loop, bool mirror);

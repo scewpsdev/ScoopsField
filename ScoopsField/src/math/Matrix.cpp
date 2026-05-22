@@ -385,6 +385,11 @@ vec3 operator*(const mat4& a, const vec3& b)
 	return result;
 }
 
+mat4 operator-(const mat4& left, const mat4& right)
+{
+	return left * right.inverted();
+}
+
 bool operator==(const mat4& a, const mat4& b)
 {
 	return memcmp(a.elements, b.elements, 16 * sizeof(float)) == 0;

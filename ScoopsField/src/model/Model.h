@@ -72,6 +72,7 @@ struct Node
 	char name[64];
 	int id;
 	int armatureID;
+	int parent;
 	mat4 transform;
 
 #define MAX_NODE_CHILDREN 64
