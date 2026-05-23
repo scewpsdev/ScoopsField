@@ -1,6 +1,8 @@
 #pragma once
 
+#if _DEBUG
 #define GPU_TIMING
+#endif
 
 #include <SDL3/SDL.h>
 

@@ -70,6 +70,7 @@ struct GpuTimerContext
 };
 
 #define GPU_SCOPE(name)
+#define GPU_TIMER(name)
 
 #endif
 
