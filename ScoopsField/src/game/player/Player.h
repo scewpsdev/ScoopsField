@@ -81,7 +81,7 @@ struct Player : Entity
 	mat4 lastRootNodeTransform;
 
 	AnimationPlayback idleAnim;
-	AnimationPlayback bodyIdleAnim, bodyRunAnim, bodyDuckAnim, bodySneakAnim;
+	AnimationPlayback bodyIdleAnim, bodyRunAnim, bodyDuckAnim, bodySneakAnim, bodyFallAnim;
 
 	float viewBobVerticalSpeedAnim;
 	vec3 viewBobLookSwayAnim;

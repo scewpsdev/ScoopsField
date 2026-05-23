@@ -11,8 +11,9 @@
 #define PLAYER_REACH 2.5f
 #define CONTROLLER_HEIGHT 1.75f
 #define CONTROLLER_HEIGHT_DUCKED 1.15f
-#define CAMERA_HEIGHT 1.5f
-#define CAMERA_HEIGHT_DUCKED (CAMERA_HEIGHT - (CONTROLLER_HEIGHT - CONTROLLER_HEIGHT_DUCKED))
+#define CAMERA_HEIGHT 1.49f
+#define CAMERA_HEIGHT_DUCKED 0.94f
+//#define CAMERA_HEIGHT_DUCKED (CAMERA_HEIGHT - (CONTROLLER_HEIGHT - CONTROLLER_HEIGHT_DUCKED))
 
 
 Action* GetCurrentAction(Player* player)
@@ -152,7 +153,8 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 	InitAnimation(&player->bodyIdleAnim, "idle", &player->bodyModel, 1.0f, true, false);
 	InitAnimation(&player->bodyRunAnim, "run", &player->bodyModel, 1.0f, true, false);
 	InitAnimation(&player->bodyDuckAnim, "duck", &player->bodyModel, 1.0f, true, false);
-	InitAnimation(&player->bodySneakAnim, "sneak", &player->bodyModel, 2.5f, true, false);
+	InitAnimation(&player->bodySneakAnim, "sneak", &player->bodyModel, 50.0f / 24, true, false);
+	InitAnimation(&player->bodyFallAnim, "fall", &player->bodyModel, 1.0f, true, false);
 
 	InitCharacterController(&player->controller, 0.3f, CONTROLLER_HEIGHT, 0.2f, player->position);
 	InitRigidBody(&player->kinematicBody, RIGID_BODY_KINEMATIC, player->position, quat::Identity);
@@ -453,19 +455,26 @@ void UpdatePlayer(Player* player)
 
 	AnimationPlayback* bodyMoveAnimation = nullptr;
 
-	if (player->ducked || player->duckTimer != -1)
+	if (player->grounded)
 	{
-		if (player->moving)
-			bodyMoveAnimation = &player->bodySneakAnim;
+		if (player->ducked || player->duckTimer != -1)
+		{
+			if (player->moving)
+				bodyMoveAnimation = &player->bodySneakAnim;
+			else
+				bodyMoveAnimation = &player->bodyDuckAnim;
+		}
 		else
-			bodyMoveAnimation = &player->bodyDuckAnim;
+		{
+			if (player->moving)
+				bodyMoveAnimation = &player->bodyRunAnim;
+			else
+				bodyMoveAnimation = &player->bodyIdleAnim;
+		}
 	}
 	else
 	{
-		if (player->moving)
-			bodyMoveAnimation = &player->bodyRunAnim;
-		else
-			bodyMoveAnimation = &player->bodyIdleAnim;
+		bodyMoveAnimation = &player->bodyFallAnim;
 	}
 
 	bodyMoveAnimation->timer += deltaTime * bodyMoveAnimation->speed;
@@ -566,6 +575,13 @@ void UpdatePlayer(Player* player)
 			}
 			else
 			{
+				if (bodyAnimation == player->bodyDuckAnim.animation && player->bodyBlendAnim == player->bodyIdleAnim.animation ||
+					bodyAnimation == player->bodySneakAnim.animation && player->bodyBlendAnim == player->bodyRunAnim.animation)
+					blendProgress = remap(player->cameraHeight, CAMERA_HEIGHT, CAMERA_HEIGHT_DUCKED, 0, 1);
+				else if (bodyAnimation == player->bodyIdleAnim.animation && player->bodyBlendAnim == player->bodyDuckAnim.animation ||
+					bodyAnimation == player->bodyRunAnim.animation && player->bodyBlendAnim == player->bodySneakAnim.animation)
+					blendProgress = remap(player->cameraHeight, CAMERA_HEIGHT, CAMERA_HEIGHT_DUCKED, 1, 0);
+
 				BlendAnimation(&player->bodyModel, &player->bodyAnim, player->bodyBlendAnim, player->bodyBlendAnimTimer, player->bodyBlendAnimLoop, 1 - blendProgress, nullptr, nullptr);
 			}
 		}
@@ -738,7 +754,17 @@ void UpdatePlayer(Player* player)
 		}
 	}
 
+	ResolveNodeWorldTransforms(&player->model, &player->anim);
 	ApplyAnimationToSkeleton(&player->model, &player->anim);
+
+	ResolveNodeWorldTransforms(&player->bodyModel, &player->bodyAnim);
+
+	// correct neck height so duck camera animation is smooth
+	{
+		mat4& neckTransform = GetNodeTransform(&player->bodyAnim, player->neckNode);
+		//SDL_Log("%.2f, %.2f, %.2f\n", neckTransform.m30, neckTransform.m31, neckTransform.m32);
+		//neckTransform.m31 = player->cameraHeight;
+	}
 
 	ApplyAnimationToSkeleton(&player->bodyModel, &player->bodyAnim);
 
@@ -847,9 +873,10 @@ void RenderPlayer(Player* player)
 
 	RenderModel(&game->renderer, &player->bodyModel, &player->bodyAnim, mat4::Translate(-1, 0, -1));
 
-	mat4 cameraTransform = GetCameraTransform(player);
+	//mat4 cameraTransform = GetCameraTransform(player);
 
 	mat4 viewmodelTransform = mat4::Translate(player->position) * mat4::Rotate(vec3::Up, player->rotation + PI);
+
 	/*
 	if (!(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim))
 	{

@@ -25,6 +25,7 @@ void InitEquipAction(Action* action, Item* weapon, int dstLoadout)
 			action->leftAnimMoveset = &weapon->moveset;
 			action->leftAnimBlendDuration = 0.0f;
 		}
+
 		action->animationSpeed = 1.0f;
 		//action->moveSpeed = 0.5f;
 
