@@ -182,7 +182,6 @@ void UpdateCreature(Creature* creature, Entity* entity)
 		BlendAnimation(creature->model, &creature->anim, actionAnimation->animation, actionAnimation->timer, actionAnimation->loop, 1, !currentAction->fullBody ? (AnimationChannelFilterCallback_t)UpperBodyAnimFilter : nullptr);
 	}
 
-	ResolveNodeWorldTransforms(creature->model, &creature->anim);
 	ApplyAnimationToSkeleton(creature->model, &creature->anim);
 
 	if (creature->health > 0)

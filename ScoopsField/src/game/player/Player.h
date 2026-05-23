@@ -78,6 +78,7 @@ struct Player : Entity
 	Node* rightShoulderNode, * leftShoulderNode;
 	Node* rootNode, * neckNode, * spineNode;
 
+	vec3 rootMotion;
 	mat4 lastRootNodeTransform;
 
 	AnimationPlayback idleAnim;

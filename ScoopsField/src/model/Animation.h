@@ -39,7 +39,6 @@ void InitAnimationState(AnimationState* animationState, Model* model);
 
 void AnimateModel(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr);
 void BlendAnimation(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, float blend, AnimationChannelFilterCallback_t channelFilter = nullptr, void* filterUserPtr = nullptr);
-void ResolveNodeWorldTransforms(Model* model, AnimationState* animationState);
 void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState);
 
 mat4& GetNodeTransform(AnimationState* animationState, Node* node);

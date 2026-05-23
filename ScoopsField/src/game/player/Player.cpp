@@ -9,10 +9,10 @@
 #define HIT_RECOVERY_DURATION 0.25f
 #define STEP_FREQUENCY 0.6f
 #define PLAYER_REACH 2.5f
-#define CONTROLLER_HEIGHT 1.75f
-#define CONTROLLER_HEIGHT_DUCKED 1.15f
 #define CAMERA_HEIGHT 1.49f
 #define CAMERA_HEIGHT_DUCKED 0.94f
+#define CONTROLLER_HEIGHT 1.7f
+#define CONTROLLER_HEIGHT_DUCKED (CONTROLLER_HEIGHT + (CAMERA_HEIGHT_DUCKED - CAMERA_HEIGHT))
 //#define CAMERA_HEIGHT_DUCKED (CAMERA_HEIGHT - (CONTROLLER_HEIGHT - CONTROLLER_HEIGHT_DUCKED))
 
 
@@ -345,13 +345,27 @@ void UpdatePlayer(Player* player)
 
 	if (game->mouseLocked)
 	{
-		player->yaw -= app->mouseDelta.x * 0.001f;
-		player->pitch -= app->mouseDelta.y * 0.001f;
+		if (player->cameraMode == CAMERA_MODE_FIRST_PERSON)
+		{
+			player->yaw -= app->mouseDelta.x * 0.001f;
+			player->pitch -= app->mouseDelta.y * 0.001f;
 
-		player->pitch = clamp(player->pitch, -0.5f * PI, 0.5f * PI);
+			player->pitch = clamp(player->pitch, -0.5f * PI, 0.5f * PI);
 
-		if (!(GetCurrentAction(player) && GetCurrentAction(player)->lockPlayerRotation))
-			player->rotation = player->yaw;
+			if (!(GetCurrentAction(player) && GetCurrentAction(player)->lockPlayerRotation))
+				player->rotation = player->yaw;
+
+			if (!(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim))
+			{
+				SourceMovement(player, quat::FromAxisAngle(vec3::Up, player->rotation) * player->rootMotion);
+				player->rootMotion = vec3::Zero;
+
+				player->cameraHeight = player->ducked ? CAMERA_HEIGHT_DUCKED :
+					player->duckTimer != -1 ? min(player->cameraHeight, mix(CAMERA_HEIGHT, CAMERA_HEIGHT_DUCKED, player->duckTimer / DUCK_TRANSITION)) :
+					player->grounded ? mix(player->cameraHeight, CAMERA_HEIGHT, 10 * deltaTime) :
+					CAMERA_HEIGHT;
+			}
+		}
 	}
 
 	for (int i = 0; i < NUM_LOADOUTS; i++)
@@ -474,7 +488,10 @@ void UpdatePlayer(Player* player)
 	}
 	else
 	{
-		bodyMoveAnimation = &player->bodyFallAnim;
+		if (player->ducked || player->duckTimer != -1)
+			bodyMoveAnimation = &player->bodyDuckAnim;
+		else
+			bodyMoveAnimation = &player->bodyFallAnim;
 	}
 
 	bodyMoveAnimation->timer += deltaTime * bodyMoveAnimation->speed;
@@ -575,11 +592,11 @@ void UpdatePlayer(Player* player)
 			}
 			else
 			{
-				if (bodyAnimation == player->bodyDuckAnim.animation && player->bodyBlendAnim == player->bodyIdleAnim.animation ||
-					bodyAnimation == player->bodySneakAnim.animation && player->bodyBlendAnim == player->bodyRunAnim.animation)
+				if ((bodyAnimation == player->bodyDuckAnim.animation || bodyAnimation == player->bodySneakAnim.animation) &&
+					(player->bodyBlendAnim == player->bodyIdleAnim.animation || player->bodyBlendAnim == player->bodyRunAnim.animation || player->bodyBlendAnim == player->bodyFallAnim.animation))
 					blendProgress = remap(player->cameraHeight, CAMERA_HEIGHT, CAMERA_HEIGHT_DUCKED, 0, 1);
-				else if (bodyAnimation == player->bodyIdleAnim.animation && player->bodyBlendAnim == player->bodyDuckAnim.animation ||
-					bodyAnimation == player->bodyRunAnim.animation && player->bodyBlendAnim == player->bodySneakAnim.animation)
+				else if ((bodyAnimation == player->bodyIdleAnim.animation || bodyAnimation == player->bodyRunAnim.animation || bodyAnimation == player->bodyFallAnim.animation) &&
+					(player->bodyBlendAnim == player->bodyDuckAnim.animation || player->bodyBlendAnim == player->bodySneakAnim.animation))
 					blendProgress = remap(player->cameraHeight, CAMERA_HEIGHT, CAMERA_HEIGHT_DUCKED, 1, 0);
 
 				BlendAnimation(&player->bodyModel, &player->bodyAnim, player->bodyBlendAnim, player->bodyBlendAnimTimer, player->bodyBlendAnimLoop, 1 - blendProgress, nullptr, nullptr);
@@ -743,29 +760,18 @@ void UpdatePlayer(Player* player)
 		*/
 	}
 
-	vec3 rootMotion = vec3::Zero;
+	player->rootMotion = vec3::Zero;
 	mat4 rootMotionDelta = DoRootMotion(&player->anim, player->rootNode, &player->lastRootNodeTransform);
 	if (Action* currentAction = GetCurrentAction(player))
 	{
 		if (currentAction->rootMotion)
 		{
 			rootMotionDelta = mat4::Rotate(vec3::Up, PI) * rootMotionDelta;
-			rootMotion = rootMotionDelta.translation();
+			player->rootMotion = rootMotionDelta.translation();
 		}
 	}
 
-	ResolveNodeWorldTransforms(&player->model, &player->anim);
 	ApplyAnimationToSkeleton(&player->model, &player->anim);
-
-	ResolveNodeWorldTransforms(&player->bodyModel, &player->bodyAnim);
-
-	// correct neck height so duck camera animation is smooth
-	{
-		mat4& neckTransform = GetNodeTransform(&player->bodyAnim, player->neckNode);
-		//SDL_Log("%.2f, %.2f, %.2f\n", neckTransform.m30, neckTransform.m31, neckTransform.m32);
-		//neckTransform.m31 = player->cameraHeight;
-	}
-
 	ApplyAnimationToSkeleton(&player->bodyModel, &player->bodyAnim);
 
 	if (GetKeyDown(SDL_SCANCODE_F5))
@@ -775,13 +781,6 @@ void UpdatePlayer(Player* player)
 	{
 		if (!(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim))
 		{
-			SourceMovement(player, quat::FromAxisAngle(vec3::Up, player->rotation) * rootMotion);
-
-			player->cameraHeight = player->ducked ? CAMERA_HEIGHT_DUCKED :
-				player->duckTimer != -1 ? min(player->cameraHeight, mix(CAMERA_HEIGHT, CAMERA_HEIGHT_DUCKED, player->duckTimer / DUCK_TRANSITION)) :
-				player->grounded ? mix(player->cameraHeight, CAMERA_HEIGHT, 10 * deltaTime) :
-				CAMERA_HEIGHT;
-
 			game->cameraPosition = player->position + vec3::Up * player->cameraHeight;
 
 			float landBob = 0.0f;
