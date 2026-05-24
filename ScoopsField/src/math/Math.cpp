@@ -36,10 +36,10 @@ static float RandomGaussian(Random& random)
 	{
 		float u1 = random.nextFloat();
 		float u2 = random.nextFloat();
-		float r = sqrtf(-2 * logf(u1));
+		float r = SDL_sqrtf(-2 * SDL_logf(u1));
 		float t = 2 * PI * u2;
-		float x = r * cosf(t);
-		float y = r * sinf(t);
+		float x = r * SDL_cosf(t);
+		float y = r * SDL_sinf(t);
 		nextGaussian = y;
 		return x;
 	}
@@ -79,14 +79,14 @@ AABB TransformBoundingBox(const AABB& localBox, const mat4& transform)
 	{
 		vec3 corner = transform * corners[i];
 
-		aabbMin.x = fminf(aabbMin.x, corner.x);
-		aabbMax.x = fmaxf(aabbMax.x, corner.x);
+		aabbMin.x = SDL_min(aabbMin.x, corner.x);
+		aabbMax.x = SDL_max(aabbMax.x, corner.x);
 
-		aabbMin.y = fminf(aabbMin.y, corner.y);
-		aabbMax.y = fmaxf(aabbMax.y, corner.y);
+		aabbMin.y = SDL_min(aabbMin.y, corner.y);
+		aabbMax.y = SDL_max(aabbMax.y, corner.y);
 
-		aabbMin.z = fminf(aabbMin.z, corner.z);
-		aabbMax.z = fmaxf(aabbMax.z, corner.z);
+		aabbMin.z = SDL_min(aabbMin.z, corner.z);
+		aabbMax.z = SDL_max(aabbMax.z, corner.z);
 	}
 
 	AABB worldSpaceBox;
@@ -153,9 +153,9 @@ vec3 DecodeRG11B10(uint32_t bits)
 	uint32_t manr = rb & 0b111111;
 	uint32_t mang = gb & 0b111111;
 	uint32_t manb = bb & 0b11111;
-	float r = powf(2, (float)expr - 15) * (1.0f + manr / (float)0b1000000);
-	float g = powf(2, (float)expg - 15) * (1.0f + mang / (float)0b1000000);
-	float b = powf(2, (float)expb - 15) * (1.0f + manb / (float)0b100000);
+	float r = SDL_powf(2, (float)expr - 15) * (1.0f + manr / (float)0b1000000);
+	float g = SDL_powf(2, (float)expg - 15) * (1.0f + mang / (float)0b1000000);
+	float b = SDL_powf(2, (float)expb - 15) * (1.0f + manb / (float)0b100000);
 	return vec3(r, g, b);
 }
 
@@ -167,7 +167,7 @@ bool FrustumCulling(const Sphere& boundingSphere, vec4 planes[6])
 	for (int i = 0; i < 6; i++)
 	{
 		float distance = boundingSpherePos.x * planes[i].x + boundingSpherePos.y * planes[i].y + boundingSpherePos.z * planes[i].z;
-		float l = sqrtf(planes[i].x * planes[i].x + planes[i].y * planes[i].y + planes[i].z * planes[i].z);
+		float l = SDL_sqrtf(planes[i].x * planes[i].x + planes[i].y * planes[i].y + planes[i].z * planes[i].z);
 		distance += planes[i].w / l;
 		if (distance + boundingSphereRadius < 0.0f)
 			return false;
@@ -184,7 +184,7 @@ bool FrustumCulling(const Sphere& boundingSphere, mat4 transform, vec4 planes[6]
 	for (int i = 0; i < 6; i++)
 	{
 		float distance = boundingSpherePos.x * planes[i].x + boundingSpherePos.y * planes[i].y + boundingSpherePos.z * planes[i].z;
-		float l = sqrtf(planes[i].x * planes[i].x + planes[i].y * planes[i].y + planes[i].z * planes[i].z);
+		float l = SDL_sqrtf(planes[i].x * planes[i].x + planes[i].y * planes[i].y + planes[i].z * planes[i].z);
 		distance += planes[i].w / l;
 		if (distance + boundingSphereRadius < 0.0f)
 			return false;

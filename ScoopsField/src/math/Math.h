@@ -70,7 +70,12 @@ inline int sign(float f)
 
 inline float fract(float x)
 {
-	return x - floorf(x);
+	return x - SDL_floorf(x);
+}
+
+inline float mod(float x, float y)
+{
+	return x >= 0 ? SDL_fmodf(x, y) : SDL_fmodf(x + SDL_ceilf(-x / y) * y, y);
 }
 
 float radians(float degrees);

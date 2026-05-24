@@ -9,6 +9,7 @@
 
 #include "AttackAction.h"
 #include "EquipAction.h"
+#include "UnequipAction.h"
 #include "PickUpAction.h"
 #include "DropAction.h"
 #include "SitAction.h"
@@ -20,6 +21,7 @@ enum ActionType
 
 	ACTION_TYPE_ATTACK,
 	ACTION_TYPE_EQUIP,
+	ACTION_TYPE_UNEQUIP,
 	ACTION_TYPE_PICKUP,
 	ACTION_TYPE_DROP,
 	ACTION_TYPE_SIT,
@@ -84,6 +86,7 @@ struct Action
 	{
 		AttackAction attack;
 		EquipAction equip;
+		UnequipAction unequip;
 		PickUpAction pickup;
 		DropAction drop;
 		SitAction sit;
@@ -104,6 +107,7 @@ struct ActionManager
 switch(action->type) { \
 ActionCase(func, Attack, ATTACK) \
 ActionCase(func, Equip, EQUIP) \
+ActionCase(func, Unequip, UNEQUIP) \
 ActionCase(func, PickUp, PICKUP) \
 ActionCase(func, Drop, DROP) \
 ActionCase(func, Sit, SIT) \

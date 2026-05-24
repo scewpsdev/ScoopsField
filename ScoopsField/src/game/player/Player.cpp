@@ -25,13 +25,23 @@ static void SetRightWeapon(Player* player, int loadout, Item* weapon)
 {
 	if (player->rightWeapons[loadout] != weapon)
 	{
+		Item* lastWeapon = player->rightWeapons[loadout];
 		player->rightWeapons[loadout] = weapon;
 
-		if (loadout == player->currentLoadout && weapon)
+		if (loadout == player->currentLoadout)
 		{
-			Action action;
-			InitEquipAction(&action, weapon);
-			QueueAction(player->actions, action, *player);
+			if (weapon)
+			{
+				Action action;
+				InitEquipAction(&action, weapon);
+				QueueAction(player->actions, action, *player);
+			}
+			else if (lastWeapon)
+			{
+				Action action;
+				InitUnequipAction(&action, lastWeapon);
+				QueueAction(player->actions, action, *player);
+			}
 		}
 	}
 }
@@ -40,13 +50,23 @@ static void SetLeftWeapon(Player* player, int loadout, Item* weapon)
 {
 	if (player->leftWeapons[loadout] != weapon)
 	{
+		Item* lastWeapon = player->leftWeapons[loadout];
 		player->leftWeapons[loadout] = weapon;
 
-		if (loadout == player->currentLoadout && weapon)
+		if (loadout == player->currentLoadout)
 		{
-			Action action;
-			InitEquipAction(&action, weapon);
-			QueueAction(player->actions, action, *player);
+			if (weapon)
+			{
+				Action action;
+				InitEquipAction(&action, weapon);
+				QueueAction(player->actions, action, *player);
+			}
+			else if (lastWeapon)
+			{
+				Action action;
+				InitUnequipAction(&action, lastWeapon);
+				QueueAction(player->actions, action, *player);
+			}
 		}
 	}
 }
@@ -114,10 +134,18 @@ void SwitchLoadout(Player* player, int loadout)
 {
 	if (player->currentLoadout != loadout)
 	{
-		// TODO sheathe animation when switching to hands
-		Action action;
-		InitEquipAction(&action, player->rightWeapons[loadout], loadout);
-		QueueAction(player->actions, action, *player);
+		if (player->rightWeapons[loadout])
+		{
+			Action action;
+			InitEquipAction(&action, player->rightWeapons[loadout], loadout);
+			QueueAction(player->actions, action, *player);
+		}
+		else if (player->rightWeapons[player->currentLoadout])
+		{
+			Action action;
+			InitUnequipAction(&action, player->rightWeapons[player->currentLoadout], loadout);
+			QueueAction(player->actions, action, *player);
+		}
 	}
 }
 
@@ -152,8 +180,10 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 	InitAnimation(&player->idleAnim, "idle", &player->model, 0.005f, true, false);
 	InitAnimation(&player->bodyIdleAnim, "idle", &player->bodyModel, 1.0f, true, false);
 	InitAnimation(&player->bodyRunAnim, "run", &player->bodyModel, 1.0f, true, false);
+	InitAnimation(&player->bodyStrafeAnim, "strafe", &player->bodyModel, 1.0f, true, false);
 	InitAnimation(&player->bodyDuckAnim, "duck", &player->bodyModel, 1.0f, true, false);
-	InitAnimation(&player->bodySneakAnim, "sneak", &player->bodyModel, 50.0f / 24, true, false);
+	InitAnimation(&player->bodySneakAnim, "sneak", &player->bodyModel, 1.0f, true, false);
+	InitAnimation(&player->bodySneakStrafeAnim, "sneak_strafe", &player->bodyModel, 1.0f, true, false);
 	InitAnimation(&player->bodyFallAnim, "fall", &player->bodyModel, 1.0f, true, false);
 
 	InitCharacterController(&player->controller, 0.3f, CONTROLLER_HEIGHT, 0.2f, player->position);
@@ -474,16 +504,50 @@ void UpdatePlayer(Player* player)
 		if (player->ducked || player->duckTimer != -1)
 		{
 			if (player->moving)
-				bodyMoveAnimation = &player->bodySneakAnim;
+			{
+				vec3 fsu = quat::FromAxisAngle(vec3::Up, player->rotation).conjugated() * player->velocity;
+
+				if (SDL_fabsf(fsu.z) > SDL_fabsf(fsu.x))
+				{
+					bodyMoveAnimation = &player->bodySneakAnim;
+					bodyMoveAnimation->speed = fsu.z < 0 ? 1.0f : -1.0f;
+				}
+				else
+				{
+					bodyMoveAnimation = &player->bodySneakStrafeAnim;
+					bodyMoveAnimation->speed = fsu.x > 0 ? 1.0f : -1.0f;
+				}
+
+				bodyMoveAnimation->speed *= fsu.length() / 3.0f * (49.0f / 24) * 1.5f;
+			}
 			else
+			{
 				bodyMoveAnimation = &player->bodyDuckAnim;
+			}
 		}
 		else
 		{
 			if (player->moving)
-				bodyMoveAnimation = &player->bodyRunAnim;
+			{
+				vec3 fsu = quat::FromAxisAngle(vec3::Up, player->rotation).conjugated() * player->velocity;
+
+				if (SDL_fabsf(fsu.z) > SDL_fabsf(fsu.x))
+				{
+					bodyMoveAnimation = &player->bodyRunAnim;
+					bodyMoveAnimation->speed = fsu.z < 0 ? 1.0f : -1.0f;
+				}
+				else
+				{
+					bodyMoveAnimation = &player->bodyStrafeAnim;
+					bodyMoveAnimation->speed = fsu.x > 0 ? 1.0f : -1.0f;
+				}
+
+				bodyMoveAnimation->speed *= fsu.length() / 3.0f;
+			}
 			else
+			{
 				bodyMoveAnimation = &player->bodyIdleAnim;
+			}
 		}
 	}
 	else

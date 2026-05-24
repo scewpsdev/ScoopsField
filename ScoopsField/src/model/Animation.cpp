@@ -133,7 +133,7 @@ static vec3 AnimateScaling(ScalingKeyframe* scalings, int numScalings, float tim
 static mat4 AnimateNode(Node* node, AnimationChannel* channel, Animation* animation, float time, bool loop)
 {
 	if (loop)
-		time = SDL_fmodf(time, animation->duration);
+		time = mod(time, animation->duration);
 
 	vec3 position = AnimatePosition(&animation->positions[channel->positionsOffset], channel->positionsCount, time, animation->duration, loop);
 	quat rotation = AnimateRotation(&animation->rotations[channel->rotationsOffset], channel->rotationsCount, time, animation->duration, loop);
@@ -267,7 +267,8 @@ void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState)
 mat4& GetNodeTransform(AnimationState* animationState, Node* node)
 {
 	//SDL_assert(HashMapGet(&animationState->channelMap, node));
-	SDL_assert(GetNodeByName(animationState->model, node->name) == node);
+	//SDL_assert(GetNodeByName(animationState->model, node->name) == node);
+	SDL_assert(&animationState->model->nodes[node->id] == node);
 	return animationState->nodeTransforms[node->id];
 }
 
