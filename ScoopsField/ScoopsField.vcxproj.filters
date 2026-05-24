@@ -192,6 +192,9 @@
     <ClCompile Include="src\game\player\action\UnequipAction.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\game\player\action\ShootAction.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\spirv_cross\spirv.h">
@@ -462,6 +465,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\game\player\action\UnequipAction.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\player\action\ShootAction.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

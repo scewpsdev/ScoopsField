@@ -15,6 +15,7 @@ void InitAction(Action* action, ActionType type)
 	//action->speed = 1.0f;
 	action->animationSpeed = 1.0f;
 	action->moveSpeed = 1.0f;
+	action->idleAnimStrength = 1.0f;
 
 	action->rightAnimBlendDuration = 0.2f;
 	action->leftAnimBlendDuration = 0.2f;

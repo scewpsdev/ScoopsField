@@ -11,6 +11,8 @@ enum ItemType
 
 	ITEM_TYPE_KINGS_SWORD,
 	ITEM_TYPE_LONGSWORD,
+	ITEM_TYPE_SHORTBOW,
+	ITEM_TYPE_ARROW,
 	ITEM_TYPE_WOODEN_SHIELD,
 
 	ITEM_TYPE_LAST
@@ -21,6 +23,7 @@ struct Attack
 	const char* name;
 	bool secondary;
 	bool stance;
+	bool projectileShoot;
 
 	const char* animation;
 	float animationSpeed;

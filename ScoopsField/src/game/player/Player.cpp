@@ -203,6 +203,7 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 
 	SetRightWeapon(player, 0, GetItem(ITEM_TYPE_LONGSWORD));
 	SetRightWeapon(player, 1, GetItem(ITEM_TYPE_KINGS_SWORD));
+	SetRightWeapon(player, 2, GetItem(ITEM_TYPE_SHORTBOW));
 	//SetLeftWeapon(player, 1, GetItem(ITEM_TYPE_WOODEN_SHIELD));
 }
 
@@ -312,7 +313,7 @@ static mat4 CalculateViewBobbing(Player* player, int side)
 	float pitchSway = 0;
 	float rollSway = 0;
 
-	float swayScale = /*actionManager.currentAction != null ? actionManager.currentAction.swayAmount :*/ 1;
+	float swayScale = GetCurrentAction(player) ? GetCurrentAction(player)->idleAnimStrength : 1;
 
 	// Idle animation
 	float idleProgress = gameTime * PI * 2 / 8.0f;
@@ -638,7 +639,7 @@ void UpdatePlayer(Player* player)
 
 		//AnimateModel(&player->bodyModel, &player->bodyAnim, moveAnimation->animation, moveAnimation->timer, moveAnimation->loop, nullptr, nullptr);
 
-		if (bodyAnimation != player->lastBodyAnim && player->lastBodyAnim && bodyAnimationBlendDuration)
+		if (bodyAnimation != player->lastBodyAnim && player->lastBodyAnim)
 		{
 			player->bodyBlendStart = gameTime;
 			player->bodyBlendAnim = player->lastBodyAnim;
@@ -649,8 +650,8 @@ void UpdatePlayer(Player* player)
 
 		if (player->bodyBlendStart)
 		{
-			float blendProgress = (gameTime - player->bodyBlendStart) / player->bodyBlendDuration;
-			if (blendProgress > 1.0f)
+			float blendProgress = player->bodyBlendDuration ? (gameTime - player->bodyBlendStart) / player->bodyBlendDuration : 1;
+			if (blendProgress >= 1)
 			{
 				player->bodyBlendStart = 0;
 			}
@@ -678,7 +679,7 @@ void UpdatePlayer(Player* player)
 
 		AnimateModel(&player->bodyModel, &player->bodyAnim, rightAnimation, rightAnimationTimer, rightAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 
-		if (rightAnimation != player->lastRightAnim && player->lastRightAnim && rightAnimationBlendDuration)
+		if (rightAnimation != player->lastRightAnim && player->lastRightAnim)
 		{
 			player->rightBlendStart = gameTime;
 			player->rightBlendAnim = player->lastRightAnim;
@@ -689,8 +690,8 @@ void UpdatePlayer(Player* player)
 
 		if (player->rightBlendStart)
 		{
-			float blendProgress = (gameTime - player->rightBlendStart) / player->rightBlendDuration;
-			if (blendProgress > 1.0f)
+			float blendProgress = player->rightBlendDuration ? (gameTime - player->rightBlendStart) / player->rightBlendDuration : 1;
+			if (blendProgress >= 1)
 			{
 				player->rightBlendStart = 0;
 			}
@@ -713,7 +714,7 @@ void UpdatePlayer(Player* player)
 
 		AnimateModel(&player->bodyModel, &player->bodyAnim, leftAnimation, leftAnimationTimer, leftAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 
-		if (leftAnimation != player->lastLeftAnim && player->lastLeftAnim && leftAnimationBlendDuration)
+		if (leftAnimation != player->lastLeftAnim && player->lastLeftAnim)
 		{
 			player->leftBlendStart = gameTime;
 			player->leftBlendAnim = player->lastLeftAnim;
@@ -724,8 +725,8 @@ void UpdatePlayer(Player* player)
 
 		if (player->leftBlendStart)
 		{
-			float blendProgress = (gameTime - player->leftBlendStart) / player->leftBlendDuration;
-			if (blendProgress > 1.0f)
+			float blendProgress = player->leftBlendDuration ? (gameTime - player->leftBlendStart) / player->leftBlendDuration : 1;
+			if (blendProgress > 1)
 			{
 				player->leftBlendStart = 0;
 			}

@@ -8,6 +8,7 @@
 #include "utils/Queue.h"
 
 #include "AttackAction.h"
+#include "ShootAction.h"
 #include "EquipAction.h"
 #include "UnequipAction.h"
 #include "PickUpAction.h"
@@ -20,6 +21,7 @@ enum ActionType
 	ACTION_TYPE_NONE,
 
 	ACTION_TYPE_ATTACK,
+	ACTION_TYPE_SHOOT,
 	ACTION_TYPE_EQUIP,
 	ACTION_TYPE_UNEQUIP,
 	ACTION_TYPE_PICKUP,
@@ -64,14 +66,12 @@ struct Action
 	bool rootMotion;
 	bool fullBodyAnim;
 	bool lockPlayerRotation;
+	float followUpCancelTime;
 
 	float duration;
 	//float speed;
 	float moveSpeed;
-	float followUpCancelTime;
-
-	float startTime;
-	float elapsedTime;
+	float idleAnimStrength;
 
 	bool overrideRightWeapon;
 	Item* rightWeapon;
@@ -82,9 +82,13 @@ struct Action
 	ActionSound sounds[MAX_ACTION_SOUNDS];
 	int numSounds;
 
+	float startTime;
+	float elapsedTime;
+
 	union
 	{
 		AttackAction attack;
+		ShootAction shoot;
 		EquipAction equip;
 		UnequipAction unequip;
 		PickUpAction pickup;
@@ -106,6 +110,7 @@ struct ActionManager
 #define RunActionFunc(func) \
 switch(action->type) { \
 ActionCase(func, Attack, ATTACK) \
+ActionCase(func, Shoot, SHOOT) \
 ActionCase(func, Equip, EQUIP) \
 ActionCase(func, Unequip, UNEQUIP) \
 ActionCase(func, PickUp, PICKUP) \

@@ -178,6 +178,7 @@
     <ClCompile Include="src\game\player\action\DropAction.cpp" />
     <ClCompile Include="src\game\player\action\EquipAction.cpp" />
     <ClCompile Include="src\game\player\action\PickUpAction.cpp" />
+    <ClCompile Include="src\game\player\action\ShootAction.cpp" />
     <ClCompile Include="src\game\player\action\SitAction.cpp" />
     <ClCompile Include="src\game\player\action\UnequipAction.cpp" />
     <ClCompile Include="src\game\player\Player.cpp">
@@ -265,6 +266,7 @@
     <ClInclude Include="src\game\player\action\DropAction.h" />
     <ClInclude Include="src\game\player\action\EquipAction.h" />
     <ClInclude Include="src\game\player\action\PickUpAction.h" />
+    <ClInclude Include="src\game\player\action\ShootAction.h" />
     <ClInclude Include="src\game\player\action\SitAction.h" />
     <ClInclude Include="src\game\player\action\UnequipAction.h" />
     <ClInclude Include="src\game\player\Player.h" />

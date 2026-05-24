@@ -48,6 +48,18 @@ void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackId
 
 	action->rightAnimName = attack->animation;
 	action->rightAnimMoveset = &weapon->moveset;
+
+	if (attack->projectileShoot)
+	{
+		action->overrideLeftWeapon = true;
+		action->leftWeapon = &game->items.items[ITEM_TYPE_ARROW];
+
+		action->rightAnimBlendDuration = 0.0f;
+
+		if (weapon->twoHanded)
+			action->leftAnimBlendDuration = 0.0f;
+	}
+
 	if (weapon->twoHanded)
 	{
 		action->leftAnimName = attack->animation;
@@ -68,6 +80,7 @@ void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackId
 	if (attack->stance)
 	{
 		action->duration = 1000;
+		action->idleAnimStrength = 0.5f;
 	}
 	else
 	{
@@ -84,6 +97,12 @@ void StartAttackAction(Action* action, Player* player)
 
 void StopAttackAction(Action* action, Player* player)
 {
+	if (action->attack.attack->projectileShoot)
+	{
+		Action shootAction = {};
+		InitShootAction(&shootAction, action->attack.weapon);
+		QueueAction(player->actions, shootAction, *player);
+	}
 }
 
 void UpdateAttackAction(Action* action, Player* player)
@@ -96,9 +115,9 @@ void UpdateAttackAction(Action* action, Player* player)
 	{
 		bool parry = action->elapsedTime <= action->attack.attack->parryWindow.y;
 
-		action->moveSpeed = parry ? 0.5f : 1.0f;
+		action->moveSpeed = action->attack.attack->projectileShoot || parry ? 0.5f : 1.0f;
 
-		if (!GetMouseButton(action->attack.button) && !parry)
+		if (!GetMouseButton(action->attack.button) && action->elapsedTime > action->attack.attack->followUpCancelTime)
 			CancelAction(player->actions, *player);
 	}
 	else

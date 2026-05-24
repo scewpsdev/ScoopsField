@@ -37,6 +37,41 @@ static int AddAttack(Item* item, const char* name, const char* animation, float 
 	return attackID;
 }
 
+static int AddBowDraw(Item* item, const char* name, const char* animation, float animationSpeed)
+{
+	int attackID = item->weapon.numAttacks++;
+	Attack* attack = &item->weapon.attacks[attackID];
+	attack->name = name;
+	attack->animation = animation;
+	attack->animationSpeed = animationSpeed;
+	attack->damageWindow = vec2(0);
+	attack->followUpCancelTime = 0;
+	attack->damageMultiplier = 1;
+	attack->staminaCost = 0.1f;
+	attack->followUp = nullptr;
+	attack->followUpCancelTime = GetAnimationByName(&item->moveset, animation)->duration;
+	attack->stance = true;
+	attack->projectileShoot = true;
+
+	return attackID;
+}
+
+static int AddBowShoot(Item* item, const char* name, const char* animation, float animationSpeed, float damageMultiplier)
+{
+	int attackID = item->weapon.numAttacks++;
+	Attack* attack = &item->weapon.attacks[attackID];
+	attack->name = name;
+	attack->animation = animation;
+	attack->animationSpeed = animationSpeed;
+	attack->damageWindow = vec2(0);
+	attack->followUpCancelTime = 0;
+	attack->damageMultiplier = damageMultiplier;
+	attack->staminaCost = 0.1f;
+	attack->followUp = nullptr;
+
+	return attackID;
+}
+
 static int AddBlock(Item* item, const char* name, const char* animation, float animationSpeed, int parryEndFrame)
 {
 	int attackID = item->weapon.numAttacks++;
@@ -48,6 +83,7 @@ static int AddBlock(Item* item, const char* name, const char* animation, float a
 	attack->animationSpeed = animationSpeed;
 	attack->parryWindow = vec2(0, (float)parryEndFrame) / 24.0f / animationSpeed;
 	attack->blockWindow = vec2((float)parryEndFrame, 1000) / 24.0f / animationSpeed;
+	attack->followUpCancelTime = parryEndFrame / 24.0f / animationSpeed;
 
 	return attackID;
 }
@@ -75,6 +111,20 @@ static void InitWeapons(ItemDatabase* items)
 		AddAttack(item, "attack1", "attack1", 1, 15, 24, 32, 1.0f, "attack2");
 		AddAttack(item, "attack2", "attack2", 1, 15, 24, 32, 1.0f, "attack1");
 		AddBlock(item, "block", "block", 1, 12);
+	}
+	// shortbow
+	{
+		Item* item = &items->items[ITEM_TYPE_SHORTBOW];
+		InitWeapon(items, item, "shortbow", true, 50, vec2());
+
+		item->equipSound = &items->equipLightSound;
+
+		AddBowDraw(item, "draw", "attack1", 1);
+	}
+	// arrow
+	{
+		Item* item = &items->items[ITEM_TYPE_ARROW];
+		InitWeapon(items, item, "arrow", false, 50, vec2());
 	}
 }
 
