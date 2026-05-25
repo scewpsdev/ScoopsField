@@ -22,6 +22,7 @@ struct Attack
 {
 	const char* name;
 	bool secondary;
+	bool twoHanded;
 	bool stance;
 	bool projectileShoot;
 

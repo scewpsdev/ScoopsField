@@ -28,11 +28,11 @@ void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackId
 
 		action->rightAnimBlendDuration = 0.0f;
 
-		if (weapon->twoHanded)
+		if (attack->twoHanded)
 			action->leftAnimBlendDuration = 0.0f;
 	}
 
-	if (weapon->twoHanded)
+	if (attack->twoHanded)
 	{
 		action->leftAnimName = attack->animation;
 		action->leftAnimMoveset = &weapon->moveset;

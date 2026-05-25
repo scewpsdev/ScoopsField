@@ -13,14 +13,14 @@ void main()
 	ivec3 gid = ivec3(gl_GlobalInvocationID.xyz);
 	vec3 uvw = (gid + 0.5) / vec3(imageSize(s_output));
 
-	float freq = 8;
+	float freq = 4;
 
 	vec4 result;
 
 	result.y = worleyFbm(uvw, vec3(freq));
 	result.z = worleyFbm(uvw, vec3(freq * 2));
 	result.w = worleyFbm(uvw, vec3(freq * 4));
-	result.x = perlinWorley(uvw, vec3(freq));
+	result.x = perlinWorley(uvw, vec3(freq * 2));
 
     /*
     float wfbm = result.y * 0.625 + result.z * 0.25 + result.w * 0.125;

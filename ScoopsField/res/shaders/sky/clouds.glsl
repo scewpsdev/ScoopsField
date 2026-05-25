@@ -125,7 +125,7 @@ float clouds2(vec3 p, float height, float t)
 
 
 #define minCloudHeight 1.5e3
-#define maxCloudHeight 3e3
+#define maxCloudHeight 5e3
 //#define cloudCoverage 0.25
 //#define cloudScatter 0.0625
 
@@ -248,6 +248,7 @@ float getCloudDensity(vec3 p, float height, int lod)
 	//cloud *= 1 - max(abs(heightGradient * 2 - 1) - 0.5, 0) * 2;
 	//cloud *= sin(heightGradient * pi);
 	cloud *= heightGradient * heightGradient;
+	cloud *= heightGradient * heightGradient;
 
 	cloud = clamp(cloud, 0, 1);
 
@@ -291,7 +292,7 @@ float lightRay(vec3 origin, vec3 dir, float mu, float noise, int lod)
 
 	for (int i = 0; i < numSamples; i++)
 	{
-		float xi = noise;
+		float xi = 0;
 		float u0 = (i + xi) * ldt;
 		float u1 = (i + 1 + xi) * ldt;
 		float u = (i + 0.5 + xi) * ldt;
@@ -307,7 +308,7 @@ float lightRay(vec3 origin, vec3 dir, float mu, float noise, int lod)
 		float height = length(pos) - planetRadius;
 		float density = getCloudDensity(pos, height, lod);
 
-		totalDensity += density * dt;
+		totalDensity += density * dt * 3;
 	}
 
 	return totalDensity;

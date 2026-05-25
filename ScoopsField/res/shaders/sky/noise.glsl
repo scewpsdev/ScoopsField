@@ -91,6 +91,7 @@ float perlinFbm(vec3 p, vec3 freq, int octaves)
         noise += amp * gradientNoise(p * freq, freq);
         freq *= 2.;
         amp *= G;
+        p += 12345.6789;
     }
     
     return noise;
@@ -109,5 +110,5 @@ float perlinWorley(vec3 p, vec3 freq)
 {
     float pfbm = mix(1, perlinFbm(p, freq, 7), 0.5);
 	pfbm = abs(pfbm * 2 - 1);
-    return remap(pfbm, 0, 1, worleyFbm(p, freq * vec3(0.2, 1, 0.2)), 1);
+    return remap(pfbm, 0, 1, worleyFbm(p, freq * vec3(0.5, 1, 0.5)), 1);
 }

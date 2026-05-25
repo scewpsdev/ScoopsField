@@ -675,10 +675,10 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	sunColorInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
 	renderer->sunColorBuffer = SDL_CreateGPUTexture(device, &sunColorInfo);
 
-	renderer->weather.haziness = 0.0f;
+	renderer->weather.haziness = 0.01f;
 	renderer->weather.cloudCoverage = 0.25f;
-	renderer->weather.cloudDensity = 5.0f;
-	renderer->weather.windSpeed = 0.1f;
+	renderer->weather.cloudDensity = 0.1f;
+	renderer->weather.windSpeed = 0.05f;
 }
 
 void DestroyRenderer(Renderer* renderer)

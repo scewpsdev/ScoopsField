@@ -33,6 +33,7 @@ static int AddAttack(Item* item, const char* name, const char* animation, float 
 	attack->damageMultiplier = damageMultiplier;
 	attack->staminaCost = 0.1f;
 	attack->followUp = followUp;
+	attack->twoHanded = item->twoHanded;
 
 	return attackID;
 }
@@ -53,6 +54,7 @@ static int AddBowDraw(Item* item, const char* name, const char* animation, float
 	attack->followUpCancelTime = GetAnimationByName(&item->moveset, animation)->duration;
 	attack->stance = true;
 	attack->projectileShoot = true;
+	attack->twoHanded = true;
 
 	return attackID;
 }
