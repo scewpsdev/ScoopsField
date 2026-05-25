@@ -163,7 +163,7 @@ static void UpdateDuckState(Player* player)
 		if (player->ducked)
 		{
 			PhysicsHit hits[16];
-			int numHits = SweepSphere(physics, player->controller.getRadius(), player->position + vec3(0.0f, player->controller.getHeight() - player->controller.getRadius(), 0.0f), vec3::Up, 0.5f, hits, 16, ENTITY_FILTER_DEFAULT);
+			int numHits = SweepSphere(player->controller.getRadius(), player->position + vec3(0.0f, player->controller.getHeight() - player->controller.getRadius(), 0.0f), vec3::Up, 0.5f, hits, 16, ENTITY_FILTER_DEFAULT);
 
 			bool headBlocked = false;
 			for (int i = 0; i < numHits; i++)

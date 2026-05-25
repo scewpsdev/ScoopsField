@@ -30,6 +30,9 @@ static void SetRightWeapon(Player* player, int loadout, Item* weapon)
 
 		if (loadout == player->currentLoadout)
 		{
+			if (weapon->model.numAnimations)
+				InitAnimationState(&player->rightWeaponAnim, &weapon->model);
+
 			if (weapon)
 			{
 				Action action;
@@ -143,6 +146,9 @@ void SwitchLoadout(Player* player, int loadout)
 	{
 		if (player->rightWeapons[loadout])
 		{
+			if (player->rightWeapons[loadout]->model.numAnimations)
+				InitAnimationState(&player->rightWeaponAnim, &player->rightWeapons[loadout]->model);
+
 			Action action;
 			InitEquipAction(&action, player->rightWeapons[loadout], loadout);
 			QueueAction(player->actions, action, *player);
@@ -531,7 +537,7 @@ void UpdatePlayer(Player* player)
 
 		quat cameraRotation = GetCameraRotation(player);
 		PhysicsHit hits[16];
-		int numHits = Raycast(physics, game->cameraPosition, cameraRotation.forward(), PLAYER_REACH, hits, 16, ENTITY_FILTER_INTERACTABLE);
+		int numHits = Raycast(game->cameraPosition, cameraRotation.forward(), PLAYER_REACH, hits, 16, ENTITY_FILTER_INTERACTABLE);
 		for (int i = 0; i < numHits; i++)
 		{
 			PhysicsHit* hit = &hits[i];
@@ -928,6 +934,23 @@ void UpdatePlayer(Player* player)
 		}
 	}
 
+	Item* rightWeapon = GetRightWeapon(player);
+	if (rightWeapon && rightWeapon->model.numAnimations)
+	{
+		Action* currentAction = GetCurrentAction(player);
+		if (currentAction && currentAction->rightItemAnimName)
+		{
+			currentAction->rightWeaponAnim.timer += deltaTime;
+			AnimateModel(&rightWeapon->model, &player->rightWeaponAnim, currentAction->rightWeaponAnim.animation, currentAction->rightWeaponAnim.timer, currentAction->rightWeaponAnim.loop, nullptr, nullptr);
+		}
+		else if (Animation* defaultAnim = GetAnimationByName(&rightWeapon->model, "item_default"))
+		{
+			AnimateModel(&rightWeapon->model, &player->rightWeaponAnim, defaultAnim, gameTime, true, nullptr, nullptr);
+		}
+
+		ApplyAnimationToSkeleton(&rightWeapon->model, &player->rightWeaponAnim);
+	}
+
 	ApplyAnimationToSkeleton(&player->model, &player->anim);
 	ApplyAnimationToSkeleton(&player->bodyModel, &player->bodyAnim);
 
@@ -1061,7 +1084,7 @@ void RenderPlayer(Player* player)
 	if (rightWeapon)
 	{
 		mat4 weaponTransform = viewmodelTransform * GetNodeTransform(&player->bodyAnim, player->rightWeaponNode);
-		RenderModel(&game->renderer, &rightWeapon->model, nullptr, weaponTransform);
+		RenderModel(&game->renderer, &rightWeapon->model, rightWeapon->model.numAnimations ? &player->rightWeaponAnim : nullptr, weaponTransform);
 	}
 	if (leftWeapon)
 	{

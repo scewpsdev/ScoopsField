@@ -27,6 +27,8 @@ struct Attack
 
 	const char* animation;
 	float animationSpeed;
+	const char* itemAnimation;
+
 	vec2 damageWindow;
 	vec2 blockWindow;
 	vec2 parryWindow;

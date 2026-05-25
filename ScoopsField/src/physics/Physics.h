@@ -56,6 +56,6 @@ void DestroyPhysics(PhysicsState* physics);
 void StartPhysicsFrame(PhysicsState* physics);
 void EndPhysicsFrame(PhysicsState* physics);
 
-int Raycast(PhysicsState* physics, const vec3& origin, const vec3& direction, float distance, PhysicsHit* hits, int maxHits, uint32_t filterMask);
-int OverlapSphere(PhysicsState* physics, const vec3& position, float radius, PhysicsHit* hits, int maxHits, uint32_t filterMask);
-int SweepSphere(PhysicsState* physics, float radius, const vec3& position, const vec3& direction, float maxDistance, PhysicsHit* hits, int maxHits, uint32_t filterMask);
+int Raycast(const vec3& origin, const vec3& direction, float distance, PhysicsHit* hits, int maxHits, uint32_t filterMask);
+int OverlapSphere(const vec3& position, float radius, PhysicsHit* hits, int maxHits, uint32_t filterMask);
+int SweepSphere(float radius, const vec3& position, const vec3& direction, float maxDistance, PhysicsHit* hits, int maxHits, uint32_t filterMask);

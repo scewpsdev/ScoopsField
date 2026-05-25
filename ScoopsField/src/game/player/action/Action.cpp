@@ -70,6 +70,8 @@ static void StartActionInternal(ActionManager& actions, Action* action, Player* 
 		InitAnimation(&action->leftAnim, action->leftAnimName, action->leftAnimMoveset ? action->leftAnimMoveset : actions.moveset, action->animationSpeed, false, false);
 	if (action->bodyAnimName)
 		InitAnimation(&action->bodyAnim, action->bodyAnimName, action->bodyAnimMoveset ? action->bodyAnimMoveset : actions.bodyMoveset, action->animationSpeed, false, false);
+	if (action->rightItemAnimName)
+		InitAnimation(&action->rightWeaponAnim, action->rightItemAnimName, action->rightItemAnimMoveset, 1.0f, false, false);
 
 	if (!action->duration)
 	{

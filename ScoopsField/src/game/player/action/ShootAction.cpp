@@ -34,7 +34,7 @@ void StartShootAction(Action* action, Player* player)
 
 	Entity* projectile = PoolAlloc(&game->entities);
 	mat4 transform = GetLeftWeaponTransform(player);
-	InitProjectile(projectile, transform.translation(), transform.rotation());
+	InitArrow(projectile, game->cameraPosition, game->cameraRotation.forward(), transform);
 
 	// projectile
 }

@@ -44,6 +44,7 @@ static int AddBowDraw(Item* item, const char* name, const char* animation, float
 	attack->name = name;
 	attack->animation = animation;
 	attack->animationSpeed = animationSpeed;
+	attack->itemAnimation = "bow_draw";
 	attack->damageWindow = vec2(0);
 	attack->followUpCancelTime = 0;
 	attack->damageMultiplier = 1;

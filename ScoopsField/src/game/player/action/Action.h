@@ -58,9 +58,19 @@ struct Action
 	Model* bodyAnimMoveset;
 	float bodyAnimBlendDuration;
 
+	const char* rightItemAnimName;
+	Model* rightItemAnimMoveset;
+	float rightItemAnimBlendDuration;
+
 	AnimationPlayback rightAnim;
 	AnimationPlayback leftAnim;
 	AnimationPlayback bodyAnim;
+	AnimationPlayback rightWeaponAnim;
+
+	bool overrideRightWeapon;
+	Item* rightWeapon;
+	bool overrideLeftWeapon;
+	Item* leftWeapon;
 
 	float animationSpeed;
 	bool rootMotion;
@@ -72,11 +82,6 @@ struct Action
 	//float speed;
 	float moveSpeed;
 	float idleAnimStrength;
-
-	bool overrideRightWeapon;
-	Item* rightWeapon;
-	bool overrideLeftWeapon;
-	Item* leftWeapon;
 
 #define MAX_ACTION_SOUNDS 8
 	ActionSound sounds[MAX_ACTION_SOUNDS];

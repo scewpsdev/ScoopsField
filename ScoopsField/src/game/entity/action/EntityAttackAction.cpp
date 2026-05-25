@@ -36,7 +36,7 @@ void UpdateEntityAttackAction(EntityAction* action, Entity* entity)
 	if (damage)
 	{
 		PhysicsHit hits[16];
-		int numHits = OverlapSphere(physics, entity->position + vec3::Up + quat::FromAxisAngle(vec3::Up, skeleton->lookDirection).forward() * 0.5f, 0.5f, hits, 16, ENTITY_FILTER_PLAYER);
+		int numHits = OverlapSphere(entity->position + vec3::Up + quat::FromAxisAngle(vec3::Up, skeleton->lookDirection).forward() * 0.5f, 0.5f, hits, 16, ENTITY_FILTER_PLAYER);
 		for (int i = 0; i < numHits; i++)
 		{
 			RigidBody* body = hits[i].body;

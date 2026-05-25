@@ -14,34 +14,6 @@
 #define HIT_FREEZE_DURATION 0.1f
 
 
-// TODO
-// [X] hit raycast
-// [X] hittable object
-// [X] skeleton
-// [X] skeleton action queue
-// [X] skeleton hit reaction
-// [X] skeleton death
-// [X] rounds
-
-// [X] skeleton ai
-// [X] player damage & health
-// [X] testmap
-// [X] navmesh
-// [X] player death
-// [X] player hp regen
-// [X] round indicator
-// [X] points
-// [X] stamina
-// [X] sounds
-// [X] source movement
-// [ ] doors
-// [ ] wallbuys
-// [ ] hit particles
-// [ ] perks
-
-// [ ] game over screen
-
-
 void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackIdx, uint32_t button)
 {
 	InitAction(action, ACTION_TYPE_ATTACK);
@@ -64,6 +36,13 @@ void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackId
 	{
 		action->leftAnimName = attack->animation;
 		action->leftAnimMoveset = &weapon->moveset;
+	}
+
+	if (attack->itemAnimation)
+	{
+		action->rightItemAnimName = attack->itemAnimation;
+		action->rightItemAnimMoveset = &weapon->model;
+		action->rightItemAnimBlendDuration = 0.0f;
 	}
 
 	action->animationSpeed = attack->animationSpeed;
@@ -134,7 +113,7 @@ void UpdateAttackAction(Action* action, Player* player)
 			float range = action->attack.weapon->weapon.damageRange.y - action->attack.weapon->weapon.damageRange.x;
 
 			PhysicsHit hits[16];
-			int numHits = Raycast(physics, origin, direction, range, hits, 16, ENTITY_FILTER_ENEMY);
+			int numHits = Raycast(origin, direction, range, hits, 16, ENTITY_FILTER_ENEMY);
 			for (int i = 0; i < numHits; i++)
 			{
 				PhysicsHit* hit = &hits[i];

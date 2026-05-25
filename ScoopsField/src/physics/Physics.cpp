@@ -17,6 +17,7 @@ using namespace physx;
 
 
 extern GameMemory* memory;
+extern AppState* app;
 extern float deltaTime;
 
 
@@ -197,7 +198,7 @@ void EndPhysicsFrame(PhysicsState* physics)
 	}
 }
 
-int Raycast(PhysicsState* physics, const vec3& origin, const vec3& direction, float distance, PhysicsHit* hits, int maxHits, uint32_t filterMask)
+int Raycast(const vec3& origin, const vec3& direction, float distance, PhysicsHit* hits, int maxHits, uint32_t filterMask)
 {
 	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);
 	filterData.data.word0 = filterMask;
@@ -219,7 +220,7 @@ int Raycast(PhysicsState* physics, const vec3& origin, const vec3& direction, fl
 	return (int)hitBuffer.getNbAnyHits();
 }
 
-int OverlapSphere(PhysicsState* physics, const vec3& position, float radius, PhysicsHit* hits, int maxHits, uint32_t filterMask)
+int OverlapSphere(const vec3& position, float radius, PhysicsHit* hits, int maxHits, uint32_t filterMask)
 {
 	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);
 	filterData.data.word0 = filterMask;
@@ -241,7 +242,7 @@ int OverlapSphere(PhysicsState* physics, const vec3& position, float radius, Phy
 	return (int)hitBuffer.getNbAnyHits();
 }
 
-static int Sweep(PhysicsState* physics, const PxGeometry& geometry, const vec3& position, const quat& rotation, const vec3& direction, float maxDistance, PhysicsHit* hits, int maxHits, uint32_t filterMask)
+static int Sweep(const PxGeometry& geometry, const vec3& position, const quat& rotation, const vec3& direction, float maxDistance, PhysicsHit* hits, int maxHits, uint32_t filterMask)
 {
 	if (direction.lengthSquared() == 0.0f)
 		return 0;
@@ -274,7 +275,7 @@ static int Sweep(PhysicsState* physics, const PxGeometry& geometry, const vec3& 
 	return hitBuffer.getNbAnyHits();
 }
 
-int SweepSphere(PhysicsState* physics, float radius, const vec3& position, const vec3& direction, float maxDistance, PhysicsHit* hits, int maxHits, uint32_t filterMask)
+int SweepSphere(float radius, const vec3& position, const vec3& direction, float maxDistance, PhysicsHit* hits, int maxHits, uint32_t filterMask)
 {
-	return Sweep(physics, PxSphereGeometry(radius), position, quat::Identity, direction, maxDistance, hits, maxHits, filterMask);
+	return Sweep(PxSphereGeometry(radius), position, quat::Identity, direction, maxDistance, hits, maxHits, filterMask);
 }
