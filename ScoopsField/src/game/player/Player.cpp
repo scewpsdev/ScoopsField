@@ -447,6 +447,9 @@ static void AnimateAxisBlendSpace(Model* model, AnimationState* animationState, 
 		}
 	}
 
+	vec2 velocity = player->velocity.xz();
+	float speed = velocity.length();
+
 	for (int i = 0; i < animationState->channelMap.capacity; i++)
 	{
 		auto* slot = &animationState->channelMap.slots[i];
@@ -461,11 +464,18 @@ static void AnimateAxisBlendSpace(Model* model, AnimationState* animationState, 
 			mat4 forward = AnimateNode(node, &forwardAnim->animation->channels[channelID], forwardAnim->animation, forwardAnim->timer, forwardAnim->loop);
 			mat4 side = AnimateNode(node, &sideAnim->animation->channels[channelID], sideAnim->animation, sideAnim->timer, sideAnim->loop);
 
-			if (player->moving)
+			float moveAmount = clamp(speed * 0.5f, 0, 1);
+
+			if (moveAmount > 0)
 			{
-				vec2 dir = abs(player->velocity.xz().normalized());
+				vec2 dir = abs(velocity / speed);
 				float t = dir.angle() / (PI * 0.5f);
-				b = interpolate(side, forward, t);
+				mat4 move = interpolate(side, forward, t);
+
+				if (moveAmount == 1)
+					b = move;
+				else
+					b = interpolate(idle, move, moveAmount);
 			}
 			else
 			{
