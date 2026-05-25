@@ -466,7 +466,10 @@ static void AnimateAxisBlendSpace(Model* model, AnimationState* animationState, 
 				b = idle;
 			}
 
-			animationState->nodeTransforms[node->id] = interpolate(a, b, blend);
+			if (blend < 1)
+				animationState->nodeTransforms[node->id] = interpolate(a, b, blend);
+			else
+				animationState->nodeTransforms[node->id] = b;
 		}
 	}
 }
