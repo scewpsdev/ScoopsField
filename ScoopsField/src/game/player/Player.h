@@ -82,7 +82,7 @@ struct Player : Entity
 	mat4 lastRootNodeTransform;
 
 	AnimationPlayback idleAnim;
-	AnimationPlayback bodyIdleAnim, bodyRunAnim, bodyStrafeAnim, bodyDuckAnim, bodySneakAnim, bodySneakStrafeAnim, bodyFallAnim;
+	AnimationPlayback bodyIdleAnim, bodyRunAnim, bodyStrafeAnim, bodyDuckAnim, bodySneakAnim, bodySneakStrafeAnim, bodyFallAnim, bodyFallDuckAnim;
 
 	float viewBobVerticalSpeedAnim;
 	vec3 viewBobLookSwayAnim;
@@ -120,6 +120,7 @@ Item* GetRightWeapon(Player* player);
 Item* GetLeftWeapon(Player* player);
 
 mat4 GetRightWeaponTransform(Player* player);
+mat4 GetLeftWeaponTransform(Player* player);
 
 void HitPlayer(Player* player, HitParams hit, Entity* by);
 bool GiveItem(Player* player, Item* item);

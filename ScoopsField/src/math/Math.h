@@ -92,6 +92,8 @@ inline T max(T a, T b) { return a > b ? a : b; }
 
 float lerpAngle(float a, float b, float t);
 
+mat4 interpolate(const mat4& a, const mat4& b, float blend);
+
 vec3 RandomPointOnSphere(struct Random& random);
 AABB TransformBoundingBox(const AABB& localBox, const mat4& transform);
 ivec2 WorldToScreenSpace(const vec3& p, const mat4& vp, int displayWidth, int displayHeight);

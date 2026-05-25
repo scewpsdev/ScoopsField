@@ -29,6 +29,19 @@ float lerpAngle(float a, float b, float t)
 	return a + (b - a) * t;
 }
 
+mat4 interpolate(const mat4& a, const mat4& b, float blend)
+{
+	vec3 pa = a.translation();
+	vec3 pb = b.translation();
+	quat ra = a.rotation();
+	quat rb = b.rotation();
+
+	vec3 p = mix(pa, pb, blend);
+	quat r = slerp(ra, rb, blend);
+
+	return mat4::Translate(p) * mat4::Rotate(r);
+}
+
 static float nextGaussian = FLT_MAX;
 static float RandomGaussian(Random& random)
 {

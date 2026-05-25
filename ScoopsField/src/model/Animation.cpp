@@ -23,7 +23,7 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 	InitHashMap(&animationState->channelMap);
 }
 
-static int GetAnimationChannelWithName(Animation* animation, const char* name)
+int GetAnimationChannelWithName(Animation* animation, const char* name)
 {
 	uint32_t nameHash = hash(name);
 	if (int* channelID = HashMapGet(&animation->channelNameMap, nameHash))
@@ -130,7 +130,7 @@ static vec3 AnimateScaling(ScalingKeyframe* scalings, int numScalings, float tim
 	}
 }
 
-static mat4 AnimateNode(Node* node, AnimationChannel* channel, Animation* animation, float time, bool loop)
+mat4 AnimateNode(Node* node, AnimationChannel* channel, Animation* animation, float time, bool loop)
 {
 	if (loop)
 		time = mod(time, animation->duration);
@@ -182,19 +182,6 @@ void AnimateModel(Model* model, AnimationState* animationState, Animation* anima
 			animationState->nodeTransforms[node->id] = AnimateNode(node, &animation->channels[channelID], animation, time, loop);
 		}
 	}
-}
-
-static mat4 interpolate(const mat4& a, const mat4& b, float blend)
-{
-	vec3 pa = a.translation();
-	vec3 pb = b.translation();
-	quat ra = a.rotation();
-	quat rb = b.rotation();
-
-	vec3 p = mix(pa, pb, blend);
-	quat r = slerp(ra, rb, blend);
-
-	return mat4::Translate(p) * mat4::Rotate(r);
 }
 
 void BlendAnimation(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, float blend, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr)

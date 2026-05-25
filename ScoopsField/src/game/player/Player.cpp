@@ -130,6 +130,13 @@ mat4 GetRightWeaponTransform(Player* player)
 	return viewmodelTransform * GetNodeTransform(&player->bodyAnim, player->rightWeaponNode);
 }
 
+mat4 GetLeftWeaponTransform(Player* player)
+{
+	//mat4 cameraTransform = mat4::Translate(game->cameraPosition) * mat4::Rotate(GetCameraRotation(player));
+	mat4 viewmodelTransform = mat4::Translate(player->position) * mat4::Rotate(vec3::Up, player->rotation + PI);
+	return viewmodelTransform * GetNodeTransform(&player->bodyAnim, player->leftWeaponNode);
+}
+
 void SwitchLoadout(Player* player, int loadout)
 {
 	if (player->currentLoadout != loadout)
@@ -185,6 +192,7 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 	InitAnimation(&player->bodySneakAnim, "sneak", &player->bodyModel, 1.0f, true, false);
 	InitAnimation(&player->bodySneakStrafeAnim, "sneak_strafe", &player->bodyModel, 1.0f, true, false);
 	InitAnimation(&player->bodyFallAnim, "fall", &player->bodyModel, 1.0f, true, false);
+	InitAnimation(&player->bodyFallDuckAnim, "fall_duck", &player->bodyModel, 1.0f, true, false);
 
 	InitCharacterController(&player->controller, 0.3f, CONTROLLER_HEIGHT, 0.2f, player->position);
 	InitRigidBody(&player->kinematicBody, RIGID_BODY_KINEMATIC, player->position, quat::Identity);
@@ -365,6 +373,104 @@ static mat4 CalculateViewBobbing(Player* player, int side)
 	return mat4::Translate(sway) * mat4::Rotate(vec3::Up, yawSway) * mat4::Rotate(vec3::Right, pitchSway) * mat4::Rotate(vec3::Back, rollSway);
 }
 
+static void AnimateAxisBlendSpace(Model* model, AnimationState* animationState, Player* player, AnimationPlayback* idleAnim, AnimationPlayback* forwardAnim, AnimationPlayback* sideAnim, float blend)
+{
+	/*
+	if (player->ducked || player->duckTimer != -1)
+	{
+		if (player->moving)
+		{
+			vec3 fsu = quat::FromAxisAngle(vec3::Up, player->rotation).conjugated() * player->velocity;
+
+			if (SDL_fabsf(fsu.z) > SDL_fabsf(fsu.x))
+			{
+				bodyMoveAnimation = &player->bodySneakAnim;
+				bodyMoveAnimation->speed = fsu.z < 0 ? 1.0f : -1.0f;
+			}
+			else
+			{
+				bodyMoveAnimation = &player->bodySneakStrafeAnim;
+				bodyMoveAnimation->speed = fsu.x > 0 ? 1.0f : -1.0f;
+			}
+
+			bodyMoveAnimation->speed *= fsu.length() / 3.0f * (49.0f / 24) * 1.5f;
+		}
+		else
+		{
+			bodyMoveAnimation = &player->bodyDuckAnim;
+		}
+	}
+	else
+	{
+		if (player->moving)
+		{
+			vec3 fsu = quat::FromAxisAngle(vec3::Up, player->rotation).conjugated() * player->velocity;
+
+			if (SDL_fabsf(fsu.z) > SDL_fabsf(fsu.x))
+			{
+				bodyMoveAnimation = &player->bodyRunAnim;
+				bodyMoveAnimation->speed = fsu.z < 0 ? 1.0f : -1.0f;
+			}
+			else
+			{
+				bodyMoveAnimation = &player->bodyStrafeAnim;
+				bodyMoveAnimation->speed = fsu.x > 0 ? 1.0f : -1.0f;
+			}
+
+			bodyMoveAnimation->speed *= fsu.length() / 3.0f;
+		}
+		else
+		{
+			bodyMoveAnimation = &player->bodyIdleAnim;
+		}
+	}
+	*/
+
+
+
+	SDL_assert(model->numNodes > 0);
+
+	ClearHashMap(&animationState->channelMap);
+	for (int i = 0; i < model->numNodes; i++)
+	{
+		Node* node = &model->nodes[i];
+		int channelID = GetAnimationChannelWithName(idleAnim->animation, node->name);
+		if (channelID != -1)
+		{
+			HashMapAdd(&animationState->channelMap, node, channelID);
+		}
+	}
+
+	for (int i = 0; i < animationState->channelMap.capacity; i++)
+	{
+		auto* slot = &animationState->channelMap.slots[i];
+		if (slot->state == SLOT_USED)
+		{
+			Node* node = slot->key;
+			int channelID = slot->value;
+			const mat4& a = animationState->nodeTransforms[node->id];
+			mat4 b;
+
+			mat4 idle = AnimateNode(node, &idleAnim->animation->channels[channelID], idleAnim->animation, idleAnim->timer, idleAnim->loop);
+			mat4 forward = AnimateNode(node, &forwardAnim->animation->channels[channelID], forwardAnim->animation, forwardAnim->timer, forwardAnim->loop);
+			mat4 side = AnimateNode(node, &sideAnim->animation->channels[channelID], sideAnim->animation, sideAnim->timer, sideAnim->loop);
+
+			if (player->moving)
+			{
+				vec2 dir = abs(player->velocity.xz().normalized());
+				float t = dir.angle() / (PI * 0.5f);
+				b = interpolate(side, forward, t);
+			}
+			else
+			{
+				b = idle;
+			}
+
+			animationState->nodeTransforms[node->id] = interpolate(a, b, blend);
+		}
+	}
+}
+
 void UpdatePlayer(Player* player)
 {
 	if (player->health <= 0)
@@ -504,62 +610,36 @@ void UpdatePlayer(Player* player)
 	{
 		if (player->ducked || player->duckTimer != -1)
 		{
-			if (player->moving)
-			{
-				vec3 fsu = quat::FromAxisAngle(vec3::Up, player->rotation).conjugated() * player->velocity;
+			bodyMoveAnimation = &player->bodyDuckAnim;
 
-				if (SDL_fabsf(fsu.z) > SDL_fabsf(fsu.x))
-				{
-					bodyMoveAnimation = &player->bodySneakAnim;
-					bodyMoveAnimation->speed = fsu.z < 0 ? 1.0f : -1.0f;
-				}
-				else
-				{
-					bodyMoveAnimation = &player->bodySneakStrafeAnim;
-					bodyMoveAnimation->speed = fsu.x > 0 ? 1.0f : -1.0f;
-				}
+			vec3 fsu = quat::FromAxisAngle(vec3::Up, player->rotation).conjugated() * player->velocity;
+			player->bodySneakAnim.speed = (fsu.z < 0 ? 1.0f : -1.0f) * fsu.length() / 3.0f * (49.0f / 24) * 1.5f;
+			player->bodySneakStrafeAnim.speed = (fsu.x > 0 ? 1.0f : -1.0f) * fsu.length() / 3.0f * (49.0f / 24) * 1.5f;
 
-				bodyMoveAnimation->speed *= fsu.length() / 3.0f * (49.0f / 24) * 1.5f;
-			}
-			else
-			{
-				bodyMoveAnimation = &player->bodyDuckAnim;
-			}
+			player->bodySneakAnim.timer += deltaTime * player->bodySneakAnim.speed;
+			player->bodySneakStrafeAnim.timer += deltaTime * player->bodySneakStrafeAnim.speed;
 		}
 		else
 		{
-			if (player->moving)
-			{
-				vec3 fsu = quat::FromAxisAngle(vec3::Up, player->rotation).conjugated() * player->velocity;
+			bodyMoveAnimation = &player->bodyIdleAnim;
 
-				if (SDL_fabsf(fsu.z) > SDL_fabsf(fsu.x))
-				{
-					bodyMoveAnimation = &player->bodyRunAnim;
-					bodyMoveAnimation->speed = fsu.z < 0 ? 1.0f : -1.0f;
-				}
-				else
-				{
-					bodyMoveAnimation = &player->bodyStrafeAnim;
-					bodyMoveAnimation->speed = fsu.x > 0 ? 1.0f : -1.0f;
-				}
+			vec3 fsu = quat::FromAxisAngle(vec3::Up, player->rotation).conjugated() * player->velocity;
+			player->bodyRunAnim.speed = (fsu.z < 0 ? 1.0f : -1.0f) * fsu.length() / 3.0f;
+			player->bodyStrafeAnim.speed = (fsu.x > 0 ? 1.0f : -1.0f) * fsu.length() / 3.0f;
 
-				bodyMoveAnimation->speed *= fsu.length() / 3.0f;
-			}
-			else
-			{
-				bodyMoveAnimation = &player->bodyIdleAnim;
-			}
+			player->bodyRunAnim.timer += deltaTime * player->bodyRunAnim.speed;
+			player->bodyStrafeAnim.timer += deltaTime * player->bodyStrafeAnim.speed;
 		}
 	}
 	else
 	{
 		if (player->ducked || player->duckTimer != -1)
-			bodyMoveAnimation = &player->bodyDuckAnim;
+			bodyMoveAnimation = &player->bodyFallDuckAnim;
 		else
 			bodyMoveAnimation = &player->bodyFallAnim;
-	}
 
-	bodyMoveAnimation->timer += deltaTime * bodyMoveAnimation->speed;
+		bodyMoveAnimation->timer += deltaTime * bodyMoveAnimation->speed;
+	}
 
 	Animation* rightAnimation = moveAnimation->animation;
 	float rightAnimationTimer = moveAnimation->timer;
@@ -635,7 +715,12 @@ void UpdatePlayer(Player* player)
 
 	if (bodyAnimation)
 	{
-		AnimateModel(&player->bodyModel, &player->bodyAnim, bodyAnimation, bodyAnimationTimer, bodyAnimationLoop, nullptr, nullptr);
+		if (bodyAnimation == player->bodyIdleAnim.animation)
+			AnimateAxisBlendSpace(&player->bodyModel, &player->bodyAnim, player, &player->bodyIdleAnim, &player->bodyRunAnim, &player->bodyStrafeAnim, 1);
+		else if (bodyAnimation == player->bodyDuckAnim.animation)
+			AnimateAxisBlendSpace(&player->bodyModel, &player->bodyAnim, player, &player->bodyDuckAnim, &player->bodySneakAnim, &player->bodySneakStrafeAnim, 1);
+		else
+			AnimateModel(&player->bodyModel, &player->bodyAnim, bodyAnimation, bodyAnimationTimer, bodyAnimationLoop, nullptr, nullptr);
 
 		//AnimateModel(&player->bodyModel, &player->bodyAnim, moveAnimation->animation, moveAnimation->timer, moveAnimation->loop, nullptr, nullptr);
 
@@ -657,14 +742,19 @@ void UpdatePlayer(Player* player)
 			}
 			else
 			{
-				if ((bodyAnimation == player->bodyDuckAnim.animation || bodyAnimation == player->bodySneakAnim.animation) &&
+				if ((bodyAnimation == player->bodyDuckAnim.animation || bodyAnimation == player->bodySneakAnim.animation || bodyAnimation == player->bodyFallDuckAnim.animation) &&
 					(player->bodyBlendAnim == player->bodyIdleAnim.animation || player->bodyBlendAnim == player->bodyRunAnim.animation || player->bodyBlendAnim == player->bodyFallAnim.animation))
 					blendProgress = remap(player->cameraHeight, CAMERA_HEIGHT, CAMERA_HEIGHT_DUCKED, 0, 1);
 				else if ((bodyAnimation == player->bodyIdleAnim.animation || bodyAnimation == player->bodyRunAnim.animation || bodyAnimation == player->bodyFallAnim.animation) &&
-					(player->bodyBlendAnim == player->bodyDuckAnim.animation || player->bodyBlendAnim == player->bodySneakAnim.animation))
+					(player->bodyBlendAnim == player->bodyDuckAnim.animation || player->bodyBlendAnim == player->bodySneakAnim.animation || player->bodyBlendAnim == player->bodyFallDuckAnim.animation))
 					blendProgress = remap(player->cameraHeight, CAMERA_HEIGHT, CAMERA_HEIGHT_DUCKED, 1, 0);
 
-				BlendAnimation(&player->bodyModel, &player->bodyAnim, player->bodyBlendAnim, player->bodyBlendAnimTimer, player->bodyBlendAnimLoop, 1 - blendProgress, nullptr, nullptr);
+				if (player->bodyBlendAnim == player->bodyIdleAnim.animation)
+					AnimateAxisBlendSpace(&player->bodyModel, &player->bodyAnim, player, &player->bodyIdleAnim, &player->bodyRunAnim, &player->bodyStrafeAnim, 1 - blendProgress);
+				else if (player->bodyBlendAnim == player->bodyDuckAnim.animation)
+					AnimateAxisBlendSpace(&player->bodyModel, &player->bodyAnim, player, &player->bodyDuckAnim, &player->bodySneakAnim, &player->bodySneakStrafeAnim, 1 - blendProgress);
+				else
+					BlendAnimation(&player->bodyModel, &player->bodyAnim, player->bodyBlendAnim, player->bodyBlendAnimTimer, player->bodyBlendAnimLoop, 1 - blendProgress, nullptr, nullptr);
 			}
 		}
 
@@ -749,12 +839,6 @@ void UpdatePlayer(Player* player)
 		mat4 rightViewBob = CalculateViewBobbing(player, 0);
 		mat4 leftViewBob = CalculateViewBobbing(player, GetLeftApparentWeapon(player) == GetLeftWeapon(player) ? 1 : 0);
 
-		//mat4& rightShoulderTransform = GetNodeTransform(&player->anim, player->rightShoulderNode);
-		//rightShoulderTransform = rightViewBob * rightShoulderTransform;
-
-		//mat4& leftShoulderTransform = GetNodeTransform(&player->anim, player->leftShoulderNode);
-		//leftShoulderTransform = leftViewBob * leftShoulderTransform;
-
 		mat4& clavicleRightTransform = GetNodeTransform(&player->bodyAnim, player->rightShoulderNode);
 		clavicleRightTransform = rightViewBob * clavicleRightTransform;
 
@@ -769,10 +853,15 @@ void UpdatePlayer(Player* player)
 	}
 
 	{
-		//mat4 viewmodelToBodymodel = mat4::Translate(0, (1.4283f - 1.29552f) - -0.0573f, (0.027168f - -0.023689f) - -0.025745f);
-		vec3 neckViewmodelDifference = vec3(0, (1.50345f - 1.4283f) - 0.0573f, (0.014949f - 0.027168f) - -0.025745f);
-		mat4 viewmodelToBodymodel = mat4::Translate(GetNodeTransform(&player->bodyAnim, player->neckNode).translation() - neckViewmodelDifference);
-		//viewmodelToBodymodel = mat4::Rotate(GetNodeTransform(&player->bodyAnim2, GetNodeByName(&player->bodyModel2, "spine_03")).rotation()) * viewmodelToBodymodel;
+		// this translates the nodes from being relative to the viewmodel origin to being relative to the neck node, where the camera is positioned.
+		// this difference is in global space, so we have to transform it to spine03 local space before applying it to the node transforms.
+		vec3 neckViewmodelDifference = vec3(0, 0.0573f - (1.50345f - 1.4283f), -0.027168f - (0.014949f - 0.027168f))
+			+ vec3(0, 0.03f, -0.03f); // correction factor to make it look closer to blender view
+
+		// this transforms the aforementioned translation to being local to the spine node.
+		mat4 inverseSpineRotation = mat4::Rotate(vec3::AxisX, 9.175f * Deg2Rad);
+
+		mat4 viewmodelToBodymodel = inverseSpineRotation * mat4::Translate(GetNodeTransform(&player->bodyAnim, player->neckNode).translation() + neckViewmodelDifference);
 
 		mat4& clavicleRightTransform = GetNodeTransform(&player->bodyAnim, player->rightShoulderNode);
 		clavicleRightTransform = viewmodelToBodymodel * clavicleRightTransform;

@@ -37,10 +37,12 @@ typedef bool(*AnimationChannelFilterCallback_t)(Node* node, void* userPtr);
 
 void InitAnimationState(AnimationState* animationState, Model* model);
 
+mat4 AnimateNode(Node* node, AnimationChannel* channel, Animation* animation, float time, bool loop);
 void AnimateModel(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr);
 void BlendAnimation(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, float blend, AnimationChannelFilterCallback_t channelFilter = nullptr, void* filterUserPtr = nullptr);
 void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState);
 
+int GetAnimationChannelWithName(Animation* animation, const char* name);
 mat4& GetNodeTransform(AnimationState* animationState, Node* node);
 mat4 CalculateNodeDefaultWorldTransform(Model* model, Node* node);
 

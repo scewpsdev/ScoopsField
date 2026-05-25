@@ -26,6 +26,7 @@ static bool EveryInterval(float seconds, uint32_t h)
 #include "entity/component/Creature.cpp"
 #include "entity/component/ItemEntity.cpp"
 #include "entity/component/RestingSpot.cpp"
+#include "entity/component/Projectile.cpp"
 
 
 static void ResetGame(bool destroy)

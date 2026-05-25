@@ -32,6 +32,10 @@ void StartShootAction(Action* action, Player* player)
 {
 	//player->stamina -= action->attack.attack->staminaCost;
 
+	Entity* projectile = PoolAlloc(&game->entities);
+	mat4 transform = GetLeftWeaponTransform(player);
+	InitProjectile(projectile, transform.translation(), transform.rotation());
+
 	// projectile
 }
 
@@ -41,5 +45,5 @@ void StopShootAction(Action* action, Player* player)
 
 void UpdateShootAction(Action* action, Player* player)
 {
-	action->moveSpeed = clamp(action->elapsedTime / action->duration * 2, 0, 1);
+	//action->moveSpeed = clamp(action->elapsedTime / action->duration * 2, 0, 1);
 }

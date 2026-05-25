@@ -7,6 +7,7 @@
 #include "component/Creature.h"
 #include "component/ItemEntity.h"
 #include "component/RestingSpot.h"
+#include "component/Projectile.h"
 
 
 enum EntityPhysicsFilter
@@ -26,6 +27,7 @@ enum EntityType
 	ENTITY_TYPE_CREATURE,
 	ENTITY_TYPE_ITEM,
 	ENTITY_TYPE_RESTING_SPOT,
+	ENTITY_TYPE_PROJECTILE,
 
 	ENTITY_TYPE_LAST
 };
@@ -54,6 +56,7 @@ struct Entity
 		Creature creature;
 		ItemEntity item;
 		RestingSpot restingSpot;
+		Projectile projectile;
 	};
 };
 
