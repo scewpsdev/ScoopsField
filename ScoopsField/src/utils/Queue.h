@@ -33,12 +33,12 @@ void InitQueue(Queue<T, CAPACITY>& queue)
 template<typename T, int CAPACITY>
 T* QueuePush(Queue<T, CAPACITY>& queue, const T& value)
 {
-	if (queue.size == queue.capacity)
+	if (queue.size == CAPACITY)
 		return nullptr;
 
 	T* slot = &queue.data[queue.tail];
 	*slot = value;
-	queue.tail = (queue.tail + 1) % queue.capacity;
+	queue.tail = (queue.tail + 1) % CAPACITY;
 	queue.size++;
 	return slot;
 }
@@ -50,7 +50,19 @@ T* QueuePop(Queue<T, CAPACITY>& queue)
 		return nullptr;
 
 	T* value = &queue.data[queue.head];
-	queue.head = (queue.head + 1) % queue.capacity;
+	queue.head = (queue.head + 1) % CAPACITY;
+	queue.size--;
+	return value;
+}
+
+template<typename T, int CAPACITY>
+T* QueuePopEnd(Queue<T, CAPACITY>& queue)
+{
+	if (queue.size == 0)
+		return nullptr;
+
+	T* value = &queue.data[(queue.head + queue.size - 1) % CAPACITY];
+	queue.tail = (queue.tail + CAPACITY - 1) % CAPACITY;
 	queue.size--;
 	return value;
 }

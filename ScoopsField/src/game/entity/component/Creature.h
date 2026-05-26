@@ -35,6 +35,8 @@ struct Creature
 	vec3 targetPosition;
 	int currentPath[MAX_NAVMESH_PATH_LENGTH];
 	int currentPathLength;
+
+	Sound* hitSound;
 };
 
 

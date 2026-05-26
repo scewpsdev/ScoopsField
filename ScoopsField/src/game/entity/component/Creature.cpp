@@ -48,7 +48,7 @@ bool HitCreature(Creature* creature, Entity* entity, HitParams* hit, Entity* by)
 	int damage = (int)(hit->damage * hit->damageMultiplier);
 	creature->health -= damage;
 
-	PlaySound(&game->skeletonHitSound, hit->position);
+	PlaySound(creature->hitSound, hit->position);
 
 	if (creature->health <= 0)
 	{
@@ -221,6 +221,8 @@ void InitSkeleton(Entity* skeleton, const vec3& position, float rotation, int he
 	skeleton->position = position;
 
 	InitCreature(&skeleton->creature, skeleton, "entities/skeleton/skeleton.glb", rotation, health);
+
+	skeleton->creature.hitSound = &game->skeletonHitSound;
 }
 
 void InitKnight(Entity* creature, const vec3& position, float rotation, int health)
@@ -229,4 +231,6 @@ void InitKnight(Entity* creature, const vec3& position, float rotation, int heal
 	creature->position = position;
 
 	InitCreature(&creature->creature, creature, "entities/creature/knight/knight.glb", rotation, health);
+
+	creature->creature.hitSound = &game->hitArmorSound;
 }

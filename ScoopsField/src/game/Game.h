@@ -58,10 +58,11 @@ struct GameState
 	uint32_t ambientSource;
 	Sound stepSound;
 	Sound landSound;
+	Sound exhaustedSound;
 	Sound swingSound;
 	Sound slashHitSound;
 	Sound skeletonHitSound;
-	Sound exhaustedSound;
+	Sound hitArmorSound;
 
 	Texture* crosshair;
 	Texture* crosshairInteract;

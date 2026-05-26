@@ -85,6 +85,7 @@ void StopAttackAction(Action* action, Player* player)
 	{
 		Action shootAction = {};
 		InitShootAction(&shootAction, action->attack.weapon);
+		ClearQueuedAction(player->actions);
 		QueueAction(player->actions, shootAction, *player);
 	}
 }

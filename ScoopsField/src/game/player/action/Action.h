@@ -144,3 +144,4 @@ void UpdateActionManager(ActionManager& actions, struct Player& player);
 
 void QueueAction(ActionManager& actions, const Action& action, struct Player& player);
 void CancelAction(ActionManager& actions, struct Player& player);
+void ClearQueuedAction(ActionManager& actions);

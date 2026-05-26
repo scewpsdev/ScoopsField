@@ -89,6 +89,7 @@ static void StopActionInternal(ActionManager& actions, Action* action, Player* p
 
 void QueueAction(ActionManager& actions, const Action& action, Player& player)
 {
+	SDL_assert(!action.startTime);
 	if (actions.actions.size < actions.actions.capacity)
 	{
 		QueuePush(actions.actions, action);
@@ -104,7 +105,15 @@ void CancelAction(ActionManager& actions, Player& player)
 		StopActionInternal(actions, currentAction, &player);
 		QueuePop(actions.actions);
 		currentAction = QueuePeek(actions.actions);
+		if (currentAction && !currentAction->startTime)
+			StartActionInternal(actions, currentAction, &player);
 	}
+}
+
+void ClearQueuedAction(ActionManager& actions)
+{
+	if (actions.actions.size == 2)
+		QueuePopEnd(actions.actions);
 }
 
 void UpdateActionManager(ActionManager& actions, Player& player)
