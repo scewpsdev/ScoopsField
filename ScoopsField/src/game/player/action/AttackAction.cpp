@@ -63,7 +63,12 @@ void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackId
 	}
 	else
 	{
-		AddActionSound(action, game->swingSounds, 3, attack->damageWindow.x, 1, (attackIdx % 2 * -2 + 1) * 0.2f);
+		AddActionSound(action, &game->swingSound, attack->damageWindow.x, 1, 1, (attackIdx % 2 * -2 + 1) * 0.2f);
+	}
+
+	for (int i = 0; i < attack->numSounds; i++)
+	{
+		AddActionSound(action, attack->sounds[i].sound, attack->sounds[i].time, attack->sounds[i].volume, attack->sounds[i].speed, attack->sounds[i].pan);
 	}
 
 	InitList(&action->attack.hitEntities);
@@ -133,7 +138,7 @@ void UpdateAttackAction(Action* action, Player* player)
 
 						//game->points += 10;
 
-						PlaySound(&game->slashHitSounds[game->random.next() % 2], hit->position);
+						PlaySound(&game->slashHitSound, hit->position);
 					}
 
 					action->attack.hitEntities.add(hit->body);

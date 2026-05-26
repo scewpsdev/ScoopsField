@@ -130,37 +130,12 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 
 	LoadSound(&game->testSound, "res/sounds/test.ogg.bin");
 	LoadSound(&game->ambientSound, "res/sounds/ambience.ogg.bin");
-	for (int i = 0; i < 6; i++)
-	{
-		char path[64];
-		SDL_snprintf(path, 64, "res/sounds/step%d.ogg.bin", i + 1);
-		LoadSound(&game->stepSounds[i], path);
-	}
+	LoadSounds(&game->stepSound, "sounds/step", 6);
 	LoadSound(&game->landSound, "res/sounds/land.ogg.bin");
-	for (int i = 0; i < 3; i++)
-	{
-		char path[64];
-		SDL_snprintf(path, 64, "res/sounds/swing%d.ogg.bin", i + 1);
-		LoadSound(&game->swingSounds[i], path);
-	}
-	for (int i = 0; i < 2; i++)
-	{
-		char path[64];
-		SDL_snprintf(path, 64, "res/sounds/hit_slash%d.ogg.bin", i + 1);
-		LoadSound(&game->slashHitSounds[i], path);
-	}
-	for (int i = 0; i < 5; i++)
-	{
-		char path[64];
-		SDL_snprintf(path, 64, "res/sounds/hit_rock%d.ogg.bin", i + 1);
-		LoadSound(&game->skeletonHitSounds[i], path);
-	}
-	for (int i = 0; i < 2; i++)
-	{
-		char path[64];
-		SDL_snprintf(path, 64, "res/sounds/exhausted%d.ogg.bin", i + 1);
-		LoadSound(&game->exhaustedSounds[i], path);
-	}
+	LoadSounds(&game->swingSound, "sounds/swing", 3);
+	LoadSounds(&game->slashHitSound, "sounds/hit_slash", 2);
+	LoadSounds(&game->skeletonHitSound, "sounds/hit_rock", 5);
+	LoadSounds(&game->exhaustedSound, "sounds/exhausted", 2);
 
 	game->crosshair = LoadTexture("res/textures/ui/crosshair.png.bin", cmdBuffer);
 	game->crosshairInteract = LoadTexture("res/textures/ui/crosshair_hand.png.bin", cmdBuffer);

@@ -33,10 +33,10 @@ enum ActionType
 
 struct ActionSound
 {
-	Sound* sounds;
-	int numSounds;
+	Sound* sound;
 	float time;
 	float volume;
+	float speed;
 	float pan;
 
 	bool played;
@@ -137,7 +137,7 @@ inline void StopAction(Action* action, struct Player* player)
 void UpdateAction(Action* action, struct Player* player, float deltaTime);
 
 void InitAction(Action* action, ActionType type);
-void AddActionSound(Action* action, Sound* sounds, int numSounds = 1, float time = 0, float volume = 1, float pan = 0);
+void AddActionSound(Action* action, Sound* sound, float time = 0, float volume = 1, float speed = 1, float pan = 0);
 
 void InitActionManager(ActionManager& actions, Model* moveset, Model* bodyMoveset);
 void UpdateActionManager(ActionManager& actions, struct Player& player);

@@ -1010,7 +1010,7 @@ void UpdatePlayer(Player* player)
 		if (player->stamina <= 0 && !player->exhausted)
 		{
 			player->exhausted = true;
-			PlaySound(&game->exhaustedSounds[game->random.next() % 2], 0.4f);
+			PlaySound(&game->exhaustedSound, 0.4f);
 		}
 		else if (player->stamina >= 0.5f)
 		{

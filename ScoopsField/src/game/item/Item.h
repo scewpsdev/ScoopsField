@@ -18,6 +18,15 @@ enum ItemType
 	ITEM_TYPE_LAST
 };
 
+struct AttackSound
+{
+	Sound* sound;
+	float time;
+	float volume;
+	float speed;
+	float pan;
+};
+
 struct Attack
 {
 	const char* name;
@@ -38,6 +47,10 @@ struct Attack
 	float staminaCost;
 
 	const char* followUp;
+
+#define MAX_ATTACK_SOUNDS 8
+	AttackSound sounds[MAX_ATTACK_SOUNDS];
+	int numSounds;
 };
 
 struct Weapon
@@ -72,6 +85,10 @@ struct ItemDatabase
 	Sound equipSwordSound;
 	Sound equipArmorSound;
 	Sound clothSound;
+	Sound bowDrawSound;
+	Sound bowDrawQuickSound;
+	Sound bowShootSound;
+	Sound bowSetArrowSound;
 };
 
 void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer);

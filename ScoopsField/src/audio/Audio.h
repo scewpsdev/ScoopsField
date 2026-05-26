@@ -9,7 +9,9 @@
 
 struct Sound
 {
-	SoLoud::Wav wav;
+#define MAX_SOUND_VARIATIONS 10
+	SoLoud::Wav wavs[MAX_SOUND_VARIATIONS];
+	int numWavs;
 };
 
 struct AudioState
@@ -26,6 +28,8 @@ struct AudioState
 
 	float _3dVolume = 1.0f;
 	float musicVolume = 1.0f;
+
+	uint32_t randomHash;
 };
 
 
@@ -34,7 +38,9 @@ void UpdateAudio(AudioState* audio);
 void SetAudioListener(const vec3& position, const quat& rotation);
 
 bool LoadSound(Sound* sound, const char* path);
+bool LoadSounds(Sound* sound, const char* name, int count);
 uint32_t PlaySound(Sound* sound, float volume = -1);
 uint32_t PlaySound(Sound* sound, float pan, float volume);
 uint32_t PlaySound(Sound* sound, vec3 position, float volume = 1);
 void StopSound(uint32_t source);
+void SetSoundRelativeSpeed(uint32_t handle, float speed);

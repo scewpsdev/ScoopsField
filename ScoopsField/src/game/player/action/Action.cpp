@@ -22,14 +22,14 @@ void InitAction(Action* action, ActionType type)
 	action->bodyAnimBlendDuration = 0.2f;
 }
 
-void AddActionSound(Action* action, Sound* sounds, int numSounds, float time, float volume, float pan)
+void AddActionSound(Action* action, Sound* sound, float time, float volume, float speed, float pan)
 {
 	SDL_assert(action->numSounds < MAX_ACTION_SOUNDS);
 	ActionSound* actionSound = &action->sounds[action->numSounds++];
-	actionSound->sounds = sounds;
-	actionSound->numSounds = numSounds;
+	actionSound->sound = sound;
 	actionSound->time = time;
 	actionSound->volume = volume;
+	actionSound->speed = speed;
 	actionSound->pan = pan;
 	actionSound->played = false;
 }
@@ -43,8 +43,8 @@ void UpdateAction(Action* action, struct Player* player, float deltaTime)
 		ActionSound* sound = &action->sounds[i];
 		if (!sound->played && action->elapsedTime >= sound->time)
 		{
-			int soundIdx = game->random.next() % sound->numSounds;
-			PlaySound(&sound->sounds[soundIdx], sound->pan, sound->volume);
+			uint32_t handle = PlaySound(sound->sound, sound->pan, sound->volume);
+			SetSoundRelativeSpeed(handle, sound->speed);
 			sound->played = true;
 		}
 	}

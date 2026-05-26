@@ -1,5 +1,7 @@
 #include "Audio.h"
 
+#include "utils/Hash.h"
+
 #include <new>
 
 
@@ -34,6 +36,8 @@ bool InitAudio(AudioState* audio, SoLoud::Soloud* soloud)
 
 	audio->musicBusHandle = soloud->playBackground(audio->musicBus);
 
+	audio->randomHash = 12345;
+
 	return true;
 }
 
@@ -51,8 +55,9 @@ void SetAudioListener(const vec3& position, const quat& rotation)
 
 bool LoadSound(Sound* sound, const char* path)
 {
-	InitTrashCppObject(&sound->wav, Wav);
-	if (result result = sound->wav.load(path))
+	sound->numWavs = 1;
+	InitTrashCppObject(&sound->wavs[0], Wav);
+	if (result result = sound->wavs[0].load(path))
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to load sound %s", path);
 		return false;
@@ -60,25 +65,61 @@ bool LoadSound(Sound* sound, const char* path)
 	return true;
 }
 
+bool LoadSounds(Sound* sound, const char* name, int count)
+{
+	SDL_assert(count > 0 && count <= MAX_SOUND_VARIATIONS);
+
+	bool r = true;
+
+	for (int i = 0; i < count; i++)
+	{
+		char path[256];
+		SDL_snprintf(path, 256, "res/%s%d.ogg.bin", name, i + 1);
+
+		InitTrashCppObject(&sound->wavs[i], Wav);
+		if (result result = sound->wavs[i].load(path))
+		{
+			SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to load sound %s", path);
+			r = false;
+		}
+	}
+
+	sound->numWavs = count;
+
+	return r;
+}
+
+static int GetRandom(int count)
+{
+	int idx = (int)(audio->randomHash % count);
+	audio->randomHash = hash(audio->randomHash);
+	return idx;
+}
+
 uint32_t PlaySound(Sound* sound, float volume)
 {
-	uint32_t handle = audio->soloud->playBackground(sound->wav, volume);
+	uint32_t handle = audio->soloud->playBackground(sound->wavs[GetRandom(sound->numWavs)], volume);
 	return handle;
 }
 
 uint32_t PlaySound(Sound* sound, float pan, float volume)
 {
-	uint32_t handle = audio->soloud->play(sound->wav, volume, pan);
+	uint32_t handle = audio->soloud->play(sound->wavs[GetRandom(sound->numWavs)], volume, pan);
 	return handle;
 }
 
 uint32_t PlaySound(Sound* sound, vec3 position, float volume)
 {
-	uint32_t handle = audio->defaultBus.play3d(sound->wav, position.x, position.y, position.z, 0, 0, 0, volume, false);
+	uint32_t handle = audio->defaultBus.play3d(sound->wavs[GetRandom(sound->numWavs)], position.x, position.y, position.z, 0, 0, 0, volume, false);
 	return handle;
 }
 
 void StopSound(uint32_t source)
 {
 	audio->soloud->stop(source);
+}
+
+void SetSoundRelativeSpeed(uint32_t handle, float speed)
+{
+	audio->soloud->setRelativePlaySpeed(handle, speed);
 }

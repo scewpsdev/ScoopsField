@@ -48,7 +48,7 @@ bool HitCreature(Creature* creature, Entity* entity, HitParams* hit, Entity* by)
 	int damage = (int)(hit->damage * hit->damageMultiplier);
 	creature->health -= damage;
 
-	PlaySound(&game->skeletonHitSounds[game->random.next() % 5], hit->position);
+	PlaySound(&game->skeletonHitSound, hit->position);
 
 	if (creature->health <= 0)
 	{

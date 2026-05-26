@@ -30,7 +30,7 @@ void InitEquipAction(Action* action, Item* weapon, int dstLoadout)
 		//action->moveSpeed = 0.5f;
 
 		if (weapon->equipSound)
-			AddActionSound(action, weapon->equipSound, 1, 0, 1, 0);
+			AddActionSound(action, weapon->equipSound, 0, 1, 1, 0);
 	}
 	else
 	{
@@ -42,7 +42,7 @@ void InitEquipAction(Action* action, Item* weapon, int dstLoadout)
 		action->leftAnimMoveset = &game->player.model;
 		action->leftAnimBlendDuration = 0.0f;
 
-		AddActionSound(action, &game->items.equipLightSound, 1, 0, 1, 0);
+		AddActionSound(action, &game->items.equipLightSound, 0, 1, 1, 0);
 	}
 
 	action->equip.dstLoadout = dstLoadout;

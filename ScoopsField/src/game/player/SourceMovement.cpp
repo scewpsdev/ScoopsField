@@ -6,7 +6,7 @@
 
 static void OnStep(Player* player)
 {
-	PlaySound(&game->stepSounds[game->random.next() % 6], (player->lastStepIdx % 2 * 2 - 1) * 0.2f, 0.5f);
+	PlaySound(&game->stepSound, (player->lastStepIdx % 2 * 2 - 1) * 0.2f, 0.5f);
 }
 
 static void OnLand(Player* player)

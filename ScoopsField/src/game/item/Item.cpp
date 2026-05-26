@@ -21,6 +21,17 @@ static void InitWeapon(ItemDatabase* items, Item* item, const char* name, bool t
 	item->weapon.runningAttack = -1;
 }
 
+static void AddAttackSound(Attack* attack, Sound* sound, float time, float volume, float speed, float pan)
+{
+	SDL_assert(attack->numSounds < MAX_ATTACK_SOUNDS);
+	AttackSound* actionSound = &attack->sounds[attack->numSounds++];
+	actionSound->sound = sound;
+	actionSound->time = time;
+	actionSound->volume = volume;
+	actionSound->speed = speed;
+	actionSound->pan = pan;
+}
+
 static int AddAttack(Item* item, const char* name, const char* animation, float animationSpeed, int damageStartFrame, int damageEndFrame, int cancelFrame, float damageMultiplier, const char* followUp = nullptr)
 {
 	int attackID = item->weapon.numAttacks++;
@@ -123,6 +134,9 @@ static void InitWeapons(ItemDatabase* items)
 		item->equipSound = &items->equipLightSound;
 
 		AddBowDraw(item, "draw", "attack1", 1);
+		Attack* draw = &item->weapon.attacks[item->weapon.numAttacks - 1];
+		AddAttackSound(draw, &items->bowDrawSound, 0.3f, 1, 1.1f, 0.1f);
+		AddAttackSound(draw, &items->bowSetArrowSound, 6 / 24.0f, 1, 1, 0);
 	}
 	// arrow
 	{
@@ -167,6 +181,11 @@ void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer)
 	LoadSound(&items->equipSwordSound, "res/sounds/item/equip_sword.ogg.bin");
 	LoadSound(&items->equipArmorSound, "res/sounds/item/equip_armor.ogg.bin");
 	LoadSound(&items->clothSound, "res/sounds/item/cloth.ogg.bin");
+
+	LoadSounds(&items->bowDrawSound, "sounds/item/bow_draw", 6);
+	LoadSounds(&items->bowDrawQuickSound, "sounds/item/bow_draw_quick", 2);
+	LoadSounds(&items->bowShootSound, "sounds/item/bow_shoot", 9);
+	LoadSounds(&items->bowSetArrowSound, "sounds/item/bow_set_arrow", 8);
 
 	InitWeapons(items);
 	InitShields(items);

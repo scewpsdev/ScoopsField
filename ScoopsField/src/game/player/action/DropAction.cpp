@@ -20,7 +20,7 @@ void InitDropAction(Action* action)
 
 	action->drop.dropped = false;
 
-	AddActionSound(action, &game->items.clothSound, 1, 0, 1, 0);
+	AddActionSound(action, &game->items.clothSound, 0, 1, 1, 0);
 }
 
 void StartDropAction(Action* action, Player* player)

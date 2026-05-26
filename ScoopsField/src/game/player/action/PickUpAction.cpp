@@ -19,7 +19,7 @@ void InitPickUpAction(Action* action, Item* item)
 
 	action->pickup.item = item;
 
-	AddActionSound(action, &game->items.clothSound, 1, 0, 1, 0);
+	AddActionSound(action, &game->items.clothSound, 0, 1, 1, 0);
 }
 
 void StartPickUpAction(Action* action, Player* player)

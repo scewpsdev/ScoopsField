@@ -25,6 +25,8 @@ void InitShootAction(Action* action, Item* weapon)
 	action->animationSpeed = 1.0f;
 	action->followUpCancelTime = 14 / 24.0f;
 
+	AddActionSound(action, &game->items.bowShootSound, 0, 3, 1, 0.1f);
+
 	//AddActionSound(action, game->swingSounds, 3, attack->damageWindow.x, 1, (attackIdx % 2 * -2 + 1) * 0.2f);
 }
 
