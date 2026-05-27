@@ -16,6 +16,7 @@ struct AttackAction
 	uint32_t button;
 
 	List<RigidBody*, 16> hitEntities;
+	bool projectileCasted;
 
 	float lastHitTime;
 };

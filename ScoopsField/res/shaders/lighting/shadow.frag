@@ -60,7 +60,7 @@ float calculateShadow(vec3 position, vec3 normal, vec3 toLight, int cascade, sam
 
 	ivec2 shadowMapSize = textureSize(shadowMap, 0);
 	
-	float shadowBias = 0.00000; //0.00002 + 0.0001 * (3 - cascade);
+	float shadowBias = 0.004; //0.00002 + 0.0001 * (3 - cascade);
 	shadowBias += max(0.006 * (1 - dot(normal, toLight)), 0);
 	shadowBias /= cascade * 2 + 1;
 

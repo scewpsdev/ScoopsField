@@ -53,7 +53,6 @@ struct GameState
 
 	Model cube;
 
-	Sound testSound;
 	Sound ambientSound;
 	uint32_t ambientSource;
 	Sound stepSound;

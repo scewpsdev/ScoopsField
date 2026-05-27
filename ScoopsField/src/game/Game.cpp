@@ -97,7 +97,11 @@ static void ResetGame(bool destroy)
 
 	Entity* skeleton = PoolAlloc(&game->entities);
 	SDL_assert(skeleton);
-	InitKnight(skeleton, vec3(0, 0, -5), 0, 100);
+	InitKnight(skeleton, vec3(0, 0, -5), 0);
+
+	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_KINGS_SWORD), vec3(-2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
+	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_LONGSWORD), vec3(0, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
+	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_DARKWOOD_STAFF), vec3(2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
 }
 
 void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
@@ -128,7 +132,6 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	LoadModel(navmeshModel, "res/maps/testmap/testmap_navmesh.glb.bin", true, cmdBuffer);
 	InitNavmesh(&game->mapNavmesh, navmeshModel);
 
-	LoadSound(&game->testSound, "res/sounds/test.ogg.bin");
 	LoadSound(&game->ambientSound, "res/sounds/ambience.ogg.bin");
 	LoadSounds(&game->stepSound, "sounds/step", 6);
 	LoadSound(&game->landSound, "res/sounds/land.ogg.bin");
@@ -215,14 +218,6 @@ void GameUpdate()
 	game->view = mat4::Rotate(game->cameraRotation.conjugated()) * mat4::Translate(-game->cameraPosition);
 	game->pv = game->projection * game->view;
 	GetFrustumPlanes(game->pv, game->frustumPlanes);
-
-	if (GetKeyDown(SDL_SCANCODE_P))
-	{
-		PlaySound(&game->testSound);
-
-		Entity* kingsSword = PoolAlloc(&game->entities);
-		InitItemEntity(kingsSword, GetItem(ITEM_TYPE_KINGS_SWORD), vec3(0, 2, 0), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
-	}
 
 	// discard fragments in front of reflection probe volume
 

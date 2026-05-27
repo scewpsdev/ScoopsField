@@ -72,14 +72,19 @@ vec3 reconstructPosition(vec2 uv, float depth)
 
 void getShadowSample(vec2 uv, float depth, vec2 texel, inout float shadow, inout float sum)
 {
+	float near = projection[3][2];
+
 	vec2 snappedUv = uv / texel;
 	snappedUv = floor(snappedUv) + 0.25;
 	snappedUv *= texel;
 
-	float shadowDepth = texture(s_depth, snappedUv).r;
+	float dist = near / depth;
 
-	float epsilon = 0.01;
-	float weight = shadowDepth > 0 && abs(shadowDepth - depth) < epsilon ? 1 : 0;
+	float shadowDepth = texture(s_depth, snappedUv).r;
+	float shadowDistance = near / shadowDepth;
+	
+	float epsilon = 0.1 * dist;
+	float weight = shadowDepth > 0 && abs(shadowDistance - dist) < epsilon ? 1 : 0;
 	shadow += texture(s_shadows, uv).r * weight;
 	sum += weight;
 }

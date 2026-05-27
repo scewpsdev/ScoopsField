@@ -7,15 +7,20 @@
 
 enum ItemType
 {
-	ITEM_TYPE_NONE,
+	ITEM_NONE,
 
-	ITEM_TYPE_KINGS_SWORD,
-	ITEM_TYPE_LONGSWORD,
-	ITEM_TYPE_SHORTBOW,
-	ITEM_TYPE_ARROW,
-	ITEM_TYPE_WOODEN_SHIELD,
+	ITEM_KINGS_SWORD,
+	ITEM_LONGSWORD,
 
-	ITEM_TYPE_LAST
+	ITEM_SHORTBOW,
+
+	ITEM_DARKWOOD_STAFF,
+
+	ITEM_WOODEN_SHIELD,
+
+	ITEM_ARROW,
+
+	ITEM_LAST
 };
 
 struct AttackSound
@@ -34,6 +39,9 @@ struct Attack
 	bool twoHanded;
 	bool stance;
 	bool projectileShoot;
+
+	bool projectileCast;
+	float projectileCastTime;
 
 	const char* animation;
 	float animationSpeed;
@@ -78,7 +86,7 @@ struct Item
 
 struct ItemDatabase
 {
-	Item items[ITEM_TYPE_LAST];
+	Item items[ITEM_LAST];
 
 	Sound equipLightSound;
 	Sound equipHeavySound;
@@ -89,6 +97,7 @@ struct ItemDatabase
 	Sound bowDrawQuickSound;
 	Sound bowShootSound;
 	Sound bowSetArrowSound;
+	Sound spellCastSound;
 };
 
 void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer);

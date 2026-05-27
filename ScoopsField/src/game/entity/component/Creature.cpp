@@ -215,22 +215,22 @@ void RenderCreature(Creature* creature, Entity* entity)
 
 
 
-void InitSkeleton(Entity* skeleton, const vec3& position, float rotation, int health)
+void InitSkeleton(Entity* skeleton, const vec3& position, float rotation)
 {
 	InitEntity(skeleton, ENTITY_TYPE_CREATURE);
 	skeleton->position = position;
 
-	InitCreature(&skeleton->creature, skeleton, "entities/skeleton/skeleton.glb", rotation, health);
+	InitCreature(&skeleton->creature, skeleton, "entities/skeleton/skeleton.glb", rotation, 100);
 
 	skeleton->creature.hitSound = &game->skeletonHitSound;
 }
 
-void InitKnight(Entity* creature, const vec3& position, float rotation, int health)
+void InitKnight(Entity* creature, const vec3& position, float rotation)
 {
 	InitEntity(creature, ENTITY_TYPE_CREATURE);
 	creature->position = position;
 
-	InitCreature(&creature->creature, creature, "entities/creature/knight/knight.glb", rotation, health);
+	InitCreature(&creature->creature, creature, "entities/creature/knight/knight.glb", rotation, 200);
 
 	creature->creature.hitSound = &game->hitArmorSound;
 }

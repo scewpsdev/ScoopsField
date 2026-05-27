@@ -30,20 +30,20 @@ static void SetRightWeapon(Player* player, int loadout, Item* weapon)
 
 		if (loadout == player->currentLoadout)
 		{
-			if (weapon->model.numAnimations)
-				InitAnimationState(&player->rightWeaponAnim, &weapon->model);
-
 			if (weapon)
 			{
+				if (weapon->model.numAnimations)
+					InitAnimationState(&player->rightWeaponAnim, &weapon->model);
+
 				Action action;
 				InitEquipAction(&action, weapon);
 				QueueAction(player->actions, action, *player);
 			}
 			else if (lastWeapon)
 			{
-				Action action;
-				InitUnequipAction(&action, lastWeapon);
-				QueueAction(player->actions, action, *player);
+				//Action action;
+				//InitUnequipAction(&action, lastWeapon);
+				//QueueAction(player->actions, action, *player);
 			}
 		}
 	}
@@ -60,6 +60,9 @@ static void SetLeftWeapon(Player* player, int loadout, Item* weapon)
 		{
 			if (weapon)
 			{
+				//if (weapon->model.numAnimations)
+				//	InitAnimationState(&player->leftWeaponAnim, &weapon->model);
+
 				Action action;
 				InitEquipAction(&action, weapon);
 				QueueAction(player->actions, action, *player);
@@ -215,10 +218,10 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 	player->stamina = 1.0f;
 	player->exhausted = false;
 
-	SetRightWeapon(player, 0, GetItem(ITEM_TYPE_LONGSWORD));
-	SetRightWeapon(player, 1, GetItem(ITEM_TYPE_KINGS_SWORD));
-	SetRightWeapon(player, 2, GetItem(ITEM_TYPE_SHORTBOW));
-	//SetLeftWeapon(player, 1, GetItem(ITEM_TYPE_WOODEN_SHIELD));
+	SetRightWeapon(player, 0, GetItem(ITEM_LONGSWORD));
+	SetRightWeapon(player, 1, GetItem(ITEM_KINGS_SWORD));
+	SetRightWeapon(player, 2, GetItem(ITEM_SHORTBOW));
+	//SetLeftWeapon(player, 1, GetItem(ITEM_WOODEN_SHIELD));
 }
 
 void DestroyPlayer(Player* player)

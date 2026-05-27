@@ -921,6 +921,8 @@ static float CalculateLightRadius(vec3 color)
 
 void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, float near, float fov, float aspect, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], vec3 sunDirection, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
+	renderer->weather.cloudCoverage = 0;
+	
 	GPU_SCOPE("Scene");
 
 	mat4 pvInv = pv.inverted();

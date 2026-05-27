@@ -70,18 +70,22 @@ static int AddBowDraw(Item* item, const char* name, const char* animation, float
 	return attackID;
 }
 
-static int AddBowShoot(Item* item, const char* name, const char* animation, float animationSpeed, float damageMultiplier)
+static int AddCast(Item* item, const char* name, const char* animation, float animationSpeed, float castTime)
 {
 	int attackID = item->weapon.numAttacks++;
 	Attack* attack = &item->weapon.attacks[attackID];
 	attack->name = name;
 	attack->animation = animation;
 	attack->animationSpeed = animationSpeed;
+	attack->itemAnimation = "cast";
 	attack->damageWindow = vec2(0);
 	attack->followUpCancelTime = 0;
-	attack->damageMultiplier = damageMultiplier;
+	attack->damageMultiplier = 1;
 	attack->staminaCost = 0.1f;
 	attack->followUp = nullptr;
+	attack->followUpCancelTime = GetAnimationByName(&item->moveset, animation)->duration;
+	attack->projectileCast = true;
+	attack->projectileCastTime = castTime;
 
 	return attackID;
 }
@@ -106,7 +110,7 @@ static void InitWeapons(ItemDatabase* items)
 {
 	// kings sword
 	{
-		Item* item = &items->items[ITEM_TYPE_KINGS_SWORD];
+		Item* item = &items->items[ITEM_KINGS_SWORD];
 		InitWeapon(items, item, "kings_sword", false, 50, vec2(0.1f, 0.85f));
 
 		item->equipSound = &items->equipSwordSound;
@@ -117,7 +121,7 @@ static void InitWeapons(ItemDatabase* items)
 	}
 	// longsword
 	{
-		Item* item = &items->items[ITEM_TYPE_LONGSWORD];
+		Item* item = &items->items[ITEM_LONGSWORD];
 		InitWeapon(items, item, "longsword", true, 70, vec2(0.1f, 1.0f));
 
 		item->equipSound = &items->equipHeavySound;
@@ -128,7 +132,7 @@ static void InitWeapons(ItemDatabase* items)
 	}
 	// shortbow
 	{
-		Item* item = &items->items[ITEM_TYPE_SHORTBOW];
+		Item* item = &items->items[ITEM_SHORTBOW];
 		InitWeapon(items, item, "shortbow", true, 50, vec2());
 
 		item->equipSound = &items->equipLightSound;
@@ -136,11 +140,23 @@ static void InitWeapons(ItemDatabase* items)
 		AddBowDraw(item, "draw", "attack1", 1);
 		Attack* draw = &item->weapon.attacks[item->weapon.numAttacks - 1];
 		AddAttackSound(draw, &items->bowDrawSound, 0.3f, 1, 1.1f, 0.1f);
-		AddAttackSound(draw, &items->bowSetArrowSound, 6 / 24.0f, 1, 1, 0);
+		AddAttackSound(draw, &items->bowSetArrowSound, 6 / 24.0f, 1, 1, 0.1f);
 	}
+	// darkwood staff
+	{
+		Item* item = &items->items[ITEM_DARKWOOD_STAFF];
+		InitWeapon(items, item, "darkwood_staff", false, 50, vec2(0.3f, 0.4f));
+
+		item->equipSound = &items->equipLightSound;
+
+		AddCast(item, "cast", "cast", 1, 24 / 24.0f);
+		Attack* cast = &item->weapon.attacks[item->weapon.numAttacks - 1];
+		AddAttackSound(cast, &items->spellCastSound, 24 / 24.0f, 1, 1, 0.1f);
+	}
+
 	// arrow
 	{
-		Item* item = &items->items[ITEM_TYPE_ARROW];
+		Item* item = &items->items[ITEM_ARROW];
 		InitWeapon(items, item, "arrow", false, 50, vec2());
 	}
 }
@@ -169,7 +185,7 @@ static void InitShields(ItemDatabase* items)
 {
 	// wooden shield
 	{
-		Item* item = &items->items[ITEM_TYPE_WOODEN_SHIELD];
+		Item* item = &items->items[ITEM_WOODEN_SHIELD];
 		InitShield(items, item, "wooden_shield", false);
 	}
 }
@@ -187,13 +203,15 @@ void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer)
 	LoadSounds(&items->bowShootSound, "sounds/item/bow_shoot", 9);
 	LoadSounds(&items->bowSetArrowSound, "sounds/item/bow_set_arrow", 8);
 
+	LoadSound(&items->spellCastSound, "res/sounds/item/spell_cast.ogg.bin");
+
 	InitWeapons(items);
 	InitShields(items);
 }
 
 Item* GetItem(ItemType type)
 {
-	SDL_assert(type < ITEM_TYPE_LAST);
+	SDL_assert(type < ITEM_LAST);
 	return &game->items.items[type];
 }
 

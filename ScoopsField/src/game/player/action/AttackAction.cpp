@@ -24,7 +24,7 @@ void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackId
 	if (attack->projectileShoot)
 	{
 		action->overrideLeftWeapon = true;
-		action->leftWeapon = &game->items.items[ITEM_TYPE_ARROW];
+		action->leftWeapon = &game->items.items[ITEM_ARROW];
 
 		action->rightAnimBlendDuration = 0.0f;
 
@@ -146,5 +146,14 @@ void UpdateAttackAction(Action* action, Player* player)
 				}
 			}
 		}
+	}
+
+	if (action->attack.attack->projectileCast && action->elapsedTime >= action->attack.attack->projectileCastTime && !action->attack.projectileCasted)
+	{
+		action->attack.projectileCasted = true;
+
+		Entity* projectile = PoolAlloc(&game->entities);
+		mat4 transform = GetLeftWeaponTransform(player);
+		InitArrow(projectile, game->cameraPosition, game->cameraRotation.forward(), transform);
 	}
 }

@@ -62,6 +62,8 @@ bool LoadSound(Sound* sound, const char* path)
 		SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to load sound %s", path);
 		return false;
 	}
+	sound->wavs[0].set3dAttenuation(SoLoud::AudioSource::INVERSE_DISTANCE, 0.25f);
+	sound->wavs[0].set3dMinMaxDistance(2, 1000);
 	return true;
 }
 
@@ -82,6 +84,9 @@ bool LoadSounds(Sound* sound, const char* name, int count)
 			SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "Failed to load sound %s", path);
 			r = false;
 		}
+
+		sound->wavs[i].set3dAttenuation(SoLoud::AudioSource::INVERSE_DISTANCE, 0.25f);
+		sound->wavs[i].set3dMinMaxDistance(2, 1000);
 	}
 
 	sound->numWavs = count;
