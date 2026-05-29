@@ -276,6 +276,12 @@ bool GiveItem(Player* player, Item* item)
 			return true;
 		}
 	}
+	SDL_assert(player->rightWeapons[player->currentLoadout]);
+	if (DropItem(player, player->rightWeapons[player->currentLoadout]))
+	{
+		SetRightWeapon(player, player->currentLoadout, item);
+		return true;
+	}
 	return false;
 }
 

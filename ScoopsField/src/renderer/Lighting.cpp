@@ -25,18 +25,23 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 
 		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-		SDL_GPUTexture* gbufferTextures[MAX_COLOR_ATTACHMENTS + 2];
-		for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
-			gbufferTextures[i] = renderer->gbuffer->colorAttachments[i];
-		gbufferTextures[renderer->gbuffer->numColorAttachments] = renderer->gbuffer->depthAttachment;
-		gbufferTextures[renderer->gbuffer->numColorAttachments + 1] = renderer->skyCubemap->colorAttachments[0];
+		SDL_GPUTexture* gbufferTextures[6];
+		gbufferTextures[0] = renderer->gbuffer->colorAttachments[0];
+		gbufferTextures[1] = renderer->gbuffer->colorAttachments[1];
+		gbufferTextures[2] = renderer->gbuffer->colorAttachments[2];
+		gbufferTextures[3] = renderer->gbuffer->colorAttachments[3];
+		gbufferTextures[4] = renderer->gbuffer->depthAttachment;
+		gbufferTextures[5] = renderer->skyCubemap->colorAttachments[0];
 
-		SDL_GPUSampler* samplers[MAX_COLOR_ATTACHMENTS + 2];
-		for (int i = 0; i < MAX_COLOR_ATTACHMENTS + 2; i++)
-			samplers[i] = renderer->defaultSampler;
-		samplers[renderer->gbuffer->numColorAttachments + 1] = renderer->linearSampler;
+		SDL_GPUSampler* samplers[6];
+		samplers[0] = renderer->defaultSampler;
+		samplers[1] = renderer->defaultSampler;
+		samplers[2] = renderer->defaultSampler;
+		samplers[3] = renderer->defaultSampler;
+		samplers[4] = renderer->defaultSampler;
+		samplers[5] = renderer->linearSampler;
 
-		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, renderer->gbuffer->numColorAttachments + 2, gbufferTextures, samplers, cmdBuffer);
+		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 6, gbufferTextures, samplers, cmdBuffer);
 	}
 
 	// reflection probes
@@ -230,16 +235,17 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 
 		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-		SDL_GPUTextureSamplerBinding textureBindings[MAX_COLOR_ATTACHMENTS + 1];
-		for (int i = 0; i < renderer->gbuffer->numColorAttachments; i++)
-		{
-			textureBindings[i].texture = renderer->gbuffer->colorAttachments[i];
-			textureBindings[i].sampler = renderer->defaultSampler;
-		}
-		textureBindings[renderer->gbuffer->numColorAttachments].texture = renderer->gbuffer->depthAttachment;
-		textureBindings[renderer->gbuffer->numColorAttachments].sampler = renderer->defaultSampler;
+		SDL_GPUTextureSamplerBinding textureBindings[4];
+		textureBindings[0].texture = renderer->gbuffer->colorAttachments[0];
+		textureBindings[1].texture = renderer->gbuffer->colorAttachments[1];
+		textureBindings[2].texture = renderer->gbuffer->colorAttachments[2];
+		textureBindings[3].texture = renderer->gbuffer->depthAttachment;
+		textureBindings[0].sampler = renderer->defaultSampler;
+		textureBindings[1].sampler = renderer->defaultSampler;
+		textureBindings[2].sampler = renderer->defaultSampler;
+		textureBindings[3].sampler = renderer->defaultSampler;
 
-		SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, renderer->gbuffer->numColorAttachments + 1);
+		SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, 4);
 
 		SDL_DrawGPUIndexedPrimitives(renderPass, renderer->cubeIndexBuffer->numIndices, renderer->pointLights.size, 0, 0, 0);
 	}

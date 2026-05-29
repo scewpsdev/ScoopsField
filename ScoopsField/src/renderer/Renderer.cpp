@@ -50,7 +50,7 @@ static SDL_GPUTexture* CreateDepthTarget(int width, int height)
 
 static RenderTarget* CreateGBuffer(int width, int height)
 {
-#define GBUFFER_COLOR_ATTACHMENTS 3
+#define GBUFFER_COLOR_ATTACHMENTS 4
 	ColorAttachmentInfo colorAttachments[GBUFFER_COLOR_ATTACHMENTS];
 	// normal
 	colorAttachments[0] = {};
@@ -59,7 +59,7 @@ static RenderTarget* CreateGBuffer(int width, int height)
 	colorAttachments[0].storeOp = SDL_GPU_STOREOP_STORE;
 	// color
 	colorAttachments[1] = {};
-	colorAttachments[1].format = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
+	colorAttachments[1].format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 	colorAttachments[1].loadOp = SDL_GPU_LOADOP_DONT_CARE;
 	colorAttachments[1].storeOp = SDL_GPU_STOREOP_STORE;
 	// material
@@ -67,6 +67,11 @@ static RenderTarget* CreateGBuffer(int width, int height)
 	colorAttachments[2].format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 	colorAttachments[2].loadOp = SDL_GPU_LOADOP_DONT_CARE;
 	colorAttachments[2].storeOp = SDL_GPU_STOREOP_STORE;
+	// emissive
+	colorAttachments[3] = {};
+	colorAttachments[3].format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+	colorAttachments[3].loadOp = SDL_GPU_LOADOP_DONT_CARE;
+	colorAttachments[3].storeOp = SDL_GPU_STOREOP_STORE;
 
 	DepthAttachmentInfo depthAttachment = {};
 	depthAttachment.format = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
@@ -869,6 +874,7 @@ static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, Skele
 		{
 			vec4 materialData0;
 			vec4 materialData1;
+			vec4 materialData2;
 		};
 
 		UniformData uniforms = {};
@@ -878,6 +884,7 @@ static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, Skele
 			material && material->metallic ? 1.0f : 0.0f,
 			0);
 		uniforms.materialData1 = material ? SRGBToLinear(ARGBToVector(material->color)) : vec4(1);
+		uniforms.materialData2 = material ? vec4(material->emissiveColor, material->emissiveStrength) : vec4(0);
 		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 		SDL_GPUTextureSamplerBinding textureBindings[3] = {};
@@ -921,8 +928,6 @@ static float CalculateLightRadius(vec3 color)
 
 void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, float near, float fov, float aspect, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], vec3 sunDirection, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
-	renderer->weather.cloudCoverage = 0;
-	
 	GPU_SCOPE("Scene");
 
 	mat4 pvInv = pv.inverted();

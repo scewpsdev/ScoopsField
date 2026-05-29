@@ -46,6 +46,8 @@ static int AddAttack(Item* item, const char* name, const char* animation, float 
 	attack->followUp = followUp;
 	attack->twoHanded = item->twoHanded;
 
+	AddAttackSound(attack, &game->swingSound, attack->damageWindow.x, 1, 1, (attackID % 2 * -2 + 1) * 0.2f);
+
 	return attackID;
 }
 

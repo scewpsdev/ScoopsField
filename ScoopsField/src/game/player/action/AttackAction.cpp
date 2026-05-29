@@ -61,10 +61,6 @@ void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackId
 		action->duration = 1000;
 		action->idleAnimStrength = 0.5f;
 	}
-	else
-	{
-		AddActionSound(action, &game->swingSound, attack->damageWindow.x, 1, 1, (attackIdx % 2 * -2 + 1) * 0.2f);
-	}
 
 	for (int i = 0; i < attack->numSounds; i++)
 	{
@@ -154,6 +150,6 @@ void UpdateAttackAction(Action* action, Player* player)
 
 		Entity* projectile = PoolAlloc(&game->entities);
 		mat4 transform = GetLeftWeaponTransform(player);
-		InitArrow(projectile, game->cameraPosition, game->cameraRotation.forward(), transform);
+		InitMagicProjectile(projectile, game->cameraPosition, game->cameraRotation.forward(), transform);
 	}
 }

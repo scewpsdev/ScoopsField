@@ -13,6 +13,7 @@ struct Projectile
 	float gravity;
 	bool rotateAlongVelocity;
 	vec3 hitboxOffset;
+	bool stickToObjects;
 
 	vec3 offset;
 	bool stuck;
@@ -28,3 +29,4 @@ void UpdateProjectile(Projectile* projectile, Entity* entity);
 void RenderProjectile(Projectile* projectile, Entity* entity);
 
 void InitArrow(Entity* entity, vec3 position, vec3 direction, mat4 startTransform);
+void InitMagicProjectile(Entity* entity, vec3 position, vec3 direction, mat4 startTransform);

@@ -9,9 +9,10 @@ layout (location = 0) out vec4 out_color;
 layout(set = 2, binding = 0) uniform sampler2D s_normal;
 layout(set = 2, binding = 1) uniform sampler2D s_color;
 layout(set = 2, binding = 2) uniform sampler2D s_material;
-layout(set = 2, binding = 3) uniform sampler2D s_depth;
+layout(set = 2, binding = 3) uniform sampler2D s_emissive;
+layout(set = 2, binding = 4) uniform sampler2D s_depth;
 
-layout(set = 2, binding = 4) uniform samplerCube s_environment;
+layout(set = 2, binding = 5) uniform samplerCube s_environment;
 
 layout(set = 3, binding = 0) uniform UniformBlock {
 	mat4 projectionViewInv;
@@ -71,7 +72,8 @@ void main()
 	vec3 position = reconstructPosition(v_texcoord, depth); // world space position
 	vec3 view = normalize(cameraPosition - position); // world space view
 
-	vec3 viewSpaceNormal = texture(s_normal, v_texcoord).rgb * 2 - 1;
+	vec4 normalEmissiveStrength = texture(s_normal, v_texcoord);
+	vec3 viewSpaceNormal = normalEmissiveStrength.rgb * 2 - 1;
 	vec3 normal = (viewInv * vec4(viewSpaceNormal, 0)).xyz; // world space normal
 	vec3 albedo = texture(s_color, v_texcoord).rgb;
 
@@ -80,6 +82,10 @@ void main()
 	float metallic = material.g;
 
 	vec3 radiance = environmentLight(normal, view, albedo, roughness, metallic, s_environment);
+
+	vec3 emissiveColor = texture(s_emissive, v_texcoord).rgb;
+	float emissiveStrength = normalEmissiveStrength.a;
+	radiance += emissiveColor * emissiveStrength;
 
 	out_color = vec4(radiance, 1);
 }

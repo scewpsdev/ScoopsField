@@ -41,8 +41,15 @@ void UpdateProjectile(Projectile* projectile, Entity* entity)
 			RigidBody* body = hits[i].body;
 			if (body->type == RIGID_BODY_STATIC)
 			{
-				projectile->stuck = true;
-				entity->position += d * hits[i].distance;
+				if (projectile->stickToObjects)
+				{
+					projectile->stuck = true;
+					entity->position += d * hits[i].distance;
+				}
+				else
+				{
+					entity->removed = true;
+				}
 				return;
 			}
 			else
@@ -85,4 +92,16 @@ void InitArrow(Entity* entity, vec3 position, vec3 direction, mat4 startTransfor
 	entity->projectile.gravity = -10;
 	entity->projectile.rotateAlongVelocity = true;
 	entity->projectile.hitboxOffset = vec3(0, 0, -0.7f);
+	entity->projectile.stickToObjects = true;
+}
+
+void InitMagicProjectile(Entity* entity, vec3 position, vec3 direction, mat4 startTransform)
+{
+	float speed = 20;
+	InitProjectile(entity, position, direction, startTransform, speed);
+
+	entity->model = GetModel("entities/projectile/magic_projectile/magic_projectile.glb");
+
+	entity->projectile.gravity = -3;
+	entity->projectile.rotateAlongVelocity = true;
 }
