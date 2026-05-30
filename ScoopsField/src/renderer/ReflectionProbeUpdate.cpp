@@ -40,7 +40,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, SDL_GP
 					Mesh* mesh = renderer->meshes[i].mesh;
 					Material* material = renderer->meshes[i].material;
 					const mat4& transform = renderer->meshes[i].transform;
-					SubmitMesh(renderer, mesh, material, nullptr, transform, views[face], pvs[face], renderPass, cmdBuffer);
+					SubmitMesh(renderer, mesh, material, nullptr, transform, views[face], pvs[face], true, renderPass, cmdBuffer);
 				}
 
 				SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
@@ -51,7 +51,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, SDL_GP
 					Material* material = renderer->animatedMeshes[i].material;
 					SkeletonState* skeleton = renderer->animatedMeshes[i].skeleton;
 					const mat4& transform = renderer->animatedMeshes[i].transform;
-					SubmitMesh(renderer, mesh, material, skeleton, transform, views[face], pvs[face], renderPass, cmdBuffer);
+					SubmitMesh(renderer, mesh, material, skeleton, transform, views[face], pvs[face], true, renderPass, cmdBuffer);
 				}
 
 				SDL_EndGPURenderPass(renderPass);

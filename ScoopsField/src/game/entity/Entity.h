@@ -40,6 +40,7 @@ struct HitParams
 };
 
 struct Entity;
+struct GraphicsPipeline;
 
 struct Entity
 {
@@ -49,8 +50,10 @@ struct Entity
 	// transform
 	vec3 position;
 	quat rotation;
+	vec3 scale;
 
 	Model* model;
+	GraphicsPipeline* shader;
 
 	union {
 		Creature creature;
@@ -72,5 +75,5 @@ void RenderEntity(Entity* entity);
 
 inline mat4 ModelMatrix(Entity* entity)
 {
-	return mat4::Translate(entity->position) * mat4::Rotate(entity->rotation);
+	return mat4::Translate(entity->position) * mat4::Rotate(entity->rotation) * mat4::Scale(entity->scale);
 }

@@ -50,6 +50,9 @@ void ReloadGraphicsPipeline(GraphicsPipeline* pipeline);
 GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, Shader* shader, int numColorAttachments, SDL_GPUTextureFormat* colorAttachmentFormats, bool hasDepthAttachment, SDL_GPUTextureFormat depthAttachmentFormat, int numVertexBuffers, const VertexBufferLayout* vertexLayouts);
 GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, Shader* shader, RenderTarget* renderTarget, int numVertexBuffers, const VertexBufferLayout* vertexLayouts);
 
+GraphicsPipelineInfo CreateForwardGraphicsPipelineInfo(Shader* shader);
+GraphicsPipeline* CreateForwardGraphicsPipeline(Shader* shader, SDL_GPUPrimitiveType primitiveType = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPUCullMode cullMode = SDL_GPU_CULLMODE_BACK, bool additive = false);
+
 
 inline void CreateBlendStateOpaque(SDL_GPUColorTargetBlendState* blendState)
 {

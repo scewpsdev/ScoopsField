@@ -145,3 +145,28 @@ SDL_GPURenderPass* BindRenderTarget(RenderTarget* renderTarget, int layer, SDL_G
 
 	return SDL_BeginGPURenderPass(cmdBuffer, colorTargetInfo, renderTarget->numColorAttachments, renderTarget->hasDepthAttachment ? &depthTargetInfo : nullptr);
 }
+
+SDL_GPURenderPass* BindRenderTarget(RenderTarget* renderTarget, int layer, SDL_GPULoadOp loadOp, SDL_GPUStoreOp storeOp, SDL_GPUCommandBuffer* cmdBuffer)
+{
+	SDL_GPUColorTargetInfo colorTargetInfo[MAX_COLOR_ATTACHMENTS];
+	for (int i = 0; i < renderTarget->numColorAttachments; i++)
+	{
+		ColorAttachmentInfo* attachmentInfo = &renderTarget->colorAttachmentInfos[i];
+
+		colorTargetInfo[i] = {};
+		colorTargetInfo[i].load_op = loadOp;
+		colorTargetInfo[i].store_op = storeOp;
+		colorTargetInfo[i].clear_color = { attachmentInfo->clearColor.r, attachmentInfo->clearColor.g, attachmentInfo->clearColor.b, attachmentInfo->clearColor.a };
+		colorTargetInfo[i].texture = renderTarget->colorAttachments[i];
+		colorTargetInfo[i].layer_or_depth_plane = layer;
+	}
+
+	SDL_GPUDepthStencilTargetInfo depthTargetInfo = {};
+	depthTargetInfo.load_op = loadOp;
+	depthTargetInfo.store_op = storeOp;
+	depthTargetInfo.clear_depth = renderTarget->depthAttachmentInfo.clearDepth;
+	depthTargetInfo.texture = renderTarget->depthAttachment;
+	depthTargetInfo.layer = layer;
+
+	return SDL_BeginGPURenderPass(cmdBuffer, colorTargetInfo, renderTarget->numColorAttachments, renderTarget->hasDepthAttachment ? &depthTargetInfo : nullptr);
+}

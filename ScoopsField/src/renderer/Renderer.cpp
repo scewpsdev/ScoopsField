@@ -94,7 +94,7 @@ static RenderTarget* CreateHDRTarget(int width, int height)
 	DepthAttachmentInfo hdrDepthInfo = {};
 	hdrDepthInfo.format = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
 	hdrDepthInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
-	hdrDepthInfo.storeOp = SDL_GPU_STOREOP_DONT_CARE;
+	hdrDepthInfo.storeOp = SDL_GPU_STOREOP_STORE;
 	hdrDepthInfo.clearDepth = 1;
 
 	return CreateRenderTarget(width, height, SDL_GPU_TEXTURETYPE_2D, 1, &hdrTargetInfo, &hdrDepthInfo);
@@ -189,13 +189,12 @@ static GraphicsPipeline* CreateBlurVPipeline(Renderer* renderer)
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
-static GraphicsPipeline* CreateCopyDepthPipeline(Renderer* renderer)
+static GraphicsPipeline* CreateCopyDepthPipeline(Renderer* renderer, RenderTarget* target)
 {
-	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->copyDepthShader, renderer->hdrTarget, 1, &renderer->screenQuad.vertexBuffer->layout);
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->copyDepthShader, target, 1, &renderer->screenQuad.vertexBuffer->layout);
 
-	//pipelineInfo.numColorTargets = 0;
 	//pipelineInfo.depthTest = false;
-	//pipelineInfo.depthWrite = true;
+	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_ALWAYS;
 
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
@@ -455,6 +454,8 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->height = height;
 
 	InitList(&renderer->meshes);
+	InitList(&renderer->animatedMeshes);
+	InitList(&renderer->forwardMeshes);
 	InitList(&renderer->pointLights);
 
 	renderer->depthTexture = CreateDepthTarget(width, height);
@@ -573,7 +574,8 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->shadowPipeline = CreateShadowPipeline(renderer);
 	renderer->blurHPipeline = CreateBlurHPipeline(renderer);
 	renderer->blurVPipeline = CreateBlurVPipeline(renderer);
-	renderer->copyDepthPipeline = CreateCopyDepthPipeline(renderer);
+	renderer->copyDepthPipeline = CreateCopyDepthPipeline(renderer, renderer->hdrTarget);
+	renderer->copyDepthPipeline2 = CreateCopyDepthPipeline(renderer, renderer->gbuffer);
 	renderer->directionalLightPipeline = CreateDirectionalLightPipeline(renderer);
 	renderer->pointLightPipeline = CreatePointLightPipeline(renderer);
 	renderer->environmentLightPipeline = CreateEnvironmentLightPipeline(renderer);
@@ -760,7 +762,34 @@ void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonStat
 		renderer->meshes.add(data);
 }
 
-static void RenderModelNode(Renderer* renderer, Model* model, Node* node, AnimationState* animation, mat4 parentTransform)
+void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, GraphicsPipeline* shader, bool forward, SkeletonState* skeleton, mat4 transform)
+{
+	MeshDrawData data = {};
+	data.mesh = mesh;
+	data.skeleton = skeleton;
+	data.transform = transform;
+	data.material = material;
+	data.shader = shader;
+
+	if (forward)
+	{
+		SDL_assert(!skeleton);
+
+		if (skeleton)
+			renderer->forwardMeshes.add(data);
+		else
+			renderer->forwardMeshes.add(data);
+	}
+	else
+	{
+		if (skeleton)
+			renderer->animatedMeshes.add(data);
+		else
+			renderer->meshes.add(data);
+	}
+}
+
+static void RenderModelNode(Renderer* renderer, Model* model, Node* node, GraphicsPipeline* shader, bool forward, AnimationState* animation, mat4 parentTransform)
 {
 	mat4 nodeTransform = animation ? GetNodeTransform(animation, node) : node->transform;
 	mat4 nodeGlobalTransform = parentTransform * nodeTransform;
@@ -770,19 +799,25 @@ static void RenderModelNode(Renderer* renderer, Model* model, Node* node, Animat
 		int meshID = node->meshes[i];
 		Mesh* mesh = &model->meshes[meshID];
 		Material* material = mesh->materialID != -1 ? &model->materials[mesh->materialID] : nullptr;
-		RenderMesh(renderer, mesh, material, animation && mesh->skeletonID != -1 ? &animation->skeletons[mesh->skeletonID] : nullptr, nodeGlobalTransform);
+		RenderMesh(renderer, mesh, material, shader, forward, animation && mesh->skeletonID != -1 ? &animation->skeletons[mesh->skeletonID] : nullptr, nodeGlobalTransform);
 	}
 
 	for (int i = 0; i < node->numChildren; i++)
 	{
-		RenderModelNode(renderer, model, &model->nodes[node->children[i]], animation, nodeGlobalTransform);
+		RenderModelNode(renderer, model, &model->nodes[node->children[i]], shader, forward, animation, nodeGlobalTransform);
 	}
 }
 
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform)
 {
 	SDL_assert(model);
-	RenderModelNode(renderer, model, &model->nodes[0], animation, transform);
+	RenderModelNode(renderer, model, &model->nodes[0], nullptr, false, animation, transform);
+}
+
+void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform)
+{
+	SDL_assert(model);
+	RenderModelNode(renderer, model, &model->nodes[0], shader, shader != nullptr, animation, transform);
 }
 
 void RenderLight(Renderer* renderer, vec3 position, vec3 color)
@@ -805,7 +840,7 @@ void UpdateReflectionProbe(Renderer* renderer, ReflectionProbe* probe)
 	renderer->reflectionProbeUpdates.add(probe);
 }
 
-static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& view, const mat4& pv, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
+static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& view, const mat4& pv, bool viewSpaceBuffer, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	if (skeleton)
 	{
@@ -845,13 +880,13 @@ static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, Skele
 		struct UniformData
 		{
 			mat4 projectionViewModel;
-			mat4 viewModel;
+			mat4 model;
 			mat4 boneTransforms[MAX_BONES];
 		};
 
 		UniformData uniforms = {};
 		uniforms.projectionViewModel = pv * transform;
-		uniforms.viewModel = view * transform;
+		uniforms.model = viewSpaceBuffer ? view * transform : transform;
 		SDL_memcpy(uniforms.boneTransforms, skeleton->boneTransforms, skeleton->numBones * sizeof(mat4));
 		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 	}
@@ -860,12 +895,12 @@ static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, Skele
 		struct UniformData
 		{
 			mat4 projectionViewModel;
-			mat4 viewModel;
+			mat4 model;
 		};
 
 		UniformData uniforms = {};
 		uniforms.projectionViewModel = pv * transform;
-		uniforms.viewModel = view * transform;
+		uniforms.model = viewSpaceBuffer ? view * transform : transform;
 		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 	}
 
@@ -947,7 +982,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 			Mesh* mesh = renderer->meshes[i].mesh;
 			Material* material = renderer->meshes[i].material;
 			const mat4& transform = renderer->meshes[i].transform;
-			SubmitMesh(renderer, mesh, material, nullptr, transform, view, pv, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, material, nullptr, transform, view, pv, true, renderPass, cmdBuffer);
 		}
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
@@ -958,7 +993,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 			Material* material = renderer->animatedMeshes[i].material;
 			SkeletonState* skeleton = renderer->animatedMeshes[i].skeleton;
 			const mat4& transform = renderer->animatedMeshes[i].transform;
-			SubmitMesh(renderer, mesh, material, skeleton, transform, view, pv, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, material, skeleton, transform, view, pv, true, renderPass, cmdBuffer);
 		}
 
 		SDL_EndGPURenderPass(renderPass);
@@ -966,7 +1001,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 	ShadowMapping(renderer, cameraPosition, cameraRotation, near, fov, aspect, projection, view, viewInv, sunDirection, cmdBuffer);
 
-	RenderSky(renderer, cameraPosition, projectionInv, viewInv, sunDirection, cmdBuffer);
+	UpdateSkyCubemap(renderer, cameraPosition, sunDirection, cmdBuffer);
 
 	UpdateReflectionProbes(renderer, sunDirection, cmdBuffer);
 
@@ -998,6 +1033,78 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 		Lighting(renderer, cameraPosition, near, projection, view, pv, projectionInv, viewInv, pvInv, frustumPlanes, sunDirection, renderPass, cmdBuffer);
 
+		// forward meshes
+		{
+			GPU_SCOPE("Forward Meshes");
+
+			for (int i = 0; i < renderer->forwardMeshes.size; i++)
+			{
+				Mesh* mesh = renderer->forwardMeshes[i].mesh;
+				Material* material = renderer->forwardMeshes[i].material;
+				const mat4& transform = renderer->forwardMeshes[i].transform;
+
+				GraphicsPipeline* shader = renderer->forwardMeshes[i].shader;
+
+				SDL_BindGPUGraphicsPipeline(renderPass, shader->pipeline);
+
+				SubmitMesh(renderer, mesh, material, nullptr, transform, view, pv, false, renderPass, cmdBuffer);
+			}
+		}
+
+		SDL_EndGPURenderPass(renderPass);
+	}
+
+	{
+		GPU_TIMER("copy depth");
+
+		/*
+		SDL_GPUBlitRegion src = {};
+		src.texture = renderer->hdrTarget->depthAttachment;
+		src.mip_level = 0;
+		src.layer_or_depth_plane = 0;
+		src.x = 0;
+		src.y = 0;
+		src.w = renderer->hdrTarget->width;
+		src.h = renderer->hdrTarget->height;
+
+		SDL_GPUBlitRegion dst = {};
+		dst.texture = renderer->gbuffer->depthAttachment;
+		dst.mip_level = 0;
+		dst.layer_or_depth_plane = 0;
+		dst.x = 0;
+		dst.y = 0;
+		dst.w = renderer->gbuffer->width;
+		dst.h = renderer->gbuffer->height;
+
+		SDL_GPUBlitInfo blitInfo = {};
+		blitInfo.source = src;
+		blitInfo.destination = dst;
+		blitInfo.load_op = SDL_GPU_LOADOP_DONT_CARE;
+		blitInfo.clear_color = SDL_FColor();
+		blitInfo.flip_mode = SDL_FLIP_NONE;
+		blitInfo.filter = SDL_GPU_FILTER_NEAREST;
+		blitInfo.cycle = false;
+
+		SDL_BlitGPUTexture(cmdBuffer, &blitInfo);
+		*/
+
+		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->gbuffer, 0, SDL_GPU_LOADOP_LOAD, SDL_GPU_STOREOP_STORE, cmdBuffer);
+
+		// copy depth
+		{
+			SDL_BindGPUGraphicsPipeline(renderPass, renderer->copyDepthPipeline2->pipeline);
+
+			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, &renderer->hdrTarget->depthAttachment, &renderer->defaultSampler, cmdBuffer);
+		}
+
+		SDL_EndGPURenderPass(renderPass);
+	}
+
+	RenderSky(renderer, projectionInv, viewInv, sunDirection, cmdBuffer);
+
+	{
+		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->hdrTarget, 0, SDL_GPU_LOADOP_LOAD, SDL_GPU_STOREOP_STORE, cmdBuffer);
+
 		// sky upsample
 		{
 			GPU_TIMER("sky composite");
@@ -1019,6 +1126,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 		SDL_EndGPURenderPass(renderPass);
 	}
+
 
 	AutoExposure(renderer);
 
@@ -1055,6 +1163,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 	renderer->meshes.clear();
 	renderer->animatedMeshes.clear();
+	renderer->forwardMeshes.clear();
 	renderer->pointLights.clear();
 	renderer->reflectionProbes.clear();
 }

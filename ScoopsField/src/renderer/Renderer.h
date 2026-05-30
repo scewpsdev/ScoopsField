@@ -24,8 +24,9 @@
 struct MeshDrawData
 {
 	Mesh* mesh;
-	Material* material;
 	SkeletonState* skeleton;
+	Material* material;
+	GraphicsPipeline* shader;
 	mat4 transform;
 };
 
@@ -111,6 +112,7 @@ struct Renderer
 	GraphicsPipeline* geometryPipeline;
 	GraphicsPipeline* animatedPipeline;
 	GraphicsPipeline* copyDepthPipeline;
+	GraphicsPipeline* copyDepthPipeline2;
 	GraphicsPipeline* directionalLightPipeline;
 	GraphicsPipeline* pointLightPipeline;
 	GraphicsPipeline* environmentLightPipeline;
@@ -160,6 +162,9 @@ struct Renderer
 	List<MeshDrawData, MAX_MESH_DRAWS> meshes;
 #define MAX_ANIMATED_MESH_DRAWS 64
 	List<MeshDrawData, MAX_MESH_DRAWS> animatedMeshes;
+#define MAX_FORWARD_MESH_DRAWS 64
+	List<MeshDrawData, MAX_FORWARD_MESH_DRAWS> forwardMeshes;
+
 #define MAX_POINT_LIGHT_DRAWS 256
 	List<LightDrawData, MAX_POINT_LIGHT_DRAWS> pointLights;
 #define MAX_REFLECTION_PROBES 16
@@ -177,7 +182,9 @@ struct Renderer
 };
 
 
+void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, GraphicsPipeline* shader, bool forward, SkeletonState* skeleton, mat4 transform);
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform);
+void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform);
 void RenderLight(Renderer* renderer, vec3 position, vec3 color);
 void RenderReflectionProbe(Renderer* renderer, ReflectionProbe* probe);
 void UpdateReflectionProbe(Renderer* renderer, ReflectionProbe* probe);

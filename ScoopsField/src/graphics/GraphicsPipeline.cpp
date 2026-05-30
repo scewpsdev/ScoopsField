@@ -144,3 +144,39 @@ GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveTy
 
 	return CreateGraphicsPipelineInfo(primitiveType, cullMode, shader, numColorAttachments, colorAttachmentFormats, hasDepthAttachment, depthAttachmentFormat, numVertexBuffers, vertexLayouts);
 }
+
+GraphicsPipelineInfo CreateForwardGraphicsPipelineInfo(Shader* shader)
+{
+	SDL_GPUTextureFormat colorAttachmentFormat = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
+	SDL_GPUTextureFormat depthAttachmentFormat = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
+
+	SDL_assert(game->renderer.hdrTarget->numColorAttachments == 1
+		&& game->renderer.hdrTarget->colorAttachmentInfos[0].format == colorAttachmentFormat
+		&& game->renderer.hdrTarget->depthAttachmentInfo.format == depthAttachmentFormat);
+
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(
+		SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+		SDL_GPU_CULLMODE_BACK,
+		shader,
+		1, &colorAttachmentFormat,
+		true, depthAttachmentFormat,
+		NUM_MESH_BUFFER_LAYOUTS, game->renderer.meshLayout);
+
+	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER;
+
+	return pipelineInfo;
+}
+
+GraphicsPipeline* CreateForwardGraphicsPipeline(Shader* shader, SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, bool additive)
+{
+	GraphicsPipelineInfo pipelineInfo = CreateForwardGraphicsPipelineInfo(shader);
+	pipelineInfo.primitiveType = primitiveType;
+	pipelineInfo.cullMode = cullMode;
+
+	if (additive)
+		CreateBlendStateAddPremultiplied(&pipelineInfo.colorTargets[0].blend_state);
+	else
+		CreateBlendStateAlpha(&pipelineInfo.colorTargets[0].blend_state);
+
+	return CreateGraphicsPipeline(&pipelineInfo);
+}

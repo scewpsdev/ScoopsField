@@ -47,6 +47,7 @@ struct mat4
 	static mat4 Rotate(const quat& q);
 	static mat4 Rotate(const vec3& axis, float angle);
 	static mat4 Scale(const vec3& v);
+	static mat4 Scale(float f);
 	static mat4 Transform(const vec3& position, const quat& rotation, const vec3& scale);
 	static mat4 Transform(const vec3& position, const quat& rotation);
 

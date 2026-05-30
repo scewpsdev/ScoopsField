@@ -218,8 +218,8 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 	player->stamina = 1.0f;
 	player->exhausted = false;
 
-	SetRightWeapon(player, 0, GetItem(ITEM_LONGSWORD));
-	SetRightWeapon(player, 1, GetItem(ITEM_KINGS_SWORD));
+	SetRightWeapon(player, 0, GetItem(ITEM_DARKWOOD_STAFF));
+	//SetRightWeapon(player, 1, GetItem(ITEM_KINGS_SWORD));
 	SetRightWeapon(player, 2, GetItem(ITEM_SHORTBOW));
 	//SetLeftWeapon(player, 1, GetItem(ITEM_WOODEN_SHIELD));
 }

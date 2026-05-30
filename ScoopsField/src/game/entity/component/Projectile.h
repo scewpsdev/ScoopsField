@@ -11,6 +11,7 @@ struct Projectile
 {
 	vec3 velocity;
 	float gravity;
+	float drag;
 	bool rotateAlongVelocity;
 	vec3 hitboxOffset;
 	bool stickToObjects;

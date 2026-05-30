@@ -117,8 +117,6 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 
 	InitRandom(&game->random, (uint32_t)SDL_GetTicks());
 
-	InitItemDatabase(&game->items, cmdBuffer);
-
 	LoadModel(&game->cube, "res/models/cube.glb.bin", false, cmdBuffer);
 
 	//LoadModel(&game->mapModel, "res/maps/testmap/testmap.gltf.bin", true, cmdBuffer);
@@ -147,7 +145,9 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	game->roundCounter = LoadTexture("res/textures/counter.png.bin", cmdBuffer);
 	game->digits = LoadTexture("res/textures/digits.png.bin", cmdBuffer);
 
-	InitReflectionProbe(&game->reflectionProbe, vec3(0, 29, -58), vec3(9, 13, 9));
+	game->magicProjectileShader = CreateForwardGraphicsPipeline(
+		LoadGraphicsShader("res/shaders/entity/magic_projectile.vert.bin", "res/shaders/entity/magic_projectile.frag.bin"),
+		SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_NONE, false);
 
 #ifdef _DEBUG
 	AddHotReloadedShader("shaders/mesh.vert", "shaders/mesh.frag", game->renderer.defaultShader, game->renderer.geometryPipeline);
@@ -169,7 +169,12 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddHotReloadedComputeShader("shaders/sky/cloud_noise_detail.comp", game->renderer.cloudNoiseDetailShader);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/tonemapping.frag", game->renderer.tonemappingShader, game->renderer.tonemappingPipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/deferred_diffuse.frag", game->renderer.deferredDiffuseShader, game->renderer.deferredDiffusePipeline);
+	AddHotReloadedShader("shaders/entity/magic_projectile.vert", "shaders/entity/magic_projectile.frag", game->magicProjectileShader->pipelineInfo.shader, game->magicProjectileShader);
 #endif
+
+	InitItemDatabase(&game->items, cmdBuffer);
+
+	InitReflectionProbe(&game->reflectionProbe, vec3(0, 29, -58), vec3(9, 13, 9));
 
 	ResetGame(false);
 }

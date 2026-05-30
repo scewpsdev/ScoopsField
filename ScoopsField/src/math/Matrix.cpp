@@ -246,10 +246,20 @@ mat4 mat4::Rotate(const vec3& axis, float angle)
 
 mat4 mat4::Scale(const vec3& v)
 {
-	mat4 matrix = Identity;
+	mat4 matrix = {};
 	matrix.m00 = v.x;
 	matrix.m11 = v.y;
 	matrix.m22 = v.z;
+	matrix.m33 = 1.0f;
+	return matrix;
+}
+
+mat4 mat4::Scale(float f)
+{
+	mat4 matrix = {};
+	matrix.m00 = f;
+	matrix.m11 = f;
+	matrix.m22 = f;
 	matrix.m33 = 1.0f;
 	return matrix;
 }

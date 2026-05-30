@@ -4,6 +4,7 @@
 void InitEntity(Entity* entity, EntityType type)
 {
 	entity->type = type;
+	entity->scale = vec3(1);
 }
 
 void DestroyEntity(Entity* entity)

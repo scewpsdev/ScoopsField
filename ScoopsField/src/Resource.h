@@ -43,7 +43,7 @@ struct ResourceState
 
 	AnimationCache animationCache;
 
-#define MAX_FILE_WATCHERS 32
+#define MAX_FILE_WATCHERS 64
 	FileWatcher fileWatchers[MAX_FILE_WATCHERS];
 	int numFileWatchers;
 

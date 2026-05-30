@@ -50,3 +50,4 @@ void DestroyRenderTarget(RenderTarget* renderTarget);
 void ResizeRenderTarget(RenderTarget* renderTarget, int width, int height);
 
 SDL_GPURenderPass* BindRenderTarget(RenderTarget* renderTarget, int layer, SDL_GPUCommandBuffer* cmdBuffer);
+SDL_GPURenderPass* BindRenderTarget(RenderTarget* renderTarget, int layer, SDL_GPULoadOp loadOp, SDL_GPUStoreOp storeOp, SDL_GPUCommandBuffer* cmdBuffer);

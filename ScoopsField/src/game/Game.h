@@ -69,6 +69,8 @@ struct GameState
 	Texture* roundCounter;
 	Texture* digits;
 
+	GraphicsPipeline* magicProjectileShader;
+
 	ReflectionProbe reflectionProbe;
 };
 

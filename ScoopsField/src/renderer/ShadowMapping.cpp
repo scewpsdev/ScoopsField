@@ -1,7 +1,7 @@
 
 
 
-static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& view, const mat4& pv, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer);
+static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& view, const mat4& pv, bool viewSpaceBuffer, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer);
 
 static void CalculateShadowMatricesForAABB(vec3 position, vec3 halfExtents, vec3 lightDir, mat4* lightProjection, mat4* lightView)
 {
@@ -146,7 +146,7 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 		Material* material = renderer->meshes[i].material;
 		const mat4& transform = renderer->meshes[i].transform;
 		if (FrustumCulling(mesh->boundingSphere, transform, frustumPlanes))
-			SubmitMesh(renderer, mesh, material, nullptr, transform, view, pv, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, material, nullptr, transform, view, pv, false, renderPass, cmdBuffer);
 	}
 
 	SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedShadowMapPipeline->pipeline);
@@ -158,7 +158,7 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 		SkeletonState* skeleton = renderer->animatedMeshes[i].skeleton;
 		const mat4& transform = renderer->animatedMeshes[i].transform;
 		if (FrustumCulling(mesh->boundingSphere, transform, frustumPlanes))
-			SubmitMesh(renderer, mesh, material, skeleton, transform, view, pv, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, material, skeleton, transform, view, pv, false, renderPass, cmdBuffer);
 	}
 }
 

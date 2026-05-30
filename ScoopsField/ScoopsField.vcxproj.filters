@@ -476,6 +476,9 @@
     <ClInclude Include="src\game\entity\component\Projectile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\game\entity\Trail.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\clear_buffer.comp" />
@@ -521,5 +524,7 @@
     <None Include="res\shaders\lighting\deferred_diffuse.frag" />
     <None Include="res\shaders\lighting\sh_convolute.comp" />
     <None Include="res\shaders\lighting\sh_reconstruct.glsl" />
+    <None Include="res\shaders\entity\magic_projectile.frag" />
+    <None Include="res\shaders\entity\magic_projectile.vert" />
   </ItemGroup>
 </Project>

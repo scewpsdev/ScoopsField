@@ -259,6 +259,7 @@
     <ClInclude Include="src\game\entity\component\ItemEntity.h" />
     <ClInclude Include="src\game\entity\component\Projectile.h" />
     <ClInclude Include="src\game\entity\component\RestingSpot.h" />
+    <ClInclude Include="src\game\entity\Trail.h" />
     <ClInclude Include="src\game\Navmesh.h" />
     <ClInclude Include="src\game\player\action\Action.h" />
     <ClInclude Include="src\game\entity\action\EntityAttackAction.h" />
@@ -360,6 +361,8 @@
     <None Include="res\shaders\common.glsl" />
     <None Include="res\shaders\copy_depth.frag" />
     <None Include="res\shaders\copy_depth.vert" />
+    <None Include="res\shaders\entity\magic_projectile.frag" />
+    <None Include="res\shaders\entity\magic_projectile.vert" />
     <None Include="res\shaders\lighting\deferred_diffuse.frag" />
     <None Include="res\shaders\lighting\environment_light.frag" />
     <None Include="res\shaders\lighting\lighting.glsl" />

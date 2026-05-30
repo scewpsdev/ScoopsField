@@ -1,10 +1,7 @@
 
-
-
-
-static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionInv, mat4 viewInv, vec3 sunDirection, SDL_GPUCommandBuffer* cmdBuffer)
+static void UpdateSkyCubemap(Renderer* renderer, vec3 cameraPosition, vec3 sunDirection, SDL_GPUCommandBuffer* cmdBuffer)
 {
-	GPU_SCOPE("Sky");
+	GPU_SCOPE("Sky Cubemap");
 
 	// transmittance lut
 	{
@@ -211,71 +208,6 @@ static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionIn
 		SDL_EndGPUComputePass(computePass);
 	}
 
-	// sky
-	{
-		GPU_TIMER("clouds");
-
-		RenderTarget* rt = app->frameIdx % 2 == 0 ? renderer->skyTarget : renderer->skyTarget2;
-		RenderTarget* rt2 = app->frameIdx % 2 == 0 ? renderer->skyTarget2 : renderer->skyTarget;
-
-		SDL_GPURenderPass* renderPass = BindRenderTarget(rt, 0, cmdBuffer);
-
-		SDL_BindGPUGraphicsPipeline(renderPass, renderer->skyPipeline->pipeline);
-
-		struct UniformData
-		{
-			vec4 params;
-			vec4 params2;
-			mat4 projectionInv;
-			mat4 viewInv;
-			mat4 lastProjection;
-			mat4 lastView;
-
-			vec4 weatherData;
-		};
-
-		UniformData uniforms = {};
-		uniforms.params = vec4(sunDirection, gameTime);
-		uniforms.params2 = vec4((float)app->frameIdx, 0, 0, 0);
-		uniforms.projectionInv = projectionInv;
-		uniforms.viewInv = viewInv;
-		uniforms.lastProjection = renderer->lastProjection;
-		uniforms.lastView = renderer->lastView;
-		uniforms.weatherData = renderer->weather.getData();
-
-		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
-
-		SDL_GPUTexture* gbufferTextures[11];
-		gbufferTextures[0] = renderer->gbuffer->depthAttachment;
-		gbufferTextures[1] = renderer->cloudCoverage->handle;
-		gbufferTextures[2] = renderer->cloudLowFrequency->handle;
-		gbufferTextures[3] = renderer->cloudHighFrequency->handle;
-		gbufferTextures[4] = renderer->blueNoise->handle;
-		gbufferTextures[5] = rt2->colorAttachments[0];
-		gbufferTextures[6] = renderer->skyTransmittanceLUT;
-		gbufferTextures[7] = renderer->skyMultiScatterLUT;
-		gbufferTextures[8] = renderer->skyViewLUT;
-		gbufferTextures[9] = renderer->cloudNoise;
-		gbufferTextures[10] = renderer->cloudNoiseDetail;
-
-		SDL_GPUSampler* samplers[11];
-		samplers[0] = renderer->defaultSampler;
-		samplers[1] = renderer->linearSampler;
-		samplers[2] = renderer->linearSampler;
-		samplers[3] = renderer->linearSampler;
-		samplers[4] = renderer->defaultSampler;
-		samplers[5] = renderer->linearClampedSampler;
-		samplers[6] = renderer->linearClampedSampler;
-		samplers[7] = renderer->linearClampedSampler;
-		samplers[8] = renderer->linearClampedVSampler;
-		samplers[9] = renderer->linearSampler;
-		samplers[10] = renderer->linearSampler;
-
-		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 11, gbufferTextures, samplers, cmdBuffer);
-
-		SDL_EndGPURenderPass(renderPass);
-	}
-
 	// sky cubemap
 	{
 		GPU_TIMER("cubemap");
@@ -342,4 +274,70 @@ static void RenderSky(Renderer* renderer, vec3 cameraPosition, mat4 projectionIn
 
 		SDL_GenerateMipmapsForGPUTexture(cmdBuffer, renderer->skyCubemap->colorAttachments[0]);
 	}
+}
+
+
+static void RenderSky(Renderer* renderer, mat4 projectionInv, mat4 viewInv, vec3 sunDirection, SDL_GPUCommandBuffer* cmdBuffer)
+{
+	GPU_SCOPE("Sky");
+
+	RenderTarget* rt = app->frameIdx % 2 == 0 ? renderer->skyTarget : renderer->skyTarget2;
+	RenderTarget* rt2 = app->frameIdx % 2 == 0 ? renderer->skyTarget2 : renderer->skyTarget;
+
+	SDL_GPURenderPass* renderPass = BindRenderTarget(rt, 0, cmdBuffer);
+
+	SDL_BindGPUGraphicsPipeline(renderPass, renderer->skyPipeline->pipeline);
+
+	struct UniformData
+	{
+		vec4 params;
+		vec4 params2;
+		mat4 projectionInv;
+		mat4 viewInv;
+		mat4 lastProjection;
+		mat4 lastView;
+
+		vec4 weatherData;
+	};
+
+	UniformData uniforms = {};
+	uniforms.params = vec4(sunDirection, gameTime);
+	uniforms.params2 = vec4((float)app->frameIdx, 0, 0, 0);
+	uniforms.projectionInv = projectionInv;
+	uniforms.viewInv = viewInv;
+	uniforms.lastProjection = renderer->lastProjection;
+	uniforms.lastView = renderer->lastView;
+	uniforms.weatherData = renderer->weather.getData();
+
+	SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+
+	SDL_GPUTexture* gbufferTextures[11];
+	gbufferTextures[0] = renderer->gbuffer->depthAttachment;
+	gbufferTextures[1] = renderer->cloudCoverage->handle;
+	gbufferTextures[2] = renderer->cloudLowFrequency->handle;
+	gbufferTextures[3] = renderer->cloudHighFrequency->handle;
+	gbufferTextures[4] = renderer->blueNoise->handle;
+	gbufferTextures[5] = rt2->colorAttachments[0];
+	gbufferTextures[6] = renderer->skyTransmittanceLUT;
+	gbufferTextures[7] = renderer->skyMultiScatterLUT;
+	gbufferTextures[8] = renderer->skyViewLUT;
+	gbufferTextures[9] = renderer->cloudNoise;
+	gbufferTextures[10] = renderer->cloudNoiseDetail;
+
+	SDL_GPUSampler* samplers[11];
+	samplers[0] = renderer->defaultSampler;
+	samplers[1] = renderer->linearSampler;
+	samplers[2] = renderer->linearSampler;
+	samplers[3] = renderer->linearSampler;
+	samplers[4] = renderer->defaultSampler;
+	samplers[5] = renderer->linearClampedSampler;
+	samplers[6] = renderer->linearClampedSampler;
+	samplers[7] = renderer->linearClampedSampler;
+	samplers[8] = renderer->linearClampedVSampler;
+	samplers[9] = renderer->linearSampler;
+	samplers[10] = renderer->linearSampler;
+
+	RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 11, gbufferTextures, samplers, cmdBuffer);
+
+	SDL_EndGPURenderPass(renderPass);
 }
