@@ -15,13 +15,13 @@ static void UpdateSkyCubemap(Renderer* renderer, vec3 cameraPosition, vec3 sunDi
 
 		SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, &bufferBinding, 1, nullptr, 0);
 
-		SDL_BindGPUComputePipeline(computePass, renderer->skyTransmittaceLUTShader->compute);
+		SDL_BindGPUComputePipeline(computePass, renderer->skyTransmittanceLUTShader->compute);
 
 		SDL_GPUTextureSamplerBinding bindings[2];
 		bindings[0].texture = renderer->emptyTexture;
-		bindings[0].sampler = renderer->defaultSampler;
+		bindings[0].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
 		bindings[1].texture = renderer->emptyTexture;
-		bindings[1].sampler = renderer->defaultSampler;
+		bindings[1].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
 		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 2);
 
 		struct UniformData
@@ -55,9 +55,9 @@ static void UpdateSkyCubemap(Renderer* renderer, vec3 cameraPosition, vec3 sunDi
 
 		SDL_GPUTextureSamplerBinding bindings[2];
 		bindings[0].texture = renderer->skyTransmittanceLUT;
-		bindings[0].sampler = renderer->linearClampedSampler;
+		bindings[0].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
 		bindings[1].texture = renderer->emptyTexture;
-		bindings[1].sampler = renderer->defaultSampler;
+		bindings[1].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
 		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 2);
 
 		struct UniformData
@@ -91,11 +91,11 @@ static void UpdateSkyCubemap(Renderer* renderer, vec3 cameraPosition, vec3 sunDi
 
 		SDL_GPUTextureSamplerBinding bindings[3];
 		bindings[0].texture = renderer->skyTransmittanceLUT;
-		bindings[0].sampler = renderer->linearClampedSampler;
+		bindings[0].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
 		bindings[1].texture = renderer->skyMultiScatterLUT;
-		bindings[1].sampler = renderer->linearClampedSampler;
+		bindings[1].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
 		bindings[2].texture = renderer->blueNoise->handle;
-		bindings[2].sampler = renderer->defaultSampler;
+		bindings[2].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
 		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 3);
 
 		struct UniformData
@@ -171,22 +171,16 @@ static void UpdateSkyCubemap(Renderer* renderer, vec3 cameraPosition, vec3 sunDi
 
 		SDL_BindGPUComputePipeline(computePass, renderer->sunColorShader->compute);
 
-		SDL_GPUTextureSamplerBinding bindings[7];
-		bindings[0].texture = renderer->cloudLowFrequency->handle;
-		bindings[0].sampler = renderer->linearSampler;
+		SDL_GPUTextureSamplerBinding bindings[4];
+		bindings[0].texture = renderer->skyTransmittanceLUT;
+		bindings[0].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
 		bindings[1].texture = renderer->emptyTexture;
-		bindings[1].sampler = renderer->defaultSampler;
-		bindings[2].texture = renderer->emptyTexture;
-		bindings[2].sampler = renderer->defaultSampler;
-		bindings[3].texture = renderer->skyTransmittanceLUT;
-		bindings[3].sampler = renderer->linearClampedSampler;
-		bindings[4].texture = renderer->emptyTexture;
-		bindings[4].sampler = renderer->defaultSampler;
-		bindings[5].texture = renderer->cloudNoise;
-		bindings[5].sampler = renderer->linearSampler;
-		bindings[6].texture = renderer->cloudNoiseDetail;
-		bindings[6].sampler = renderer->linearSampler;
-		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 7);
+		bindings[1].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+		bindings[2].texture = renderer->cloudNoise;
+		bindings[2].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
+		bindings[3].texture = renderer->cloudNoiseDetail;
+		bindings[3].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
+		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 4);
 
 		struct UniformData
 		{
@@ -245,29 +239,23 @@ static void UpdateSkyCubemap(Renderer* renderer, vec3 cameraPosition, vec3 sunDi
 
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-			SDL_GPUTexture* gbufferTextures[9];
-			gbufferTextures[0] = renderer->cloudCoverage->handle;
-			gbufferTextures[1] = renderer->cloudLowFrequency->handle;
-			gbufferTextures[2] = renderer->cloudHighFrequency->handle;
-			gbufferTextures[3] = renderer->blueNoise->handle;
-			gbufferTextures[4] = renderer->skyTransmittanceLUT;
-			gbufferTextures[5] = renderer->skyMultiScatterLUT;
-			gbufferTextures[6] = renderer->skyViewLUT;
-			gbufferTextures[7] = renderer->cloudNoise;
-			gbufferTextures[8] = renderer->cloudNoiseDetail;
+			SDL_GPUTexture* gbufferTextures[6];
+			gbufferTextures[0] = renderer->blueNoise->handle;
+			gbufferTextures[1] = renderer->skyTransmittanceLUT;
+			gbufferTextures[2] = renderer->skyMultiScatterLUT;
+			gbufferTextures[3] = renderer->skyViewLUT;
+			gbufferTextures[4] = renderer->cloudNoise;
+			gbufferTextures[5] = renderer->cloudNoiseDetail;
 
-			SDL_GPUSampler* samplers[9];
-			samplers[0] = renderer->linearSampler;
-			samplers[1] = renderer->linearSampler;
-			samplers[2] = renderer->linearSampler;
-			samplers[3] = renderer->defaultSampler;
-			samplers[4] = renderer->linearClampedSampler;
-			samplers[5] = renderer->linearClampedSampler;
-			samplers[6] = renderer->linearClampedVSampler;
-			samplers[7] = renderer->linearSampler;
-			samplers[8] = renderer->linearSampler;
+			SDL_GPUSampler* samplers[6];
+			samplers[0] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+			samplers[1] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
+			samplers[2] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
+			samplers[3] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED_VERTICAL];
+			samplers[4] = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
+			samplers[5] = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
 
-			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 9, gbufferTextures, samplers, cmdBuffer);
+			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 6, gbufferTextures, samplers, cmdBuffer);
 
 			SDL_EndGPURenderPass(renderPass);
 		}
@@ -311,33 +299,27 @@ static void RenderSky(Renderer* renderer, mat4 projectionInv, mat4 viewInv, vec3
 
 	SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-	SDL_GPUTexture* gbufferTextures[11];
+	SDL_GPUTexture* gbufferTextures[8];
 	gbufferTextures[0] = renderer->gbuffer->depthAttachment;
-	gbufferTextures[1] = renderer->cloudCoverage->handle;
-	gbufferTextures[2] = renderer->cloudLowFrequency->handle;
-	gbufferTextures[3] = renderer->cloudHighFrequency->handle;
-	gbufferTextures[4] = renderer->blueNoise->handle;
-	gbufferTextures[5] = rt2->colorAttachments[0];
-	gbufferTextures[6] = renderer->skyTransmittanceLUT;
-	gbufferTextures[7] = renderer->skyMultiScatterLUT;
-	gbufferTextures[8] = renderer->skyViewLUT;
-	gbufferTextures[9] = renderer->cloudNoise;
-	gbufferTextures[10] = renderer->cloudNoiseDetail;
+	gbufferTextures[1] = renderer->blueNoise->handle;
+	gbufferTextures[2] = rt2->colorAttachments[0];
+	gbufferTextures[3] = renderer->skyTransmittanceLUT;
+	gbufferTextures[4] = renderer->skyMultiScatterLUT;
+	gbufferTextures[5] = renderer->skyViewLUT;
+	gbufferTextures[6] = renderer->cloudNoise;
+	gbufferTextures[7] = renderer->cloudNoiseDetail;
 
-	SDL_GPUSampler* samplers[11];
-	samplers[0] = renderer->defaultSampler;
-	samplers[1] = renderer->linearSampler;
-	samplers[2] = renderer->linearSampler;
-	samplers[3] = renderer->linearSampler;
-	samplers[4] = renderer->defaultSampler;
-	samplers[5] = renderer->linearClampedSampler;
-	samplers[6] = renderer->linearClampedSampler;
-	samplers[7] = renderer->linearClampedSampler;
-	samplers[8] = renderer->linearClampedVSampler;
-	samplers[9] = renderer->linearSampler;
-	samplers[10] = renderer->linearSampler;
+	SDL_GPUSampler* samplers[8];
+	samplers[0] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+	samplers[1] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+	samplers[2] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
+	samplers[3] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
+	samplers[4] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
+	samplers[5] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED_VERTICAL];
+	samplers[6] = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
+	samplers[7] = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
 
-	RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 11, gbufferTextures, samplers, cmdBuffer);
+	RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 8, gbufferTextures, samplers, cmdBuffer);
 
 	SDL_EndGPURenderPass(renderPass);
 }

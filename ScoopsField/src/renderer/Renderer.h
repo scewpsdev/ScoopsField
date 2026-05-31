@@ -142,7 +142,7 @@ struct Renderer
 	Shader* skyShader;
 	Shader* skyUpsampleShader;
 	Shader* skyCubeShader;
-	Shader* skyTransmittaceLUTShader;
+	Shader* skyTransmittanceLUTShader;
 	Shader* skyMultiScatterLUTShader;
 	Shader* skyViewLUTShader;
 	Shader* skyAerialLUTShader;
@@ -153,12 +153,7 @@ struct Renderer
 	GraphicsPipeline* skyUpsamplePipeline;
 	GraphicsPipeline* skyCubePipeline;
 
-	SDL_GPUSampler* defaultSampler;
-	SDL_GPUSampler* clampedSampler;
-	SDL_GPUSampler* linearSampler;
-	SDL_GPUSampler* linearClampedSampler;
-	SDL_GPUSampler* linearClampedVSampler;
-	SDL_GPUSampler* shadowSampler;
+	SDL_GPUSampler* samplers[TEXTURE_SAMPLER_COUNT];
 	SDL_GPUBuffer* emptyBuffer;
 	SDL_GPUTexture* emptyTexture;
 
@@ -182,10 +177,6 @@ struct Renderer
 
 	Texture* blueNoise;
 	//Texture* environmentMap;
-
-	Texture* cloudCoverage;
-	Texture* cloudLowFrequency;
-	Texture* cloudHighFrequency;
 
 	WeatherData weather;
 };

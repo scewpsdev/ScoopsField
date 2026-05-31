@@ -84,6 +84,7 @@ void main()
 	}
 	else
 	{
+		discard;
 		vec2 uv = v_texcoord;
 		uv /= texel;
 		uv = floor(uv) + 0.5;

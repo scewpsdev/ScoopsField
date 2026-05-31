@@ -36,10 +36,15 @@ struct ResourceWatcher
 
 struct ResourceState
 {
-#define MAX_MODELS 64
-	Model models[MAX_MODELS];
-	HashMap<uint32_t, int, MAX_MODELS> modelNameMap;
+#define MAX_MODEL_RESOURCES 64
+	Model models[MAX_MODEL_RESOURCES];
+	HashMap<uint32_t, int, MAX_MODEL_RESOURCES> modelNameMap;
 	int numModels;
+
+#define MAX_TEXTURE_RESOURCES 64
+	Texture* textures[MAX_TEXTURE_RESOURCES];
+	HashMap<uint32_t, int, MAX_TEXTURE_RESOURCES> textureNameMap;
+	int numTextures;
 
 	AnimationCache animationCache;
 
@@ -72,3 +77,4 @@ void GetAbsolutePath(char* str, int maxLen, const char* relativePath, const char
 void GetRelativePath(char* str, int maxLen, const char* absolutePath, const char* relativeTo);
 
 Model* GetModel(const char* path);
+Texture* GetTexture(const char* path);

@@ -34,12 +34,12 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 		gbufferTextures[5] = renderer->skyCubemap->colorAttachments[0];
 
 		SDL_GPUSampler* samplers[6];
-		samplers[0] = renderer->defaultSampler;
-		samplers[1] = renderer->defaultSampler;
-		samplers[2] = renderer->defaultSampler;
-		samplers[3] = renderer->defaultSampler;
-		samplers[4] = renderer->defaultSampler;
-		samplers[5] = renderer->linearSampler;
+		samplers[0] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+		samplers[1] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+		samplers[2] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+		samplers[3] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+		samplers[4] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+		samplers[5] = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
 
 		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 6, gbufferTextures, samplers, cmdBuffer);
 	}
@@ -82,11 +82,11 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 			textureBindings[2].texture = renderer->gbuffer->colorAttachments[2];
 			textureBindings[3].texture = renderer->gbuffer->depthAttachment;
 			textureBindings[4].texture = probe->cubemap->colorAttachments[0];
-			textureBindings[0].sampler = renderer->defaultSampler;
-			textureBindings[1].sampler = renderer->defaultSampler;
-			textureBindings[2].sampler = renderer->defaultSampler;
-			textureBindings[3].sampler = renderer->defaultSampler;
-			textureBindings[4].sampler = renderer->linearSampler;
+			textureBindings[0].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+			textureBindings[1].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+			textureBindings[2].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+			textureBindings[3].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+			textureBindings[4].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
 
 			SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, 5);
 
@@ -179,12 +179,12 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 		gbufferTextures[5] = renderer->shadowBuffer0->colorAttachments[0];
 
 		SDL_GPUSampler* samplers[6];
-		samplers[0] = renderer->defaultSampler;
-		samplers[1] = renderer->defaultSampler;
-		samplers[2] = renderer->defaultSampler;
-		samplers[3] = renderer->defaultSampler;
-		samplers[4] = renderer->clampedSampler;
-		samplers[5] = renderer->clampedSampler;
+		samplers[0] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+		samplers[1] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+		samplers[2] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+		samplers[3] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+		samplers[4] = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
+		samplers[5] = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
 
 		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 6, gbufferTextures, samplers, cmdBuffer);
 	}
@@ -240,10 +240,10 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 		textureBindings[1].texture = renderer->gbuffer->colorAttachments[1];
 		textureBindings[2].texture = renderer->gbuffer->colorAttachments[2];
 		textureBindings[3].texture = renderer->gbuffer->depthAttachment;
-		textureBindings[0].sampler = renderer->defaultSampler;
-		textureBindings[1].sampler = renderer->defaultSampler;
-		textureBindings[2].sampler = renderer->defaultSampler;
-		textureBindings[3].sampler = renderer->defaultSampler;
+		textureBindings[0].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+		textureBindings[1].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+		textureBindings[2].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+		textureBindings[3].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
 
 		SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, 4);
 

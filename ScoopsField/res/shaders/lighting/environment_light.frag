@@ -1,5 +1,6 @@
 #version 460
 
+#include "../common.glsl"
 #include "lighting.glsl"
 
 layout (location = 0) in vec2 v_texcoord;
@@ -75,7 +76,7 @@ void main()
 	vec4 normalEmissiveStrength = texture(s_normal, v_texcoord);
 	vec3 viewSpaceNormal = normalEmissiveStrength.rgb * 2 - 1;
 	vec3 normal = (viewInv * vec4(viewSpaceNormal, 0)).xyz; // world space normal
-	vec3 albedo = texture(s_color, v_texcoord).rgb;
+	vec3 albedo = SRGBToLinear(texture(s_color, v_texcoord).rgb);
 
 	vec4 material = texture(s_material, v_texcoord);
 	float roughness = material.r;
@@ -83,7 +84,7 @@ void main()
 
 	vec3 radiance = environmentLight(normal, view, albedo, roughness, metallic, s_environment);
 
-	vec3 emissiveColor = texture(s_emissive, v_texcoord).rgb;
+	vec3 emissiveColor = SRGBToLinear(texture(s_emissive, v_texcoord).rgb);
 	float emissiveStrength = normalEmissiveStrength.a;
 	radiance += emissiveColor * emissiveStrength;
 

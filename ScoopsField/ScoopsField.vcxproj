@@ -40,7 +40,7 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
@@ -361,7 +361,6 @@
     <None Include="res\shaders\clear_buffer.comp" />
     <None Include="res\shaders\common.glsl" />
     <None Include="res\shaders\copy_depth.frag" />
-    <None Include="res\shaders\copy_depth.vert" />
     <None Include="res\shaders\entity\magic_projectile.frag" />
     <None Include="res\shaders\entity\magic_projectile.vert" />
     <None Include="res\shaders\entity\trail.frag" />
@@ -384,12 +383,9 @@
     <None Include="res\shaders\sky\multiscatter_lut.comp" />
     <None Include="res\shaders\sky\sky.frag" />
     <None Include="res\shaders\sky\sky.glsl" />
-    <None Include="res\shaders\sky\sky.vert" />
     <None Include="res\shaders\sky\skyview_lut.comp" />
     <None Include="res\shaders\sky\sky_cube.frag" />
-    <None Include="res\shaders\sky\sky_cube.vert" />
     <None Include="res\shaders\sky\sky_upsample.frag" />
-    <None Include="res\shaders\sky\sky_upsample.vert" />
     <None Include="res\shaders\sky\sun_color.comp" />
     <None Include="res\shaders\sky\transmittance_lut.comp" />
     <None Include="res\shaders\tonemapping.frag" />

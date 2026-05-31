@@ -1,5 +1,6 @@
 #version 460
 
+#include "../common.glsl"
 #include "lighting.glsl"
 
 layout (location = 0) in vec3 v_lightPosition;
@@ -77,7 +78,7 @@ void main()
 	vec3 view = normalize(-position);
 
 	vec3 normal = texture(s_normal, uv).rgb * 2 - 1;
-	vec3 albedo = texture(s_color, uv).rgb;
+	vec3 albedo = SRGBToLinear(texture(s_color, uv).rgb);
 
 	vec4 material = texture(s_material, uv);
 	float roughness = material.r;

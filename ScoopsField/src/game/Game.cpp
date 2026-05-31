@@ -146,6 +146,8 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 		LoadGraphicsShader("res/shaders/entity/trail.vert.bin", "res/shaders/entity/trail.frag.bin"),
 		&trailLayout, 1, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_NONE, false);
 
+	game->trailMaterial.textures[game->trailMaterial.numTextures++] = GetTexture("textures/effect/trail.png");
+
 #ifdef _DEBUG
 	AddHotReloadedShader("shaders/mesh.vert", "shaders/mesh.frag", game->renderer.defaultShader, game->renderer.geometryPipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/shadow.frag", game->renderer.shadowShader, game->renderer.shadowPipeline);
@@ -158,7 +160,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddHotReloadedShader("shaders/sky/sky.vert", "shaders/sky/sky.frag", game->renderer.skyShader, game->renderer.skyPipeline);
 	AddHotReloadedShader("shaders/sky/sky_upsample.vert", "shaders/sky/sky_upsample.frag", game->renderer.skyUpsampleShader, game->renderer.skyUpsamplePipeline);
 	AddHotReloadedShader("shaders/sky/sky_cube.vert", "shaders/sky/sky_cube.frag", game->renderer.skyCubeShader, game->renderer.skyCubePipeline);
-	AddHotReloadedComputeShader("shaders/sky/transmittance_lut.comp", game->renderer.skyTransmittaceLUTShader);
+	AddHotReloadedComputeShader("shaders/sky/transmittance_lut.comp", game->renderer.skyTransmittanceLUTShader);
 	AddHotReloadedComputeShader("shaders/sky/multiscatter_lut.comp", game->renderer.skyMultiScatterLUTShader);
 	AddHotReloadedComputeShader("shaders/sky/skyview_lut.comp", game->renderer.skyViewLUTShader);
 	AddHotReloadedComputeShader("shaders/sky/sun_color.comp", game->renderer.sunColorShader);

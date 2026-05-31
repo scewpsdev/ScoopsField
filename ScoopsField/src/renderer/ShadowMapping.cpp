@@ -134,7 +134,7 @@ static void CalculateShadowMatricesForFrustum(vec3 position, quat rotation, floa
 	}
 }
 
-static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* renderPass, mat4 view, mat4 pv, vec4 frustumPlanes[6], SDL_GPUCommandBuffer* cmdBuffer)
+static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* renderPass, mat4 view, mat4 pv, vec3 cameraPosition, vec4 frustumPlanes[6], SDL_GPUCommandBuffer* cmdBuffer)
 {
 	SDL_BindGPUGraphicsPipeline(renderPass, renderer->shadowMapPipeline->pipeline);
 
@@ -142,7 +142,7 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 	{
 		MeshDrawData* mesh = &renderer->meshes[i];
 		if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, view, pv, false, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, view, pv, cameraPosition, false, renderPass, cmdBuffer);
 	}
 
 	SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedShadowMapPipeline->pipeline);
@@ -151,7 +151,7 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 	{
 		MeshDrawData* mesh = &renderer->animatedMeshes[i];
 		if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, view, pv, false, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, view, pv, cameraPosition, false, renderPass, cmdBuffer);
 	}
 }
 
@@ -179,7 +179,7 @@ static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRo
 
 			SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->shadowMaps[cascade], 0, cmdBuffer);
 
-			RenderShadowMapGeometry(renderer, renderPass, cascadeViews[cascade], cascadePVs[cascade], frustumPlanes, cmdBuffer);
+			RenderShadowMapGeometry(renderer, renderPass, cascadeViews[cascade], cascadePVs[cascade], cameraPosition, frustumPlanes, cmdBuffer);
 
 			SDL_EndGPURenderPass(renderPass);
 		}
@@ -221,11 +221,11 @@ static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRo
 		gbufferTextures[4] = renderer->shadowMaps[2]->depthAttachment;
 
 		SDL_GPUSampler* samplers[5];
-		samplers[0] = renderer->defaultSampler;
-		samplers[1] = renderer->defaultSampler;
-		samplers[2] = renderer->shadowSampler;
-		samplers[3] = renderer->shadowSampler;
-		samplers[4] = renderer->shadowSampler;
+		samplers[0] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+		samplers[1] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+		samplers[2] = renderer->samplers[TEXTURE_SAMPLER_SHADOW_LINEAR_CLAMPED];
+		samplers[3] = renderer->samplers[TEXTURE_SAMPLER_SHADOW_LINEAR_CLAMPED];
+		samplers[4] = renderer->samplers[TEXTURE_SAMPLER_SHADOW_LINEAR_CLAMPED];
 
 		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 5, gbufferTextures, samplers, cmdBuffer);
 
@@ -255,8 +255,8 @@ static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRo
 		textures[1] = renderer->gbuffer->depthAttachment;
 
 		SDL_GPUSampler* samplers[2];
-		samplers[0] = renderer->clampedSampler;
-		samplers[1] = renderer->clampedSampler;
+		samplers[0] = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
+		samplers[1] = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
 
 		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 2, textures, samplers, cmdBuffer);
 
@@ -284,8 +284,8 @@ static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRo
 		textures[1] = renderer->gbuffer->depthAttachment;
 
 		SDL_GPUSampler* samplers[2];
-		samplers[0] = renderer->clampedSampler;
-		samplers[1] = renderer->clampedSampler;
+		samplers[0] = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
+		samplers[1] = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
 
 		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 2, textures, samplers, cmdBuffer);
 

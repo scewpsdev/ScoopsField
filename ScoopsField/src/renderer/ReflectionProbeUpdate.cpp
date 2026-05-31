@@ -1,7 +1,7 @@
 
 
 
-static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, SDL_GPUCommandBuffer* cmdBuffer)
+static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 cameraPosition, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	if (renderer->reflectionProbeUpdates.size > 0)
 	{
@@ -42,7 +42,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, SDL_GP
 				{
 					MeshDrawData* mesh = &renderer->meshes[i];
 					if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-						SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, views[face], pvs[face], true, renderPass, cmdBuffer);
+						SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, views[face], pvs[face], cameraPosition, true, renderPass, cmdBuffer);
 				}
 
 				SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
@@ -51,7 +51,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, SDL_GP
 				{
 					MeshDrawData* mesh = &renderer->animatedMeshes[i];
 					if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-						SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, views[face], pvs[face], true, renderPass, cmdBuffer);
+						SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, views[face], pvs[face], cameraPosition, true, renderPass, cmdBuffer);
 				}
 
 				SDL_EndGPURenderPass(renderPass);
@@ -73,7 +73,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, SDL_GP
 
 			SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->reflectionProbeShadowMap, 0, cmdBuffer);
 
-			RenderShadowMapGeometry(renderer, renderPass, view, shadowPV, frustumPlanes, cmdBuffer);
+			RenderShadowMapGeometry(renderer, renderPass, view, shadowPV, cameraPosition, frustumPlanes, cmdBuffer);
 
 			SDL_EndGPURenderPass(renderPass);
 		}
@@ -127,13 +127,13 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, SDL_GP
 				textures[6] = renderer->skyCubemap->colorAttachments[0];
 
 				SDL_GPUSampler* samplers[7];
-				samplers[0] = renderer->defaultSampler;
-				samplers[1] = renderer->defaultSampler;
-				samplers[2] = renderer->defaultSampler;
-				samplers[3] = renderer->defaultSampler;
-				samplers[4] = renderer->clampedSampler;
-				samplers[5] = renderer->shadowSampler;
-				samplers[6] = renderer->linearSampler;
+				samplers[0] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+				samplers[1] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+				samplers[2] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+				samplers[3] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+				samplers[4] = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
+				samplers[5] = renderer->samplers[TEXTURE_SAMPLER_SHADOW_LINEAR_CLAMPED];
+				samplers[6] = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
 
 				RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 7, textures, samplers, cmdBuffer);
 
@@ -156,7 +156,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, SDL_GP
 
 			SDL_GPUTextureSamplerBinding bindings[1];
 			bindings[0].texture = probe->cubemap->colorAttachments[0];
-			bindings[0].sampler = renderer->defaultSampler;
+			bindings[0].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
 			SDL_BindGPUComputeSamplers(computePass, 0, bindings, 1);
 
 			SDL_DispatchGPUCompute(computePass, 1, 1, 1);

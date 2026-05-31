@@ -147,7 +147,7 @@ void main()
 
 	vec3 viewSpaceNormal = texture(s_normal, v_texcoord).rgb * 2 - 1;
 	vec3 normal = (viewInv * vec4(viewSpaceNormal, 0)).xyz; // world space normal
-	vec3 albedo = texture(s_color, v_texcoord).rgb;
+	vec3 albedo = SRGBToLinear(texture(s_color, v_texcoord).rgb);
 
 	vec4 material = texture(s_material, v_texcoord);
 	float roughness = material.r;

@@ -2,13 +2,10 @@
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-layout(set = 0, binding = 0) uniform sampler3D s_cloudLowFrequency;
-layout(set = 0, binding = 1) uniform sampler3D s_cloudHighFrequency;
-layout(set = 0, binding = 2) uniform sampler2D s_cloudCoverage;
-layout(set = 0, binding = 3) uniform sampler2D s_transmittanceLUT;
-layout(set = 0, binding = 4) uniform sampler2D s_multiScatterLUT;
-layout(set = 0, binding = 5) uniform sampler3D s_cloudNoise;
-layout(set = 0, binding = 6) uniform sampler3D s_cloudNoiseDetail;
+layout(set = 0, binding = 0) uniform sampler2D s_transmittanceLUT;
+layout(set = 0, binding = 1) uniform sampler2D s_multiScatterLUT;
+layout(set = 0, binding = 2) uniform sampler3D s_cloudNoise;
+layout(set = 0, binding = 3) uniform sampler3D s_cloudNoiseDetail;
 
 layout(rgba32f, set = 1, binding = 0) uniform image2D s_sunColor;
 

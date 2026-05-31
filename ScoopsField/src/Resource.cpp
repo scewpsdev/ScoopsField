@@ -18,6 +18,7 @@ extern SDL_GPUCommandBuffer* cmdBuffer;
 void InitResourceState(ResourceState* resource)
 {
 	InitHashMap(&resource->modelNameMap);
+	InitHashMap(&resource->textureNameMap);
 	InitAnimationCache(&resource->animationCache);
 
 	resource->directoryChangedHandle = FindFirstChangeNotificationA(PROJECT_PATH "/" RESOURCE_FOLDER, true, FILE_NOTIFY_CHANGE_LAST_WRITE);
@@ -211,6 +212,27 @@ Model* GetModel(const char* path)
 			Model* model = &resource->models[modelID];
 			HashMapAdd(&resource->modelNameMap, pathHash, modelID);
 			return model;
+		}
+
+		return nullptr;
+	}
+}
+
+Texture* GetTexture(const char* path)
+{
+	uint32_t pathHash = hash(path);
+	if (int* textureID = HashMapGet(&resource->textureNameMap, pathHash))
+		return resource->textures[*textureID];
+	else
+	{
+		char fullPath[256];
+		SDL_snprintf(fullPath, 256, "res/%s.bin", path);
+
+		if (Texture* texture = LoadTexture(fullPath, cmdBuffer))
+		{
+			int textureID = resource->numTextures++;
+			HashMapAdd(&resource->textureNameMap, pathHash, textureID);
+			return texture;
 		}
 
 		return nullptr;

@@ -144,12 +144,14 @@ void UpdateAttackAction(Action* action, Player* player)
 		}
 	}
 
-	if (action->attack.attack->projectileCast && action->elapsedTime >= action->attack.attack->projectileCastTime && !action->attack.projectileCasted)
+	if (action->attack.attack->projectileCast && action->elapsedTime >= action->attack.attack->projectileCastTime && !action->attack.projectile)
 	{
-		action->attack.projectileCasted = true;
-
 		Entity* projectile = PoolAlloc(&game->entities);
 		mat4 transform = GetRightWeaponTransform(player) * mat4::Translate(action->attack.weapon->weapon.castOffset);
 		InitMagicProjectile(projectile, game->cameraPosition, game->cameraRotation.forward(), transform);
+		action->attack.projectile = projectile;
 	}
+
+	if (action->attack.projectile && action->attack.projectile->projectile.hasTrail)
+		BendTrailEnd(&action->attack.projectile->projectile.trail, (GetRightWeaponTransform(player) * mat4::Translate(action->attack.weapon->weapon.castOffset)).translation(), 2);
 }

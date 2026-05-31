@@ -220,9 +220,9 @@ static Texture* ReadTexture(BinaryReader& reader, const char* scenePath, SDL_GPU
 
 static void ReadMaterial(Material* material, BinaryReader& reader, const char* scenePath, SDL_GPUCommandBuffer* cmdBuffer)
 {
-	material->color = reader.ReadUInt32();
-	material->metallicFactor = reader.ReadFloat();
-	material->roughnessFactor = reader.ReadFloat();
+	material->color = SRGBToLinear(ARGBToVector(reader.ReadUInt32()));
+	float metallicFactor = reader.ReadFloat();
+	float roughnessFactor = reader.ReadFloat();
 	material->emissiveColor = reader.ReadVector3();
 	material->emissiveStrength = reader.ReadFloat();
 
@@ -233,12 +233,25 @@ static void ReadMaterial(Material* material, BinaryReader& reader, const char* s
 	int hasEmissive = reader.ReadInt32();
 	int hasHeight = reader.ReadInt32();
 
+	material->textureStates[0] = hasDiffuse ? 1.0f : 0.0f;
+	material->textureStates[1] = hasRoughness ? 1.0f : 0.0f;
+	material->textureStates[2] = hasMetallic ? 1.0f : 0.0f;
+
 	if (hasDiffuse) material->diffuse = ReadTexture(reader, scenePath, cmdBuffer);
 	if (hasNormal) material->normal = ReadTexture(reader, scenePath, cmdBuffer);
 	if (hasRoughness) material->roughness = ReadTexture(reader, scenePath, cmdBuffer);
 	if (hasMetallic) material->metallic = ReadTexture(reader, scenePath, cmdBuffer);
 	if (hasEmissive) material->emissive = ReadTexture(reader, scenePath, cmdBuffer);
 	if (hasHeight) material->height = ReadTexture(reader, scenePath, cmdBuffer);
+
+	material->samplers[0] = TEXTURE_SAMPLER_LINEAR;
+	material->samplers[1] = TEXTURE_SAMPLER_LINEAR;
+	material->samplers[2] = TEXTURE_SAMPLER_LINEAR;
+	material->samplers[3] = TEXTURE_SAMPLER_LINEAR;
+	material->samplers[4] = TEXTURE_SAMPLER_LINEAR;
+	material->samplers[5] = TEXTURE_SAMPLER_LINEAR;
+
+	material->numTextures = 3;
 }
 
 static void ReadSkeleton(Skeleton* skeleton, BinaryReader& reader)

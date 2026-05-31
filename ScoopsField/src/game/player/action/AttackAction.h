@@ -7,6 +7,8 @@
 #include "utils/List.h"
 
 
+struct Entity;
+
 struct AttackAction
 {
 	Item* weapon;
@@ -16,7 +18,8 @@ struct AttackAction
 	uint32_t button;
 
 	List<RigidBody*, 16> hitEntities;
-	bool projectileCasted;
+
+	Entity* projectile;
 
 	float lastHitTime;
 };

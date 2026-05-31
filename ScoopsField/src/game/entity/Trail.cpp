@@ -4,6 +4,8 @@
 
 #include "graphics/VertexBuffer.h"
 #include "graphics/TransferBuffer.h"
+#include "graphics/Texture.h"
+#include "model/Model.h"
 
 #include "renderer/Renderer.h"
 
@@ -27,9 +29,10 @@ void InitTrailVertexLayout(VertexBufferLayout* layout)
 	layout->attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
 }
 
-void InitTrail(Trail* trail, float width, vec3 startPosition, int numNodes)
+void InitTrail(Trail* trail, vec3 startPosition, int numNodes)
 {
-	trail->width = width;
+	trail->width = 0.1f;
+	trail->color = vec4(1);
 
 	SDL_assert(numNodes <= MAX_TRAIL_NODES);
 
@@ -87,15 +90,23 @@ void UpdateTrail(Trail* trail, vec3 position, SDL_GPUCommandBuffer* cmdBuffer)
 		TrailVertex* vertex0 = &vertices[i * 2 + 0];
 		TrailVertex* vertex1 = &vertices[i * 2 + 1];
 
-		float width = (1 - i / (float)(trail->numNodes - 1)) * trail->width;
+		float progress = i / (float)(trail->numNodes - 1);
+
+		float width = node->distance == 0 ? 0 : trail->width;
+		if (trail->fadeWidth)
+			width *= 1 - progress;
+
+		vec4 color = trail->color;
+		if (trail->fadeAlpha)
+			color.a *= 1 - progress;
 
 		vertex0->position = node->position - right * 0.5f * width;
 		vertex0->uv = vec2(node->distance, 0);
-		vertex0->color = vec4(1);
+		vertex0->color = color;
 
 		vertex1->position = node->position + right * 0.5f * width;
 		vertex1->uv = vec2(node->distance, 1);
-		vertex1->color = vec4(1);
+		vertex1->color = color;
 	}
 
 	void* mapped = MapTransferBuffer(trail->transferBuffer);
@@ -105,7 +116,36 @@ void UpdateTrail(Trail* trail, vec3 position, SDL_GPUCommandBuffer* cmdBuffer)
 	UpdateVertexBuffer(trail->vertexBuffer, 0, trail->numNodes * 2 * sizeof(TrailVertex), trail->transferBuffer->buffer, cmdBuffer);
 }
 
+void BendTrailEnd(Trail* trail, vec3 position, float range)
+{
+	for (int i = 0; i < trail->numNodes; i++)
+	{
+		TrailNode* node = &trail->nodes[i];
+		if (node->distance <= range)
+		{
+			vec3 forward = i > 0 ? trail->nodes[i - 1].position - node->position : node->position - trail->nodes[i + 1].position;
+			forward = forward.normalized();
+
+			vec3 right = cross(forward, vec3::Up);
+			right = right.normalized();
+
+			vec3 up = cross(right, forward);
+			up = up.normalized();
+
+			vec3 delta = position - node->position;
+			vec3 projectedRight = right * dot(right, delta);
+			vec3 projectedUp = up * dot(up, delta);
+
+			float bendAmount = 1 - node->distance / range;
+			node->position = mix(node->position, node->position + (projectedRight + projectedUp) * bendAmount, 20 * deltaTime);
+			if (bendAmount == 1)
+				node->position = position;
+			//node->position += (projectedRight + projectedUp) * bendAmount;
+		}
+	}
+}
+
 void RenderTrail(Trail* trail)
 {
-	RenderMesh(&game->renderer, &trail->vertexBuffer, 1, nullptr, {}, {}, nullptr, game->trailShader, true, mat4::Identity);
+	RenderMesh(&game->renderer, &trail->vertexBuffer, 1, nullptr, {}, {}, &game->trailMaterial, game->trailShader, true, mat4::Identity);
 }

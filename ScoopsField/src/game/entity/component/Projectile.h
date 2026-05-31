@@ -14,11 +14,13 @@ struct Projectile
 	vec3 velocity;
 	float gravity;
 	float drag;
-	bool rotateAlongVelocity;
+	float rotationSpeed;
+	bool rotateForwards;
 	vec3 hitboxOffset;
 	bool stickToObjects;
 
 	vec3 offset;
+	float rotation;
 	bool stuck;
 
 	bool hasTrail;

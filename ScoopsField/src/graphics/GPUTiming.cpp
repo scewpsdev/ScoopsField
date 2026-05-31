@@ -27,6 +27,8 @@ void InitGPUTimer(GpuTimerContext* ctx, SDL_GPUDevice* device)
 
 		vk->vkCreateQueryPool(vk->logicalDevice, &qp, NULL, &ctx->frames[i].queryPool);
 	}
+
+	InitHashMap(&ctx->cumulativeGpuTimes);
 }
 
 static GpuTimerFrame* GetFrame(GpuTimerContext* ctx)

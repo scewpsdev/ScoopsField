@@ -16,9 +16,11 @@ layout(set = 2, binding = 1) uniform sampler2D s_roughness;
 layout(set = 2, binding = 2) uniform sampler2D s_metallic;
 
 layout(set = 3, binding = 0) uniform UniformBlock {
+	vec4 params;
 	vec4 materialData0;
 	vec4 materialData1;
 	vec4 materialData2;
+	vec4 data3;
 
 #define hasDiffuse materialData0.x
 #define hasRoughness materialData0.y
@@ -39,7 +41,7 @@ void main()
 	float metallic = mix(0, texture(s_metallic, v_texcoord).b, hasMetallic);
 
 	out_normal = vec4(normalize(v_normal) * 0.5 + 0.5, emissiveStrength);
-	out_color = textureColor.rgb * materialColor;
+	out_color = linearToSRGB(textureColor.rgb * materialColor);
 	out_material = vec4(roughness, metallic, 0, 0);
-	out_emissive = vec4(emissiveColor, 0);
+	out_emissive = vec4(linearToSRGB(emissiveColor), 0);
 }

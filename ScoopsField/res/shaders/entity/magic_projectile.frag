@@ -2,8 +2,9 @@
 
 #include "../common.glsl"
 
-layout (location = 0) in vec3 v_normal;
-layout (location = 1) in vec2 v_texcoord;
+layout (location = 0) in vec3 v_position;
+layout (location = 1) in vec3 v_normal;
+layout (location = 2) in vec2 v_texcoord;
 
 layout (location = 0) out vec4 out_color;
 
@@ -12,9 +13,11 @@ layout(set = 2, binding = 1) uniform sampler2D s_roughness;
 layout(set = 2, binding = 2) uniform sampler2D s_metallic;
 
 layout(set = 3, binding = 0) uniform UniformBlock {
+	vec4 params;
 	vec4 materialData0;
 	vec4 materialData1;
 	vec4 materialData2;
+	vec4 data3;
 
 #define hasDiffuse materialData0.x
 #define hasRoughness materialData0.y
@@ -23,16 +26,19 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 #define materialColor materialData1.rgb
 #define emissiveColor materialData2.rgb
 #define emissiveStrength materialData2.a
+
+#define cameraPosition params.xyz
 };
 
 
 void main()
 {
-	vec4 textureColor = texture(s_diffuse, v_texcoord);
-	textureColor.rgb = SRGBToLinear(mix(vec3(1), textureColor.rgb, hasDiffuse));
+	vec3 normal = normalize(v_normal);
+	vec3 view = normalize(v_position - cameraPosition);
+	
+	vec3 color = materialColor;
+	float fresnel = abs(dot(normal, -view));
+	color *= 1 + fresnel * 3;
 
-	float roughness = mix(1, texture(s_roughness, v_texcoord).g, hasRoughness);
-	float metallic = mix(0, texture(s_metallic, v_texcoord).b, hasMetallic);
-
-	out_color = vec4(emissiveColor * emissiveStrength, 1);
+	out_color = vec4(color, 1);
 }

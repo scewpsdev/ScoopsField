@@ -53,18 +53,35 @@ struct Mesh
 
 struct Material
 {
-	uint32_t color;
-	float metallicFactor;
-	float roughnessFactor;
-	vec3 emissiveColor;
-	float emissiveStrength;
+	union {
+		struct {
+			vec4 data0;
+			vec4 data1;
+			vec4 data2;
+			vec4 data3;
 
-	Texture* diffuse;
-	Texture* normal;
-	Texture* roughness;
-	Texture* metallic;
-	Texture* emissive;
-	Texture* height;
+#define MAX_MATERIAL_TEXTURES 6
+			Texture* textures[MAX_MATERIAL_TEXTURES];
+			TextureSampler samplers[MAX_MATERIAL_TEXTURES];
+			int numTextures;
+		};
+		struct {
+			vec4 textureStates;
+			vec4 color;
+			vec3 emissiveColor;
+			float emissiveStrength;
+			vec4 data3;
+
+			Texture* diffuse;
+			Texture* roughness;
+			Texture* metallic;
+			Texture* normal;
+			Texture* emissive;
+			Texture* height;
+			TextureSampler samplers[MAX_MATERIAL_TEXTURES];
+			int numTextures;
+		};
+	};
 };
 
 struct Node

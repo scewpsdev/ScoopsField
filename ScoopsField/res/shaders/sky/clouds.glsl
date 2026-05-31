@@ -193,10 +193,12 @@ float cloudPhase(float m)
 	//return mix(HG(m, -g), HG(m, g), k);
 }
 
+/*
 float noise(vec3 pos)
 {
 	return texture(s_cloudLowFrequency, pos.xzy / vec3(256, 256, 64)).r;
 }
+*/
 
 float getCloudDensity(vec3 p, float height, int lod)
 {

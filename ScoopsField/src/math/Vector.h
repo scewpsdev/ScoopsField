@@ -9,7 +9,7 @@ struct vec2
 
 
 	vec2() = default;
-	vec2(float f);
+	explicit vec2(float f);
 	vec2(float x, float y);
 
 	float lengthSquared() const;
@@ -152,7 +152,7 @@ struct vec4
 
 
 	vec4();
-	vec4(float f);
+	explicit vec4(float f);
 	vec4(float x, float y, float z, float w);
 	vec4(const vec3& xyz, float w);
 	vec4(float x, const vec3& yzw);
@@ -180,7 +180,7 @@ struct ivec2
 
 
 	ivec2();
-	ivec2(int i);
+	explicit ivec2(int i);
 	ivec2(int x, int y);
 };
 
@@ -203,7 +203,7 @@ struct ivec3
 
 
 	ivec3();
-	ivec3(int i);
+	explicit ivec3(int i);
 	ivec3(int x, int y, int z);
 
 	int& operator[](int idx);
@@ -252,7 +252,7 @@ struct ivec4
 
 
 	ivec4();
-	ivec4(int i);
+	explicit ivec4(int i);
 	ivec4(int x, int y, int z, int w);
 	ivec4(const ivec3& xyz, int w);
 };

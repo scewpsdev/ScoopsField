@@ -7,6 +7,7 @@
 struct VertexBuffer;
 struct TransferBuffer;
 struct VertexBufferLayout;
+struct Material;
 
 struct TrailNode
 {
@@ -17,6 +18,11 @@ struct TrailNode
 struct Trail
 {
 	float width;
+	vec4 color;
+	Material* material;
+
+	bool fadeWidth;
+	bool fadeAlpha;
 
 #define MAX_TRAIL_NODES 16
 	TrailNode nodes[MAX_TRAIL_NODES];
@@ -31,8 +37,10 @@ struct Trail
 
 void InitTrailVertexLayout(VertexBufferLayout* layout);
 
-void InitTrail(Trail* trail, float width, vec3 startPosition, int numNodes = MAX_TRAIL_NODES);
+void InitTrail(Trail* trail, vec3 startPosition, int numNodes = MAX_TRAIL_NODES);
 void DestroyTrail(Trail* trail);
 
 void UpdateTrail(Trail* trail, vec3 position, SDL_GPUCommandBuffer* cmdBuffer);
+void BendTrailEnd(Trail* trail, vec3 position, float range);
+
 void RenderTrail(Trail* trail);
