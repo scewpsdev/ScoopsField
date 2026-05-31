@@ -12,15 +12,6 @@
 extern SDL_GPUDevice* device;
 
 
-static bool EveryInterval(float seconds, uint32_t h)
-{
-	float time = gameTime + (h / (float)UINT32_MAX) * seconds;
-	int iteration = (int)(time / seconds);
-	int lastIteration = (int)((time - deltaTime) / seconds);
-	return iteration != lastIteration || time - deltaTime < 0;
-}
-
-
 #include "item/Item.cpp"
 #include "player/Player.cpp"
 #include "entity/component/Creature.cpp"
@@ -147,7 +138,13 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 
 	game->magicProjectileShader = CreateForwardGraphicsPipeline(
 		LoadGraphicsShader("res/shaders/entity/magic_projectile.vert.bin", "res/shaders/entity/magic_projectile.frag.bin"),
-		SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_NONE, false);
+		game->renderer.meshLayout, NUM_MESH_BUFFER_LAYOUTS, SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_NONE, false);
+
+	VertexBufferLayout trailLayout = {};
+	InitTrailVertexLayout(&trailLayout);
+	game->trailShader = CreateForwardGraphicsPipeline(
+		LoadGraphicsShader("res/shaders/entity/trail.vert.bin", "res/shaders/entity/trail.frag.bin"),
+		&trailLayout, 1, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_NONE, false);
 
 #ifdef _DEBUG
 	AddHotReloadedShader("shaders/mesh.vert", "shaders/mesh.frag", game->renderer.defaultShader, game->renderer.geometryPipeline);
@@ -231,6 +228,11 @@ void GameUpdate()
 		TeleportPlayer(&game->player, game->playerSpawn.translation());
 		game->player.velocity = vec3::Zero;
 		game->player.rotation = game->playerSpawn.rotation().getAngle();
+	}
+
+	if (GetKeyDown(SDL_SCANCODE_F9))
+	{
+		__debugbreak();
 	}
 }
 

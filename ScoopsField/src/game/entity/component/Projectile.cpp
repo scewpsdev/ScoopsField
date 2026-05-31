@@ -27,11 +27,10 @@ void UpdateProjectile(Projectile* projectile, Entity* entity)
 {
 	if (!projectile->stuck)
 	{
-		//entity->projectile.velocity.y += 0.5f * entity->projectile.gravity * deltaTime;
-		//entity->projectile.velocity += entity->projectile.drag * entity->projectile.velocity.lengthSquared() * -entity->projectile.velocity.normalized() / 2;
-		entity->projectile.velocity = vec3::Zero;
+		entity->projectile.velocity.y += 0.5f * entity->projectile.gravity * deltaTime;
+		entity->projectile.velocity += entity->projectile.drag * entity->projectile.velocity.lengthSquared() * -entity->projectile.velocity.normalized() / 2;
 		vec3 nextPosition = entity->position + entity->projectile.velocity * deltaTime;
-		//entity->projectile.velocity.y += 0.5f * entity->projectile.gravity * deltaTime;
+		entity->projectile.velocity.y += 0.5f * entity->projectile.gravity * deltaTime;
 
 		vec3 d = nextPosition - entity->position;
 		float l = d.length();
@@ -78,6 +77,11 @@ void UpdateProjectile(Projectile* projectile, Entity* entity)
 
 			if (entity->projectile.offset.lengthSquared() > 0)
 				entity->projectile.offset = mix(entity->projectile.offset, vec3::Zero, 5 * deltaTime);
+
+			if (projectile->hasTrail)
+			{
+				UpdateTrail(&projectile->trail, entity->position + entity->projectile.offset, cmdBuffer);
+			}
 		}
 	}
 }
@@ -85,6 +89,9 @@ void UpdateProjectile(Projectile* projectile, Entity* entity)
 void RenderProjectile(Projectile* projectile, Entity* entity)
 {
 	RenderModel(&game->renderer, entity->model, entity->shader, nullptr, mat4::Translate(projectile->offset) * ModelMatrix(entity));
+
+	if (projectile->hasTrail)
+		RenderTrail(&projectile->trail);
 }
 
 
@@ -103,7 +110,7 @@ void InitArrow(Entity* entity, vec3 position, vec3 direction, mat4 startTransfor
 
 void InitMagicProjectile(Entity* entity, vec3 position, vec3 direction, mat4 startTransform)
 {
-	float speed = 30;
+	float speed = 20;
 	InitProjectile(entity, position, direction, startTransform, speed);
 
 	entity->model = GetModel("entities/projectile/magic_projectile/magic_projectile.glb");
@@ -111,5 +118,8 @@ void InitMagicProjectile(Entity* entity, vec3 position, vec3 direction, mat4 sta
 
 	entity->projectile.gravity = -1.5f;
 	entity->projectile.rotateAlongVelocity = true;
-	entity->projectile.drag = 0.002f;
+	entity->projectile.drag = 0.001f;
+
+	entity->projectile.hasTrail = true;
+	InitTrail(&entity->projectile.trail, 0.2f, position + entity->projectile.offset, 16);
 }

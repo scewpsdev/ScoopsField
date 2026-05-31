@@ -66,6 +66,8 @@ struct Weapon
 	int damage;
 	vec2 damageRange;
 
+	vec3 castOffset;
+
 #define MAX_WEAPON_ATTACKS 16
 	Attack attacks[MAX_WEAPON_ATTACKS];
 	int numAttacks;

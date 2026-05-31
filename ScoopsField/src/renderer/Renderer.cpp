@@ -440,6 +440,8 @@ static SDL_GPUTexture* CreateCloudNoiseDetailTexture(Renderer* renderer, SDL_GPU
 	return texture;
 }
 
+static void SubmitMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertexBuffers, IndexBuffer* indexBuffer, int vertexCount, int indexCount, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& view, const mat4& pv, bool viewSpaceBuffer, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer);
+
 #define SHADOW_MAP_RESOLUTION 1024
 
 #include "Sky.cpp"
@@ -748,16 +750,28 @@ void ResizeRenderer(Renderer* renderer, int width, int height)
 	renderer->shadowBuffer1 = CreateShadowBuffer(width / 2, height / 2);
 }
 
-void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonState* skeleton, mat4 transform)
+void RenderMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertexBuffers, IndexBuffer* indexBuffer, AABB boundingBox, Sphere boundingSphere, Material* material, GraphicsPipeline* shader, bool forward, mat4 transform)
 {
 	MeshDrawData data = {};
-	data.mesh = mesh;
-	data.material = material;
-	data.skeleton = skeleton;
-	data.transform = transform;
 
-	if (skeleton)
-		renderer->animatedMeshes.add(data);
+	data.numVertexBuffers = numVertexBuffers;
+	SDL_assert(numVertexBuffers <= 16);
+	SDL_memcpy(data.vertexBuffers, vertexBuffers, numVertexBuffers * sizeof(VertexBuffer*));
+
+	data.indexBuffer = indexBuffer;
+
+	data.vertexCount = vertexBuffers[0]->numVertices;
+	data.indexCount = indexBuffer ? indexBuffer->numIndices : 0;
+
+	data.boundingBox = boundingBox;
+	data.boundingSphere = boundingSphere;
+
+	data.material = material;
+	data.transform = transform;
+	data.shader = shader;
+
+	if (forward)
+		renderer->forwardMeshes.add(data);
 	else
 		renderer->meshes.add(data);
 }
@@ -765,7 +779,31 @@ void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonStat
 void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, GraphicsPipeline* shader, bool forward, SkeletonState* skeleton, mat4 transform)
 {
 	MeshDrawData data = {};
-	data.mesh = mesh;
+
+	if (skeleton)
+	{
+		data.numVertexBuffers = NUM_ANIMATED_MESH_BUFFER_LAYOUTS;
+		data.vertexBuffers[0] = mesh->positionBuffer;
+		data.vertexBuffers[1] = mesh->normalBuffer;
+		data.vertexBuffers[2] = mesh->weightsBuffer;
+		data.vertexBuffers[3] = mesh->texcoordBuffer;
+	}
+	else
+	{
+		data.numVertexBuffers = NUM_MESH_BUFFER_LAYOUTS;
+		data.vertexBuffers[0] = mesh->positionBuffer;
+		data.vertexBuffers[1] = mesh->normalBuffer;
+		data.vertexBuffers[2] = mesh->texcoordBuffer;
+	}
+
+	data.indexBuffer = mesh->indexBuffer;
+
+	data.vertexCount = mesh->vertexCount;
+	data.indexCount = mesh->indexCount;
+
+	data.boundingBox = mesh->boundingBox;
+	data.boundingSphere = mesh->boundingSphere;
+
 	data.skeleton = skeleton;
 	data.transform = transform;
 	data.material = material;
@@ -840,40 +878,25 @@ void UpdateReflectionProbe(Renderer* renderer, ReflectionProbe* probe)
 	renderer->reflectionProbeUpdates.add(probe);
 }
 
-static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& view, const mat4& pv, bool viewSpaceBuffer, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
+static void SubmitMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertexBuffers, IndexBuffer* indexBuffer, int vertexCount, int indexCount, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& view, const mat4& pv, bool viewSpaceBuffer, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
 {
-	if (skeleton)
+	SDL_GPUBufferBinding vertexBindings[16] = {};
+	for (int i = 0; i < numVertexBuffers; i++)
 	{
-		SDL_GPUBufferBinding vertexBindings[NUM_ANIMATED_MESH_BUFFER_LAYOUTS] = {};
-		vertexBindings[0].buffer = mesh->positionBuffer ? mesh->positionBuffer->buffer : renderer->emptyBuffer;
-		vertexBindings[0].offset = 0;
-		vertexBindings[1].buffer = mesh->normalBuffer ? mesh->normalBuffer->buffer : renderer->emptyBuffer;
-		vertexBindings[1].offset = 0;
-		vertexBindings[2].buffer = mesh->weightsBuffer ? mesh->weightsBuffer->buffer : renderer->emptyBuffer;
-		vertexBindings[2].offset = 0;
-		vertexBindings[3].buffer = mesh->texcoordBuffer ? mesh->texcoordBuffer->buffer : renderer->emptyBuffer;
-		vertexBindings[3].offset = 0;
-
-		SDL_BindGPUVertexBuffers(renderPass, 0, vertexBindings, NUM_ANIMATED_MESH_BUFFER_LAYOUTS);
-	}
-	else
-	{
-		SDL_GPUBufferBinding vertexBindings[NUM_MESH_BUFFER_LAYOUTS] = {};
-		vertexBindings[0].buffer = mesh->positionBuffer ? mesh->positionBuffer->buffer : renderer->emptyBuffer;
-		vertexBindings[0].offset = 0;
-		vertexBindings[1].buffer = mesh->normalBuffer ? mesh->normalBuffer->buffer : renderer->emptyBuffer;
-		vertexBindings[1].offset = 0;
-		vertexBindings[2].buffer = mesh->texcoordBuffer ? mesh->texcoordBuffer->buffer : renderer->emptyBuffer;
-		vertexBindings[2].offset = 0;
-
-		SDL_BindGPUVertexBuffers(renderPass, 0, vertexBindings, NUM_MESH_BUFFER_LAYOUTS);
+		vertexBindings[i].buffer = vertexBuffers[i] ? vertexBuffers[i]->buffer : renderer->emptyBuffer;
+		vertexBindings[i].offset = 0;
 	}
 
-	SDL_GPUBufferBinding indexBinding = {};
-	indexBinding.buffer = mesh->indexBuffer->buffer;
-	indexBinding.offset = 0;
+	SDL_BindGPUVertexBuffers(renderPass, 0, vertexBindings, numVertexBuffers);
 
-	SDL_BindGPUIndexBuffer(renderPass, &indexBinding, mesh->indexBuffer->elementSize);
+	if (indexBuffer)
+	{
+		SDL_GPUBufferBinding indexBinding = {};
+		indexBinding.buffer = indexBuffer->buffer;
+		indexBinding.offset = 0;
+
+		SDL_BindGPUIndexBuffer(renderPass, &indexBinding, indexBuffer->elementSize);
+	}
 
 	if (skeleton)
 	{
@@ -904,6 +927,7 @@ static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, Skele
 		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 	}
 
+	if (material)
 	{
 		struct UniformData
 		{
@@ -932,7 +956,10 @@ static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, Skele
 		SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, 3);
 	}
 
-	SDL_DrawGPUIndexedPrimitives(renderPass, mesh->indexCount, 1, 0, 0, 0);
+	if (indexBuffer)
+		SDL_DrawGPUIndexedPrimitives(renderPass, indexCount, 1, 0, 0, 0);
+	else
+		SDL_DrawGPUPrimitives(renderPass, vertexCount, 1, 0, 0);
 }
 
 static float CalculateLightRadius(vec3 color)
@@ -979,21 +1006,16 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 		for (int i = 0; i < renderer->meshes.size; i++)
 		{
-			Mesh* mesh = renderer->meshes[i].mesh;
-			Material* material = renderer->meshes[i].material;
-			const mat4& transform = renderer->meshes[i].transform;
-			SubmitMesh(renderer, mesh, material, nullptr, transform, view, pv, true, renderPass, cmdBuffer);
+			MeshDrawData* mesh = &renderer->meshes[i];
+			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, view, pv, true, renderPass, cmdBuffer);
 		}
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
 
 		for (int i = 0; i < renderer->animatedMeshes.size; i++)
 		{
-			Mesh* mesh = renderer->animatedMeshes[i].mesh;
-			Material* material = renderer->animatedMeshes[i].material;
-			SkeletonState* skeleton = renderer->animatedMeshes[i].skeleton;
-			const mat4& transform = renderer->animatedMeshes[i].transform;
-			SubmitMesh(renderer, mesh, material, skeleton, transform, view, pv, true, renderPass, cmdBuffer);
+			MeshDrawData* mesh = &renderer->animatedMeshes[i];
+			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, view, pv, true, renderPass, cmdBuffer);
 		}
 
 		SDL_EndGPURenderPass(renderPass);
@@ -1039,15 +1061,11 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 			for (int i = 0; i < renderer->forwardMeshes.size; i++)
 			{
-				Mesh* mesh = renderer->forwardMeshes[i].mesh;
-				Material* material = renderer->forwardMeshes[i].material;
-				const mat4& transform = renderer->forwardMeshes[i].transform;
+				MeshDrawData* mesh = &renderer->forwardMeshes[i];
 
-				GraphicsPipeline* shader = renderer->forwardMeshes[i].shader;
+				SDL_BindGPUGraphicsPipeline(renderPass, mesh->shader->pipeline);
 
-				SDL_BindGPUGraphicsPipeline(renderPass, shader->pipeline);
-
-				SubmitMesh(renderer, mesh, material, nullptr, transform, view, pv, false, renderPass, cmdBuffer);
+				SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, view, pv, false, renderPass, cmdBuffer);
 			}
 		}
 

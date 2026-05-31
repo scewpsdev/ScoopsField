@@ -21,6 +21,25 @@ static void InitWeapon(ItemDatabase* items, Item* item, const char* name, bool t
 	item->weapon.runningAttack = -1;
 }
 
+static void InitStaff(ItemDatabase* items, Item* item, const char* name, bool twoHanded, vec3 castOffset)
+{
+	item->twoHanded = twoHanded;
+
+	char modelPath[256];
+	SDL_snprintf(modelPath, 256, "res/items/%s/%s.glb.bin", name, name);
+	LoadModel(&item->model, modelPath, false, cmdBuffer);
+
+	char movesetPath[256];
+	SDL_snprintf(movesetPath, 256, "res/items/%s/%s_moveset.glb.bin", name, name);
+	LoadModel(&item->moveset, movesetPath, false, cmdBuffer);
+
+	item->equipSound = &items->equipLightSound;
+
+	item->weapon.castOffset = castOffset;
+
+	item->weapon.runningAttack = -1;
+}
+
 static void AddAttackSound(Attack* attack, Sound* sound, float time, float volume, float speed, float pan)
 {
 	SDL_assert(attack->numSounds < MAX_ATTACK_SOUNDS);
@@ -147,7 +166,7 @@ static void InitWeapons(ItemDatabase* items)
 	// darkwood staff
 	{
 		Item* item = &items->items[ITEM_DARKWOOD_STAFF];
-		InitWeapon(items, item, "darkwood_staff", false, 50, vec2(0.3f, 0.4f));
+		InitStaff(items, item, "darkwood_staff", false, vec3(0, 0.275f, 0));
 
 		item->equipSound = &items->equipLightSound;
 

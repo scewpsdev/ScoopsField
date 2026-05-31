@@ -29,6 +29,7 @@ VertexBuffer* CreateVertexBuffer(int numVertices, const VertexBufferLayout* layo
 void DestroyVertexBuffer(VertexBuffer* vertexBuffer);
 
 void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, uint32_t size, SDL_GPUTransferBuffer* transferBuffer, SDL_GPUCopyPass* copyPass);
+void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, uint32_t size, SDL_GPUTransferBuffer* transferBuffer, SDL_GPUCommandBuffer* cmdBuffer);
 void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, const uint8_t* data, uint32_t size, SDL_GPUCopyPass* copyPass);
 void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, const uint8_t* data, uint32_t size, SDL_GPUCommandBuffer* cmdBuffer);
 

@@ -4,6 +4,8 @@
 
 #include "physics/RigidBody.h"
 
+#include "game/entity/Trail.h"
+
 
 struct Entity;
 
@@ -18,6 +20,9 @@ struct Projectile
 
 	vec3 offset;
 	bool stuck;
+
+	bool hasTrail;
+	Trail trail;
 };
 
 

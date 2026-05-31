@@ -1,8 +1,6 @@
 
 
 
-static void SubmitMesh(Renderer* renderer, Mesh* mesh, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& view, const mat4& pv, bool viewSpaceBuffer, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer);
-
 static void CalculateShadowMatricesForAABB(vec3 position, vec3 halfExtents, vec3 lightDir, mat4* lightProjection, mat4* lightView)
 {
 	vec3 corners[8];
@@ -142,23 +140,18 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 
 	for (int i = 0; i < renderer->meshes.size; i++)
 	{
-		Mesh* mesh = renderer->meshes[i].mesh;
-		Material* material = renderer->meshes[i].material;
-		const mat4& transform = renderer->meshes[i].transform;
-		if (FrustumCulling(mesh->boundingSphere, transform, frustumPlanes))
-			SubmitMesh(renderer, mesh, material, nullptr, transform, view, pv, false, renderPass, cmdBuffer);
+		MeshDrawData* mesh = &renderer->meshes[i];
+		if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
+			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, view, pv, false, renderPass, cmdBuffer);
 	}
 
 	SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedShadowMapPipeline->pipeline);
 
 	for (int i = 0; i < renderer->animatedMeshes.size; i++)
 	{
-		Mesh* mesh = renderer->animatedMeshes[i].mesh;
-		Material* material = renderer->animatedMeshes[i].material;
-		SkeletonState* skeleton = renderer->animatedMeshes[i].skeleton;
-		const mat4& transform = renderer->animatedMeshes[i].transform;
-		if (FrustumCulling(mesh->boundingSphere, transform, frustumPlanes))
-			SubmitMesh(renderer, mesh, material, skeleton, transform, view, pv, false, renderPass, cmdBuffer);
+		MeshDrawData* mesh = &renderer->animatedMeshes[i];
+		if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
+			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, view, pv, false, renderPass, cmdBuffer);
 	}
 }
 

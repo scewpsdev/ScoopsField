@@ -149,7 +149,7 @@ void UpdateAttackAction(Action* action, Player* player)
 		action->attack.projectileCasted = true;
 
 		Entity* projectile = PoolAlloc(&game->entities);
-		mat4 transform = GetLeftWeaponTransform(player);
+		mat4 transform = GetRightWeaponTransform(player) * mat4::Translate(action->attack.weapon->weapon.castOffset);
 		InitMagicProjectile(projectile, game->cameraPosition, game->cameraRotation.forward(), transform);
 	}
 }

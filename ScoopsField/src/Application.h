@@ -150,6 +150,7 @@ struct AppState
 
 
 
+bool EveryInterval(float seconds, uint32_t h);
 bool GetKey(SDL_Scancode key);
 bool GetKeyDown(SDL_Scancode key);
 bool GetKeyUp(SDL_Scancode key);

@@ -145,7 +145,7 @@ GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveTy
 	return CreateGraphicsPipelineInfo(primitiveType, cullMode, shader, numColorAttachments, colorAttachmentFormats, hasDepthAttachment, depthAttachmentFormat, numVertexBuffers, vertexLayouts);
 }
 
-GraphicsPipelineInfo CreateForwardGraphicsPipelineInfo(Shader* shader)
+GraphicsPipeline* CreateForwardGraphicsPipeline(Shader* shader, VertexBufferLayout* vertexLayouts, int numVertexLayouts, SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, bool additive)
 {
 	SDL_GPUTextureFormat colorAttachmentFormat = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
 	SDL_GPUTextureFormat depthAttachmentFormat = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
@@ -160,16 +160,9 @@ GraphicsPipelineInfo CreateForwardGraphicsPipelineInfo(Shader* shader)
 		shader,
 		1, &colorAttachmentFormat,
 		true, depthAttachmentFormat,
-		NUM_MESH_BUFFER_LAYOUTS, game->renderer.meshLayout);
+		numVertexLayouts, vertexLayouts);
 
 	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER;
-
-	return pipelineInfo;
-}
-
-GraphicsPipeline* CreateForwardGraphicsPipeline(Shader* shader, SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, bool additive)
-{
-	GraphicsPipelineInfo pipelineInfo = CreateForwardGraphicsPipelineInfo(shader);
 	pipelineInfo.primitiveType = primitiveType;
 	pipelineInfo.cullMode = cullMode;
 

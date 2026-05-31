@@ -70,6 +70,7 @@ struct GameState
 	Texture* digits;
 
 	GraphicsPipeline* magicProjectileShader;
+	GraphicsPipeline* trailShader;
 
 	ReflectionProbe reflectionProbe;
 };

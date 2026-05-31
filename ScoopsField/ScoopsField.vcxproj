@@ -160,6 +160,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="src\game\entity\Trail.cpp" />
     <ClCompile Include="src\game\Game.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -363,6 +364,8 @@
     <None Include="res\shaders\copy_depth.vert" />
     <None Include="res\shaders\entity\magic_projectile.frag" />
     <None Include="res\shaders\entity\magic_projectile.vert" />
+    <None Include="res\shaders\entity\trail.frag" />
+    <None Include="res\shaders\entity\trail.vert" />
     <None Include="res\shaders\lighting\deferred_diffuse.frag" />
     <None Include="res\shaders\lighting\environment_light.frag" />
     <None Include="res\shaders\lighting\lighting.glsl" />

@@ -31,27 +31,27 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, SDL_GP
 				views[face] = mat4::Rotate(cubemapRotations[face].conjugated()) * mat4::Translate(-probe->position);
 				pvs[face] = projection * views[face];
 
+				vec4 frustumPlanes[6];
+				GetFrustumPlanes(pvs[face], frustumPlanes);
+
 				SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->cubemapGbuffers[face], 0, cmdBuffer);
 
 				SDL_BindGPUGraphicsPipeline(renderPass, renderer->geometryPipeline->pipeline);
 
 				for (int i = 0; i < renderer->meshes.size; i++)
 				{
-					Mesh* mesh = renderer->meshes[i].mesh;
-					Material* material = renderer->meshes[i].material;
-					const mat4& transform = renderer->meshes[i].transform;
-					SubmitMesh(renderer, mesh, material, nullptr, transform, views[face], pvs[face], true, renderPass, cmdBuffer);
+					MeshDrawData* mesh = &renderer->meshes[i];
+					if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
+						SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, views[face], pvs[face], true, renderPass, cmdBuffer);
 				}
 
 				SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
 
 				for (int i = 0; i < renderer->animatedMeshes.size; i++)
 				{
-					Mesh* mesh = renderer->animatedMeshes[i].mesh;
-					Material* material = renderer->animatedMeshes[i].material;
-					SkeletonState* skeleton = renderer->animatedMeshes[i].skeleton;
-					const mat4& transform = renderer->animatedMeshes[i].transform;
-					SubmitMesh(renderer, mesh, material, skeleton, transform, views[face], pvs[face], true, renderPass, cmdBuffer);
+					MeshDrawData* mesh = &renderer->animatedMeshes[i];
+					if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
+						SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, views[face], pvs[face], true, renderPass, cmdBuffer);
 				}
 
 				SDL_EndGPURenderPass(renderPass);

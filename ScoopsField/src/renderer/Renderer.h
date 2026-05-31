@@ -23,7 +23,16 @@
 
 struct MeshDrawData
 {
-	Mesh* mesh;
+	VertexBuffer* vertexBuffers[16];
+	int numVertexBuffers;
+
+	IndexBuffer* indexBuffer;
+
+	int vertexCount, indexCount;
+
+	AABB boundingBox;
+	Sphere boundingSphere;
+
 	SkeletonState* skeleton;
 	Material* material;
 	GraphicsPipeline* shader;
@@ -182,7 +191,7 @@ struct Renderer
 };
 
 
-void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, GraphicsPipeline* shader, bool forward, SkeletonState* skeleton, mat4 transform);
+void RenderMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertexBuffers, IndexBuffer* indexBuffer, AABB boundingBox, Sphere boundingSphere, Material* material, GraphicsPipeline* shader, bool forward, mat4 transform);
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform);
 void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform);
 void RenderLight(Renderer* renderer, vec3 position, vec3 color);

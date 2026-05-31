@@ -24,6 +24,14 @@ SDL_GPUTexture* swapchain = nullptr;
 SDL_GPUCommandBuffer* cmdBuffer = nullptr;
 
 
+bool EveryInterval(float seconds, uint32_t h)
+{
+	float time = gameTime + (h / (float)UINT32_MAX) * seconds;
+	int iteration = (int)(time / seconds);
+	int lastIteration = (int)((time - deltaTime) / seconds);
+	return iteration != lastIteration || time - deltaTime < 0;
+}
+
 bool GetKey(SDL_Scancode key)
 {
 	return app->keys[key];

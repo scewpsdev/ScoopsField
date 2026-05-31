@@ -83,6 +83,26 @@ void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, uint32_t si
 	SDL_UploadToGPUBuffer(copyPass, &location, &region, false);
 }
 
+void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, uint32_t size, SDL_GPUTransferBuffer* transferBuffer, SDL_GPUCommandBuffer* cmdBuffer)
+{
+	SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
+
+	SDL_GPUTransferBufferLocation location = {};
+	location.transfer_buffer = transferBuffer;
+	location.offset = 0;
+
+	SDL_GPUBufferRegion region = {};
+	region.buffer = vertexBuffer->buffer;
+	region.size = size;
+	region.offset = offset;
+
+	SDL_assert(offset + size <= vertexBuffer->numVertices * GetVertexPitch(&vertexBuffer->layout));
+
+	SDL_UploadToGPUBuffer(copyPass, &location, &region, false);
+
+	SDL_EndGPUCopyPass(copyPass);
+}
+
 void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, const uint8_t* data, uint32_t size, SDL_GPUCopyPass* copyPass)
 {
 	SDL_GPUTransferBufferCreateInfo transferInfo = {};
