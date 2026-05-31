@@ -91,7 +91,7 @@ struct Player : Entity
 	vec3 viewBobLookSwayAnim;
 	int lastStepIdx;
 
-	#define NUM_LOADOUTS 3
+#define NUM_LOADOUTS 3
 	Item* rightWeapons[NUM_LOADOUTS];
 	Item* leftWeapons[NUM_LOADOUTS];
 	int currentLoadout;

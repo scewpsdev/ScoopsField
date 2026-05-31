@@ -6,12 +6,19 @@
 
 static void OnStep(Player* player)
 {
-	PlaySound(&game->stepSound, (player->lastStepIdx % 2 * 2 - 1) * 0.2f, 0.5f);
+	//PlaySound(&game->stepSound, (player->lastStepIdx % 2 * 2 - 1) * 0.2f, 0.5f);
+	PlaySound(&game->stepBareSound, (player->lastStepIdx % 2 * 2 - 1) * 0.2f, 0.5f);
 }
 
 static void OnLand(Player* player)
 {
-	PlaySound(&game->landSound, 0.5f);
+	//PlaySound(&game->landSound, 0.5f);
+	PlaySound(&game->landBareSound, 0.5f);
+}
+
+static void OnJump(Player* player)
+{
+	PlaySound(&game->jumpBareSound, 0.5f);
 }
 
 static vec3 GetMovementInputs(Player* player, Action* currentAction, float speed)
@@ -267,6 +274,7 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 		player->velocity.y = jumpPower;
 		player->grounded = false;
 		player->lastJumpInput = 0;
+		OnJump(player);
 	}
 
 	if (player->grounded)

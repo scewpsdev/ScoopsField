@@ -477,7 +477,7 @@ static void AnimateAxisBlendSpace(Model* model, AnimationState* animationState, 
 
 			if (moveAmount > 0)
 			{
-				vec2 dir = abs(velocity / speed);
+				vec2 dir = abs((velocity / speed).rotate(player->rotation));
 				float t = dir.angle() / (PI * 0.5f);
 				mat4 move = interpolate(side, forward, t);
 

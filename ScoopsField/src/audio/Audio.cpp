@@ -103,13 +103,13 @@ static int GetRandom(int count)
 
 uint32_t PlaySound(Sound* sound, float volume)
 {
-	uint32_t handle = audio->soloud->playBackground(sound->wavs[GetRandom(sound->numWavs)], volume);
+	uint32_t handle = audio->defaultBus.play(sound->wavs[GetRandom(sound->numWavs)], volume);
 	return handle;
 }
 
 uint32_t PlaySound(Sound* sound, float pan, float volume)
 {
-	uint32_t handle = audio->soloud->play(sound->wavs[GetRandom(sound->numWavs)], volume, pan);
+	uint32_t handle = audio->defaultBus.play(sound->wavs[GetRandom(sound->numWavs)], volume, pan);
 	return handle;
 }
 

@@ -98,6 +98,14 @@ vec3 filmic(vec3 color)
     return ldrColor;
 }
 
+vec3 ToneMapFilmic_Hejl2015(vec3 hdr, float whitePt)
+{
+    vec4 vh = vec4(hdr, whitePt);
+    vec4 va = (1.425 * vh) + 0.05;
+    vec4 vf = ((vh * va + 0.004) / ((vh * (va + 0.55) + 0.0491))) - 0.0821;
+    return vf.rgb / vf.www;
+}
+
 vec3 gammaCorrection(vec3 color)
 {
 	color = pow(color, vec3(1.0 / 2.2));
@@ -111,7 +119,8 @@ void main()
 	//color = linearToSRGB(color);
 
 	//color = acesFitted(color);
-    color = color / (color + 1);
+    //color = color / (color + 1);
+    color = ToneMapFilmic_Hejl2015(color, 10);
 	color = gammaCorrection(color);
 
 	out_color = vec4(color, 1);

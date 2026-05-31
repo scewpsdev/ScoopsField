@@ -129,6 +129,9 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	LoadSounds(&game->slashHitSound, "sounds/hit_slash", 2);
 	LoadSounds(&game->skeletonHitSound, "sounds/hit_rock", 5);
 	LoadSounds(&game->hitArmorSound, "sounds/hit/hit_armor", 10);
+	LoadSounds(&game->stepBareSound, "sounds/step/step_bare", 3);
+	LoadSound(&game->jumpBareSound, "res/sounds/step/jump_bare.ogg.bin");
+	LoadSounds(&game->landBareSound, "sounds/step/land_bare", 3);
 
 	game->crosshair = LoadTexture("res/textures/ui/crosshair.png.bin", cmdBuffer);
 	game->crosshairInteract = LoadTexture("res/textures/ui/crosshair_hand.png.bin", cmdBuffer);
