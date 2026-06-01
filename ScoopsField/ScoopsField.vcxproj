@@ -267,6 +267,7 @@
     <ClInclude Include="src\game\entity\component\ItemEntity.h" />
     <ClInclude Include="src\game\entity\component\Projectile.h" />
     <ClInclude Include="src\game\entity\component\RestingSpot.h" />
+    <ClInclude Include="src\game\entity\EntityBase.h" />
     <ClInclude Include="src\game\entity\Trail.h" />
     <ClInclude Include="src\game\Navmesh.h" />
     <ClInclude Include="src\game\particle\ParticleSystem.h" />

@@ -7,7 +7,7 @@
 #include "utils/List.h"
 
 
-struct Entity;
+struct Projectile;
 
 struct AttackAction
 {
@@ -19,7 +19,7 @@ struct AttackAction
 
 	List<RigidBody*, 16> hitEntities;
 
-	Entity* projectile;
+	Projectile* projectile;
 
 	float lastHitTime;
 };

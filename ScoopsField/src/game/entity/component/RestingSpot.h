@@ -1,5 +1,7 @@
 #pragma once
 
+#include "game/entity/EntityBase.h"
+
 #include "model/Model.h"
 
 #include "physics/RigidBody.h"
@@ -7,7 +9,7 @@
 
 struct Entity;
 
-struct RestingSpot
+struct RestingSpot : EntityBase
 {
 	RigidBody body;
 };

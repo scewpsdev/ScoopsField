@@ -23,6 +23,9 @@ void DestroyEntity(Entity* entity)
 	case ENTITY_TYPE_PROJECTILE:
 		DestroyProjectile(&entity->projectile, entity);
 		break;
+	case ENTITY_TYPE_PARTICLE_EFFECT:
+		DestroyParticleEffect(&entity->particles);
+		break;
 	default:
 		break;
 	}
@@ -68,7 +71,8 @@ void UpdateEntity(Entity* entity)
 		UpdateRestingSpot(&entity->restingSpot, entity);
 		break;
 	case ENTITY_TYPE_PROJECTILE:
-		UpdateProjectile(&entity->projectile, entity);
+		UpdateProjectile(&entity->projectile);
+		break;
 	default:
 		break;
 	}
@@ -88,7 +92,7 @@ void RenderEntity(Entity* entity)
 		RenderRestingSpot(&entity->restingSpot, entity);
 		break;
 	case ENTITY_TYPE_PROJECTILE:
-		RenderProjectile(&entity->projectile, entity);
+		RenderProjectile(&entity->projectile);
 		break;
 	default:
 		break;

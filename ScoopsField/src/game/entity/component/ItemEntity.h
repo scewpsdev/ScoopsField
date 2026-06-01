@@ -1,11 +1,13 @@
 #pragma once
 
+#include "game/entity/EntityBase.h"
+
 #include "physics/RigidBody.h"
 
 
 struct Entity;
 
-struct ItemEntity
+struct ItemEntity : EntityBase
 {
 	Item* item;
 

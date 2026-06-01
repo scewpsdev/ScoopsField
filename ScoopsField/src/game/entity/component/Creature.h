@@ -2,6 +2,8 @@
 
 #include "game/Navmesh.h"
 
+#include "game/entity/EntityBase.h"	
+
 #include "game/entity/action/EntityAction.h"
 
 #include "model/Model.h"
@@ -10,10 +12,9 @@
 #include "physics/RigidBody.h"
 
 
-struct Entity;
 struct HitParams;
 
-struct Creature
+struct Creature : EntityBase
 {
 	float lookDirection;
 

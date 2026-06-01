@@ -1,7 +1,9 @@
 #pragma once
 
+#include "game/entity/EntityBase.h"
 
-struct ParticleEffect
+
+struct ParticleEffect : EntityBase
 {
 	vec3* positions;
 	vec2* sizes;
@@ -11,13 +13,16 @@ struct ParticleEffect
 	int maxParticles;
 	int numParticles;
 
-	float minLifetime, maxLifetime;
 	float spawnRate;
 	float spawnRemainder;
+	bool destroyOnFinish;
+
+	float minLifetime, maxLifetime;
 	float minSize, maxSize;
 	vec3 startPosition;
 	vec3 startVelocity;
 	vec3 gravity;
+	vec4 color;
 
 	VertexBuffer* positionBuffer;
 	VertexBuffer* sizeBuffer;
@@ -32,9 +37,13 @@ struct ParticleSystem
 {
 	VertexBuffer* quad;
 
-	ParticleEffect effect;
+#define MAX_PARTICLE_EFFECTS 64
+	List<ParticleEffect*, MAX_PARTICLE_EFFECTS> effects;
 };
 
+
+void InitParticleEffect(ParticleEffect* effect);
+void DestroyParticleEffect(ParticleEffect* effect);
 
 void InitParticleInstanceBufferLayouts(VertexBufferLayout* instanceLayouts);
 void InitParticleSystem(ParticleSystem* particles);

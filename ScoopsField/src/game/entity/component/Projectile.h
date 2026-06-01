@@ -4,12 +4,13 @@
 
 #include "physics/RigidBody.h"
 
+#include "game/entity/EntityBase.h"	
 #include "game/entity/Trail.h"
 
 
-struct Entity;
+struct ParticleEffect;
 
-struct Projectile
+struct Projectile : EntityBase
 {
 	vec3 velocity;
 	float gravity;
@@ -20,7 +21,7 @@ struct Projectile
 	bool stickToObjects;
 
 	vec3 offset;
-	float rotation;
+	float roll;
 	bool stuck;
 
 	bool hasLight;
@@ -28,16 +29,16 @@ struct Projectile
 
 	bool hasTrail;
 	Trail trail;
+
+	ParticleEffect* particles;
 };
 
 
-void InitProjectile(Entity* entity, vec3 position, vec3 direction, mat4 startTransform, float speed);
+void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, float speed);
 void DestroyProjectile(Projectile* projectile, Entity* entity);
 
-bool InteractProjectile(Projectile* projectile, Entity* entity, Entity* by);
+void UpdateProjectile(Projectile* projectile);
+void RenderProjectile(Projectile* projectile);
 
-void UpdateProjectile(Projectile* projectile, Entity* entity);
-void RenderProjectile(Projectile* projectile, Entity* entity);
-
-void InitArrow(Entity* entity, vec3 position, vec3 direction, mat4 startTransform);
-void InitMagicProjectile(Entity* entity, vec3 position, vec3 direction, mat4 startTransform);
+void InitArrow(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform);
+void InitMagicProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform);

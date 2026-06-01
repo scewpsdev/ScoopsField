@@ -18,10 +18,10 @@ layout(std140, set = 1, binding = 0) uniform UniformBlock {
 
 void main()
 {
-	vec4 viewSpacePosition = u_viewModel * vec4(a_position, 1);
-	viewSpacePosition.xy += a_vertexPosition * a_size;
+	vec4 position = vec4(a_position, 1);
+	position += inverse(u_viewModel) * vec4(a_vertexPosition * a_size, 0, 1);
 
-	gl_Position = u_projection * viewSpacePosition;
+	gl_Position = u_projectionViewModel * position;
 
 	v_color = a_color;
 }

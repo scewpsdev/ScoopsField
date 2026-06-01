@@ -34,7 +34,7 @@ void StartShootAction(Action* action, Player* player)
 {
 	//player->stamina -= action->attack.attack->staminaCost;
 
-	Entity* projectile = PoolAlloc(&game->entities);
+	Projectile* projectile = (Projectile*)PoolAlloc(&game->entities);
 	mat4 transform = GetLeftWeaponTransform(player);
 	InitArrow(projectile, game->cameraPosition, game->cameraRotation.forward(), transform);
 }

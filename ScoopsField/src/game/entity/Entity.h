@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math/Vector.h"
+#include "EntityBase.h"
 
 #include "utils/Optional.h"
 
@@ -8,6 +8,7 @@
 #include "component/ItemEntity.h"
 #include "component/RestingSpot.h"
 #include "component/Projectile.h"
+#include "game/particle/ParticleSystem.h"
 
 
 enum EntityPhysicsFilter
@@ -19,19 +20,6 @@ enum EntityPhysicsFilter
 	ENTITY_FILTER_INTERACTABLE = 1 << 4,
 };
 
-enum EntityType
-{
-	ENTITY_TYPE_NONE = 0,
-
-	ENTITY_TYPE_PLAYER,
-	ENTITY_TYPE_CREATURE,
-	ENTITY_TYPE_ITEM,
-	ENTITY_TYPE_RESTING_SPOT,
-	ENTITY_TYPE_PROJECTILE,
-
-	ENTITY_TYPE_LAST
-};
-
 struct HitParams
 {
 	int damage = 1;
@@ -39,27 +27,26 @@ struct HitParams
 	vec3 position;
 };
 
-struct Entity;
-struct GraphicsPipeline;
-
 struct Entity
 {
-	EntityType type;
-	bool removed;
-
-	// transform
-	vec3 position;
-	quat rotation;
-	vec3 scale;
-
-	Model* model;
-	GraphicsPipeline* shader;
-
 	union {
+		struct {
+			EntityType type;
+			bool removed;
+
+			vec3 position;
+			quat rotation;
+			vec3 scale;
+
+			Model* model;
+			GraphicsPipeline* shader;
+		};
+
 		Creature creature;
 		ItemEntity item;
 		RestingSpot restingSpot;
 		Projectile projectile;
+		ParticleEffect particles;
 	};
 };
 

@@ -282,8 +282,6 @@ static AppState* InitAppState()
 		return nullptr;
 	}
 
-	SDL_Log("Video driver %s-%s", SDL_GetCurrentVideoDriver(), SDL_GetGPUDeviceDriver(device));
-
 	SDL_GPUSwapchainComposition swapchainComposition = SDL_GPU_SWAPCHAINCOMPOSITION_SDR;
 	SDL_GPUPresentMode presentMode = SDL_GPU_PRESENTMODE_IMMEDIATE;
 	if (!SDL_SetGPUSwapchainParameters(device, window, swapchainComposition, presentMode))

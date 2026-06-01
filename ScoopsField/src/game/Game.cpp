@@ -12,6 +12,12 @@
 extern SDL_GPUDevice* device;
 
 
+static Entity* CreateEntity()
+{
+	return PoolAlloc(&game->entities);
+}
+
+
 #include "item/Item.cpp"
 #include "particle/ParticleSystem.cpp"
 #include "player/Player.cpp"
@@ -94,6 +100,10 @@ static void ResetGame(bool destroy)
 	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_KINGS_SWORD), vec3(-2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
 	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_LONGSWORD), vec3(0, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
 	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_DARKWOOD_STAFF), vec3(2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
+
+	InitReflectionProbe(&game->reflectionProbe, vec3(0, 29, -58), vec3(9, 13, 9));
+
+	//InitParticleEffect((ParticleEffect*)CreateEntity());
 }
 
 void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
@@ -185,8 +195,6 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 #endif
 
 	InitItemDatabase(&game->items, cmdBuffer);
-
-	InitReflectionProbe(&game->reflectionProbe, vec3(0, 29, -58), vec3(9, 13, 9));
 
 	ResetGame(false);
 }
@@ -316,12 +324,12 @@ void GameRender()
 		(int)(game->player.position.y * 100),
 		(int)(game->player.position.z * 100),
 		game->player.health, game->player.maxHealth);
-	//DebugText(0, app->height / 16 - 3, COLOR_WHITE, COLOR_BLACK, "%d entities in memory, %d skeletons remaining", game->entities.size, game->numSkeletonsRemaining);
+	DebugText(0, app->height / 16 - 2, COLOR_WHITE, COLOR_BLACK, "%d/%d entities", game->entities.size, game->entities.capacity);
 }
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -2.5f * 0.1f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 	//sunDirection = vec3(0.5f, -1, -1).normalized();
