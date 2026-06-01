@@ -13,6 +13,7 @@ extern SDL_GPUDevice* device;
 
 
 #include "item/Item.cpp"
+#include "particle/ParticleSystem.cpp"
 #include "player/Player.cpp"
 #include "entity/component/Creature.cpp"
 #include "entity/component/ItemEntity.cpp"
@@ -108,6 +109,8 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 
 	InitRandom(&game->random, (uint32_t)SDL_GetTicks());
 
+	InitParticleSystem(&game->particles);
+
 	LoadModel(&game->cube, "res/models/cube.glb.bin", false, cmdBuffer);
 
 	//LoadModel(&game->mapModel, "res/maps/testmap/testmap.gltf.bin", true, cmdBuffer);
@@ -149,6 +152,13 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 		LoadGraphicsShader("res/shaders/entity/trail.vert.bin", "res/shaders/entity/trail.frag.bin"),
 		&trailLayout, 1, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_NONE, false);
 
+	VertexBufferLayout particleLayouts[4];
+	particleLayouts[0] = game->particles.quad->layout;
+	InitParticleInstanceBufferLayouts(&particleLayouts[1]);
+	game->particleShader = CreateForwardGraphicsPipeline(
+		LoadGraphicsShader("res/shaders/entity/particle.vert.bin", "res/shaders/entity/particle.frag.bin"),
+		particleLayouts, 4, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, false);
+
 	game->trailMaterial.textures[game->trailMaterial.numTextures++] = GetTexture("textures/effect/trail.png");
 
 #ifdef _DEBUG
@@ -160,9 +170,9 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/environment_light.frag", game->renderer.environmentLightShader, game->renderer.environmentLightPipeline);
 	AddHotReloadedShader("shaders/lighting/point_light.vert", "shaders/lighting/point_light.frag", game->renderer.pointLightShader, game->renderer.pointLightPipeline);
 	AddHotReloadedShader("shaders/lighting/reflection_probe.vert", "shaders/lighting/reflection_probe.frag", game->renderer.reflectionProbeShader, game->renderer.reflectionProbePipeline);
-	AddHotReloadedShader("shaders/sky/sky.vert", "shaders/sky/sky.frag", game->renderer.skyShader, game->renderer.skyPipeline);
-	AddHotReloadedShader("shaders/sky/sky_upsample.vert", "shaders/sky/sky_upsample.frag", game->renderer.skyUpsampleShader, game->renderer.skyUpsamplePipeline);
-	AddHotReloadedShader("shaders/sky/sky_cube.vert", "shaders/sky/sky_cube.frag", game->renderer.skyCubeShader, game->renderer.skyCubePipeline);
+	AddHotReloadedShader("shaders/screenquad.vert", "shaders/sky/sky.frag", game->renderer.skyShader, game->renderer.skyPipeline);
+	AddHotReloadedShader("shaders/screenquad.vert", "shaders/sky/sky_upsample.frag", game->renderer.skyUpsampleShader, game->renderer.skyUpsamplePipeline);
+	AddHotReloadedShader("shaders/screenquad.vert", "shaders/sky/sky_cube.frag", game->renderer.skyCubeShader, game->renderer.skyCubePipeline);
 	AddHotReloadedComputeShader("shaders/sky/transmittance_lut.comp", game->renderer.skyTransmittanceLUTShader);
 	AddHotReloadedComputeShader("shaders/sky/multiscatter_lut.comp", game->renderer.skyMultiScatterLUTShader);
 	AddHotReloadedComputeShader("shaders/sky/skyview_lut.comp", game->renderer.skyViewLUTShader);
@@ -218,6 +228,8 @@ void GameUpdate()
 		}
 	}
 
+	UpdateParticleSystem(&game->particles);
+
 	if (GetKeyDown(SDL_SCANCODE_C))
 		cameraZoom = !cameraZoom;
 	game->cameraFov = cameraZoom ? 30.0f : 90.0f;
@@ -254,6 +266,8 @@ void GameRender()
 			RenderEntity(&game->entities.data[i]);
 		}
 	}
+
+	RenderParticleSystem(&game->particles);
 
 	RenderModel(&game->renderer, &game->mapModel, nullptr, mat4::Identity);
 

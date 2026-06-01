@@ -147,5 +147,5 @@ void BendTrailEnd(Trail* trail, vec3 position, float range)
 
 void RenderTrail(Trail* trail)
 {
-	RenderMesh(&game->renderer, &trail->vertexBuffer, 1, nullptr, {}, {}, &game->trailMaterial, game->trailShader, true, mat4::Identity);
+	RenderMesh(&game->renderer, &trail->vertexBuffer, 1, nullptr, trail->numNodes * 2, 1, {}, {}, &game->trailMaterial, game->trailShader, true, mat4::Identity);
 }

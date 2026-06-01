@@ -134,7 +134,7 @@ static void CalculateShadowMatricesForFrustum(vec3 position, quat rotation, floa
 	}
 }
 
-static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* renderPass, mat4 view, mat4 pv, vec3 cameraPosition, vec4 frustumPlanes[6], SDL_GPUCommandBuffer* cmdBuffer)
+static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* renderPass, mat4 projection, mat4 view, mat4 pv, vec3 cameraPosition, vec4 frustumPlanes[6], SDL_GPUCommandBuffer* cmdBuffer)
 {
 	SDL_BindGPUGraphicsPipeline(renderPass, renderer->shadowMapPipeline->pipeline);
 
@@ -142,7 +142,7 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 	{
 		MeshDrawData* mesh = &renderer->meshes[i];
 		if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, view, pv, cameraPosition, false, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->material, mesh->skeleton, mesh->transform, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
 	}
 
 	SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedShadowMapPipeline->pipeline);
@@ -151,7 +151,7 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 	{
 		MeshDrawData* mesh = &renderer->animatedMeshes[i];
 		if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, view, pv, cameraPosition, false, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->material, mesh->skeleton, mesh->transform, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
 	}
 }
 
@@ -179,7 +179,7 @@ static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRo
 
 			SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->shadowMaps[cascade], 0, cmdBuffer);
 
-			RenderShadowMapGeometry(renderer, renderPass, cascadeViews[cascade], cascadePVs[cascade], cameraPosition, frustumPlanes, cmdBuffer);
+			RenderShadowMapGeometry(renderer, renderPass, cascadeProjections[cascade], cascadeViews[cascade], cascadePVs[cascade], cameraPosition, frustumPlanes, cmdBuffer);
 
 			SDL_EndGPURenderPass(renderPass);
 		}

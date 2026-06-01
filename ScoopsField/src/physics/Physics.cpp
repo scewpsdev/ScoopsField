@@ -36,7 +36,7 @@ void* PhysicsAllocator::allocate(size_t size, const char* typeName, const char* 
 	memory->physicsMemoryUsage += size;
 	memory->physicsAllocationCount++;
 	memory->physicsAllocationsPerFrame++;
-	void* mem = malloc(size);
+	void* mem = SDL_malloc(size);
 	//if (HashMapHasSlot(&memory->physicsAllocations))
 	HashMapAdd(&memory->physicsAllocations, mem, size);
 	return mem;
@@ -44,7 +44,7 @@ void* PhysicsAllocator::allocate(size_t size, const char* typeName, const char* 
 
 void PhysicsAllocator::deallocate(void* ptr)
 {
-	free(ptr);
+	SDL_free(ptr);
 	uint64_t* memsize = HashMapRemove(&memory->physicsAllocations, ptr);
 	memory->physicsMemoryUsage -= *memsize;
 	memory->physicsAllocationCount--;
@@ -102,7 +102,7 @@ bool InitPhysics(PhysicsState* physics)
 		PxPvdTransport* pvdTransport = PxDefaultPvdSocketTransportCreate("localhost", 5425, 10);
 		if (!physics->pvd->connect(*pvdTransport, PxPvdInstrumentationFlag::eALL))
 		{
-			SDL_LogError(SDL_LOG_CATEGORY_CUSTOM, "Failed to connect PVD instance");
+			SDL_LogInfo(SDL_LOG_CATEGORY_CUSTOM, "Could not connect PVD instance");
 		}
 	}
 	else

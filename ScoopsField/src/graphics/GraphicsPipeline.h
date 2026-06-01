@@ -22,9 +22,9 @@ struct GraphicsPipelineInfo
 
 	bool hasDepthTarget;
 	SDL_GPUTextureFormat depthFormat;
-	bool depthTest = true;
-	bool depthWrite = true;
-	SDL_GPUCompareOp compareOp = SDL_GPU_COMPAREOP_LESS;
+	bool depthTest;
+	bool depthWrite;
+	SDL_GPUCompareOp compareOp;
 
 #define MAX_PIPELINE_VERTEX_ATTRIBUTES 8
 	int numAttributes;

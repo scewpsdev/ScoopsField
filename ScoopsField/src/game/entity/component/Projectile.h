@@ -23,6 +23,9 @@ struct Projectile
 	float rotation;
 	bool stuck;
 
+	bool hasLight;
+	vec3 lightColor;
+
 	bool hasTrail;
 	Trail trail;
 };

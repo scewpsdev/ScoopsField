@@ -75,6 +75,8 @@ RenderTarget* CreateRenderTarget(int width, int height, SDL_GPUTextureType textu
 	renderTarget->height = height;
 	renderTarget->textureType = textureType;
 
+	SDL_assert(numColorAttachments <= MAX_COLOR_ATTACHMENTS);
+
 	renderTarget->numColorAttachments = numColorAttachments;
 	SDL_memcpy(renderTarget->colorAttachmentInfos, colorAttachmentInfos, numColorAttachments * sizeof(ColorAttachmentInfo));
 	for (int i = 0; i < numColorAttachments; i++)

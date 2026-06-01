@@ -28,7 +28,7 @@ struct MeshDrawData
 
 	IndexBuffer* indexBuffer;
 
-	int vertexCount, indexCount;
+	int vertexCount, indexCount, instanceCount;
 
 	AABB boundingBox;
 	Sphere boundingSphere;
@@ -107,6 +107,11 @@ struct Renderer
 	RenderTarget* cubemapGbuffers[6];
 	RenderTarget* reflectionProbeShadowMap;
 
+#define BLOOM_STEPS 12
+	RenderTarget* bloomDownsampleTargets[BLOOM_STEPS];
+	RenderTarget* bloomUpsampleTargets[BLOOM_STEPS - 1];
+	int bloomStepCount;
+
 	Shader* defaultShader;
 	Shader* animatedShader;
 	Shader* copyDepthShader;
@@ -116,6 +121,8 @@ struct Renderer
 	Shader* reflectionProbeShader;
 	Shader* deferredDiffuseShader;
 	Shader* shConvoluteShader;
+	Shader* bloomDownsampleShader;
+	Shader* bloomUpsampleShader;
 	Shader* tonemappingShader;
 
 	GraphicsPipeline* geometryPipeline;
@@ -127,6 +134,8 @@ struct Renderer
 	GraphicsPipeline* environmentLightPipeline;
 	GraphicsPipeline* reflectionProbePipeline;
 	GraphicsPipeline* deferredDiffusePipeline;
+	GraphicsPipeline* bloomDownsamplePipeline;
+	GraphicsPipeline* bloomUpsamplePipeline;
 	GraphicsPipeline* tonemappingPipeline;
 
 	RenderTarget* skyTarget;
@@ -135,7 +144,6 @@ struct Renderer
 	SDL_GPUTexture* skyTransmittanceLUT;
 	SDL_GPUTexture* skyMultiScatterLUT;
 	SDL_GPUTexture* skyViewLUT;
-	SDL_GPUTexture* skyAerialLUT;
 	SDL_GPUTexture* cloudNoise;
 	SDL_GPUTexture* cloudNoiseDetail;
 	SDL_GPUTexture* sunColorBuffer;
@@ -145,7 +153,6 @@ struct Renderer
 	Shader* skyTransmittanceLUTShader;
 	Shader* skyMultiScatterLUTShader;
 	Shader* skyViewLUTShader;
-	Shader* skyAerialLUTShader;
 	Shader* cloudNoiseShader;
 	Shader* cloudNoiseDetailShader;
 	Shader* sunColorShader;
@@ -182,7 +189,7 @@ struct Renderer
 };
 
 
-void RenderMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertexBuffers, IndexBuffer* indexBuffer, AABB boundingBox, Sphere boundingSphere, Material* material, GraphicsPipeline* shader, bool forward, mat4 transform);
+void RenderMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertexBuffers, IndexBuffer* indexBuffer, int vertexCount, int instanceCount, AABB boundingBox, Sphere boundingSphere, Material* material, GraphicsPipeline* shader, bool forward, mat4 transform);
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform);
 void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform);
 void RenderLight(Renderer* renderer, vec3 position, vec3 color);

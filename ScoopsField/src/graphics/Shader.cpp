@@ -57,22 +57,32 @@ Shader* LoadGraphicsShader(const char* vertexPath, const char* fragmentPath)
 	SDL_GPUShader* vertex = LoadGraphicsShaderStage(vertexPath, SDL_SHADERCROSS_SHADERSTAGE_VERTEX);
 	SDL_GPUShader* fragment = fragmentPath ? LoadGraphicsShaderStage(fragmentPath, SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) : nullptr;
 
-	SDL_assert(graphics->numShaders < MAX_SHADERS);
+	if (vertex && (fragment || !fragmentPath))
+	{
+		SDL_assert(graphics->numShaders < MAX_SHADERS);
 
-	Shader* shader = &graphics->shaders[graphics->numShaders++];
-	shader->vertex = vertex;
-	shader->fragment = fragment;
+		Shader* shader = &graphics->shaders[graphics->numShaders++];
+		shader->vertex = vertex;
+		shader->fragment = fragment;
 
-	return shader;
+		return shader;
+	}
+
+	return nullptr;
 }
 
-void ReloadGraphicsShader(Shader* shader, const char* vertexPath, const char* fragmentPath)
+bool ReloadGraphicsShader(Shader* shader, const char* vertexPath, const char* fragmentPath)
 {
 	SDL_ReleaseGPUShader(device, shader->vertex);
 	SDL_ReleaseGPUShader(device, shader->fragment);
 
 	shader->vertex = LoadGraphicsShaderStage(vertexPath, SDL_SHADERCROSS_SHADERSTAGE_VERTEX);
 	shader->fragment = LoadGraphicsShaderStage(fragmentPath, SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT);
+
+	shader->vertex = LoadGraphicsShaderStage(vertexPath, SDL_SHADERCROSS_SHADERSTAGE_VERTEX);
+	shader->fragment = fragmentPath ? LoadGraphicsShaderStage(fragmentPath, SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT) : nullptr;
+
+	return shader->vertex && (shader->fragment || !fragmentPath);
 }
 
 static SDL_GPUComputePipeline* LoadComputeShaderStage(const char* path)
@@ -102,18 +112,22 @@ static SDL_GPUComputePipeline* LoadComputeShaderStage(const char* path)
 
 Shader* LoadComputeShader(const char* computePath)
 {
-	SDL_GPUComputePipeline* compute = LoadComputeShaderStage(computePath);
+	if (SDL_GPUComputePipeline* compute = LoadComputeShaderStage(computePath))
+	{
+		SDL_assert(graphics->numShaders < MAX_SHADERS);
 
-	SDL_assert(graphics->numShaders < MAX_SHADERS);
+		Shader* shader = &graphics->shaders[graphics->numShaders++];
+		shader->compute = compute;
 
-	Shader* shader = &graphics->shaders[graphics->numShaders++];
-	shader->compute = compute;
+		return shader;
+	}
 
-	return shader;
+	return nullptr;
 }
 
-void ReloadComputeShader(Shader* shader, const char* computePath)
+bool ReloadComputeShader(Shader* shader, const char* computePath)
 {
 	SDL_ReleaseGPUComputePipeline(device, shader->compute);
 	shader->compute = LoadComputeShaderStage(computePath);
+	return shader->compute;
 }

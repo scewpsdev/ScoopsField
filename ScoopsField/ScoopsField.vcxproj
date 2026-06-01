@@ -167,6 +167,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\game\Navmesh.cpp" />
+    <ClCompile Include="src\game\particle\ParticleSystem.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\game\player\action\Action.cpp" />
     <ClCompile Include="src\game\entity\action\EntityAttackAction.cpp" />
     <ClCompile Include="src\game\entity\action\EntityDeathAction.cpp" />
@@ -224,6 +227,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="src\renderer\Bloom.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\renderer\CloudNoise.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -263,6 +269,7 @@
     <ClInclude Include="src\game\entity\component\RestingSpot.h" />
     <ClInclude Include="src\game\entity\Trail.h" />
     <ClInclude Include="src\game\Navmesh.h" />
+    <ClInclude Include="src\game\particle\ParticleSystem.h" />
     <ClInclude Include="src\game\player\action\Action.h" />
     <ClInclude Include="src\game\entity\action\EntityAttackAction.h" />
     <ClInclude Include="src\game\entity\action\EntityDeathAction.h" />
@@ -364,6 +371,8 @@
     <None Include="res\shaders\copy_depth.frag" />
     <None Include="res\shaders\entity\magic_projectile.frag" />
     <None Include="res\shaders\entity\magic_projectile.vert" />
+    <None Include="res\shaders\entity\particle.frag" />
+    <None Include="res\shaders\entity\particle.vert" />
     <None Include="res\shaders\entity\trail.frag" />
     <None Include="res\shaders\entity\trail.vert" />
     <None Include="res\shaders\lighting\deferred_diffuse.frag" />
@@ -376,6 +385,8 @@
     <None Include="res\shaders\lighting\sh_reconstruct.glsl" />
     <None Include="res\shaders\mesh_animated.vert" />
     <None Include="res\shaders\mesh_depth.frag" />
+    <None Include="res\shaders\postprocessing\bloom_downsample.frag" />
+    <None Include="res\shaders\postprocessing\bloom_upsample.frag" />
     <None Include="res\shaders\screenquad.frag" />
     <None Include="res\shaders\sky\clouds.glsl" />
     <None Include="res\shaders\sky\cloud_noise.comp" />

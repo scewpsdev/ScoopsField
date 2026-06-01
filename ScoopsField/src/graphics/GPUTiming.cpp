@@ -14,7 +14,7 @@ void InitGPUTimer(GpuTimerContext* ctx, SDL_GPUDevice* device)
 	ctx->device = vk->logicalDevice;
 	ctx->physicalDevice = vk->physicalDevice;
 
-	VkPhysicalDeviceProperties props;
+	VkPhysicalDeviceProperties props = {};
 	vk->vkGetPhysicalDeviceProperties(vk->physicalDevice, &props);
 	ctx->timestampPeriod = props.limits.timestampPeriod;
 

@@ -16,5 +16,5 @@ Shader* LoadGraphicsShader(const char* vertexPath, const char* fragmentPath);
 Shader* LoadComputeShader(const char* computePath);
 void DestroyShader(Shader* shader);
 
-void ReloadGraphicsShader(Shader* shader, const char* vertexPath, const char* fragmentPath);
-void ReloadComputeShader(Shader* shader, const char* computePath);
+bool ReloadGraphicsShader(Shader* shader, const char* vertexPath, const char* fragmentPath);
+bool ReloadComputeShader(Shader* shader, const char* computePath);

@@ -42,7 +42,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 				{
 					MeshDrawData* mesh = &renderer->meshes[i];
 					if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-						SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, views[face], pvs[face], cameraPosition, true, renderPass, cmdBuffer);
+						SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->material, mesh->skeleton, mesh->transform, projection, views[face], pvs[face], cameraPosition, true, renderPass, cmdBuffer);
 				}
 
 				SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
@@ -51,7 +51,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 				{
 					MeshDrawData* mesh = &renderer->animatedMeshes[i];
 					if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-						SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, views[face], pvs[face], cameraPosition, true, renderPass, cmdBuffer);
+						SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->material, mesh->skeleton, mesh->transform, projection, views[face], pvs[face], cameraPosition, true, renderPass, cmdBuffer);
 				}
 
 				SDL_EndGPURenderPass(renderPass);
@@ -73,7 +73,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 
 			SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->reflectionProbeShadowMap, 0, cmdBuffer);
 
-			RenderShadowMapGeometry(renderer, renderPass, view, shadowPV, cameraPosition, frustumPlanes, cmdBuffer);
+			RenderShadowMapGeometry(renderer, renderPass, projection, view, shadowPV, cameraPosition, frustumPlanes, cmdBuffer);
 
 			SDL_EndGPURenderPass(renderPass);
 		}

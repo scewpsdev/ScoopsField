@@ -89,7 +89,6 @@ static RenderTarget* CreateHDRTarget(int width, int height)
 	hdrTargetInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
 	hdrTargetInfo.storeOp = SDL_GPU_STOREOP_STORE;
 	hdrTargetInfo.clearColor = { 0, 0, 0, 0 };
-	hdrTargetInfo.mips = true;
 
 	DepthAttachmentInfo hdrDepthInfo = {};
 	hdrDepthInfo.format = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
@@ -130,6 +129,29 @@ static RenderTarget* CreateShadowBuffer(int width, int height)
 	targetInfo.storeOp = SDL_GPU_STOREOP_STORE;
 
 	return CreateRenderTarget(width, height, SDL_GPU_TEXTURETYPE_2D, 1, &targetInfo, nullptr);
+}
+
+static int CreateBloomTargets(int width, int height, RenderTarget* downsampleTargets[], RenderTarget* upsampleTargets[])
+{
+	int stepCount = GetNumMipsForTexture(width, height);
+	SDL_assert(stepCount <= BLOOM_STEPS);
+
+	for (int i = 0; i < stepCount; i++)
+	{
+		ColorAttachmentInfo colorAttachment = {};
+		colorAttachment.format = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
+		colorAttachment.loadOp = SDL_GPU_LOADOP_LOAD;
+		colorAttachment.storeOp = SDL_GPU_STOREOP_STORE;
+
+		downsampleTargets[i] = CreateRenderTarget(width, height, SDL_GPU_TEXTURETYPE_2D, 1, &colorAttachment, nullptr);
+		if (i < stepCount - 1)
+			upsampleTargets[i] = CreateRenderTarget(width, height, SDL_GPU_TEXTURETYPE_2D, 1, &colorAttachment, nullptr);
+
+		width = max(width / 2, 1);
+		height = max(height / 2, 1);
+	}
+
+	return stepCount;
 }
 
 static GraphicsPipeline* CreateGeometryPipeline(Renderer* renderer)
@@ -312,6 +334,18 @@ static GraphicsPipeline* CreateSkyCubePipeline(Renderer* renderer)
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
+static GraphicsPipeline* CreateBloomDownsamplePipeline(Renderer* renderer)
+{
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_NONE, renderer->bloomDownsampleShader, renderer->bloomDownsampleTargets[0], 1, &renderer->screenQuad.vertexBuffer->layout);
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
+static GraphicsPipeline* CreateBloomUpsamplePipeline(Renderer* renderer)
+{
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->bloomUpsampleShader, renderer->bloomUpsampleTargets[0], 1, &renderer->screenQuad.vertexBuffer->layout);
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
 static GraphicsPipeline* CreateTonemappingPipeline(Renderer* renderer)
 {
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->tonemappingShader, nullptr, 1, &renderer->screenQuad.vertexBuffer->layout);
@@ -357,21 +391,6 @@ static SDL_GPUTexture* CreateSkyViewLUT()
 	textureInfo.width = 256;
 	textureInfo.height = 128;
 	textureInfo.layer_count_or_depth = 1;
-	textureInfo.num_levels = 1;
-	textureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
-
-	return SDL_CreateGPUTexture(device, &textureInfo);
-}
-
-static SDL_GPUTexture* CreateSkyAerialLUT()
-{
-	SDL_GPUTextureCreateInfo textureInfo = {};
-	textureInfo.type = SDL_GPU_TEXTURETYPE_3D;
-	textureInfo.format = SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT;
-	textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE;
-	textureInfo.width = 32;
-	textureInfo.height = 128;
-	textureInfo.layer_count_or_depth = 32;
 	textureInfo.num_levels = 1;
 	textureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
 
@@ -440,7 +459,7 @@ static SDL_GPUTexture* CreateCloudNoiseDetailTexture(Renderer* renderer, SDL_GPU
 	return texture;
 }
 
-static void SubmitMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertexBuffers, IndexBuffer* indexBuffer, int vertexCount, int indexCount, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& view, const mat4& pv, vec3 cameraPosition, bool viewSpaceBuffer, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer);
+static void SubmitMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertexBuffers, IndexBuffer* indexBuffer, int vertexCount, int indexCount, int instanceCount, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& projection, const mat4& view, const mat4& pv, vec3 cameraPosition, bool viewSpaceBuffer, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer);
 
 #define SHADOW_MAP_RESOLUTION 1024
 
@@ -449,6 +468,7 @@ static void SubmitMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int nu
 #include "Lighting.cpp"
 #include "ShadowMapping.cpp"
 #include "ReflectionProbeUpdate.cpp"
+#include "Bloom.cpp"
 
 void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffer* cmdBuffer)
 {
@@ -485,37 +505,42 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 		renderer->skyCubemap = CreateRenderTarget(32, 32, SDL_GPU_TEXTURETYPE_CUBE, 1, &hdrTargetInfo, nullptr);
 	}
 
-	// position
-	renderer->meshLayout[0].numAttributes = 1;
-	renderer->meshLayout[0].attributes[0].location = 0;
-	renderer->meshLayout[0].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-	// normal
-	renderer->meshLayout[1].numAttributes = 1;
-	renderer->meshLayout[1].attributes[0].location = 1;
-	renderer->meshLayout[1].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-	// texcoord
-	renderer->meshLayout[2].numAttributes = 1;
-	renderer->meshLayout[2].attributes[0].location = 4;
-	renderer->meshLayout[2].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+	renderer->bloomStepCount = CreateBloomTargets(width / 2, height / 2, renderer->bloomDownsampleTargets, renderer->bloomUpsampleTargets);
 
-	// position
-	renderer->animatedLayout[0].numAttributes = 1;
-	renderer->animatedLayout[0].attributes[0].location = 0;
-	renderer->animatedLayout[0].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-	// normal
-	renderer->animatedLayout[1].numAttributes = 1;
-	renderer->animatedLayout[1].attributes[0].location = 1;
-	renderer->animatedLayout[1].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-	// weights + bone indices
-	renderer->animatedLayout[2].numAttributes = 2;
-	renderer->animatedLayout[2].attributes[0].location = 2;
-	renderer->animatedLayout[2].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
-	renderer->animatedLayout[2].attributes[1].location = 3;
-	renderer->animatedLayout[2].attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
-	// texcoord
-	renderer->animatedLayout[3].numAttributes = 1;
-	renderer->animatedLayout[3].attributes[0].location = 4;
-	renderer->animatedLayout[3].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+	// mesh layouts
+	{
+		// position
+		renderer->meshLayout[0].numAttributes = 1;
+		renderer->meshLayout[0].attributes[0].location = 0;
+		renderer->meshLayout[0].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+		// normal
+		renderer->meshLayout[1].numAttributes = 1;
+		renderer->meshLayout[1].attributes[0].location = 1;
+		renderer->meshLayout[1].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+		// texcoord
+		renderer->meshLayout[2].numAttributes = 1;
+		renderer->meshLayout[2].attributes[0].location = 4;
+		renderer->meshLayout[2].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+
+		// position
+		renderer->animatedLayout[0].numAttributes = 1;
+		renderer->animatedLayout[0].attributes[0].location = 0;
+		renderer->animatedLayout[0].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+		// normal
+		renderer->animatedLayout[1].numAttributes = 1;
+		renderer->animatedLayout[1].attributes[0].location = 1;
+		renderer->animatedLayout[1].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+		// weights + bone indices
+		renderer->animatedLayout[2].numAttributes = 2;
+		renderer->animatedLayout[2].attributes[0].location = 2;
+		renderer->animatedLayout[2].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+		renderer->animatedLayout[2].attributes[1].location = 3;
+		renderer->animatedLayout[2].attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+		// texcoord
+		renderer->animatedLayout[3].numAttributes = 1;
+		renderer->animatedLayout[3].attributes[0].location = 4;
+		renderer->animatedLayout[3].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+	}
 
 	InitScreenQuad(&renderer->screenQuad, cmdBuffer);
 
@@ -563,10 +588,11 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->skyTransmittanceLUTShader = LoadComputeShader("res/shaders/sky/transmittance_lut.comp.bin");
 	renderer->skyMultiScatterLUTShader = LoadComputeShader("res/shaders/sky/multiscatter_lut.comp.bin");
 	renderer->skyViewLUTShader = LoadComputeShader("res/shaders/sky/skyview_lut.comp.bin");
-	renderer->skyAerialLUTShader = LoadComputeShader("res/shaders/sky/aerial_lut.comp.bin");
 	renderer->cloudNoiseShader = LoadComputeShader("res/shaders/sky/cloud_noise.comp.bin");
 	renderer->cloudNoiseDetailShader = LoadComputeShader("res/shaders/sky/cloud_noise_detail.comp.bin");
 	renderer->sunColorShader = LoadComputeShader("res/shaders/sky/sun_color.comp.bin");
+	renderer->bloomDownsampleShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/postprocessing/bloom_downsample.frag.bin");
+	renderer->bloomUpsampleShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/postprocessing/bloom_upsample.frag.bin");
 	renderer->tonemappingShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/tonemapping.frag.bin");
 
 	renderer->geometryPipeline = CreateGeometryPipeline(renderer);
@@ -586,6 +612,8 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->skyPipeline = CreateSkyPipeline(renderer);
 	renderer->skyUpsamplePipeline = CreateSkyUpsamplePipeline(renderer);
 	renderer->skyCubePipeline = CreateSkyCubePipeline(renderer);
+	renderer->bloomDownsamplePipeline = CreateBloomDownsamplePipeline(renderer);
+	renderer->bloomUpsamplePipeline = CreateBloomUpsamplePipeline(renderer);
 	renderer->tonemappingPipeline = CreateTonemappingPipeline(renderer);
 
 	SDL_GPUSamplerCreateInfo samplerInfo = {};
@@ -664,7 +692,6 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->skyTransmittanceLUT = CreateSkyTransmittanceLUT();
 	renderer->skyMultiScatterLUT = CreateSkyMultiScatterLUT();
 	renderer->skyViewLUT = CreateSkyViewLUT();
-	renderer->skyAerialLUT = CreateSkyAerialLUT();
 
 	renderer->cloudNoise = CreateCloudNoiseTexture(renderer, cmdBuffer);
 	renderer->cloudNoiseDetail = CreateCloudNoiseDetailTexture(renderer, cmdBuffer);
@@ -745,9 +772,17 @@ void ResizeRenderer(Renderer* renderer, int width, int height)
 	if (renderer->shadowBuffer1)
 		DestroyRenderTarget(renderer->shadowBuffer1);
 	renderer->shadowBuffer1 = CreateShadowBuffer(width / 2, height / 2);
+
+	for (int i = 0; i < renderer->bloomStepCount; i++)
+	{
+		DestroyRenderTarget(renderer->bloomDownsampleTargets[i]);
+		if (i < renderer->bloomStepCount - 1)
+			DestroyRenderTarget(renderer->bloomUpsampleTargets[i]);
+	}
+	renderer->bloomStepCount = CreateBloomTargets(width / 2, height / 2, renderer->bloomDownsampleTargets, renderer->bloomUpsampleTargets);
 }
 
-void RenderMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertexBuffers, IndexBuffer* indexBuffer, AABB boundingBox, Sphere boundingSphere, Material* material, GraphicsPipeline* shader, bool forward, mat4 transform)
+void RenderMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertexBuffers, IndexBuffer* indexBuffer, int vertexCount, int instanceCount, AABB boundingBox, Sphere boundingSphere, Material* material, GraphicsPipeline* shader, bool forward, mat4 transform)
 {
 	MeshDrawData data = {};
 
@@ -757,8 +792,9 @@ void RenderMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertex
 
 	data.indexBuffer = indexBuffer;
 
-	data.vertexCount = vertexBuffers[0]->numVertices;
+	data.vertexCount = vertexCount;
 	data.indexCount = indexBuffer ? indexBuffer->numIndices : 0;
+	data.instanceCount = instanceCount;
 
 	data.boundingBox = boundingBox;
 	data.boundingSphere = boundingSphere;
@@ -797,6 +833,7 @@ void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, GraphicsPipe
 
 	data.vertexCount = mesh->vertexCount;
 	data.indexCount = mesh->indexCount;
+	data.instanceCount = 1;
 
 	data.boundingBox = mesh->boundingBox;
 	data.boundingSphere = mesh->boundingSphere;
@@ -875,7 +912,7 @@ void UpdateReflectionProbe(Renderer* renderer, ReflectionProbe* probe)
 	renderer->reflectionProbeUpdates.add(probe);
 }
 
-static void SubmitMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertexBuffers, IndexBuffer* indexBuffer, int vertexCount, int indexCount, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& view, const mat4& pv, vec3 cameraPosition, bool viewSpaceBuffer, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
+static void SubmitMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertexBuffers, IndexBuffer* indexBuffer, int vertexCount, int indexCount, int instanceCount, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& projection, const mat4& view, const mat4& pv, vec3 cameraPosition, bool viewSpaceBuffer, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	SDL_GPUBufferBinding vertexBindings[16] = {};
 	for (int i = 0; i < numVertexBuffers; i++)
@@ -900,12 +937,16 @@ static void SubmitMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int nu
 		struct UniformData
 		{
 			mat4 projectionViewModel;
+			mat4 viewModel;
+			mat4 projection;
 			mat4 model;
 			mat4 boneTransforms[MAX_BONES];
 		};
 
 		UniformData uniforms = {};
 		uniforms.projectionViewModel = pv * transform;
+		uniforms.viewModel = view * transform;
+		uniforms.projection = projection;
 		uniforms.model = viewSpaceBuffer ? view * transform : transform;
 		SDL_memcpy(uniforms.boneTransforms, skeleton->boneTransforms, skeleton->numBones * sizeof(mat4));
 		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
@@ -915,11 +956,15 @@ static void SubmitMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int nu
 		struct UniformData
 		{
 			mat4 projectionViewModel;
+			mat4 viewModel;
+			mat4 projection;
 			mat4 model;
 		};
 
 		UniformData uniforms = {};
 		uniforms.projectionViewModel = pv * transform;
+		uniforms.viewModel = view * transform;
+		uniforms.projection = projection;
 		uniforms.model = viewSpaceBuffer ? view * transform : transform;
 		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 	}
@@ -955,9 +1000,9 @@ static void SubmitMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int nu
 	}
 
 	if (indexBuffer)
-		SDL_DrawGPUIndexedPrimitives(renderPass, indexCount, 1, 0, 0, 0);
+		SDL_DrawGPUIndexedPrimitives(renderPass, indexCount, instanceCount, 0, 0, 0);
 	else
-		SDL_DrawGPUPrimitives(renderPass, vertexCount, 1, 0, 0);
+		SDL_DrawGPUPrimitives(renderPass, vertexCount, instanceCount, 0, 0);
 }
 
 static float CalculateLightRadius(vec3 color)
@@ -991,8 +1036,8 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 	renderer->weather.haziness = 0.01f;
 	renderer->weather.cloudCoverage = 0.2f;
 	renderer->weather.cloudDensity = 0.1f;
-	renderer->weather.windSpeed = 0.5f;
-	
+	renderer->weather.windSpeed = 0.1f;
+
 	GPU_SCOPE("Scene");
 
 	mat4 pvInv = pv.inverted();
@@ -1010,7 +1055,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		for (int i = 0; i < renderer->meshes.size; i++)
 		{
 			MeshDrawData* mesh = &renderer->meshes[i];
-			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, view, pv, cameraPosition, true, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->material, mesh->skeleton, mesh->transform, projection, view, pv, cameraPosition, true, renderPass, cmdBuffer);
 		}
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
@@ -1018,7 +1063,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		for (int i = 0; i < renderer->animatedMeshes.size; i++)
 		{
 			MeshDrawData* mesh = &renderer->animatedMeshes[i];
-			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, view, pv, cameraPosition, true, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->material, mesh->skeleton, mesh->transform, projection, view, pv, cameraPosition, true, renderPass, cmdBuffer);
 		}
 
 		SDL_EndGPURenderPass(renderPass);
@@ -1068,11 +1113,11 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 			RenderTarget* rt = app->frameIdx % 2 == 0 ? renderer->skyTarget : renderer->skyTarget2;
 
-			SDL_GPUTexture* textures[3];
+			SDL_GPUTexture* textures[2];
 			textures[0] = rt->colorAttachments[0];
 			textures[1] = renderer->gbuffer->depthAttachment;
 
-			SDL_GPUSampler* samplers[3];
+			SDL_GPUSampler* samplers[2];
 			samplers[0] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
 			samplers[1] = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
 
@@ -1089,14 +1134,16 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 				SDL_BindGPUGraphicsPipeline(renderPass, mesh->shader->pipeline);
 
-				SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->material, mesh->skeleton, mesh->transform, view, pv, cameraPosition, false, renderPass, cmdBuffer);
+				SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->material, mesh->skeleton, mesh->transform, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
 			}
 		}
 
 		SDL_EndGPURenderPass(renderPass);
 	}
 
-	AutoExposure(renderer);
+	Bloom(renderer, renderer->hdrTarget->colorAttachments[0], cmdBuffer);
+
+	AutoExposure(renderer, renderer->bloomDownsampleTargets[renderer->bloomStepCount - 1]);
 
 	// tonemapping
 	{
@@ -1121,7 +1168,15 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, &renderer->hdrTarget->colorAttachments[0], &renderer->samplers[TEXTURE_SAMPLER_DEFAULT], cmdBuffer);
+		SDL_GPUTexture* textures[2];
+		textures[0] = renderer->hdrTarget->colorAttachments[0];
+		textures[1] = renderer->bloomUpsampleTargets[0]->colorAttachments[0];
+
+		SDL_GPUSampler* samplers[2];
+		samplers[0] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+		samplers[1] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
+
+		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 2, textures, samplers, cmdBuffer);
 
 		SDL_EndGPURenderPass(renderPass);
 	}

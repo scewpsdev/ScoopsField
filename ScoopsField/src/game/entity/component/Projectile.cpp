@@ -107,7 +107,12 @@ void RenderProjectile(Projectile* projectile, Entity* entity)
 	bool isDead = projectile->hasTrail && !projectile->stickToObjects && projectile->stuck;
 
 	if (!isDead)
+	{
 		RenderModel(&game->renderer, entity->model, entity->shader, nullptr, mat4::Translate(projectile->offset) * ModelMatrix(entity));
+
+		if (projectile->hasLight)
+			RenderLight(&game->renderer, entity->position, projectile->lightColor);
+	}
 
 	if (projectile->hasTrail)
 		RenderTrail(&projectile->trail);
@@ -149,8 +154,11 @@ void InitMagicProjectile(Entity* entity, vec3 position, vec3 direction, mat4 sta
 	entity->projectile.hasTrail = true;
 	InitTrail(&entity->projectile.trail, position + entity->projectile.offset, 8);
 	entity->projectile.trail.width = 0.1f;
-	entity->projectile.trail.color = vec4(SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 3, 1);
+	entity->projectile.trail.color = vec4(SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 50, 1);
 	entity->projectile.trail.material = &game->trailMaterial;
 	entity->projectile.trail.fadeWidth = true;
 	//entity->projectile.trail.fadeAlpha = true;
+
+	entity->projectile.hasLight = true;
+	entity->projectile.lightColor = SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 5;
 }

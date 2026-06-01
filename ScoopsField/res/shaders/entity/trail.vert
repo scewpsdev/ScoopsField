@@ -10,6 +10,8 @@ layout (location = 1) out vec4 v_color;
 
 layout(std140, set = 1, binding = 0) uniform UniformBlock {
     mat4 u_projectionViewModel;
+	mat4 u_viewModel;
+	mat4 u_projection;
 	mat4 u_model;
 };
 

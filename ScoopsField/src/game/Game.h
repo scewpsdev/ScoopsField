@@ -10,6 +10,8 @@
 #include "physics/RigidBody.h"
 #include "physics/CharacterController.h"
 
+#include "particle/ParticleSystem.h"
+
 #include "math/Vector.h"
 
 #include "utils/Random.h"
@@ -45,6 +47,8 @@ struct GameState
 #define MAX_ENTITIES 256
 	Pool<Entity, MAX_ENTITIES> entities;
 
+	ParticleSystem particles;
+
 	mat4 playerSpawn;
 
 	Model mapModel;
@@ -72,6 +76,7 @@ struct GameState
 
 	GraphicsPipeline* magicProjectileShader;
 	GraphicsPipeline* trailShader;
+	GraphicsPipeline* particleShader;
 
 	Material trailMaterial;
 

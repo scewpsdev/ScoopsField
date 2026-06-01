@@ -201,6 +201,12 @@
     <ClCompile Include="src\game\entity\Trail.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\renderer\Bloom.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\particle\ParticleSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\spirv_cross\spirv.h">
@@ -482,6 +488,9 @@
     <ClInclude Include="src\game\entity\Trail.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\game\particle\ParticleSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\clear_buffer.comp" />
@@ -527,5 +536,9 @@
     <None Include="res\shaders\entity\magic_projectile.vert" />
     <None Include="res\shaders\entity\trail.frag" />
     <None Include="res\shaders\entity\trail.vert" />
+    <None Include="res\shaders\postprocessing\bloom_downsample.frag" />
+    <None Include="res\shaders\postprocessing\bloom_upsample.frag" />
+    <None Include="res\shaders\entity\particle.frag" />
+    <None Include="res\shaders\entity\particle.vert" />
   </ItemGroup>
 </Project>

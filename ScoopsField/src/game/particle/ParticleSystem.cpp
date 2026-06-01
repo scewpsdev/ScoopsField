@@ -1,0 +1,178 @@
+#include "ParticleSystem.h"
+
+
+void InitParticleInstanceBufferLayouts(VertexBufferLayout* instanceLayouts)
+{
+	instanceLayouts[0].numAttributes = 1;
+	instanceLayouts[0].attributes[0].location = 1;
+	instanceLayouts[0].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	instanceLayouts[0].perInstance = true;
+
+	instanceLayouts[1].numAttributes = 1;
+	instanceLayouts[1].attributes[0].location = 2;
+	instanceLayouts[1].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+	instanceLayouts[1].perInstance = true;
+
+	instanceLayouts[2].numAttributes = 1;
+	instanceLayouts[2].attributes[0].location = 3;
+	instanceLayouts[2].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	instanceLayouts[2].perInstance = true;
+}
+
+void InitParticleEffect(ParticleEffect* effect)
+{
+	effect->minLifetime = 1;
+	effect->maxLifetime = 2;
+	effect->spawnRate = 3000;
+	effect->minSize = 0.02f;
+	effect->maxSize = 0.1f;
+	effect->startPosition = vec3(0, 3, 0);
+	effect->startVelocity = vec3(0, 2, 0);
+	effect->gravity = vec3(0, -5, 0);
+
+	int maxParticles = (int)SDL_ceilf(effect->maxLifetime * effect->spawnRate);
+
+	effect->maxParticles = maxParticles;
+	effect->numParticles = 0;
+
+	effect->positions = (vec3*)SDL_malloc(maxParticles * sizeof(vec3));
+	effect->sizes = (vec2*)SDL_malloc(maxParticles * sizeof(vec2));
+	effect->colors = (vec4*)SDL_malloc(maxParticles * sizeof(vec4));
+	effect->velocities = (vec3*)SDL_malloc(maxParticles * sizeof(vec3));
+	effect->deathTimes = (float*)SDL_malloc(maxParticles * sizeof(float));
+
+	VertexBufferLayout instanceLayouts[3];
+	InitParticleInstanceBufferLayouts(instanceLayouts);
+
+	effect->positionBuffer = CreateVertexBuffer(maxParticles, &instanceLayouts[0], SDL_GPU_BUFFERUSAGE_VERTEX);
+	effect->sizeBuffer = CreateVertexBuffer(maxParticles, &instanceLayouts[1], SDL_GPU_BUFFERUSAGE_VERTEX);
+	effect->colorBuffer = CreateVertexBuffer(maxParticles, &instanceLayouts[2], SDL_GPU_BUFFERUSAGE_VERTEX);
+
+	effect->positionTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(vec3), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
+	effect->sizeTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(vec2), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
+	effect->colorTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(vec4), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
+}
+
+static void SpawnParticle(ParticleEffect* effect)
+{
+	SDL_assert(effect->numParticles < effect->maxParticles);
+
+	int particleID = effect->numParticles++;
+
+	effect->positions[particleID] = effect->startPosition;
+
+	effect->sizes[particleID] = vec2(mix(effect->minSize, effect->maxSize, game->random.nextFloat()));
+
+	effect->colors[particleID] = vec4(game->random.nextVector3(0, 1), 1);
+
+	effect->velocities[particleID] = effect->startVelocity + game->random.nextVector3(-1, 1) * 2;
+
+	float lifetime = mix(effect->minLifetime, effect->maxLifetime, game->random.nextFloat());
+	effect->deathTimes[particleID] = gameTime + lifetime;
+}
+
+static void KillParticle(ParticleEffect* effect, int id)
+{
+	int lastParticle = --effect->numParticles;
+
+	if (id != lastParticle)
+	{
+		effect->positions[id] = effect->positions[lastParticle];
+		effect->sizes[id] = effect->sizes[lastParticle];
+		effect->colors[id] = effect->colors[lastParticle];
+		effect->velocities[id] = effect->velocities[lastParticle];
+		effect->deathTimes[id] = effect->deathTimes[lastParticle];
+	}
+}
+
+static void UpdateParticleEffect(ParticleEffect* effect)
+{
+	for (int i = 0; i < effect->numParticles; i++)
+	{
+		if (gameTime >= effect->deathTimes[i])
+			KillParticle(effect, i--);
+	}
+
+	for (int i = 0; i < effect->numParticles; i++)
+		effect->velocities[i] += 0.5f * effect->gravity * deltaTime;
+		
+	for (int i = 0; i < effect->numParticles; i++)
+		effect->positions[i] += effect->velocities[i] * deltaTime;
+
+	for (int i = 0; i < effect->numParticles; i++)
+		effect->velocities[i] += 0.5f * effect->gravity * deltaTime;
+
+	float numSpawnsF = effect->spawnRate * deltaTime + effect->spawnRemainder;
+	int numSpawns = (int)numSpawnsF;
+	effect->spawnRemainder = numSpawnsF - numSpawns;
+
+	for (int i = 0; i < numSpawns; i++)
+		SpawnParticle(effect);
+
+
+	if (effect->numParticles)
+	{
+		SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
+
+		void* mapped = MapTransferBuffer(effect->positionTransferBuffer);
+		SDL_memcpy(mapped, effect->positions, effect->numParticles * sizeof(vec3));
+		UnmapTransferBuffer(effect->positionTransferBuffer);
+
+		mapped = MapTransferBuffer(effect->sizeTransferBuffer);
+		SDL_memcpy(mapped, effect->sizes, effect->numParticles * sizeof(vec2));
+		UnmapTransferBuffer(effect->sizeTransferBuffer);
+
+		mapped = MapTransferBuffer(effect->colorTransferBuffer);
+		SDL_memcpy(mapped, effect->colors, effect->numParticles * sizeof(vec4));
+		UnmapTransferBuffer(effect->colorTransferBuffer);
+
+		UpdateVertexBuffer(effect->positionBuffer, 0, effect->numParticles * sizeof(vec3), effect->positionTransferBuffer->buffer, copyPass);
+		UpdateVertexBuffer(effect->sizeBuffer, 0, effect->numParticles * sizeof(vec2), effect->sizeTransferBuffer->buffer, copyPass);
+		UpdateVertexBuffer(effect->colorBuffer, 0, effect->numParticles * sizeof(vec4), effect->colorTransferBuffer->buffer, copyPass);
+
+		SDL_EndGPUCopyPass(copyPass);
+	}
+}
+
+static void RenderParticleEffect(ParticleSystem* particles, ParticleEffect* effect)
+{
+	VertexBuffer* buffers[4];
+	buffers[0] = particles->quad;
+	buffers[1] = effect->positionBuffer;
+	buffers[2] = effect->sizeBuffer;
+	buffers[3] = effect->colorBuffer;
+
+	RenderMesh(&game->renderer, buffers, 4, nullptr, 4, effect->numParticles, {}, {}, nullptr, game->particleShader, true, mat4::Identity);
+
+	DebugText(0, 10, "%d", effect->numParticles);
+}
+
+const vec2 quadVertices[] = {
+	vec2(0.5f, -0.5f),
+	vec2(0.5f, 0.5f),
+	vec2(-0.5f, -0.5f),
+	vec2(-0.5f, 0.5f),
+};
+
+void InitParticleSystem(ParticleSystem* particles)
+{
+	VertexBufferLayout quadLayout = {};
+	quadLayout.numAttributes = 1;
+	quadLayout.attributes[0].location = 0;
+	quadLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+
+	particles->quad = CreateVertexBuffer(4, &quadLayout, SDL_GPU_BUFFERUSAGE_VERTEX);
+	UpdateVertexBuffer(particles->quad, 0, (const uint8_t*)quadVertices, sizeof(quadVertices), cmdBuffer);
+
+	InitParticleEffect(&particles->effect);
+}
+
+void UpdateParticleSystem(ParticleSystem* particles)
+{
+	UpdateParticleEffect(&particles->effect);
+}
+
+void RenderParticleSystem(ParticleSystem* particles)
+{
+	RenderParticleEffect(particles, &particles->effect);
+}

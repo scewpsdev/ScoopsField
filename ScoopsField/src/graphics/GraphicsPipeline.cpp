@@ -73,6 +73,7 @@ GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveTy
 	pipelineInfo.fillMode = SDL_GPU_FILLMODE_FILL;
 	pipelineInfo.frontFace = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
 	pipelineInfo.depthClamp = false;
+	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_LESS;
 
 	pipelineInfo.numColorTargets = numColorAttachments;
 	for (int i = 0; i < numColorAttachments; i++)

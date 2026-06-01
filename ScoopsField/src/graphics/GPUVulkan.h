@@ -5,6 +5,8 @@
 
 #include <video/khronos/vulkan/vulkan.h>
 
+#define HAVE_GPU_OPENXR
+
 #define SDL_internal_h_
 #define SDL_sysvideo_h_
 
@@ -25,8 +27,9 @@ struct SDL_VideoDevice;
 
 #include <gpu/SDL_sysgpu.h>
 
-
 struct SDL_HashTable;
+
+struct XrInstancePfns;
 
 typedef struct VulkanExtensions
 {
@@ -56,7 +59,7 @@ typedef struct VulkanExtensions
 #define LARGE_ALLOCATION_INCREMENT    67108864 // 64  MiB
 #define MAX_UBO_SECTION_SIZE          4096     // 4   KiB
 #define DESCRIPTOR_POOL_SIZE          128
-#define WINDOW_PROPERTY_DATA          "SDL_GPUVulkanWindowPropertyData"
+#define WINDOW_PROPERTY_DATA          "SDL.internal.gpu.vulkan.data"
 
 #define IDENTITY_SWIZZLE               \
     {                                  \
@@ -66,10 +69,10 @@ typedef struct VulkanExtensions
         VK_COMPONENT_SWIZZLE_IDENTITY  \
     }
 
-// Conversions
-
 // Structures
 
+typedef struct VulkanRenderer VulkanRenderer;
+typedef struct VulkanCommandPool VulkanCommandPool;
 typedef struct VulkanMemoryAllocation VulkanMemoryAllocation;
 typedef struct VulkanBuffer VulkanBuffer;
 typedef struct VulkanBufferContainer VulkanBufferContainer;
@@ -136,6 +139,7 @@ struct VulkanMemoryAllocation
     VkDeviceSize usedSpace;
     Uint8* mapPointer;
     SDL_Mutex* memoryLock;
+    SDL_AtomicInt referenceCount; // Used to avoid defrag races
 };
 
 typedef struct VulkanMemoryAllocator
@@ -238,6 +242,11 @@ struct VulkanTexture
     VkImageAspectFlags aspectFlags;
     Uint32 depth; // used for cleanup only
 
+    // used to avoid indirection on barriers
+    Uint32 levelCount;
+    Uint32 layerCount;
+    SDL_GPUTextureType type;
+
     // FIXME: It'd be nice if we didn't have to have this on the texture...
     SDL_GPUTextureUsageFlags usage; // used for defrag transitions only.
 
@@ -245,6 +254,7 @@ struct VulkanTexture
     VulkanTextureSubresource* subresources;
 
     bool markedForDestroy; // so that defrag doesn't double-free
+    bool externallyManaged; // true for XR swapchain images
     SDL_AtomicInt referenceCount;
 };
 
@@ -260,6 +270,7 @@ struct VulkanTextureContainer
 
     char* debugName;
     bool canBeCycled;
+    bool externallyManaged; // true for XR swapchain images
 };
 
 typedef enum VulkanBufferUsageMode
@@ -304,9 +315,12 @@ typedef struct VulkanFramebuffer
 typedef struct WindowData
 {
     SDL_Window* window;
+    VulkanRenderer* renderer;
+    int refcount;
     SDL_GPUSwapchainComposition swapchainComposition;
     SDL_GPUPresentMode presentMode;
     bool needsSwapchainRecreate;
+    bool needsSurfaceRecreate;
     Uint32 swapchainCreateWidth;
     Uint32 swapchainCreateHeight;
 
@@ -565,10 +579,6 @@ typedef struct VulkanFencePool
     Uint32 availableFenceCapacity;
 } VulkanFencePool;
 
-typedef struct VulkanCommandPool VulkanCommandPool;
-
-typedef struct VulkanRenderer VulkanRenderer;
-
 typedef struct VulkanCommandBuffer
 {
     CommandBufferCommonHeader common;
@@ -677,9 +687,17 @@ typedef struct VulkanCommandBuffer
     Sint32 usedBufferCount;
     Sint32 usedBufferCapacity;
 
+    VulkanBuffer** buffersUsedInPendingTransfers;
+    Sint32 buffersUsedInPendingTransfersCount;
+    Sint32 buffersUsedInPendingTransfersCapacity;
+
     VulkanTexture** usedTextures;
     Sint32 usedTextureCount;
     Sint32 usedTextureCapacity;
+
+    VulkanTexture** texturesUsedInPendingTransfers;
+    Sint32 texturesUsedInPendingTransfersCount;
+    Sint32 texturesUsedInPendingTransfersCapacity;
 
     VulkanSampler** usedSamplers;
     Sint32 usedSamplerCount;
@@ -750,6 +768,14 @@ struct VulkanRenderer
     Uint8 outofBARMemoryWarning;
     Uint8 fillModeOnlyWarning;
 
+    // OpenXR
+    Uint32 minimumVkVersion;
+#ifdef HAVE_GPU_OPENXR
+    XrInstance xrInstance; // a non-null instance also states this vk device was created by OpenXR
+    XrSystemId xrSystemId;
+    XrInstancePfns* xr;
+#endif
+
     bool debugMode;
     bool preferLowPower;
     bool requireHardwareAcceleration;
@@ -760,6 +786,7 @@ struct VulkanRenderer
     bool supportsDebugUtils;
     bool supportsColorspace;
     bool supportsPhysicalDeviceProperties2;
+    bool supportsPortabilityEnumeration;
     bool supportsFillModeNonSolid;
     bool supportsMultiDrawIndirect;
 
@@ -840,6 +867,10 @@ struct VulkanRenderer
     SDL_Mutex* computePipelineLayoutFetchLock;
     SDL_Mutex* descriptorSetLayoutFetchLock;
     SDL_Mutex* windowLock;
+
+    // We don't want transfer commands to block each other,
+    // but we want all transfers to block during defrag.
+    SDL_RWLock* defragLock;
 
     Uint8 defragInProgress;
 

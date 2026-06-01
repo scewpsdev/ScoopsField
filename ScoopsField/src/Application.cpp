@@ -90,7 +90,7 @@ void DebugText(int x, int y, const char* fmt, ...)
 	int len = SDL_vsnprintf(buffer, sizeof(buffer), fmt, args);
 	va_end(args);
 
-	DebugTextEx(x, y, buffer, len, 0xFFFFFFFF, 0);
+	DebugTextEx(x, y, buffer, len, 0xFF000000, 0);
 }
 
 void GUIPanel(int x, int y, int w, int h, vec4 color)
@@ -222,16 +222,27 @@ void SDLfree(void* mem)
 	}
 }
 
+void OnLogMessage(void* userdata, int category, SDL_LogPriority priority, const char* message)
+{
+	SDL_LogOutputFunction logOutputFunction = SDL_GetDefaultLogOutputFunction();
+	logOutputFunction(userdata, category, priority, message);
+
+	if (priority >= SDL_LOG_PRIORITY_WARN)
+		__debugbreak();
+}
+
 static AppState* InitAppState()
 {
 	AppState* appState = (AppState*)(BumpAllocatorMalloc(&memory->constantAllocator, sizeof(AppState)));
 	memory->appState = appState;
 	InitPlatformCallbacks(&appState->platformCallbacks);
 
-	//#if _DEBUG
 	SDL_GetOriginalMemoryFunctions(&memory->defaultMalloc, &memory->defaultCalloc, &memory->defaultRealloc, &memory->defaultFree);
 	SDL_SetMemoryFunctions(SDLmalloc, SDLcalloc, SDLrealloc, SDLfree);
-	//#endif
+
+#if _DEBUG
+	SDL_SetLogOutputFunction(OnLogMessage, nullptr);
+#endif
 
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS))
 	{
@@ -254,7 +265,9 @@ static AppState* InitAppState()
 
 	bool gpuDebug = false;
 #if _DEBUG
-	gpuDebug = true;
+	gpuDebug = false;
+
+	SDL_SetLogPriority(SDL_LOG_CATEGORY_GPU, SDL_LOG_PRIORITY_INFO);
 #endif
 
 	SDL_GPUDevice* device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, gpuDebug, nullptr);
@@ -372,6 +385,8 @@ extern "C" __declspec(dllexport) void AppDestroy(SDL_AppResult result)
 	SDL_HideWindow(window);
 
 	GameDestroy();
+
+	DestroyDebugTextRenderer(&app->debugTextRenderer);
 
 	DestroyPhysics(&app->physics);
 
