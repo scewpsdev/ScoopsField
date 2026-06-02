@@ -23,6 +23,9 @@ void DestroyEntity(Entity* entity)
 	case ENTITY_TYPE_PROJECTILE:
 		DestroyProjectile(&entity->projectile, entity);
 		break;
+	case ENTITY_TYPE_TRAIL:
+		DestroyTrail(&entity->trail);
+		break;
 	case ENTITY_TYPE_PARTICLE_EFFECT:
 		DestroyParticleEffect(&entity->particles);
 		break;
@@ -73,6 +76,9 @@ void UpdateEntity(Entity* entity)
 	case ENTITY_TYPE_PROJECTILE:
 		UpdateProjectile(&entity->projectile);
 		break;
+	case ENTITY_TYPE_TRAIL:
+		UpdateTrail(&entity->trail);
+		break;
 	default:
 		break;
 	}
@@ -93,6 +99,9 @@ void RenderEntity(Entity* entity)
 		break;
 	case ENTITY_TYPE_PROJECTILE:
 		RenderProjectile(&entity->projectile);
+		break;
+	case ENTITY_TYPE_TRAIL:
+		RenderTrail(&entity->trail);
 		break;
 	default:
 		break;

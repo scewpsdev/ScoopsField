@@ -42,7 +42,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 				{
 					MeshDrawData* mesh = &renderer->meshes[i];
 					if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-						SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->material, mesh->skeleton, mesh->transform, projection, views[face], pvs[face], cameraPosition, true, renderPass, cmdBuffer);
+						SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->uniformData, mesh->uniformDataSize, mesh->textures, mesh->samplers, mesh->numTextures, mesh->skeleton, mesh->transform, projection, views[face], pvs[face], cameraPosition, true, renderPass, cmdBuffer);
 				}
 
 				SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
@@ -51,7 +51,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 				{
 					MeshDrawData* mesh = &renderer->animatedMeshes[i];
 					if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-						SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->material, mesh->skeleton, mesh->transform, projection, views[face], pvs[face], cameraPosition, true, renderPass, cmdBuffer);
+						SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->uniformData, mesh->uniformDataSize, mesh->textures, mesh->samplers, mesh->numTextures, mesh->skeleton, mesh->transform, projection, views[face], pvs[face], cameraPosition, true, renderPass, cmdBuffer);
 				}
 
 				SDL_EndGPURenderPass(renderPass);

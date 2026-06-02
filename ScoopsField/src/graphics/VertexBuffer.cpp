@@ -52,9 +52,7 @@ VertexBuffer* CreateVertexBuffer(int numVertices, const VertexBufferLayout* layo
 	bufferInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX | usageFlags;
 	SDL_GPUBuffer* buffer = SDL_CreateGPUBuffer(device, &bufferInfo);
 
-	SDL_assert(graphics->numVertexBuffers < MAX_VERTEX_BUFFERS);
-
-	VertexBuffer* vertexBuffer = &graphics->vertexBuffers[graphics->numVertexBuffers++];
+	VertexBuffer* vertexBuffer = PoolAlloc(&graphics->vertexBuffers);
 	vertexBuffer->layout = *layout;
 	vertexBuffer->numVertices = numVertices;
 	vertexBuffer->buffer = buffer;
@@ -65,6 +63,7 @@ VertexBuffer* CreateVertexBuffer(int numVertices, const VertexBufferLayout* layo
 void DestroyVertexBuffer(VertexBuffer* vertexBuffer)
 {
 	SDL_ReleaseGPUBuffer(device, vertexBuffer->buffer);
+	PoolRelease(&graphics->vertexBuffers, vertexBuffer);
 }
 
 void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, uint32_t size, SDL_GPUTransferBuffer* transferBuffer, SDL_GPUCopyPass* copyPass)

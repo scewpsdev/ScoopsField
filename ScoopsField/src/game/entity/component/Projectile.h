@@ -5,9 +5,9 @@
 #include "physics/RigidBody.h"
 
 #include "game/entity/EntityBase.h"	
-#include "game/entity/Trail.h"
 
 
+struct Trail;
 struct ParticleEffect;
 
 struct Projectile : EntityBase
@@ -27,9 +27,7 @@ struct Projectile : EntityBase
 	bool hasLight;
 	vec3 lightColor;
 
-	bool hasTrail;
-	Trail trail;
-
+	Trail* trail;
 	ParticleEffect* particles;
 };
 

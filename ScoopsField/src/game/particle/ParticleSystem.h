@@ -23,6 +23,8 @@ struct ParticleEffect : EntityBase
 	vec3 startVelocity;
 	vec3 gravity;
 	vec4 color;
+	Texture* texture;
+	TextureSampler textureSampler;
 
 	VertexBuffer* positionBuffer;
 	VertexBuffer* sizeBuffer;
@@ -42,7 +44,7 @@ struct ParticleSystem
 };
 
 
-void InitParticleEffect(ParticleEffect* effect);
+void InitParticleEffect(ParticleEffect* effect, vec3 position, bool additive);
 void DestroyParticleEffect(ParticleEffect* effect);
 
 void InitParticleInstanceBufferLayouts(VertexBufferLayout* instanceLayouts);

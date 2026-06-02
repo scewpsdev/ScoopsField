@@ -67,9 +67,7 @@ static SDL_GPUTexture* CreateDepthAttachment(int width, int height, SDL_GPUTextu
 
 RenderTarget* CreateRenderTarget(int width, int height, SDL_GPUTextureType textureType, int numColorAttachments, const ColorAttachmentInfo* colorAttachmentInfos, const DepthAttachmentInfo* depthAttachmentInfo)
 {
-	SDL_assert(graphics->numRenderTargets < MAX_RENDER_TARGETS);
-
-	RenderTarget* renderTarget = &graphics->renderTargets[graphics->numRenderTargets++];
+	RenderTarget* renderTarget = PoolAlloc(&graphics->renderTargets);
 
 	renderTarget->width = width;
 	renderTarget->height = height;
@@ -104,6 +102,7 @@ void DestroyRenderTarget(RenderTarget* renderTarget)
 	{
 		SDL_ReleaseGPUTexture(device, renderTarget->depthAttachment);
 	}
+	PoolRelease(&graphics->renderTargets, renderTarget);
 }
 
 void ResizeRenderTarget(RenderTarget* renderTarget, int width, int height)

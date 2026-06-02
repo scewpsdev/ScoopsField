@@ -1,5 +1,7 @@
 #pragma once
 
+#include "game/entity/EntityBase.h"
+
 #include "math/Vector.h"
 #include "utils/List.h"
 
@@ -15,14 +17,16 @@ struct TrailNode
 	float distance;
 };
 
-struct Trail
+struct Trail : EntityBase
 {
 	float width;
 	vec4 color;
-	Material* material;
+	Texture* texture;
+	TextureSampler textureSampler;
 
 	bool fadeWidth;
 	bool fadeAlpha;
+	bool destroyOnCollapse;
 
 #define MAX_TRAIL_NODES 16
 	TrailNode nodes[MAX_TRAIL_NODES];
@@ -37,10 +41,10 @@ struct Trail
 
 void InitTrailVertexLayout(VertexBufferLayout* layout);
 
-void InitTrail(Trail* trail, vec3 startPosition, int numNodes = MAX_TRAIL_NODES);
+void InitTrail(Trail* trail, vec3 position, int numNodes = MAX_TRAIL_NODES);
 void DestroyTrail(Trail* trail);
 
-void UpdateTrail(Trail* trail, vec3 position, SDL_GPUCommandBuffer* cmdBuffer);
+void UpdateTrail(Trail* trail);
 void BendTrailEnd(Trail* trail, vec3 position, float range);
 
 void RenderTrail(Trail* trail);

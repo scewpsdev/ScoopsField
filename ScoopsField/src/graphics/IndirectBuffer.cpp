@@ -18,14 +18,18 @@ IndirectBuffer* CreateIndirectBuffer(int maxDrawCommands, bool indexed, SDL_GPUB
 	bufferInfo.usage = SDL_GPU_BUFFERUSAGE_INDIRECT | usage;
 	SDL_GPUBuffer* buffer = SDL_CreateGPUBuffer(device, &bufferInfo);
 
-	SDL_assert(graphics->numIndirectBuffers < MAX_INDIRECT_BUFFERS);
-
-	IndirectBuffer* indirectBuffer = &graphics->indirectBuffers[graphics->numIndirectBuffers++];
+	IndirectBuffer* indirectBuffer = PoolAlloc(&graphics->indirectBuffers);
 	indirectBuffer->maxDrawCommands = maxDrawCommands;
 	indirectBuffer->indexed = indexed;
 	indirectBuffer->buffer = buffer;
 
 	return indirectBuffer;
+}
+
+void DestroyIndirectBuffer(IndirectBuffer* indirectBuffer)
+{
+	SDL_ReleaseGPUBuffer(device, indirectBuffer->buffer);
+	PoolRelease(&graphics->indirectBuffers, indirectBuffer);
 }
 
 void UpdateIndirectBuffer(IndirectBuffer* buffer, uint32_t firstDrawCommand, const SDL_GPUIndirectDrawCommand* drawCommands, int numDrawCommands, SDL_GPUTransferBuffer* transferBuffer, bool cycleTransferBuffer, SDL_GPUCommandBuffer* cmdBuffer)
@@ -51,9 +55,4 @@ void UpdateIndirectBuffer(IndirectBuffer* buffer, uint32_t firstDrawCommand, con
 
 	SDL_UploadToGPUBuffer(copyPass, &location, &region, false);
 	SDL_EndGPUCopyPass(copyPass);
-}
-
-void DestroyIndirectBuffer(IndirectBuffer* indirectBuffer)
-{
-	SDL_ReleaseGPUBuffer(device, indirectBuffer->buffer);
 }

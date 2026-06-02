@@ -33,8 +33,14 @@ struct MeshDrawData
 	AABB boundingBox;
 	Sphere boundingSphere;
 
+	vec4 uniformData[4];
+	int uniformDataSize;
+
+	Texture* textures[MAX_MATERIAL_TEXTURES];
+	TextureSampler samplers[MAX_MATERIAL_TEXTURES];
+	int numTextures;
+
 	SkeletonState* skeleton;
-	Material* material;
 	GraphicsPipeline* shader;
 	mat4 transform;
 };
@@ -189,9 +195,22 @@ struct Renderer
 };
 
 
-void RenderMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertexBuffers, IndexBuffer* indexBuffer, int vertexCount, int instanceCount, AABB boundingBox, Sphere boundingSphere, Material* material, GraphicsPipeline* shader, bool forward, mat4 transform);
+void RenderMesh(Renderer* renderer,
+	VertexBuffer* vertexBuffers[], int numVertexBuffers,
+	IndexBuffer* indexBuffer,
+	int vertexCount, int instanceCount,
+	AABB boundingBox, Sphere boundingSphere,
+	vec4 uniformData[4], int uniformDataSize,
+	Texture* textures[], TextureSampler samplers[], int numTextures,
+	GraphicsPipeline* shader,
+	mat4 transform);
+
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform);
 void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform);
 void RenderLight(Renderer* renderer, vec3 position, vec3 color);
 void RenderReflectionProbe(Renderer* renderer, ReflectionProbe* probe);
 void UpdateReflectionProbe(Renderer* renderer, ReflectionProbe* probe);
+
+
+GraphicsPipeline* CreateForwardGraphicsPipeline(Shader* shader, VertexBufferLayout* vertexLayouts, int numVertexLayouts, SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, bool additive);
+bool IsForward(GraphicsPipeline* pipeline);

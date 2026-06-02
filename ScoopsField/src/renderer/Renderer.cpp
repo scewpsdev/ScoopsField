@@ -459,7 +459,16 @@ static SDL_GPUTexture* CreateCloudNoiseDetailTexture(Renderer* renderer, SDL_GPU
 	return texture;
 }
 
-static void SubmitMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertexBuffers, IndexBuffer* indexBuffer, int vertexCount, int indexCount, int instanceCount, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& projection, const mat4& view, const mat4& pv, vec3 cameraPosition, bool viewSpaceBuffer, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer);
+static void SubmitMesh(Renderer* renderer,
+	VertexBuffer* vertexBuffers[], int numVertexBuffers,
+	IndexBuffer* indexBuffer,
+	int vertexCount, int indexCount, int instanceCount,
+	vec4* uniformData, int uniformDataSize,
+	Texture* textures[], TextureSampler samplers[], int numTextures,
+	SkeletonState* skeleton,
+	const mat4& transform,
+	const mat4& projection, const mat4& view, const mat4& pv, vec3 cameraPosition, bool viewSpaceBuffer,
+	SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer);
 
 #define SHADOW_MAP_RESOLUTION 1024
 
@@ -782,7 +791,15 @@ void ResizeRenderer(Renderer* renderer, int width, int height)
 	renderer->bloomStepCount = CreateBloomTargets(width / 2, height / 2, renderer->bloomDownsampleTargets, renderer->bloomUpsampleTargets);
 }
 
-void RenderMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertexBuffers, IndexBuffer* indexBuffer, int vertexCount, int instanceCount, AABB boundingBox, Sphere boundingSphere, Material* material, GraphicsPipeline* shader, bool forward, mat4 transform)
+void RenderMesh(Renderer* renderer,
+	VertexBuffer* vertexBuffers[], int numVertexBuffers,
+	IndexBuffer* indexBuffer,
+	int vertexCount, int instanceCount,
+	AABB boundingBox, Sphere boundingSphere,
+	vec4 uniformData[4], int uniformDataSize,
+	Texture* textures[], TextureSampler samplers[], int numTextures,
+	GraphicsPipeline* shader,
+	mat4 transform)
 {
 	MeshDrawData data = {};
 
@@ -799,17 +816,23 @@ void RenderMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertex
 	data.boundingBox = boundingBox;
 	data.boundingSphere = boundingSphere;
 
-	data.material = material;
+	SDL_memcpy(data.uniformData, uniformData, uniformDataSize);
+	data.uniformDataSize = uniformDataSize;
+
+	SDL_memcpy(data.textures, textures, numTextures * sizeof(textures[0]));
+	SDL_memcpy(data.samplers, samplers, numTextures * sizeof(samplers[0]));
+	data.numTextures = numTextures;
+
 	data.transform = transform;
 	data.shader = shader;
 
-	if (forward)
+	if (shader && IsForward(shader))
 		renderer->forwardMeshes.add(data);
 	else
 		renderer->meshes.add(data);
 }
 
-void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, GraphicsPipeline* shader, bool forward, SkeletonState* skeleton, mat4 transform)
+void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, GraphicsPipeline* shader, SkeletonState* skeleton, mat4 transform)
 {
 	MeshDrawData data = {};
 
@@ -838,12 +861,21 @@ void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, GraphicsPipe
 	data.boundingBox = mesh->boundingBox;
 	data.boundingSphere = mesh->boundingSphere;
 
+	data.uniformData[0] = material->data0;
+	data.uniformData[1] = material->data1;
+	data.uniformData[2] = material->data2;
+	data.uniformData[3] = material->data3;
+	data.uniformDataSize = sizeof(material->data0) * 4;
+
+	SDL_memcpy(data.textures, material->textures, sizeof(material->textures));
+	SDL_memcpy(data.samplers, material->samplers, sizeof(material->samplers));
+	data.numTextures = material->numTextures;
+
 	data.skeleton = skeleton;
 	data.transform = transform;
-	data.material = material;
 	data.shader = shader;
 
-	if (forward)
+	if (shader && IsForward(shader))
 	{
 		SDL_assert(!skeleton);
 
@@ -861,7 +893,7 @@ void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, GraphicsPipe
 	}
 }
 
-static void RenderModelNode(Renderer* renderer, Model* model, Node* node, GraphicsPipeline* shader, bool forward, AnimationState* animation, mat4 parentTransform)
+static void RenderModelNode(Renderer* renderer, Model* model, Node* node, GraphicsPipeline* shader, AnimationState* animation, mat4 parentTransform)
 {
 	mat4 nodeTransform = animation ? GetNodeTransform(animation, node) : node->transform;
 	mat4 nodeGlobalTransform = parentTransform * nodeTransform;
@@ -871,25 +903,25 @@ static void RenderModelNode(Renderer* renderer, Model* model, Node* node, Graphi
 		int meshID = node->meshes[i];
 		Mesh* mesh = &model->meshes[meshID];
 		Material* material = mesh->materialID != -1 ? &model->materials[mesh->materialID] : nullptr;
-		RenderMesh(renderer, mesh, material, shader, forward, animation && mesh->skeletonID != -1 ? &animation->skeletons[mesh->skeletonID] : nullptr, nodeGlobalTransform);
+		RenderMesh(renderer, mesh, material, shader, animation && mesh->skeletonID != -1 ? &animation->skeletons[mesh->skeletonID] : nullptr, nodeGlobalTransform);
 	}
 
 	for (int i = 0; i < node->numChildren; i++)
 	{
-		RenderModelNode(renderer, model, &model->nodes[node->children[i]], shader, forward, animation, nodeGlobalTransform);
+		RenderModelNode(renderer, model, &model->nodes[node->children[i]], shader, animation, nodeGlobalTransform);
 	}
 }
 
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform)
 {
 	SDL_assert(model);
-	RenderModelNode(renderer, model, &model->nodes[0], nullptr, false, animation, transform);
+	RenderModelNode(renderer, model, &model->nodes[0], nullptr, animation, transform);
 }
 
 void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform)
 {
 	SDL_assert(model);
-	RenderModelNode(renderer, model, &model->nodes[0], shader, shader != nullptr, animation, transform);
+	RenderModelNode(renderer, model, &model->nodes[0], shader, animation, transform);
 }
 
 void RenderLight(Renderer* renderer, vec3 position, vec3 color)
@@ -912,7 +944,16 @@ void UpdateReflectionProbe(Renderer* renderer, ReflectionProbe* probe)
 	renderer->reflectionProbeUpdates.add(probe);
 }
 
-static void SubmitMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int numVertexBuffers, IndexBuffer* indexBuffer, int vertexCount, int indexCount, int instanceCount, Material* material, SkeletonState* skeleton, const mat4& transform, const mat4& projection, const mat4& view, const mat4& pv, vec3 cameraPosition, bool viewSpaceBuffer, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
+static void SubmitMesh(Renderer* renderer,
+	VertexBuffer* vertexBuffers[], int numVertexBuffers,
+	IndexBuffer* indexBuffer,
+	int vertexCount, int indexCount, int instanceCount,
+	vec4* uniformData, int uniformDataSize,
+	Texture* textures[], TextureSampler samplers[], int numTextures,
+	SkeletonState* skeleton,
+	const mat4& transform,
+	const mat4& projection, const mat4& view, const mat4& pv, vec3 cameraPosition, bool viewSpaceBuffer,
+	SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	SDL_GPUBufferBinding vertexBindings[16] = {};
 	for (int i = 0; i < numVertexBuffers; i++)
@@ -969,34 +1010,22 @@ static void SubmitMesh(Renderer* renderer, VertexBuffer* vertexBuffers[], int nu
 		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 	}
 
-	if (material)
+	if (uniformData)
 	{
-		struct UniformData
-		{
-			vec4 params;
-			vec4 data0;
-			vec4 data1;
-			vec4 data2;
-			vec4 data3;
-		};
+		uint8_t* data = BumpAllocatorMalloc(&memory->transientAllocator, uniformDataSize + sizeof(vec4));
+		*(vec4*)data = vec4(cameraPosition, 0);
+		SDL_memcpy(data + sizeof(vec4), uniformData, uniformDataSize);
 
-		UniformData uniforms = {};
-		uniforms.params = vec4(cameraPosition, 0);
-		uniforms.data0 = material->data0;
-		uniforms.data1 = material->data1;
-		uniforms.data2 = material->data2;
-		uniforms.data3 = material->data3;
-
-		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, data, uniformDataSize + sizeof(vec4));
 
 		SDL_GPUTextureSamplerBinding textureBindings[MAX_MATERIAL_TEXTURES] = {};
-		for (int i = 0; i < material->numTextures; i++)
+		for (int i = 0; i < numTextures; i++)
 		{
-			textureBindings[i].texture = material->textures[i] ? material->textures[i]->handle : renderer->emptyTexture;
-			textureBindings[i].sampler = renderer->samplers[material->samplers[i]];
+			textureBindings[i].texture = textures[i] ? textures[i]->handle : renderer->emptyTexture;
+			textureBindings[i].sampler = renderer->samplers[samplers[i]];
 		}
 
-		SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, material->numTextures);
+		SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, numTextures);
 	}
 
 	if (indexBuffer)
@@ -1055,7 +1084,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		for (int i = 0; i < renderer->meshes.size; i++)
 		{
 			MeshDrawData* mesh = &renderer->meshes[i];
-			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->material, mesh->skeleton, mesh->transform, projection, view, pv, cameraPosition, true, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->uniformData, mesh->uniformDataSize, mesh->textures, mesh->samplers, mesh->numTextures, mesh->skeleton, mesh->transform, projection, view, pv, cameraPosition, true, renderPass, cmdBuffer);
 		}
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
@@ -1063,7 +1092,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		for (int i = 0; i < renderer->animatedMeshes.size; i++)
 		{
 			MeshDrawData* mesh = &renderer->animatedMeshes[i];
-			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->material, mesh->skeleton, mesh->transform, projection, view, pv, cameraPosition, true, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->uniformData, mesh->uniformDataSize, mesh->textures, mesh->samplers, mesh->numTextures, mesh->skeleton, mesh->transform, projection, view, pv, cameraPosition, true, renderPass, cmdBuffer);
 		}
 
 		SDL_EndGPURenderPass(renderPass);
@@ -1134,7 +1163,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 				SDL_BindGPUGraphicsPipeline(renderPass, mesh->shader->pipeline);
 
-				SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->material, mesh->skeleton, mesh->transform, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
+				SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->uniformData, mesh->uniformDataSize, mesh->textures, mesh->samplers, mesh->numTextures, mesh->skeleton, mesh->transform, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
 			}
 		}
 
@@ -1189,4 +1218,46 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 	renderer->forwardMeshes.clear();
 	renderer->pointLights.clear();
 	renderer->reflectionProbes.clear();
+}
+
+
+
+GraphicsPipeline* CreateForwardGraphicsPipeline(Shader* shader, VertexBufferLayout* vertexLayouts, int numVertexLayouts, SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, bool additive)
+{
+	SDL_GPUTextureFormat colorAttachmentFormat = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
+	SDL_GPUTextureFormat depthAttachmentFormat = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
+
+	SDL_assert(game->renderer.hdrTarget->numColorAttachments == 1
+		&& game->renderer.hdrTarget->colorAttachmentInfos[0].format == colorAttachmentFormat
+		&& game->renderer.hdrTarget->depthAttachmentInfo.format == depthAttachmentFormat);
+
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(
+		SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+		SDL_GPU_CULLMODE_BACK,
+		shader,
+		1, &colorAttachmentFormat,
+		true, depthAttachmentFormat,
+		numVertexLayouts, vertexLayouts);
+
+	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER;
+	pipelineInfo.primitiveType = primitiveType;
+	pipelineInfo.cullMode = cullMode;
+
+	if (additive)
+	{
+		CreateBlendStateAddPremultiplied(&pipelineInfo.colorTargets[0].blend_state);
+		pipelineInfo.depthWrite = false;
+	}
+	else
+	{
+		CreateBlendStateAlpha(&pipelineInfo.colorTargets[0].blend_state);
+	}
+
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
+bool IsForward(GraphicsPipeline* pipeline)
+{
+	return pipeline->pipelineInfo.numColorTargets == game->renderer.hdrTarget->numColorAttachments &&
+		pipeline->pipelineInfo.colorTargets[0].format == game->renderer.hdrTarget->colorAttachmentInfos[0].format;
 }

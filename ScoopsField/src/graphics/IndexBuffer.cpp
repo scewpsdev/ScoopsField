@@ -16,9 +16,7 @@ IndexBuffer* CreateIndexBuffer(int numIndices, SDL_GPUIndexElementSize elementSi
 	bufferInfo.usage = SDL_GPU_BUFFERUSAGE_INDEX;
 	SDL_GPUBuffer* buffer = SDL_CreateGPUBuffer(device, &bufferInfo);
 
-	SDL_assert(graphics->numIndexBuffers < MAX_INDEX_BUFFERS);
-
-	IndexBuffer* indexBuffer = &graphics->indexBuffers[graphics->numIndexBuffers++];
+	IndexBuffer* indexBuffer = PoolAlloc(&graphics->indexBuffers);
 	indexBuffer->buffer = buffer;
 	indexBuffer->numIndices = numIndices;
 	indexBuffer->elementSize = elementSize;
@@ -29,6 +27,7 @@ IndexBuffer* CreateIndexBuffer(int numIndices, SDL_GPUIndexElementSize elementSi
 void DestroyIndexBuffer(IndexBuffer* indexBuffer)
 {
 	SDL_ReleaseGPUBuffer(device, indexBuffer->buffer);
+	PoolRelease(&graphics->indexBuffers, indexBuffer);
 }
 
 void UpdateIndexBuffer(IndexBuffer* indexBuffer, uint32_t offset, const uint8_t* data, uint32_t size, SDL_GPUTransferBuffer* transferBuffer, SDL_GPUCopyPass* copyPass)

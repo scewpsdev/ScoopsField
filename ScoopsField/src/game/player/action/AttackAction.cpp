@@ -152,6 +152,6 @@ void UpdateAttackAction(Action* action, Player* player)
 		action->attack.projectile = projectile;
 	}
 
-	if (action->attack.projectile && action->attack.projectile->hasTrail)
-		BendTrailEnd(&action->attack.projectile->trail, (GetRightWeaponTransform(player) * mat4::Translate(action->attack.weapon->weapon.castOffset)).translation(), 2);
+	if (action->attack.projectile && action->attack.projectile->trail)
+		BendTrailEnd(action->attack.projectile->trail, (GetRightWeaponTransform(player) * mat4::Translate(action->attack.weapon->weapon.castOffset)).translation(), 2);
 }

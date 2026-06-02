@@ -6,6 +6,7 @@ layout (location = 2) in vec2 a_size;
 layout (location = 3) in vec4 a_color;
 
 layout (location = 0) out vec4 v_color;
+layout (location = 1) out vec2 v_texcoord;
 
 
 layout(std140, set = 1, binding = 0) uniform UniformBlock {
@@ -24,4 +25,5 @@ void main()
 	gl_Position = u_projectionViewModel * position;
 
 	v_color = a_color;
+	v_texcoord = a_vertexPosition * vec2(1, -1) + 0.5;
 }

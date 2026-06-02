@@ -19,15 +19,18 @@ void InitParticleInstanceBufferLayouts(VertexBufferLayout* instanceLayouts)
 	instanceLayouts[2].perInstance = true;
 }
 
-void InitParticleEffect(ParticleEffect* effect)
+void InitParticleEffect(ParticleEffect* effect, vec3 position, bool additive)
 {
 	game->particles.effects.add(effect);
 
 	InitEntity((Entity*)effect, ENTITY_TYPE_PARTICLE_EFFECT);
 
+	effect->position = position;
+	effect->shader = additive ? game->particleAdditiveShader : game->particleShader;
+
 	effect->minLifetime = 1;
 	effect->maxLifetime = 2;
-	effect->spawnRate = 3000;
+	effect->spawnRate = 1000;
 	effect->minSize = 0.02f;
 	effect->maxSize = 0.1f;
 	effect->startPosition = vec3(0);
@@ -91,7 +94,7 @@ static void SpawnParticle(ParticleEffect* effect)
 
 	effect->colors[particleID] = effect->color;
 
-	effect->velocities[particleID] = (transform * vec4(effect->startVelocity + game->random.nextVector3(-1, 1) * 2, 0)).xyz;
+	effect->velocities[particleID] = (transform * vec4(effect->startVelocity + game->random.nextVector3(-1, 1) * 0.5f, 0)).xyz;
 
 	float lifetime = mix(effect->minLifetime, effect->maxLifetime, game->random.nextFloat());
 	effect->deathTimes[particleID] = gameTime + lifetime;
@@ -171,9 +174,9 @@ static void RenderParticleEffect(ParticleSystem* particles, ParticleEffect* effe
 	buffers[2] = effect->sizeBuffer;
 	buffers[3] = effect->colorBuffer;
 
-	RenderMesh(&game->renderer, buffers, 4, nullptr, 4, effect->numParticles, {}, {}, nullptr, game->particleShader, true, mat4::Identity);
+	vec4 params = vec4(effect->texture ? 1.0f : 0.0f, 0, 0, 0);
 
-	DebugText(0, 10, "%d", effect->numParticles);
+	RenderMesh(&game->renderer, buffers, 4, nullptr, 4, effect->numParticles, {}, {}, &params, sizeof(params), &effect->texture, &effect->textureSampler, 1, effect->shader, mat4::Identity);
 }
 
 const vec2 quadVertices[] = {

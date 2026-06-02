@@ -231,6 +231,7 @@ Texture* GetTexture(const char* path)
 		if (Texture* texture = LoadTexture(fullPath, cmdBuffer))
 		{
 			int textureID = resource->numTextures++;
+			resource->textures[textureID] = texture;
 			HashMapAdd(&resource->textureNameMap, pathHash, textureID);
 			return texture;
 		}

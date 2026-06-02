@@ -18,6 +18,10 @@ void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 
 
 void DestroyProjectile(Projectile* projectile, Entity* entity)
 {
+	if (projectile->trail)
+	{
+		projectile->trail->destroyOnCollapse = true;
+	}
 	if (projectile->particles)
 	{
 		projectile->particles->spawnRate = 0;
@@ -53,13 +57,13 @@ void UpdateProjectile(Projectile* projectile)
 					{
 						projectile->stuck = true;
 						projectile->position += d * hits[i].distance;
+
+						if (projectile->trail)
+							projectile->trail->destroyOnCollapse = true;
 					}
 					else
 					{
-						if (projectile->hasTrail)
-							projectile->stuck = true;
-						else
-							projectile->removed = true;
+						projectile->removed = true;
 					}
 					return;
 				}
@@ -69,10 +73,7 @@ void UpdateProjectile(Projectile* projectile)
 					hit.position = hits[i].position;
 					HitEntity((Entity*)body->userPtr, &hit, (Entity*)projectile);
 
-					if (projectile->hasTrail)
-						projectile->stuck = true;
-					else
-						projectile->removed = true;
+					projectile->removed = true;
 				}
 			}
 		}
@@ -83,11 +84,16 @@ void UpdateProjectile(Projectile* projectile)
 
 			if (projectile->rotateForwards)
 			{
-				projectile->rotation = quat::LookAt(projectile->velocity, quat::FromAxisAngle(vec3::AxisZ, projectile->roll) * vec3::Up);
+				projectile->rotation = quat::LookAt(projectile->velocity, vec3::Up) * quat::FromAxisAngle(vec3::AxisZ, projectile->roll);
 			}
 
 			if (projectile->offset.lengthSquared() > 0)
 				projectile->offset = mix(projectile->offset, vec3::Zero, 5 * deltaTime);
+
+			if (projectile->trail)
+			{
+				projectile->trail->position = projectile->position + projectile->offset;
+			}
 
 			if (projectile->particles)
 			{
@@ -97,32 +103,14 @@ void UpdateProjectile(Projectile* projectile)
 			}
 		}
 	}
-
-	if (projectile->hasTrail)
-	{
-		bool isDead = !projectile->stickToObjects && projectile->stuck;
-
-		UpdateTrail(&projectile->trail, projectile->position + projectile->offset, cmdBuffer);
-
-		if (isDead && projectile->trail.nodes[projectile->trail.numNodes - 1].position == projectile->position + projectile->offset)
-			projectile->removed = true;
-	}
 }
 
 void RenderProjectile(Projectile* projectile)
 {
-	bool isDead = projectile->hasTrail && !projectile->stickToObjects && projectile->stuck;
+	RenderModel(&game->renderer, projectile->model, projectile->shader, nullptr, mat4::Translate(projectile->offset) * ModelMatrix((Entity*)projectile));
 
-	if (!isDead)
-	{
-		RenderModel(&game->renderer, projectile->model, projectile->shader, nullptr, mat4::Translate(projectile->offset) * ModelMatrix((Entity*)projectile));
-
-		if (projectile->hasLight)
-			RenderLight(&game->renderer, projectile->position, projectile->lightColor);
-	}
-
-	if (projectile->hasTrail)
-		RenderTrail(&projectile->trail);
+	if (projectile->hasLight)
+		RenderLight(&game->renderer, projectile->position, projectile->lightColor);
 }
 
 
@@ -138,11 +126,12 @@ void InitArrow(Projectile* projectile, vec3 position, vec3 direction, mat4 start
 	projectile->hitboxOffset = vec3(0, 0, -0.7f);
 	projectile->stickToObjects = true;
 
-	projectile->hasTrail = true;
-	InitTrail(&projectile->trail, position + projectile->offset, 16);
-	projectile->trail.color = vec4(0.5f, 0.5f, 0.5f, 1);
-	projectile->trail.fadeWidth = true;
-	projectile->trail.fadeAlpha = true;
+	projectile->trail = (Trail*)CreateEntity();
+	InitTrail(projectile->trail, position + projectile->offset, 16);
+	projectile->trail->color = vec4(0.5f, 0.5f, 0.5f, 1);
+	projectile->trail->texture = GetTexture("textures/effect/trail.png");
+	projectile->trail->fadeWidth = true;
+	projectile->trail->fadeAlpha = true;
 }
 
 void InitMagicProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform)
@@ -158,21 +147,24 @@ void InitMagicProjectile(Projectile* projectile, vec3 position, vec3 direction, 
 	projectile->rotateForwards = true;
 	projectile->drag = 0.001f;
 
-	projectile->hasTrail = true;
-	InitTrail(&projectile->trail, position + projectile->offset, 8);
-	projectile->trail.width = 0.1f;
-	projectile->trail.color = vec4(SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 50, 1);
-	projectile->trail.material = &game->trailMaterial;
-	projectile->trail.fadeWidth = true;
-	//projectile->trail.fadeAlpha = true;
+	projectile->trail = (Trail*)CreateEntity();
+	InitTrail(projectile->trail, position + projectile->offset, 8);
+	projectile->trail->width = 0.1f;
+	projectile->trail->color = vec4(SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 50, 1);
+	projectile->trail->texture = GetTexture("textures/effect/trail.png");
+	projectile->trail->fadeWidth = true;
+	//projectile->trail->fadeAlpha = true;
 
 	projectile->hasLight = true;
-	projectile->lightColor = SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 15;
+	projectile->lightColor = SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 20;
 
 	projectile->particles = (ParticleEffect*)CreateEntity();
-	InitParticleEffect(projectile->particles);
-	projectile->particles->startPosition = vec3(0, 0.1f, 0);
-	projectile->particles->startVelocity = vec3(0, 5, 0);
-	projectile->particles->gravity = vec3(0, -5, 0);
-	projectile->particles->color = vec4(SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 10, 1);
+	InitParticleEffect(projectile->particles, position, true);
+	projectile->particles->startVelocity = vec3(0, 0.5f, 0);
+	projectile->particles->gravity = vec3(0, -1, 0);
+	projectile->particles->minSize = 0.01f;
+	projectile->particles->maxSize = 0.02f,
+	projectile->particles->color = vec4(SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 5, 1);
+	projectile->particles->texture = GetTexture("textures/effect/spark.png");
+	projectile->particles->textureSampler = TEXTURE_SAMPLER_LINEAR_CLAMPED;
 }

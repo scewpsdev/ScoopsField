@@ -161,7 +161,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="src\game\entity\Trail.cpp" />
+    <ClCompile Include="src\game\entity\component\Trail.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\game\Game.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -202,6 +204,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="src\graphics\Graphics.cpp" />
     <ClCompile Include="src\graphics\GraphicsPipeline.cpp" />
     <ClCompile Include="src\graphics\IndexBuffer.cpp" />
     <ClCompile Include="src\graphics\IndirectBuffer.cpp" />
@@ -268,7 +271,7 @@
     <ClInclude Include="src\game\entity\component\Projectile.h" />
     <ClInclude Include="src\game\entity\component\RestingSpot.h" />
     <ClInclude Include="src\game\entity\EntityBase.h" />
-    <ClInclude Include="src\game\entity\Trail.h" />
+    <ClInclude Include="src\game\entity\component\Trail.h" />
     <ClInclude Include="src\game\Navmesh.h" />
     <ClInclude Include="src\game\particle\ParticleSystem.h" />
     <ClInclude Include="src\game\player\action\Action.h" />
@@ -290,6 +293,7 @@
     <ClInclude Include="src\game\item\Item.h" />
     <ClInclude Include="src\graphics\GPUTiming.h" />
     <ClInclude Include="src\graphics\GPUVulkan.h" />
+    <ClInclude Include="src\graphics\Graphics.h" />
     <ClInclude Include="src\graphics\GraphicsPipeline.h" />
     <ClInclude Include="src\graphics\IndexBuffer.h" />
     <ClInclude Include="src\graphics\IndirectBuffer.h" />

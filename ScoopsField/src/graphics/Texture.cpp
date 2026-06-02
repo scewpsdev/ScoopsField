@@ -124,9 +124,7 @@ Texture* LoadTexture(const char* path, SDL_GPUCommandBuffer* cmdBuffer)
 
 		SDL_EndGPUCopyPass(copyPass);
 
-		SDL_assert(graphics->numTextures < MAX_TEXTURES);
-
-		Texture* texture = &graphics->textures[graphics->numTextures++];
+		Texture* texture = PoolAlloc(&graphics->textures);
 		texture->handle = handle;
 		texture->info = info;
 
@@ -187,9 +185,7 @@ Texture* LoadTextureFromData(const uint8_t* data, uint32_t size, const TextureIn
 	if (info->numMips > 1)
 		SDL_GenerateMipmapsForGPUTexture(cmdBuffer, handle);
 
-	SDL_assert(graphics->numTextures < MAX_TEXTURES);
-
-	Texture* texture = &graphics->textures[graphics->numTextures++];
+	Texture* texture = PoolAlloc(&graphics->textures);
 	texture->handle = handle;
 	texture->info = *info;
 

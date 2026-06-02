@@ -19,6 +19,7 @@ void DestroyShader(Shader* shader)
 		SDL_ReleaseGPUShader(device, shader->vertex);
 		SDL_ReleaseGPUShader(device, shader->fragment);
 	}
+	PoolRelease(&graphics->shaders, shader);
 }
 
 static SDL_GPUShader* LoadGraphicsShaderStage(const char* path, SDL_ShaderCross_ShaderStage stage)
@@ -59,9 +60,7 @@ Shader* LoadGraphicsShader(const char* vertexPath, const char* fragmentPath)
 
 	if (vertex && (fragment || !fragmentPath))
 	{
-		SDL_assert(graphics->numShaders < MAX_SHADERS);
-
-		Shader* shader = &graphics->shaders[graphics->numShaders++];
+		Shader* shader = PoolAlloc(&graphics->shaders);
 		shader->vertex = vertex;
 		shader->fragment = fragment;
 
@@ -114,9 +113,7 @@ Shader* LoadComputeShader(const char* computePath)
 {
 	if (SDL_GPUComputePipeline* compute = LoadComputeShaderStage(computePath))
 	{
-		SDL_assert(graphics->numShaders < MAX_SHADERS);
-
-		Shader* shader = &graphics->shaders[graphics->numShaders++];
+		Shader* shader = PoolAlloc(&graphics->shaders);
 		shader->compute = compute;
 
 		return shader;

@@ -16,9 +16,7 @@ StorageBuffer* CreateStorageBuffer(uint32_t size, SDL_GPUBufferUsageFlags usageF
 	bufferInfo.usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ | usageFlags;
 	SDL_GPUBuffer* buffer = SDL_CreateGPUBuffer(device, &bufferInfo);
 
-	SDL_assert(graphics->numStorageBuffers < MAX_STORAGE_BUFFERS);
-
-	StorageBuffer* storageBuffer = &graphics->storageBuffers[graphics->numStorageBuffers++];
+	StorageBuffer* storageBuffer = PoolAlloc(&graphics->storageBuffers);
 	storageBuffer->buffer = buffer;
 
 	return storageBuffer;
@@ -59,9 +57,7 @@ StorageBuffer* CreateStorageBuffer(const uint8_t* data, uint32_t size, SDL_GPUCo
 		SDL_ReleaseGPUTransferBuffer(device, transferBuffer);
 	}
 
-	SDL_assert(graphics->numStorageBuffers < MAX_STORAGE_BUFFERS);
-
-	StorageBuffer* storageBuffer = &graphics->storageBuffers[graphics->numStorageBuffers++];
+	StorageBuffer* storageBuffer = PoolAlloc(&graphics->storageBuffers);
 	storageBuffer->buffer = buffer;
 
 	return storageBuffer;
@@ -70,6 +66,7 @@ StorageBuffer* CreateStorageBuffer(const uint8_t* data, uint32_t size, SDL_GPUCo
 void DestroyStorageBuffer(StorageBuffer* storageBuffer)
 {
 	SDL_ReleaseGPUBuffer(device, storageBuffer->buffer);
+	PoolRelease(&graphics->storageBuffers, storageBuffer);
 }
 
 void UpdateStorageBuffer(StorageBuffer* storageBuffer, uint32_t offset, const uint8_t* data, uint32_t size, SDL_GPUTransferBuffer* transferBuffer, bool cycleTransferBuffer, SDL_GPUCommandBuffer* cmdBuffer)

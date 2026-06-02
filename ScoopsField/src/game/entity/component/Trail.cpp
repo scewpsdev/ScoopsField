@@ -29,8 +29,13 @@ void InitTrailVertexLayout(VertexBufferLayout* layout)
 	layout->attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
 }
 
-void InitTrail(Trail* trail, vec3 startPosition, int numNodes)
+void InitTrail(Trail* trail, vec3 position, int numNodes)
 {
+	InitEntity((Entity*)trail, ENTITY_TYPE_TRAIL);
+
+	trail->position = position;
+	trail->shader = game->trailShader;
+
 	trail->width = 0.1f;
 	trail->color = vec4(1);
 
@@ -39,7 +44,7 @@ void InitTrail(Trail* trail, vec3 startPosition, int numNodes)
 	trail->numNodes = numNodes;
 	for (int i = 0; i < numNodes; i++)
 	{
-		trail->nodes[i].position = startPosition;
+		trail->nodes[i].position = position;
 		trail->nodes[i].distance = 0;
 	}
 
@@ -59,7 +64,7 @@ void DestroyTrail(Trail* trail)
 	DestroyTransferBuffer(trail->transferBuffer);
 }
 
-void UpdateTrail(Trail* trail, vec3 position, SDL_GPUCommandBuffer* cmdBuffer)
+void UpdateTrail(Trail* trail)
 {
 	if (gameTime - trail->lastNodeUpdate > 1.0f / 60)
 	{
@@ -68,9 +73,12 @@ void UpdateTrail(Trail* trail, vec3 position, SDL_GPUCommandBuffer* cmdBuffer)
 		for (int i = trail->numNodes - 1; i >= 1; i--)
 			trail->nodes[i] = trail->nodes[i - 1];
 
-		trail->nodes[0].position = position;
-		trail->nodes[0].distance = trail->nodes[1].distance + (position - trail->nodes[1].position).length();
+		trail->nodes[0].position = trail->position;
+		trail->nodes[0].distance = trail->nodes[1].distance + (trail->position - trail->nodes[1].position).length();
 	}
+
+	if (trail->destroyOnCollapse && trail->nodes[trail->numNodes - 1].position == trail->position)
+		trail->removed = true;
 
 	TrailVertex vertices[MAX_TRAIL_NODES * 2];
 
@@ -147,5 +155,7 @@ void BendTrailEnd(Trail* trail, vec3 position, float range)
 
 void RenderTrail(Trail* trail)
 {
-	RenderMesh(&game->renderer, &trail->vertexBuffer, 1, nullptr, trail->numNodes * 2, 1, {}, {}, &game->trailMaterial, game->trailShader, true, mat4::Identity);
+	vec4 params = vec4(trail->texture ? 1.0f : 0.0f, 0, 0, 0);
+
+	RenderMesh(&game->renderer, &trail->vertexBuffer, 1, nullptr, trail->numNodes * 2, 1, {}, {}, &params, sizeof(params), &trail->texture, &trail->textureSampler, 1, trail->shader, mat4::Identity);
 }

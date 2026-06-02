@@ -17,9 +17,7 @@ TransferBuffer* CreateTransferBuffer(uint32_t size, SDL_GPUTransferBufferUsage u
 
 	SDL_GPUTransferBuffer* buffer = SDL_CreateGPUTransferBuffer(device, &bufferInfo);
 
-	SDL_assert(graphics->numTransferBuffers < MAX_TRANSFER_BUFFERS);
-
-	TransferBuffer* transferBuffer = &graphics->transferBuffers[graphics->numTransferBuffers++];
+	TransferBuffer* transferBuffer = PoolAlloc(&graphics->transferBuffers);
 	transferBuffer->buffer = buffer;
 	transferBuffer->cycle = cycle;
 	transferBuffer->mapped = nullptr;
@@ -30,6 +28,7 @@ TransferBuffer* CreateTransferBuffer(uint32_t size, SDL_GPUTransferBufferUsage u
 void DestroyTransferBuffer(TransferBuffer* transferBuffer)
 {
 	SDL_ReleaseGPUTransferBuffer(device, transferBuffer->buffer);
+	PoolRelease(&graphics->transferBuffers, transferBuffer);
 }
 
 void* MapTransferBuffer(TransferBuffer* transferBuffer)

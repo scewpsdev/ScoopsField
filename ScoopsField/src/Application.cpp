@@ -330,6 +330,8 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, int a
 
 	SDL_GetMouseState(&app->lastMousePosition.x, &app->lastMousePosition.y);
 
+	InitGraphics(&app->graphics);
+
 	app->soloud = new(BumpAllocatorMalloc(&memory->constantAllocator, sizeof(SoLoud::Soloud)))SoLoud::Soloud();
 	if (SoLoud::result result = app->soloud->init())
 	{

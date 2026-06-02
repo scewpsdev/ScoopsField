@@ -25,6 +25,7 @@ static Entity* CreateEntity()
 #include "entity/component/ItemEntity.cpp"
 #include "entity/component/RestingSpot.cpp"
 #include "entity/component/Projectile.cpp"
+#include "entity/component/Trail.cpp"
 
 
 static void ResetGame(bool destroy)
@@ -165,11 +166,9 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	VertexBufferLayout particleLayouts[4];
 	particleLayouts[0] = game->particles.quad->layout;
 	InitParticleInstanceBufferLayouts(&particleLayouts[1]);
-	game->particleShader = CreateForwardGraphicsPipeline(
-		LoadGraphicsShader("res/shaders/entity/particle.vert.bin", "res/shaders/entity/particle.frag.bin"),
-		particleLayouts, 4, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, false);
-
-	game->trailMaterial.textures[game->trailMaterial.numTextures++] = GetTexture("textures/effect/trail.png");
+	Shader* particleShader = LoadGraphicsShader("res/shaders/entity/particle.vert.bin", "res/shaders/entity/particle.frag.bin");
+	game->particleShader = CreateForwardGraphicsPipeline(particleShader, particleLayouts, 4, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, false);
+	game->particleAdditiveShader = CreateForwardGraphicsPipeline(particleShader, particleLayouts, 4, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, true);
 
 #ifdef _DEBUG
 	AddHotReloadedShader("shaders/mesh.vert", "shaders/mesh.frag", game->renderer.defaultShader, game->renderer.geometryPipeline);

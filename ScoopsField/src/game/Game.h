@@ -77,8 +77,7 @@ struct GameState
 	GraphicsPipeline* magicProjectileShader;
 	GraphicsPipeline* trailShader;
 	GraphicsPipeline* particleShader;
-
-	Material trailMaterial;
+	GraphicsPipeline* particleAdditiveShader;
 
 	ReflectionProbe reflectionProbe;
 };

@@ -8,6 +8,7 @@
 #include "component/ItemEntity.h"
 #include "component/RestingSpot.h"
 #include "component/Projectile.h"
+#include "component/Trail.h"
 #include "game/particle/ParticleSystem.h"
 
 
@@ -46,6 +47,7 @@ struct Entity
 		ItemEntity item;
 		RestingSpot restingSpot;
 		Projectile projectile;
+		Trail trail;
 		ParticleEffect particles;
 	};
 };
