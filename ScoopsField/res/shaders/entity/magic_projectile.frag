@@ -38,7 +38,7 @@ void main()
 	
 	vec3 color = materialColor;
 	float fresnel = abs(dot(normal, -view));
-	color *= 1 + fresnel * 50;
+	color *= 1 + fresnel * 20;
 
 	out_color = vec4(color, 1);
 }

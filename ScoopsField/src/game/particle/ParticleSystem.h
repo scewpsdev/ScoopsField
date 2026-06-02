@@ -3,28 +3,32 @@
 #include "game/entity/EntityBase.h"
 
 
-struct ParticleEffect : EntityBase
+struct ParticleEmitter
 {
 	vec3* positions;
 	vec2* sizes;
 	vec4* colors;
 	vec3* velocities;
+	float* birthTimes;
 	float* deathTimes;
 	int maxParticles;
 	int numParticles;
 
 	float spawnRate;
 	float spawnRemainder;
-	bool destroyOnFinish;
 
 	float minLifetime, maxLifetime;
-	float minSize, maxSize;
+	float startSize, endSize;
 	vec3 startPosition;
 	vec3 startVelocity;
+	vec3 randomVelocity;
 	vec3 gravity;
-	vec4 color;
+	vec4 startColor;
+	vec4 endColor;
 	Texture* texture;
 	TextureSampler textureSampler;
+
+	GraphicsPipeline* shader;
 
 	VertexBuffer* positionBuffer;
 	VertexBuffer* sizeBuffer;
@@ -33,6 +37,15 @@ struct ParticleEffect : EntityBase
 	TransferBuffer* positionTransferBuffer;
 	TransferBuffer* sizeTransferBuffer;
 	TransferBuffer* colorTransferBuffer;
+};
+
+struct ParticleEffect : EntityBase
+{
+#define MAX_EMITTERS 8
+	ParticleEmitter emitters[MAX_EMITTERS];
+	int numEmitters;
+
+	bool destroyOnFinish;
 };
 
 struct ParticleSystem
@@ -44,8 +57,9 @@ struct ParticleSystem
 };
 
 
-void InitParticleEffect(ParticleEffect* effect, vec3 position, bool additive);
+void InitParticleEffect(ParticleEffect* effect, vec3 position);
 void DestroyParticleEffect(ParticleEffect* effect);
+ParticleEmitter* AddEmitter(ParticleEffect* effect, bool additive, float spawnRate, float minLifetime, float maxLifetime);
 
 void InitParticleInstanceBufferLayouts(VertexBufferLayout* instanceLayouts);
 void InitParticleSystem(ParticleSystem* particles);

@@ -19,164 +19,236 @@ void InitParticleInstanceBufferLayouts(VertexBufferLayout* instanceLayouts)
 	instanceLayouts[2].perInstance = true;
 }
 
-void InitParticleEffect(ParticleEffect* effect, vec3 position, bool additive)
+void InitParticleEmitter(ParticleEmitter* emitter, bool additive, float spawnRate, float minLifetime, float maxLifetime)
+{
+	emitter->shader = additive ? game->particleAdditiveShader : game->particleShader;
+
+	emitter->minLifetime = minLifetime;
+	emitter->maxLifetime = maxLifetime;
+	emitter->spawnRate = spawnRate;
+	emitter->startSize = 0.1f;
+	emitter->endSize = 0.1f;
+	emitter->startPosition = vec3(0);
+	emitter->startVelocity = vec3(0);
+	emitter->gravity = vec3(0);
+	emitter->startColor = vec4(1);
+	emitter->endColor = vec4(1);
+
+	int maxParticles = (int)SDL_ceilf(emitter->maxLifetime * emitter->spawnRate);
+
+	emitter->maxParticles = maxParticles;
+	emitter->numParticles = 0;
+
+	emitter->positions = (vec3*)SDL_malloc(maxParticles * sizeof(vec3));
+	emitter->sizes = (vec2*)SDL_malloc(maxParticles * sizeof(vec2));
+	emitter->colors = (vec4*)SDL_malloc(maxParticles * sizeof(vec4));
+	emitter->velocities = (vec3*)SDL_malloc(maxParticles * sizeof(vec3));
+	emitter->birthTimes = (float*)SDL_malloc(maxParticles * sizeof(float));
+	emitter->deathTimes = (float*)SDL_malloc(maxParticles * sizeof(float));
+
+	VertexBufferLayout instanceLayouts[3];
+	InitParticleInstanceBufferLayouts(instanceLayouts);
+
+	emitter->positionBuffer = CreateVertexBuffer(maxParticles, &instanceLayouts[0], SDL_GPU_BUFFERUSAGE_VERTEX);
+	emitter->sizeBuffer = CreateVertexBuffer(maxParticles, &instanceLayouts[1], SDL_GPU_BUFFERUSAGE_VERTEX);
+	emitter->colorBuffer = CreateVertexBuffer(maxParticles, &instanceLayouts[2], SDL_GPU_BUFFERUSAGE_VERTEX);
+
+	emitter->positionTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(vec3), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
+	emitter->sizeTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(vec2), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
+	emitter->colorTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(vec4), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
+}
+
+void DestroyParticleEmitter(ParticleEmitter* emitter)
+{
+	DestroyVertexBuffer(emitter->positionBuffer);
+	DestroyVertexBuffer(emitter->sizeBuffer);
+	DestroyVertexBuffer(emitter->colorBuffer);
+
+	DestroyTransferBuffer(emitter->positionTransferBuffer);
+	DestroyTransferBuffer(emitter->sizeTransferBuffer);
+	DestroyTransferBuffer(emitter->colorTransferBuffer);
+
+	SDL_free(emitter->positions);
+	SDL_free(emitter->sizes);
+	SDL_free(emitter->colors);
+	SDL_free(emitter->velocities);
+	SDL_free(emitter->birthTimes);
+	SDL_free(emitter->deathTimes);
+}
+
+static void SpawnParticle(ParticleEffect* effect, ParticleEmitter* emitter)
+{
+	SDL_assert(emitter->numParticles < emitter->maxParticles);
+
+	int particleID = emitter->numParticles++;
+
+	mat4 transform = ModelMatrix((Entity*)effect);
+
+	emitter->positions[particleID] = (transform * vec4(emitter->startPosition, 1)).xyz;
+
+	emitter->sizes[particleID] = vec2(mix(emitter->startSize, emitter->endSize, game->random.nextFloat()));
+
+	emitter->colors[particleID] = emitter->startColor;
+
+	emitter->velocities[particleID] = (transform * vec4(emitter->startVelocity + emitter->randomVelocity * game->random.nextVector3(-1, 1), 0)).xyz;
+
+	float lifetime = mix(emitter->minLifetime, emitter->maxLifetime, game->random.nextFloat());
+	emitter->birthTimes[particleID] = gameTime;
+	emitter->deathTimes[particleID] = gameTime + lifetime;
+}
+
+static void KillParticle(ParticleEmitter* emitter, int id)
+{
+	int lastParticle = --emitter->numParticles;
+
+	if (id != lastParticle)
+	{
+		emitter->positions[id] = emitter->positions[lastParticle];
+		emitter->sizes[id] = emitter->sizes[lastParticle];
+		emitter->colors[id] = emitter->colors[lastParticle];
+		emitter->velocities[id] = emitter->velocities[lastParticle];
+		emitter->birthTimes[id] = emitter->birthTimes[lastParticle];
+		emitter->deathTimes[id] = emitter->deathTimes[lastParticle];
+	}
+}
+
+static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitter)
+{
+	for (int i = 0; i < emitter->numParticles; i++)
+	{
+		if (gameTime >= emitter->deathTimes[i])
+			KillParticle(emitter, i--);
+	}
+
+	for (int i = 0; i < emitter->numParticles; i++)
+	{
+		float progress = remap(gameTime, emitter->birthTimes[i], emitter->deathTimes[i], 0, 1);
+		float size = mix(emitter->startSize, emitter->endSize, progress);
+		emitter->sizes[i] = vec2(size);
+	}
+
+	for (int i = 0; i < emitter->numParticles; i++)
+	{
+		float progress = remap(gameTime, emitter->birthTimes[i], emitter->deathTimes[i], 0, 1);
+		vec4 color = mix(emitter->startColor, emitter->endColor, progress);
+		emitter->colors[i] = color;
+	}
+
+	for (int i = 0; i < emitter->numParticles; i++)
+		emitter->velocities[i] += 0.5f * emitter->gravity * deltaTime;
+
+	for (int i = 0; i < emitter->numParticles; i++)
+		emitter->positions[i] += emitter->velocities[i] * deltaTime;
+
+	for (int i = 0; i < emitter->numParticles; i++)
+		emitter->velocities[i] += 0.5f * emitter->gravity * deltaTime;
+
+	float numSpawnsF = emitter->spawnRate * deltaTime + emitter->spawnRemainder;
+	int numSpawns = (int)numSpawnsF;
+	emitter->spawnRemainder = numSpawnsF - numSpawns;
+
+	for (int i = 0; i < numSpawns; i++)
+		SpawnParticle(effect, emitter);
+
+
+	if (emitter->numParticles)
+	{
+		SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
+
+		void* mapped = MapTransferBuffer(emitter->positionTransferBuffer);
+		SDL_memcpy(mapped, emitter->positions, emitter->numParticles * sizeof(vec3));
+		UnmapTransferBuffer(emitter->positionTransferBuffer);
+
+		mapped = MapTransferBuffer(emitter->sizeTransferBuffer);
+		SDL_memcpy(mapped, emitter->sizes, emitter->numParticles * sizeof(vec2));
+		UnmapTransferBuffer(emitter->sizeTransferBuffer);
+
+		mapped = MapTransferBuffer(emitter->colorTransferBuffer);
+		SDL_memcpy(mapped, emitter->colors, emitter->numParticles * sizeof(vec4));
+		UnmapTransferBuffer(emitter->colorTransferBuffer);
+
+		UpdateVertexBuffer(emitter->positionBuffer, 0, emitter->numParticles * sizeof(vec3), emitter->positionTransferBuffer->buffer, copyPass);
+		UpdateVertexBuffer(emitter->sizeBuffer, 0, emitter->numParticles * sizeof(vec2), emitter->sizeTransferBuffer->buffer, copyPass);
+		UpdateVertexBuffer(emitter->colorBuffer, 0, emitter->numParticles * sizeof(vec4), emitter->colorTransferBuffer->buffer, copyPass);
+
+		SDL_EndGPUCopyPass(copyPass);
+	}
+}
+
+static void RenderParticleEmitter(ParticleSystem* particles, ParticleEmitter* emitter)
+{
+	VertexBuffer* buffers[4];
+	buffers[0] = particles->quad;
+	buffers[1] = emitter->positionBuffer;
+	buffers[2] = emitter->sizeBuffer;
+	buffers[3] = emitter->colorBuffer;
+
+	vec4 params = vec4(emitter->texture ? 1.0f : 0.0f, 0, 0, 0);
+
+	RenderMesh(&game->renderer, buffers, 4, nullptr, 4, emitter->numParticles, {}, {}, &params, sizeof(params), &emitter->texture, &emitter->textureSampler, 1, emitter->shader, mat4::Identity);
+}
+
+void InitParticleEffect(ParticleEffect* effect, vec3 position)
 {
 	game->particles.effects.add(effect);
 
 	InitEntity((Entity*)effect, ENTITY_TYPE_PARTICLE_EFFECT);
 
 	effect->position = position;
-	effect->shader = additive ? game->particleAdditiveShader : game->particleShader;
-
-	effect->minLifetime = 1;
-	effect->maxLifetime = 2;
-	effect->spawnRate = 1000;
-	effect->minSize = 0.02f;
-	effect->maxSize = 0.1f;
-	effect->startPosition = vec3(0);
-	effect->startVelocity = vec3(0);
-	effect->gravity = vec3(0);
-	effect->color = vec4(1);
-
-	int maxParticles = (int)SDL_ceilf(effect->maxLifetime * effect->spawnRate);
-
-	effect->maxParticles = maxParticles;
-	effect->numParticles = 0;
-
-	effect->positions = (vec3*)SDL_malloc(maxParticles * sizeof(vec3));
-	effect->sizes = (vec2*)SDL_malloc(maxParticles * sizeof(vec2));
-	effect->colors = (vec4*)SDL_malloc(maxParticles * sizeof(vec4));
-	effect->velocities = (vec3*)SDL_malloc(maxParticles * sizeof(vec3));
-	effect->deathTimes = (float*)SDL_malloc(maxParticles * sizeof(float));
-
-	VertexBufferLayout instanceLayouts[3];
-	InitParticleInstanceBufferLayouts(instanceLayouts);
-
-	effect->positionBuffer = CreateVertexBuffer(maxParticles, &instanceLayouts[0], SDL_GPU_BUFFERUSAGE_VERTEX);
-	effect->sizeBuffer = CreateVertexBuffer(maxParticles, &instanceLayouts[1], SDL_GPU_BUFFERUSAGE_VERTEX);
-	effect->colorBuffer = CreateVertexBuffer(maxParticles, &instanceLayouts[2], SDL_GPU_BUFFERUSAGE_VERTEX);
-
-	effect->positionTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(vec3), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
-	effect->sizeTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(vec2), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
-	effect->colorTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(vec4), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
 }
 
 void DestroyParticleEffect(ParticleEffect* effect)
 {
+	for (int i = 0; i < effect->numEmitters; i++)
+	{
+		DestroyParticleEmitter(&effect->emitters[i]);
+	}
+
 	game->particles.effects.remove(effect);
-
-	DestroyVertexBuffer(effect->positionBuffer);
-	DestroyVertexBuffer(effect->sizeBuffer);
-	DestroyVertexBuffer(effect->colorBuffer);
-
-	DestroyTransferBuffer(effect->positionTransferBuffer);
-	DestroyTransferBuffer(effect->sizeTransferBuffer);
-	DestroyTransferBuffer(effect->colorTransferBuffer);
-
-	SDL_free(effect->positions);
-	SDL_free(effect->sizes);
-	SDL_free(effect->colors);
-	SDL_free(effect->velocities);
-	SDL_free(effect->deathTimes);
 }
 
-static void SpawnParticle(ParticleEffect* effect)
+ParticleEmitter* AddEmitter(ParticleEffect* effect, bool additive, float spawnRate, float minLifetime, float maxLifetime)
 {
-	SDL_assert(effect->numParticles < effect->maxParticles);
-
-	int particleID = effect->numParticles++;
-
-	mat4 transform = ModelMatrix((Entity*)effect);
-
-	effect->positions[particleID] = (transform * vec4(effect->startPosition, 1)).xyz;
-
-	effect->sizes[particleID] = vec2(mix(effect->minSize, effect->maxSize, game->random.nextFloat()));
-
-	effect->colors[particleID] = effect->color;
-
-	effect->velocities[particleID] = (transform * vec4(effect->startVelocity + game->random.nextVector3(-1, 1) * 0.5f, 0)).xyz;
-
-	float lifetime = mix(effect->minLifetime, effect->maxLifetime, game->random.nextFloat());
-	effect->deathTimes[particleID] = gameTime + lifetime;
+	ParticleEmitter* emitter = &effect->emitters[effect->numEmitters++];
+	InitParticleEmitter(emitter, additive, spawnRate, minLifetime, maxLifetime);
+	return emitter;
 }
 
-static void KillParticle(ParticleEffect* effect, int id)
+void StopParticleEffect(ParticleEffect* effect)
 {
-	int lastParticle = --effect->numParticles;
-
-	if (id != lastParticle)
+	for (int i = 0; i < effect->numEmitters; i++)
 	{
-		effect->positions[id] = effect->positions[lastParticle];
-		effect->sizes[id] = effect->sizes[lastParticle];
-		effect->colors[id] = effect->colors[lastParticle];
-		effect->velocities[id] = effect->velocities[lastParticle];
-		effect->deathTimes[id] = effect->deathTimes[lastParticle];
+		effect->emitters[i].spawnRate = 0;
 	}
 }
 
-static void UpdateParticleEffect(ParticleEffect* effect)
+void UpdateParticleEffect(ParticleEffect* effect)
 {
-	for (int i = 0; i < effect->numParticles; i++)
+	for (int i = 0; i < effect->numEmitters; i++)
 	{
-		if (gameTime >= effect->deathTimes[i])
-			KillParticle(effect, i--);
+		UpdateParticleEmitter(effect, &effect->emitters[i]);
 	}
 
-	for (int i = 0; i < effect->numParticles; i++)
-		effect->velocities[i] += 0.5f * effect->gravity * deltaTime;
-
-	for (int i = 0; i < effect->numParticles; i++)
-		effect->positions[i] += effect->velocities[i] * deltaTime;
-
-	for (int i = 0; i < effect->numParticles; i++)
-		effect->velocities[i] += 0.5f * effect->gravity * deltaTime;
-
-	float numSpawnsF = effect->spawnRate * deltaTime + effect->spawnRemainder;
-	int numSpawns = (int)numSpawnsF;
-	effect->spawnRemainder = numSpawnsF - numSpawns;
-
-	for (int i = 0; i < numSpawns; i++)
-		SpawnParticle(effect);
-
-
-	if (effect->numParticles)
+	if (effect->destroyOnFinish)
 	{
-		SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
+		bool hasFinished = true;
+		for (int i = 0; i < effect->numEmitters; i++)
+		{
+			bool emitterHasFinished = effect->emitters[i].spawnRate == 0 && effect->emitters[i].numParticles == 0;
+			hasFinished = hasFinished && emitterHasFinished;
+		}
 
-		void* mapped = MapTransferBuffer(effect->positionTransferBuffer);
-		SDL_memcpy(mapped, effect->positions, effect->numParticles * sizeof(vec3));
-		UnmapTransferBuffer(effect->positionTransferBuffer);
-
-		mapped = MapTransferBuffer(effect->sizeTransferBuffer);
-		SDL_memcpy(mapped, effect->sizes, effect->numParticles * sizeof(vec2));
-		UnmapTransferBuffer(effect->sizeTransferBuffer);
-
-		mapped = MapTransferBuffer(effect->colorTransferBuffer);
-		SDL_memcpy(mapped, effect->colors, effect->numParticles * sizeof(vec4));
-		UnmapTransferBuffer(effect->colorTransferBuffer);
-
-		UpdateVertexBuffer(effect->positionBuffer, 0, effect->numParticles * sizeof(vec3), effect->positionTransferBuffer->buffer, copyPass);
-		UpdateVertexBuffer(effect->sizeBuffer, 0, effect->numParticles * sizeof(vec2), effect->sizeTransferBuffer->buffer, copyPass);
-		UpdateVertexBuffer(effect->colorBuffer, 0, effect->numParticles * sizeof(vec4), effect->colorTransferBuffer->buffer, copyPass);
-
-		SDL_EndGPUCopyPass(copyPass);
+		if (hasFinished)
+			effect->removed = true;
 	}
-
-	if (effect->destroyOnFinish && effect->spawnRate == 0 && effect->numParticles == 0)
-		effect->removed = true;
 }
 
-static void RenderParticleEffect(ParticleSystem* particles, ParticleEffect* effect)
+void RenderParticleEffect(ParticleSystem* particles, ParticleEffect* effect)
 {
-	VertexBuffer* buffers[4];
-	buffers[0] = particles->quad;
-	buffers[1] = effect->positionBuffer;
-	buffers[2] = effect->sizeBuffer;
-	buffers[3] = effect->colorBuffer;
-
-	vec4 params = vec4(effect->texture ? 1.0f : 0.0f, 0, 0, 0);
-
-	RenderMesh(&game->renderer, buffers, 4, nullptr, 4, effect->numParticles, {}, {}, &params, sizeof(params), &effect->texture, &effect->textureSampler, 1, effect->shader, mat4::Identity);
+	for (int i = 0; i < effect->numEmitters; i++)
+	{
+		RenderParticleEmitter(particles, &effect->emitters[i]);
+	}
 }
 
 const vec2 quadVertices[] = {
