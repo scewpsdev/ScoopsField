@@ -26,8 +26,8 @@ void InitUnequipAction(Action* action, Item* weapon, int dstLoadout)
 		action->leftAnimName = "unequip";
 		action->leftAnimMoveset = &weapon->moveset;
 		action->leftAnimBlendDuration = 0.0f;
-		action->overrideLeftWeapon = true;
-		action->leftWeapon = weapon;
+		//action->overrideLeftWeapon = true;
+		//action->leftWeapon = weapon;
 	}
 
 	action->animationSpeed = 1.0f;

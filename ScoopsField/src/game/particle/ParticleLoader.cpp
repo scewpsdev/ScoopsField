@@ -371,8 +371,8 @@ static void ReadEmitter(TokenReader* reader, ParticleEffect* effect, const char*
 	//emitter->randomFrame = randomFrame;
 	emitter->textureSampler = linearFiltering ? TEXTURE_SAMPLER_LINEAR : TEXTURE_SAMPLER_DEFAULT;
 
-	emitter->color = SRGBToLinear(color) * vec4(vec3(emissiveIntensity), 1);
-	emitter->endColor = SRGBToLinear(endColor) * vec4(vec3(emissiveIntensity), 1);
+	emitter->color = SRGBToLinear(color) * vec4(vec3(emissiveIntensity ? emissiveIntensity : 1), 1);
+	emitter->endColor = SRGBToLinear(endColor) * vec4(vec3(emissiveIntensity ? emissiveIntensity : 1), 1);
 	//emitter->emissiveIntensity = emissiveIntensity;
 }
 
