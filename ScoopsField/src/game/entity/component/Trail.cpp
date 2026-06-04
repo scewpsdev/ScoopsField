@@ -29,12 +29,12 @@ void InitTrailVertexLayout(VertexBufferLayout* layout)
 	layout->attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
 }
 
-void InitTrail(Trail* trail, vec3 position, int numNodes)
+void InitTrail(Trail* trail, vec3 position, bool additive, int numNodes)
 {
 	InitEntity((Entity*)trail, ENTITY_TYPE_TRAIL);
 
 	trail->position = position;
-	trail->shader = game->trailShader;
+	trail->shader = additive ? game->trailAdditiveShader : game->trailShader;
 
 	trail->width = 0.1f;
 	trail->color = vec4(1);
@@ -108,11 +108,11 @@ void UpdateTrail(Trail* trail)
 		if (trail->fadeAlpha)
 			color.a *= 1 - progress;
 
-		vertex0->position = node->position - right * 0.5f * width;
+		vertex0->position = node->position + right * 0.5f * width;
 		vertex0->uv = vec2(node->distance, 0);
 		vertex0->color = color;
 
-		vertex1->position = node->position + right * 0.5f * width;
+		vertex1->position = node->position - right * 0.5f * width;
 		vertex1->uv = vec2(node->distance, 1);
 		vertex1->color = color;
 	}

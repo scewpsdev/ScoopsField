@@ -76,6 +76,7 @@ struct GameState
 
 	GraphicsPipeline* magicProjectileShader;
 	GraphicsPipeline* trailShader;
+	GraphicsPipeline* trailAdditiveShader;
 	GraphicsPipeline* particleShader;
 	GraphicsPipeline* particleAdditiveShader;
 

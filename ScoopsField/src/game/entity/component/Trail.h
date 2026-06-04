@@ -41,7 +41,7 @@ struct Trail : EntityBase
 
 void InitTrailVertexLayout(VertexBufferLayout* layout);
 
-void InitTrail(Trail* trail, vec3 position, int numNodes = MAX_TRAIL_NODES);
+void InitTrail(Trail* trail, vec3 position, bool additive, int numNodes = MAX_TRAIL_NODES);
 void DestroyTrail(Trail* trail);
 
 void UpdateTrail(Trail* trail);

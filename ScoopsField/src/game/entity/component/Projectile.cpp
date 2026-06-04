@@ -108,7 +108,8 @@ void UpdateProjectile(Projectile* projectile)
 
 void RenderProjectile(Projectile* projectile)
 {
-	RenderModel(&game->renderer, projectile->model, projectile->shader, nullptr, mat4::Translate(projectile->offset) * ModelMatrix((Entity*)projectile));
+	if (projectile->model)
+		RenderModel(&game->renderer, projectile->model, projectile->shader, nullptr, mat4::Translate(projectile->offset) * ModelMatrix((Entity*)projectile));
 
 	if (projectile->hasLight)
 		RenderLight(&game->renderer, projectile->position, projectile->lightColor);
@@ -128,7 +129,7 @@ void InitArrow(Projectile* projectile, vec3 position, vec3 direction, mat4 start
 	projectile->stickToObjects = true;
 
 	projectile->trail = (Trail*)CreateEntity();
-	InitTrail(projectile->trail, position + projectile->offset, 16);
+	InitTrail(projectile->trail, position + projectile->offset, false);
 	projectile->trail->color = vec4(0.5f, 0.5f, 0.5f, 1);
 	projectile->trail->texture = GetTexture("textures/effect/trail.png");
 	projectile->trail->fadeWidth = true;
@@ -137,27 +138,27 @@ void InitArrow(Projectile* projectile, vec3 position, vec3 direction, mat4 start
 
 void InitMagicProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform)
 {
-	float speed = 20;
+	float speed = 30;
 	InitProjectile(projectile, position, direction, startTransform, speed);
 
-	projectile->model = GetModel("entities/projectile/magic_projectile/magic_projectile.glb");
-	projectile->shader = game->magicProjectileShader;
+	//projectile->model = GetModel("entities/projectile/magic_projectile/magic_projectile.glb");
+	//projectile->shader = game->magicProjectileShader;
 
-	projectile->gravity = -1.5f;
+	projectile->gravity = -4.0f;
 	projectile->rotationSpeed = 5 * PI;
 	projectile->rotateForwards = true;
-	projectile->drag = 0.15f;
+	projectile->drag = 0.1f;
 
 	projectile->trail = (Trail*)CreateEntity();
-	InitTrail(projectile->trail, position + projectile->offset, 8);
+	InitTrail(projectile->trail, position + projectile->offset, true);
 	projectile->trail->width = 0.1f;
-	projectile->trail->color = vec4(SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 20, 1);
+	projectile->trail->color = vec4(SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 5, 0.3f);
 	projectile->trail->texture = GetTexture("textures/effect/trail.png");
 	projectile->trail->fadeWidth = true;
-	//projectile->trail->fadeAlpha = true;
+	projectile->trail->fadeAlpha = true;
 
 	projectile->hasLight = true;
-	projectile->lightColor = SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 20;
+	projectile->lightColor = SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 15;
 
 	projectile->particles = (ParticleEffect*)CreateEntity();
 	LoadParticleEffect(projectile->particles, "effects/projectile/magic_projectile.rfs", position, projectile->rotation);
