@@ -104,7 +104,10 @@ static void ResetGame(bool destroy)
 
 	InitReflectionProbe(&game->reflectionProbe, vec3(0, 29, -58), vec3(9, 13, 9));
 
-	//InitParticleEffect((ParticleEffect*)CreateEntity());
+	{
+		ParticleEffect* effect = (ParticleEffect*)CreateEntity();
+		LoadParticleEffect(effect, "effects/testeffect/testeffect.rfs", vec3(0, 2, 0), quat::Identity);
+	}
 }
 
 void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
@@ -163,12 +166,12 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 		LoadGraphicsShader("res/shaders/entity/trail.vert.bin", "res/shaders/entity/trail.frag.bin"),
 		&trailLayout, 1, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_NONE, false);
 
-	VertexBufferLayout particleLayouts[4];
+	VertexBufferLayout particleLayouts[6];
 	particleLayouts[0] = game->particles.quad->layout;
 	InitParticleInstanceBufferLayouts(&particleLayouts[1]);
 	Shader* particleShader = LoadGraphicsShader("res/shaders/entity/particle.vert.bin", "res/shaders/entity/particle.frag.bin");
-	game->particleShader = CreateForwardGraphicsPipeline(particleShader, particleLayouts, 4, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, false);
-	game->particleAdditiveShader = CreateForwardGraphicsPipeline(particleShader, particleLayouts, 4, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, true);
+	game->particleShader = CreateForwardGraphicsPipeline(particleShader, particleLayouts, 6, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, false);
+	game->particleAdditiveShader = CreateForwardGraphicsPipeline(particleShader, particleLayouts, 6, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, true);
 
 #ifdef _DEBUG
 	AddHotReloadedShader("shaders/mesh.vert", "shaders/mesh.frag", game->renderer.defaultShader, game->renderer.geometryPipeline);

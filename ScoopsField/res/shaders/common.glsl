@@ -30,10 +30,22 @@ vec3 SRGBToLinear(vec3 color)
 	return pow(color, vec3(gamma));
 }
 
+vec4 SRGBToLinear(vec4 color)
+{
+	float gamma = 2.2;
+	return vec4(pow(color.rgb, vec3(gamma)), color.a);
+}
+
 vec3 linearToSRGB(vec3 color)
 {
 	float gamma = 2.2;
 	return pow(color, vec3(1.0 / gamma));
+}
+
+vec4 linearToSRGB(vec4 color)
+{
+	float gamma = 2.2;
+	return vec4(pow(color.rgb, vec3(1.0 / gamma)), color.a);
 }
 
 float RGBToLuminance(vec3 rgb)

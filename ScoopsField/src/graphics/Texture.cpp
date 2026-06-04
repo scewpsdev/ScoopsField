@@ -50,7 +50,6 @@ static void LoadKTX11Header(BinaryReader& reader, TextureInfo* info)
 
 Texture* LoadTexture(const char* path, SDL_GPUCommandBuffer* cmdBuffer)
 {
-	// TODO free memory
 	size_t fileSize;
 	void* data = SDL_LoadFile(path, &fileSize);
 

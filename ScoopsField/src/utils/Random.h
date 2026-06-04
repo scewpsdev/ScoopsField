@@ -47,6 +47,22 @@ struct Random
 		);
 	}
 
+	vec3 randomDirection(vec3 direction, float randomness, bool uniform)
+	{
+		float minCosTheta = 1 - 2 * randomness;
+
+		float cosTheta = uniform ? mix(minCosTheta, 1.0f, nextFloat()) : SDL_cosf(mix(0.0f, SDL_acosf(minCosTheta), nextFloat()));
+		float sinTheta = SDL_sqrtf(1 - cosTheta * cosTheta);
+		float phi = 2 * PI * nextFloat();
+
+		vec3 localDirection = vec3(SDL_cosf(phi) * sinTheta, SDL_sinf(phi) * sinTheta, cosTheta);
+		vec3 right = SDL_fabsf(direction.z) < 0.999f ? vec3(0, 0, 1) : vec3(1, 0, 0);
+		vec3 tangent = cross(right, direction).normalized();
+		vec3 bitangent = cross(direction, tangent);
+
+		return tangent * localDirection.x + bitangent * localDirection.y + direction * localDirection.z;
+	}
+
 	void nextBytes(uint8_t* bytes, int size)
 	{
 		int numInts = (size + 3) / 4;

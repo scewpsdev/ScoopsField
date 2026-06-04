@@ -56,6 +56,18 @@ struct vec3
 			float x;
 			vec2 yz;
 		};
+		struct {
+			float r, g, b;
+		};
+		struct {
+			vec2 rg;
+			float b;
+		};
+		struct {
+			float r;
+			vec2 gb;
+		};
+		float elements[3];
 	};
 
 
@@ -66,6 +78,9 @@ struct vec3
 	vec3(float x, float y, float z);
 	vec3(const vec2& xy, float z);
 	vec3(float x, const vec2& yz);
+
+	float& operator[](int index);
+	const float& operator[](int index) const;
 
 	float lengthSquared() const;
 	float length() const;
@@ -156,6 +171,9 @@ struct vec4
 	vec4(float x, float y, float z, float w);
 	vec4(const vec3& xyz, float w);
 	vec4(float x, const vec3& yzw);
+	vec4(vec2 xy, float z, float w);
+	vec4(float x, vec2 yz, float w);
+	vec4(float x, float y, vec2 zw);
 
 	float& operator[](int index);
 	const float& operator[](int index) const;
@@ -182,6 +200,8 @@ struct ivec2
 	ivec2();
 	explicit ivec2(int i);
 	ivec2(int x, int y);
+
+	operator vec2() const;
 };
 
 struct ivec3

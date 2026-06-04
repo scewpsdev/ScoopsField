@@ -139,6 +139,16 @@ vec3::vec3(float x, const vec2& yz)
 {
 }
 
+float& vec3::operator[](int index)
+{
+	return elements[index];
+}
+
+const float& vec3::operator[](int index) const
+{
+	return elements[index];
+}
+
 float vec3::lengthSquared() const
 {
 	return x * x + y * y + z * z;
@@ -281,6 +291,21 @@ vec4::vec4(float x, const vec3& yzw)
 {
 }
 
+vec4::vec4(vec2 xy, float z, float w)
+	: x(xy.x), y(xy.y), z(z), w(w)
+{
+}
+
+vec4::vec4(float x, vec2 yz, float w)
+	: x(x), y(yz.x), z(yz.y), w(w)
+{
+}
+
+vec4::vec4(float x, float y, vec2 zw)
+	: x(x), y(y), z(zw.x), w(zw.y)
+{
+}
+
 float& vec4::operator[](int index)
 {
 	return elements[index];
@@ -379,6 +404,11 @@ ivec2::ivec2(int i)
 ivec2::ivec2(int x, int y)
 	: x(x), y(y)
 {
+}
+
+ivec2::operator vec2() const
+{
+	return vec2((float)x, (float)y);
 }
 
 ivec3::ivec3()

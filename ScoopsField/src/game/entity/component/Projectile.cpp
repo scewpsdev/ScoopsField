@@ -34,7 +34,8 @@ void UpdateProjectile(Projectile* projectile)
 	if (!projectile->stuck)
 	{
 		projectile->velocity.y += 0.5f * projectile->gravity * deltaTime;
-		projectile->velocity += projectile->drag * projectile->velocity.lengthSquared() * -projectile->velocity.normalized() / 2;
+		vec3 dragForce = projectile->velocity * projectile->velocity.length() * projectile->drag;
+		projectile->velocity += -dragForce * deltaTime;
 		vec3 nextPosition = projectile->position + projectile->velocity * deltaTime;
 		projectile->velocity.y += 0.5f * projectile->gravity * deltaTime;
 
@@ -145,7 +146,7 @@ void InitMagicProjectile(Projectile* projectile, vec3 position, vec3 direction, 
 	projectile->gravity = -1.5f;
 	projectile->rotationSpeed = 5 * PI;
 	projectile->rotateForwards = true;
-	projectile->drag = 0.001f;
+	projectile->drag = 0.15f;
 
 	projectile->trail = (Trail*)CreateEntity();
 	InitTrail(projectile->trail, position + projectile->offset, 8);
@@ -159,24 +160,29 @@ void InitMagicProjectile(Projectile* projectile, vec3 position, vec3 direction, 
 	projectile->lightColor = SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 20;
 
 	projectile->particles = (ParticleEffect*)CreateEntity();
+	LoadParticleEffect(projectile->particles, "effects/projectile/magic_projectile.rfs", position, projectile->rotation);
+
+	/*
 	InitParticleEffect(projectile->particles, position);
 
 	ParticleEmitter* sparks = AddEmitter(projectile->particles, true, 1000, 1, 2);
 	sparks->startVelocity = vec3(0, 1, 0);
-	sparks->randomVelocity = vec3(1);
+	sparks->randomDirection = 0.3f;
+	sparks->randomVelocity = 1;
 	sparks->gravity = vec3(0, -3, 0);
-	sparks->startSize = 0.05f;
+	sparks->size = 0.05f;
 	sparks->endSize = 0.05f;
-	sparks->startColor = vec4(SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 10, 1);
-	sparks->endColor = sparks->startColor * vec4(1, 1, 1, 0);
+	sparks->color = vec4(SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 10, 1);
+	sparks->endColor = sparks->color * vec4(1, 1, 1, 0);
 	sparks->texture = GetTexture("textures/effect/spark.png");
 	sparks->textureSampler = TEXTURE_SAMPLER_LINEAR_CLAMPED;
 
 	ParticleEmitter* rings = AddEmitter(projectile->particles, true, 8, 0.4f, 0.4f);
-	rings->startSize = 0.1f;
+	rings->size = 0.1f;
 	rings->endSize = 1.0f;
-	rings->startColor = vec4(SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 2, 1);
-	rings->endColor = rings->startColor * vec4(1, 1, 1, 0);
+	rings->color = vec4(SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 2, 1);
+	rings->endColor = rings->color * vec4(1, 1, 1, 0);
 	rings->texture = GetTexture("textures/effect/ring.png");
 	rings->textureSampler = TEXTURE_SAMPLER_LINEAR_CLAMPED;
+	*/
 }
