@@ -24,28 +24,55 @@ void InitAction(Action* action, ActionType type)
 
 void AddActionSound(Action* action, Sound* sound, float time, float volume, float speed, float pan)
 {
-	SDL_assert(action->numSounds < MAX_ACTION_SOUNDS);
-	ActionSound* actionSound = &action->sounds[action->numSounds++];
-	actionSound->sound = sound;
-	actionSound->time = time;
-	actionSound->volume = volume;
-	actionSound->speed = speed;
-	actionSound->pan = pan;
-	actionSound->played = false;
+	SDL_assert(action->numEvents < MAX_ACTION_EVENTS);
+	ActionEvent* actionEvent = &action->events[action->numEvents++];
+	*actionEvent = { };
+	actionEvent->time = time;
+	actionEvent->sound = sound;
+	actionEvent->volume = volume;
+	actionEvent->speed = speed;
+	actionEvent->pan = pan;
+	actionEvent->triggered = false;
+}
+
+void AddActionEffect(Action* action, const char* effect, float time, vec3 localPosition)
+{
+	SDL_assert(action->numEvents < MAX_ACTION_EVENTS);
+	ActionEvent* actionEvent = &action->events[action->numEvents++];
+	*actionEvent = { };
+	actionEvent->time = time;
+	actionEvent->effectPath = effect;
+	actionEvent->effectPosition = localPosition;
+	actionEvent->triggered = false;
 }
 
 void UpdateAction(Action* action, struct Player* player, float deltaTime)
 {
 	action->elapsedTime += deltaTime * action->animationSpeed;
 
-	for (int i = 0; i < action->numSounds; i++)
+	for (int i = 0; i < action->numEvents; i++)
 	{
-		ActionSound* sound = &action->sounds[i];
-		if (!sound->played && action->elapsedTime >= sound->time)
+		ActionEvent* event = &action->events[i];
+		if (!event->triggered && action->elapsedTime >= event->time)
 		{
-			uint32_t handle = PlaySound(sound->sound, sound->pan, sound->volume);
-			SetSoundRelativeSpeed(handle, sound->speed);
-			sound->played = true;
+			if (event->sound)
+			{
+				uint32_t handle = PlaySound(event->sound, event->pan, event->volume);
+				SetSoundRelativeSpeed(handle, event->speed);
+			}
+			if (event->effectPath)
+			{
+				ParticleEffect* effect = (ParticleEffect*)CreateEntity();
+				mat4 transform = GetRightWeaponTransform(player) * mat4::Translate(event->effectPosition);
+				LoadParticleEffect(effect, event->effectPath, transform.translation(), transform.rotation());
+				effect->destroyOnFinish = true;
+				event->effect = effect;
+			}
+			event->triggered = true;
+		}
+		if (event->triggered && event->effect)
+		{
+			event->effect->position = GetRightWeaponTransform(player) * event->effectPosition;
 		}
 	}
 

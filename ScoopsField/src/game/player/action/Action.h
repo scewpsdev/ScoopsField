@@ -31,15 +31,22 @@ enum ActionType
 	ACTION_TYPE_LAST
 };
 
-struct ActionSound
+struct ParticleEffect;
+
+struct ActionEvent
 {
-	Sound* sound;
 	float time;
+
+	Sound* sound;
 	float volume;
 	float speed;
 	float pan;
 
-	bool played;
+	const char* effectPath;
+	vec3 effectPosition;
+	ParticleEffect* effect;
+
+	bool triggered;
 };
 
 struct Action
@@ -83,9 +90,9 @@ struct Action
 	float moveSpeed;
 	float idleAnimStrength;
 
-#define MAX_ACTION_SOUNDS 8
-	ActionSound sounds[MAX_ACTION_SOUNDS];
-	int numSounds;
+#define MAX_ACTION_EVENTS 8
+	ActionEvent events[MAX_ACTION_EVENTS];
+	int numEvents;
 
 	float startTime;
 	float elapsedTime;
@@ -138,6 +145,7 @@ void UpdateAction(Action* action, struct Player* player, float deltaTime);
 
 void InitAction(Action* action, ActionType type);
 void AddActionSound(Action* action, Sound* sound, float time = 0, float volume = 1, float speed = 1, float pan = 0);
+void AddActionEffect(Action* action, const char* effect, float time, vec3 localPosition);
 
 void InitActionManager(ActionManager& actions, Model* moveset, Model* bodyMoveset);
 void UpdateActionManager(ActionManager& actions, struct Player& player);

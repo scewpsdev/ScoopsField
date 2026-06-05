@@ -7,20 +7,24 @@
 #include "utils/StringUtils.h"
 
 
-void InitCreature(Creature* creature, Entity* entity, const char* model, float lookDirection, int health)
+#include "CreatureLoader.cpp"
+
+
+void InitCreature(Creature* creature, const char* model, float lookDirection, int health)
 {
 	creature->lookDirection = lookDirection;
 
 	creature->model = GetModel(model);
 	InitAnimationState(&creature->anim, creature->model);
 
-	InitAnimation(&creature->idleAnim, "idle", creature->model, 1, true, false);
+	InitAnimation(&creature->idleAnim, "run", creature->model, 3, true, false);
 	InitAnimation(&creature->runAnim, "run", creature->model, 1, true, false);
 
-	InitRigidBody(&creature->body, RIGID_BODY_DYNAMIC, entity->position, quat::FromAxisAngle(vec3::Up, lookDirection));
-	AddCapsuleCollider(&creature->body, 0.3f, 2, vec3(0, 1, 0), quat::Identity, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ENEMY, ENTITY_FILTER_DEFAULT, false);
+	InitRigidBody(&creature->body, RIGID_BODY_DYNAMIC, creature->position, quat::FromAxisAngle(vec3::Up, lookDirection), creature);
+	AddCapsuleCollider(&creature->body, 0.3f, 2, vec3(0, 1, 0), quat::Identity, ENTITY_FILTER_ENEMY, ENTITY_FILTER_DEFAULT, false);
 	SetRigidBodyAxisLock(&creature->body, RIGID_BODY_LOCK_ROTATION);
-	creature->body.userPtr = entity;
+
+	InitHashMap(&creature->hitboxes);
 
 	InitActionManager(creature->actions, creature->model);
 
@@ -28,22 +32,85 @@ void InitCreature(Creature* creature, Entity* entity, const char* model, float l
 	creature->maxHealth = health;
 }
 
-void DestroyCreature(Creature* creature, Entity* entity)
+void DestroyCreature(Creature* creature)
 {
 	DestroyRigidBody(&creature->body);
+
+	for (int i = 0; i < creature->hitboxes.capacity; i++)
+	{
+		if (creature->hitboxes.slots[i].state == SLOT_USED)
+		{
+			RigidBody* bone = &creature->hitboxes.slots[i].value;
+			DestroyRigidBody(bone);
+		}
+	}
 }
 
-static void OnDeath(Creature* creature)
+static Node* GetNodeForHitbox(Creature* creature, RigidBody* hitbox)
 {
+	SDL_assert(creature->hitboxes.numUsedSlots);
+
+	for (int i = 0; i < creature->model->numNodes; i++)
+	{
+		Node* node = &creature->model->nodes[i];
+		uint32_t h = hash(node->name);
+		if (hitbox == HashMapGet(&creature->hitboxes, h))
+			return node;
+	}
+
+	return nullptr;
+}
+
+static void OnDeath(Creature* creature, HitParams* hit)
+{
+	/*
 	SetRigidBodyVelocity(&creature->body, vec3(0), vec3(0));
 
 	RemoveColliders(&creature->body);
+
+	if (creature->hitboxes.numUsedSlots)
+	{
+		for (int i = 0; i < creature->model->numNodes; i++)
+		{
+			Node* node = &creature->model->nodes[i];
+			uint32_t h = hash(node->name);
+			if (RigidBody* hitbox = HashMapGet(&creature->hitboxes, h))
+			{
+				RemoveColliders(hitbox);
+			}
+		}
+	}
+	*/
+
+	// spawn ragdoll
+
+	Ragdoll* ragdoll = (Ragdoll*)CreateEntity();
+	InitRagdoll(ragdoll, creature);
+
+	RigidBody* ragdollBody = nullptr;
+	for (int i = 0; i < creature->hitboxes.capacity; i++)
+	{
+		if (creature->hitboxes.slots[i].state == SLOT_USED && &creature->hitboxes.slots[i].value == hit->body)
+		{
+			ragdollBody = &ragdoll->bones.slots[i].value;
+			SDL_assert(ragdoll->bones.slots[i].state == SLOT_USED);
+			SDL_assert(ragdoll->bones.slots[i].key == creature->hitboxes.slots[i].key);
+			break;
+		}
+	}
+
+	if (ragdollBody)
+	{
+		AddRigidBodyImpulse(ragdollBody, hit->impulse);
+	}
+
+	creature->removed = true;
 
 	//SDL_assert(game->numSkeletonsRemaining > 0);
 	//game->numSkeletonsRemaining--;
 }
 
-bool HitCreature(Creature* creature, Entity* entity, HitParams* hit, Entity* by)
+bool HitCreature(Creature* creature, HitParams* hit, Entity* by)
 {
 	int damage = (int)(hit->damage * hit->damageMultiplier);
 	creature->health -= damage;
@@ -56,11 +123,11 @@ bool HitCreature(Creature* creature, Entity* entity, HitParams* hit, Entity* by)
 		{
 			EntityAction action;
 			InitEntityDeathAction(&action);
-			CancelAction(creature->actions, *entity);
-			QueueAction(creature->actions, action, *entity);
+			CancelAction(creature->actions, *(Entity*)creature);
+			QueueAction(creature->actions, action, *(Entity*)creature);
 		}
 
-		OnDeath(creature);
+		OnDeath(creature, hit);
 	}
 	else
 	{
@@ -68,8 +135,8 @@ bool HitCreature(Creature* creature, Entity* entity, HitParams* hit, Entity* by)
 		{
 			EntityAction action;
 			InitEntityStaggerAction(&action, 1.0f);
-			CancelAction(creature->actions, *entity);
-			QueueAction(creature->actions, action, *entity);
+			CancelAction(creature->actions, *(Entity*)creature);
+			QueueAction(creature->actions, action, *(Entity*)creature);
 		}
 	}
 
@@ -101,17 +168,17 @@ static EntityAction* GetCurrentAction(Creature* creature)
 	return QueuePeek(creature->actions.actions);
 }
 
-static void UpdateAI(Creature* creature, Entity* entity)
+static void UpdateAI(Creature* creature)
 {
 	Player* target = &game->player;
 	if (EveryInterval(1, hash(creature)))
 	{
 		creature->targetPosition = target->position;
-		bool success = CalculateNavmeshPath(&game->mapNavmesh, entity->position, creature->targetPosition, creature->currentPath, creature->currentPathLength);
+		bool success = CalculateNavmeshPath(&game->mapNavmesh, creature->position, creature->targetPosition, creature->currentPath, creature->currentPathLength);
 		SDL_assert(success);
 	}
 
-	vec3 toTarget = creature->targetPosition - entity->position;
+	vec3 toTarget = creature->targetPosition - creature->position;
 	float distanceToTarget = toTarget.length();
 	toTarget /= distanceToTarget;
 
@@ -119,7 +186,7 @@ static void UpdateAI(Creature* creature, Entity* entity)
 	if (creature->currentPathLength > 0)
 	{
 		NavmeshNode* targetNode = &game->mapNavmesh.nodes[creature->currentPath[1]];
-		walkDir = (targetNode->position - entity->position).normalized();
+		walkDir = (targetNode->position - creature->position).normalized();
 	}
 	walkDir *= vec3(1, 0, 1);
 
@@ -145,13 +212,13 @@ static void UpdateAI(Creature* creature, Entity* entity)
 		creature->moving = false;
 	}
 
-	if ((target->position - entity->position).length() < 1)
+	if ((target->position - creature->position).length() < 1)
 	{
 		if (creature->actions.actions.size == 0)
 		{
 			EntityAction action;
 			InitEntityAttackAction(&action, "attack1", 0);
-			QueueAction(creature->actions, action, *entity);
+			QueueAction(creature->actions, action, *(Entity*)creature);
 		}
 	}
 
@@ -159,14 +226,14 @@ static void UpdateAI(Creature* creature, Entity* entity)
 	//AddRigidBodyAcceleration(&skeleton->body, vec3(0, -10, 0));
 }
 
-void UpdateCreature(Creature* creature, Entity* entity)
+void UpdateCreature(Creature* creature)
 {
 	if (creature->health > 0)
 	{
 		//UpdateAI(skeleton);
 	}
 
-	UpdateActionManager(creature->actions, *entity);
+	UpdateActionManager(creature->actions, *(Entity*)creature);
 
 	AnimationPlayback* moveAnimation = creature->moving ? &creature->runAnim : &creature->idleAnim;
 	moveAnimation->timer += deltaTime * moveAnimation->speed;
@@ -186,19 +253,34 @@ void UpdateCreature(Creature* creature, Entity* entity)
 
 	if (creature->health > 0)
 	{
-		GetRigidBodyTransform(&creature->body, &entity->position, nullptr);
+		GetRigidBodyTransform(&creature->body, &creature->position, nullptr);
 	}
 
-	mat4 transform = mat4::Translate(entity->position) * mat4::Rotate(vec3::Up, creature->lookDirection);
+	mat4 transform = mat4::Translate(creature->position) * mat4::Rotate(vec3::Up, creature->lookDirection);
+
+	if (creature->hitboxes.numUsedSlots)
+	{
+		for (int i = 0; i < creature->model->numNodes; i++)
+		{
+			Node* node = &creature->model->nodes[i];
+			uint32_t h = hash(node->name);
+			if (RigidBody* hitbox = HashMapGet(&creature->hitboxes, h))
+			{
+				mat4 nodeTransform = transform * GetNodeTransform(&creature->anim, node);
+				SetRigidBodyTransform(hitbox, nodeTransform.translation(), nodeTransform.rotation());
+			}
+		}
+	}
+
 	if (creature->health <= 0 && !FrustumCulling(creature->model->boundingSphere, transform, game->frustumPlanes))
 	{
-		entity->removed = true;
+		creature->removed = true;
 	}
 }
 
-void RenderCreature(Creature* creature, Entity* entity)
+void RenderCreature(Creature* creature)
 {
-	mat4 transform = mat4::Translate(entity->position) * mat4::Rotate(vec3::Up, creature->lookDirection);
+	mat4 transform = mat4::Translate(creature->position) * mat4::Rotate(vec3::Up, creature->lookDirection);
 
 	RenderModel(&game->renderer, creature->model, &creature->anim, transform);
 
@@ -220,7 +302,7 @@ void InitSkeleton(Entity* skeleton, const vec3& position, float rotation)
 	InitEntity(skeleton, ENTITY_TYPE_CREATURE);
 	skeleton->position = position;
 
-	InitCreature(&skeleton->creature, skeleton, "entities/skeleton/skeleton.glb", rotation, 100);
+	InitCreature(&skeleton->creature, "entities/skeleton/skeleton.glb", rotation, 100);
 
 	skeleton->creature.hitSound = &game->skeletonHitSound;
 }
@@ -230,7 +312,8 @@ void InitKnight(Entity* creature, const vec3& position, float rotation)
 	InitEntity(creature, ENTITY_TYPE_CREATURE);
 	creature->position = position;
 
-	InitCreature(&creature->creature, creature, "entities/creature/knight/knight.glb", rotation, 200);
+	InitCreature(&creature->creature, "entities/creature/knight/knight.glb", rotation, 200);
+	LoadCreatureHitbox(&creature->creature, "entities/creature/knight/knight.rfs");
 
 	creature->creature.hitSound = &game->hitArmorSound;
 }

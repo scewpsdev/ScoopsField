@@ -295,7 +295,7 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 		player->lastStepIdx = stepIdx;
 	}
 
-	ControllerCollisionFlags collisionFlags = MoveCharacterController(&player->controller, displacement, ENTITY_FILTER_DEFAULT);
+	ControllerCollisionFlags collisionFlags = MoveCharacterController(&player->controller, displacement, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ENEMY);
 	vec3 newPosition = GetCharacterControllerPosition(&player->controller);
 
 	if (collisionFlags & CONTROLLER_COLLISION_DOWN)

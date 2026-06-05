@@ -1,170 +1,26 @@
 
-
-static void ReadValue(TokenReader* reader);
-
-static void ReadArray(TokenReader* reader)
+static void ReadBurst(TokenReader* reader, float* burstTime, int* burstCount, float* burstDuration)
 {
-	Next(reader); // [
-
-	bool hasNext = !NextIsValue(reader, ']');
-	while (hasNext)
-	{
-		ReadValue(reader);
-		hasNext = NextIsValue(reader, ',');
-		if (hasNext)
-			Next(reader); // ,
-	}
-
-	Next(reader); // ]
-}
-
-static void ReadObject(TokenReader* reader)
-{
-	Next(reader); // {
+	Next(reader, '{');
 
 	while (!NextIsValue(reader, '}'))
 	{
-		Next(reader, TOKEN_TYPE_IDENTIFIER);
-		Next(reader, TOKEN_TYPE_SYMBOL); // =
-
-		ReadValue(reader);
-	}
-
-	Next(reader); // }
-}
-
-static void ReadValue(TokenReader* reader)
-{
-	Token token = Peek(reader);
-	if (token.type == TOKEN_TYPE_STRING || token.type == TOKEN_TYPE_INTEGER || token.type == TOKEN_TYPE_FLOAT || token.type == TOKEN_TYPE_IDENTIFIER)
-	{
-		Next(reader);
-	}
-	else if (token.type == TOKEN_TYPE_SYMBOL)
-	{
-		if (CheckTokenValue(reader, &token, '['))
-		{
-			ReadArray(reader);
-		}
-		else if (CheckTokenValue(reader, &token, '{'))
-		{
-			ReadObject(reader);
-		}
-	}
-	else
-	{
-		SDL_assert(false);
-	}
-}
-
-static int64_t ParseInteger(char* str, int size)
-{
-	int64_t value = 0;
-	bool negative = false;
-
-	for (int i = 0; i < size; i++)
-	{
-		char c = str[i];
-		if (c == '-')
-			negative = true;
-		else if (SDL_isdigit(c))
-			value = value * 10 + (c - '0');
+		Token name = Next(reader, TOKEN_TYPE_IDENTIFIER);
+		Next(reader, '='); // =
+		if (CheckTokenValue(reader, &name, "time"))
+			ReadFloat(reader, burstTime);
+		else if (CheckTokenValue(reader, &name, "count"))
+			ReadInteger(reader, burstCount);
+		else if (CheckTokenValue(reader, &name, "duration"))
+			ReadFloat(reader, burstDuration);
 		else
 		{
 			SDL_assert(false);
+			ReadValue(reader);
 		}
 	}
 
-	if (negative)
-		value = -value;
-
-	return value;
-}
-
-static double ParseFloat(char* str, int size)
-{
-	SDL_assert(size < 32);
-
-	char processed[32];
-	SDL_memset(processed, 0, sizeof(processed));
-	SDL_memcpy(processed, str, size);
-
-	return SDL_atof(processed);
-}
-
-static void ReadFloat(TokenReader* reader, float* value)
-{
-	Token token = Next(reader);
-	SDL_assert(token.type == TOKEN_TYPE_FLOAT || token.type == TOKEN_TYPE_INTEGER);
-
-	if (token.type == TOKEN_TYPE_FLOAT)
-		*value = (float)ParseFloat(&reader->data[token.start], token.end - token.start);
-	else if (token.type == TOKEN_TYPE_INTEGER)
-		*value = (float)ParseInteger(&reader->data[token.start], token.end - token.start);
-}
-
-static void ReadInteger(TokenReader* reader, int* value)
-{
-	Token token = Next(reader);
-	SDL_assert(token.type == TOKEN_TYPE_INTEGER);
-	*value = (int)ParseInteger(&reader->data[token.start], token.end - token.start);
-}
-
-static void ReadBool(TokenReader* reader, bool* value)
-{
-	int i;
-	ReadInteger(reader, &i);
-	*value = i;
-}
-
-static void ReadIVec2(TokenReader* reader, ivec2* value)
-{
-	Next(reader, '['); // [
-
-	ReadInteger(reader, &value->x);
-	Next(reader, ','); // ,
-	ReadInteger(reader, &value->y);
-
-	Next(reader, ']'); // ]
-}
-
-static void ReadVec3(TokenReader* reader, vec3* value)
-{
-	Next(reader, '['); // [
-
-	ReadFloat(reader, &value->x);
-	Next(reader, ','); // ,
-	ReadFloat(reader, &value->y);
-	Next(reader, ','); // ,
-	ReadFloat(reader, &value->z);
-
-	Next(reader, ']'); // ]
-}
-
-static void ReadVec4(TokenReader* reader, vec4* value)
-{
-	Next(reader, '['); // [
-
-	ReadFloat(reader, &value->x);
-	Next(reader, ','); // ,
-	ReadFloat(reader, &value->y);
-	Next(reader, ','); // ,
-	ReadFloat(reader, &value->z);
-	Next(reader, ','); // ,
-	ReadFloat(reader, &value->w);
-
-	Next(reader, ']'); // ]
-}
-
-static void ReadString(TokenReader* reader, char* str, int maxLen)
-{
-	Token token = Next(reader);
-	SDL_assert(token.type == TOKEN_TYPE_STRING);
-	const char* tokenString = &reader->data[token.start + 1];
-	int size = token.end - token.start - 2;
-	SDL_assert(size < maxLen - 1);
-	SDL_memcpy(str, tokenString, size);
-	str[size] = 0;
+	Next(reader, '}');
 }
 
 static void ReadEmitter(TokenReader* reader, ParticleEffect* effect, const char* path)
@@ -211,6 +67,11 @@ static void ReadEmitter(TokenReader* reader, ParticleEffect* effect, const char*
 	vec4 endColor;
 	bool additive;
 	float emissiveIntensity;
+
+	bool isBurst = false;
+	float burstTime = 0;
+	int burstCount = 0;
+	float burstDuration = 0;
 
 	while (!NextIsValue(reader, '}'))
 	{
@@ -320,6 +181,23 @@ static void ReadEmitter(TokenReader* reader, ParticleEffect* effect, const char*
 			ReadVec4(reader, &endColor);
 		else if (CheckTokenValue(reader, &name, "colorAnim2"))
 			ReadVec4(reader, &endColor);
+		else if (CheckTokenValue(reader, &name, "bursts"))
+		{
+			Next(reader, '['); // [
+
+			bool hasNext = !NextIsValue(reader, ']');
+			while (hasNext)
+			{
+				isBurst = true;
+				ReadBurst(reader, &burstTime, &burstCount, &burstDuration);
+
+				hasNext = NextIsValue(reader, ',');
+				if (hasNext)
+					Next(reader, ',');
+			}
+
+			Next(reader, ']'); // ]
+		}
 		else
 		{
 			const char* tokenString = &reader->data[name.start];
@@ -328,7 +206,7 @@ static void ReadEmitter(TokenReader* reader, ParticleEffect* effect, const char*
 		}
 	}
 
-	ParticleEmitter* emitter = AddEmitter(effect, additive, spawnRate, lifetime - randomLifetime * lifetime, lifetime + randomLifetime * lifetime);
+	ParticleEmitter* emitter = AddEmitter(effect, additive, spawnRate, lifetime - randomLifetime * lifetime, lifetime + randomLifetime * lifetime, burstCount);
 
 	emitter->size = size;
 	emitter->endSize = endSize;
@@ -374,6 +252,11 @@ static void ReadEmitter(TokenReader* reader, ParticleEffect* effect, const char*
 	emitter->color = SRGBToLinear(color) * vec4(vec3(emissiveIntensity ? emissiveIntensity : 1), 1);
 	emitter->endColor = SRGBToLinear(endColor) * vec4(vec3(emissiveIntensity ? emissiveIntensity : 1), 1);
 	//emitter->emissiveIntensity = emissiveIntensity;
+
+	//emitter->isBurst = isBurst;
+	//emitter->burstTime = burstTime;
+	//emitter->burstCount = burstCount;
+	emitter->burstDuration = burstDuration;
 }
 
 static void ReadEntity(TokenReader* reader, ParticleEffect* effect, const char* path)

@@ -10,8 +10,7 @@ void InitRestingSpot(Entity* entity, vec3 position, quat rotation)
 	entity->rotation = rotation;
 	entity->model = GetModel("entities/object/carpet/carpet.glb");
 
-	InitRigidBody(&entity->restingSpot.body, RIGID_BODY_STATIC, entity->position, rotation);
-	entity->restingSpot.body.userPtr = entity;
+	InitRigidBody(&entity->restingSpot.body, RIGID_BODY_STATIC, entity->position, rotation, entity);
 
 	AABB boundingBox = entity->model->boundingBox;
 	vec3 size = boundingBox.max - boundingBox.min;

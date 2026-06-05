@@ -45,9 +45,11 @@ void* PhysicsAllocator::allocate(size_t size, const char* typeName, const char* 
 void PhysicsAllocator::deallocate(void* ptr)
 {
 	SDL_free(ptr);
-	uint64_t* memsize = HashMapRemove(&memory->physicsAllocations, ptr);
-	memory->physicsMemoryUsage -= *memsize;
-	memory->physicsAllocationCount--;
+	if (uint64_t* memsize = HashMapRemove(&memory->physicsAllocations, ptr))
+	{
+		memory->physicsMemoryUsage -= *memsize;
+		memory->physicsAllocationCount--;
+	}
 }
 
 void PhysicsErrorCallback::reportError(physx::PxErrorCode::Enum code, const char* message, const char* file, int line)

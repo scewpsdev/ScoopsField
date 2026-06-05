@@ -32,6 +32,13 @@ struct AttackSound
 	float pan;
 };
 
+struct AttackEffect
+{
+	const char* path;
+	float time;
+	vec3 localPosition;
+};
+
 struct Attack
 {
 	const char* name;
@@ -59,6 +66,10 @@ struct Attack
 #define MAX_ATTACK_SOUNDS 8
 	AttackSound sounds[MAX_ATTACK_SOUNDS];
 	int numSounds;
+
+#define MAX_ATTACK_EFFECTS 8
+	AttackEffect effects[MAX_ATTACK_EFFECTS];
+	int numEffects;
 };
 
 struct Weapon

@@ -17,8 +17,7 @@ void InitItemEntity(Entity* entity, Item* actualItem, vec3 position, quat rotati
 	ItemEntity* item = &entity->item;
 	item->item = actualItem;
 
-	InitRigidBody(&item->body, RIGID_BODY_DYNAMIC, entity->position, rotation);
-	item->body.userPtr = entity;
+	InitRigidBody(&item->body, RIGID_BODY_DYNAMIC, entity->position, rotation, entity);
 
 	AABB boundingBox = item->item->model.boundingBox;
 	vec3 size = boundingBox.max - boundingBox.min;

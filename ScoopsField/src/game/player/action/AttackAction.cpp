@@ -66,6 +66,10 @@ void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackId
 	{
 		AddActionSound(action, attack->sounds[i].sound, attack->sounds[i].time, attack->sounds[i].volume, attack->sounds[i].speed, attack->sounds[i].pan);
 	}
+	for (int i = 0; i < attack->numEffects; i++)
+	{
+		AddActionEffect(action, attack->effects[i].path, attack->effects[i].time, attack->effects[i].localPosition);
+	}
 
 	InitList(&action->attack.hitEntities);
 }
@@ -115,19 +119,20 @@ void UpdateAttackAction(Action* action, Player* player)
 			float range = action->attack.weapon->weapon.damageRange.y - action->attack.weapon->weapon.damageRange.x;
 
 			PhysicsHit hits[16];
-			int numHits = Raycast(origin, direction, range, hits, 16, ENTITY_FILTER_ENEMY);
+			int numHits = Raycast(origin, direction, range, hits, 16, ENTITY_FILTER_ENEMY_HITBOX);
 			for (int i = 0; i < numHits; i++)
 			{
 				PhysicsHit* hit = &hits[i];
+				Entity* hitEntity = (Entity*)hit->body->userPtr;
 
-				if (!action->attack.hitEntities.contains(hit->body))
+				if (!action->attack.hitEntities.contains(hitEntity))
 				{
-					Entity* hitEntity = (Entity*)hit->body->userPtr;
-
 					HitParams params = {};
 					params.damage = action->attack.weapon->weapon.damage;
 					params.damageMultiplier = action->attack.attack->damageMultiplier;
 					params.position = hit->position;
+					params.body = hit->body;
+					params.impulse = direction * 0.1f;
 
 					if (HitEntity(hitEntity, &params, player))
 					{
@@ -138,7 +143,7 @@ void UpdateAttackAction(Action* action, Player* player)
 						PlaySound(&game->slashHitSound, hit->position);
 					}
 
-					action->attack.hitEntities.add(hit->body);
+					action->attack.hitEntities.add(hitEntity);
 				}
 			}
 		}

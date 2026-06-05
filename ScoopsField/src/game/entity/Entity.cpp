@@ -12,7 +12,7 @@ void DestroyEntity(Entity* entity)
 	switch (entity->type)
 	{
 	case ENTITY_TYPE_CREATURE:
-		DestroyCreature(&entity->creature, entity);
+		DestroyCreature(&entity->creature);
 		break;
 	case ENTITY_TYPE_ITEM:
 		DestroyItemEntity(&entity->item, entity);
@@ -29,6 +29,9 @@ void DestroyEntity(Entity* entity)
 	case ENTITY_TYPE_PARTICLE_EFFECT:
 		DestroyParticleEffect(&entity->particles);
 		break;
+	case ENTITY_TYPE_RAGDOLL:
+		DestroyRagdoll(&entity->ragdoll);
+		break;
 	default:
 		break;
 	}
@@ -41,7 +44,7 @@ bool HitEntity(Entity* entity, HitParams* hit, Entity* by)
 	switch (entity->type)
 	{
 	case ENTITY_TYPE_CREATURE:
-		return HitCreature(&entity->creature, entity, hit, by);
+		return HitCreature(&entity->creature, hit, by);
 	default:
 		return false;
 	}
@@ -65,7 +68,7 @@ void UpdateEntity(Entity* entity)
 	switch (entity->type)
 	{
 	case ENTITY_TYPE_CREATURE:
-		UpdateCreature(&entity->creature, entity);
+		UpdateCreature(&entity->creature);
 		break;
 	case ENTITY_TYPE_ITEM:
 		UpdateItemEntity(&entity->item, entity);
@@ -79,6 +82,9 @@ void UpdateEntity(Entity* entity)
 	case ENTITY_TYPE_TRAIL:
 		UpdateTrail(&entity->trail);
 		break;
+	case ENTITY_TYPE_RAGDOLL:
+		UpdateRagdoll(&entity->ragdoll);
+		break;
 	default:
 		break;
 	}
@@ -89,7 +95,7 @@ void RenderEntity(Entity* entity)
 	switch (entity->type)
 	{
 	case ENTITY_TYPE_CREATURE:
-		RenderCreature(&entity->creature, entity);
+		RenderCreature(&entity->creature);
 		break;
 	case ENTITY_TYPE_ITEM:
 		RenderItemEntity(&entity->item, entity);
@@ -102,6 +108,9 @@ void RenderEntity(Entity* entity)
 		break;
 	case ENTITY_TYPE_TRAIL:
 		RenderTrail(&entity->trail);
+		break;
+	case ENTITY_TYPE_RAGDOLL:
+		RenderRagdoll(&entity->ragdoll);
 		break;
 	default:
 		break;

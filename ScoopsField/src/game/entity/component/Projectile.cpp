@@ -5,7 +5,7 @@
 #include "game/player/action/Action.h"
 
 
-void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, float speed)
+void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, float speed, int damage)
 {
 	InitEntity((Entity*)projectile, ENTITY_TYPE_PROJECTILE);
 	projectile->position = position;
@@ -14,6 +14,8 @@ void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 
 
 	projectile->velocity = direction * speed;
 	projectile->offset = startTransform.translation() - position;
+
+	projectile->damage = damage;
 }
 
 void DestroyProjectile(Projectile* projectile, Entity* entity)
@@ -48,7 +50,7 @@ void UpdateProjectile(Projectile* projectile)
 			d /= l;
 
 			PhysicsHit hits[16];
-			int numHits = Raycast(projectile->position + projectile->rotation * projectile->hitboxOffset, d, l, hits, 16, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ENEMY);
+			int numHits = Raycast(projectile->position + projectile->rotation * projectile->hitboxOffset, d, l, hits, 16, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ENEMY_HITBOX);
 			for (int i = 0; i < numHits; i++)
 			{
 				RigidBody* body = hits[i].body;
@@ -71,7 +73,10 @@ void UpdateProjectile(Projectile* projectile)
 				else
 				{
 					HitParams hit = {};
+					hit.damage = projectile->damage;
 					hit.position = hits[i].position;
+					hit.body = body;
+					hit.impulse = projectile->velocity * 0.005f * 40.0f / 30.0f * projectile->damage / 200.0f;
 					HitEntity((Entity*)body->userPtr, &hit, (Entity*)projectile);
 
 					projectile->removed = true;
@@ -119,7 +124,7 @@ void RenderProjectile(Projectile* projectile)
 void InitArrow(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform)
 {
 	float speed = 40;
-	InitProjectile(projectile, position, direction, startTransform, speed);
+	InitProjectile(projectile, position, direction, startTransform, speed, 40);
 
 	projectile->model = GetModel("items/arrow/arrow.glb");
 
@@ -139,7 +144,7 @@ void InitArrow(Projectile* projectile, vec3 position, vec3 direction, mat4 start
 void InitMagicProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform)
 {
 	float speed = 30;
-	InitProjectile(projectile, position, direction, startTransform, speed);
+	InitProjectile(projectile, position, direction, startTransform, speed, 200);
 
 	//projectile->model = GetModel("entities/projectile/magic_projectile/magic_projectile.glb");
 	//projectile->shader = game->magicProjectileShader;

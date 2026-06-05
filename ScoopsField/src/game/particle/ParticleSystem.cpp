@@ -34,7 +34,7 @@ void InitParticleInstanceBufferLayouts(VertexBufferLayout* instanceLayouts)
 	instanceLayouts[4].perInstance = true;
 }
 
-void InitParticleEmitter(ParticleEmitter* emitter, bool additive, float spawnRate, float minLifetime, float maxLifetime)
+void InitParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitter, bool additive, float spawnRate, float minLifetime, float maxLifetime, int burstCount)
 {
 	emitter->shader = additive ? game->particleAdditiveShader : game->particleShader;
 
@@ -65,8 +65,13 @@ void InitParticleEmitter(ParticleEmitter* emitter, bool additive, float spawnRat
 	emitter->textureSampler = TEXTURE_SAMPLER_DEFAULT;
 	emitter->atlasSize = ivec2(0);
 	emitter->atlasFrameCount = 0;
+	//emitter->isBurst = burstCount;
+	//emitter->burstTime = 0;
+	emitter->burstCount = burstCount;
+	//emitter->burstDuration = 0;
+	//emitter->hasBursted = false;
 
-	int maxParticles = (int)SDL_ceilf(emitter->maxLifetime * emitter->spawnRate);
+	int maxParticles = (int)SDL_ceilf((emitter->maxLifetime + 0.1f) * emitter->spawnRate) + burstCount;
 
 	emitter->maxParticles = maxParticles;
 	emitter->numParticles = 0;
@@ -221,8 +226,8 @@ static void SpawnParticle(ParticleEffect* effect, ParticleEmitter* emitter, vec3
 	// we subtract deltaTime here so that when a lot of particles get spawned after a long frame, their birthTimes reflect that and they get despawned soon enough.
 	// otherwise we might run out of particle slots this frame, while these particles will only get despawned next frame.
 	// deltaTime is the length of last frame, not the current frame. so the amount of newly spawned particles has a 1 frame delay.
-	emitter->birthTimes[particleID] = gameTime - deltaTime;
-	emitter->deathTimes[particleID] = gameTime - deltaTime + lifetime;
+	emitter->birthTimes[particleID] = gameTime;
+	emitter->deathTimes[particleID] = gameTime + lifetime;
 }
 
 static void KillParticle(ParticleEmitter* emitter, int id)
@@ -244,6 +249,30 @@ static void KillParticle(ParticleEmitter* emitter, int id)
 
 static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitter, vec3 effectVelocity, vec4 effectAngularVelocity)
 {
+	if (emitter->burstCount)
+	{
+		int numSpawns;
+
+		if (emitter->burstDuration)
+		{
+			float numSpawnsF = emitter->burstCount / emitter->burstDuration * deltaTime + emitter->burstRemainder;
+			numSpawns = (int)numSpawnsF;
+			emitter->burstRemainder = numSpawnsF - numSpawns;
+			emitter->burstDuration = max(emitter->burstDuration - deltaTime, 0.0f);
+		}
+		else
+		{
+			numSpawns = emitter->burstCount;
+		}
+
+		for (int i = 0; i < numSpawns; i++)
+		{
+			SpawnParticle(effect, emitter, effectVelocity, effectAngularVelocity);
+		}
+
+		emitter->burstCount -= numSpawns;
+	}
+
 	for (int i = 0; i < emitter->numParticles; i++)
 	{
 		if (gameTime >= emitter->deathTimes[i])
@@ -396,10 +425,10 @@ void DestroyParticleEffect(ParticleEffect* effect)
 	game->particles.effects.remove(effect);
 }
 
-ParticleEmitter* AddEmitter(ParticleEffect* effect, bool additive, float spawnRate, float minLifetime, float maxLifetime)
+ParticleEmitter* AddEmitter(ParticleEffect* effect, bool additive, float spawnRate, float minLifetime, float maxLifetime, int burstCount)
 {
 	ParticleEmitter* emitter = &effect->emitters[effect->numEmitters++];
-	InitParticleEmitter(emitter, additive, spawnRate, minLifetime, maxLifetime);
+	InitParticleEmitter(effect, emitter, additive, spawnRate, minLifetime, maxLifetime, burstCount);
 	return emitter;
 }
 
@@ -432,7 +461,7 @@ void UpdateParticleEffect(ParticleEffect* effect)
 		bool hasFinished = true;
 		for (int i = 0; i < effect->numEmitters; i++)
 		{
-			bool emitterHasFinished = effect->emitters[i].spawnRate == 0 && effect->emitters[i].numParticles == 0;
+			bool emitterHasFinished = effect->emitters[i].spawnRate == 0 && effect->emitters[i].numParticles == 0 && !effect->emitters[i].burstCount;
 			hasFinished = hasFinished && emitterHasFinished;
 		}
 

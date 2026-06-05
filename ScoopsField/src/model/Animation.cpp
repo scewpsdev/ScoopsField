@@ -229,11 +229,12 @@ static void CalculateWorldTransform(int id, const mat4& parentTransform, Model* 
 	}
 }
 
-void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState)
+void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState, bool calculateWorldTransforms)
 {
 	// resolve childOf constraints
 
-	CalculateWorldTransform(0, {}, model, animationState);
+	if (calculateWorldTransforms)
+		CalculateWorldTransform(0, {}, model, animationState);
 
 	for (int i = 0; i < model->numMeshes; i++)
 	{

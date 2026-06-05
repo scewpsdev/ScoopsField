@@ -8,6 +8,7 @@
 
 
 struct Projectile;
+struct Entity;
 
 struct AttackAction
 {
@@ -17,7 +18,7 @@ struct AttackAction
 
 	uint32_t button;
 
-	List<RigidBody*, 16> hitEntities;
+	List<Entity*, 16> hitEntities;
 
 	Projectile* projectile;
 

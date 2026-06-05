@@ -43,12 +43,21 @@ static void InitStaff(ItemDatabase* items, Item* item, const char* name, bool tw
 static void AddAttackSound(Attack* attack, Sound* sound, float time, float volume, float speed, float pan)
 {
 	SDL_assert(attack->numSounds < MAX_ATTACK_SOUNDS);
-	AttackSound* actionSound = &attack->sounds[attack->numSounds++];
-	actionSound->sound = sound;
-	actionSound->time = time;
-	actionSound->volume = volume;
-	actionSound->speed = speed;
-	actionSound->pan = pan;
+	AttackSound* attackSound = &attack->sounds[attack->numSounds++];
+	attackSound->sound = sound;
+	attackSound->time = time;
+	attackSound->volume = volume;
+	attackSound->speed = speed;
+	attackSound->pan = pan;
+}
+
+static void AddAttackEffect(Attack* attack, const char* path, float time, vec3 localPosition)
+{
+	SDL_assert(attack->numEffects < MAX_ATTACK_EFFECTS);
+	AttackEffect* attackEffect = &attack->effects[attack->numEffects++];
+	attackEffect->path = path;
+	attackEffect->time = time;
+	attackEffect->localPosition = localPosition;
 }
 
 static int AddAttack(Item* item, const char* name, const char* animation, float animationSpeed, int damageStartFrame, int damageEndFrame, int cancelFrame, float damageMultiplier, const char* followUp = nullptr)
@@ -173,6 +182,7 @@ static void InitWeapons(ItemDatabase* items)
 		AddCast(item, "cast", "cast", 1, 24 / 24.0f);
 		Attack* cast = &item->weapon.attacks[item->weapon.numAttacks - 1];
 		AddAttackSound(cast, &items->spellCastSound, 24 / 24.0f, 1, 1, 0.1f);
+		AddAttackEffect(cast, "effects/action/cast_charge.rfs", 0.0f, item->weapon.castOffset);
 	}
 
 	// arrow

@@ -232,3 +232,171 @@ bool NextIsValue(TokenReader* reader, char value)
 	Token token = Peek(reader);
 	return CheckTokenValue(reader, &token, value);
 }
+
+
+void ReadValue(TokenReader* reader);
+
+void ReadArray(TokenReader* reader)
+{
+	Next(reader); // [
+
+	bool hasNext = !NextIsValue(reader, ']');
+	while (hasNext)
+	{
+		ReadValue(reader);
+		hasNext = NextIsValue(reader, ',');
+		if (hasNext)
+			Next(reader); // ,
+	}
+
+	Next(reader); // ]
+}
+
+void ReadObject(TokenReader* reader)
+{
+	Next(reader); // {
+
+	while (!NextIsValue(reader, '}'))
+	{
+		Next(reader, TOKEN_TYPE_IDENTIFIER);
+		Next(reader, TOKEN_TYPE_SYMBOL); // =
+
+		ReadValue(reader);
+	}
+
+	Next(reader); // }
+}
+
+void ReadValue(TokenReader* reader)
+{
+	Token token = Peek(reader);
+	if (token.type == TOKEN_TYPE_STRING || token.type == TOKEN_TYPE_INTEGER || token.type == TOKEN_TYPE_FLOAT || token.type == TOKEN_TYPE_IDENTIFIER)
+	{
+		Next(reader);
+	}
+	else if (token.type == TOKEN_TYPE_SYMBOL)
+	{
+		if (CheckTokenValue(reader, &token, '['))
+		{
+			ReadArray(reader);
+		}
+		else if (CheckTokenValue(reader, &token, '{'))
+		{
+			ReadObject(reader);
+		}
+	}
+	else
+	{
+		SDL_assert(false);
+	}
+}
+
+static int64_t ParseInteger(char* str, int size)
+{
+	int64_t value = 0;
+	bool negative = false;
+
+	for (int i = 0; i < size; i++)
+	{
+		char c = str[i];
+		if (c == '-')
+			negative = true;
+		else if (SDL_isdigit(c))
+			value = value * 10 + (c - '0');
+		else
+		{
+			SDL_assert(false);
+		}
+	}
+
+	if (negative)
+		value = -value;
+
+	return value;
+}
+
+static double ParseFloat(char* str, int size)
+{
+	SDL_assert(size < 32);
+
+	char processed[32];
+	SDL_memset(processed, 0, sizeof(processed));
+	SDL_memcpy(processed, str, size);
+
+	return SDL_atof(processed);
+}
+
+void ReadFloat(TokenReader* reader, float* value)
+{
+	Token token = Next(reader);
+	SDL_assert(token.type == TOKEN_TYPE_FLOAT || token.type == TOKEN_TYPE_INTEGER);
+
+	if (token.type == TOKEN_TYPE_FLOAT)
+		*value = (float)ParseFloat(&reader->data[token.start], token.end - token.start);
+	else if (token.type == TOKEN_TYPE_INTEGER)
+		*value = (float)ParseInteger(&reader->data[token.start], token.end - token.start);
+}
+
+void ReadInteger(TokenReader* reader, int* value)
+{
+	Token token = Next(reader);
+	SDL_assert(token.type == TOKEN_TYPE_INTEGER);
+	*value = (int)ParseInteger(&reader->data[token.start], token.end - token.start);
+}
+
+void ReadBool(TokenReader* reader, bool* value)
+{
+	int i;
+	ReadInteger(reader, &i);
+	*value = i;
+}
+
+void ReadIVec2(TokenReader* reader, ivec2* value)
+{
+	Next(reader, '['); // [
+
+	ReadInteger(reader, &value->x);
+	Next(reader, ','); // ,
+	ReadInteger(reader, &value->y);
+
+	Next(reader, ']'); // ]
+}
+
+void ReadVec3(TokenReader* reader, vec3* value)
+{
+	Next(reader, '['); // [
+
+	ReadFloat(reader, &value->x);
+	Next(reader, ','); // ,
+	ReadFloat(reader, &value->y);
+	Next(reader, ','); // ,
+	ReadFloat(reader, &value->z);
+
+	Next(reader, ']'); // ]
+}
+
+void ReadVec4(TokenReader* reader, vec4* value)
+{
+	Next(reader, '['); // [
+
+	ReadFloat(reader, &value->x);
+	Next(reader, ','); // ,
+	ReadFloat(reader, &value->y);
+	Next(reader, ','); // ,
+	ReadFloat(reader, &value->z);
+	Next(reader, ','); // ,
+	ReadFloat(reader, &value->w);
+
+	Next(reader, ']'); // ]
+}
+
+void ReadString(TokenReader* reader, char* str, int maxLen)
+{
+	Token token = Next(reader);
+	SDL_assert(token.type == TOKEN_TYPE_STRING);
+	const char* tokenString = &reader->data[token.start + 1];
+	int size = token.end - token.start - 2;
+	SDL_assert(size < maxLen - 1);
+	SDL_memcpy(str, tokenString, size);
+	str[size] = 0;
+}

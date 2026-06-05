@@ -55,6 +55,14 @@ struct ParticleEmitter
 	ivec2 atlasSize;
 	int atlasFrameCount;
 
+	//bool isBurst;
+	//float burstTime;
+	int burstCount;
+	float burstDuration;
+	float burstRemainder;
+	//float burstDuration;
+	//bool hasBursted;
+
 	GraphicsPipeline* shader;
 
 	VertexBuffer* positionBuffer;
@@ -94,7 +102,7 @@ struct ParticleSystem
 
 void InitParticleEffect(ParticleEffect* effect, vec3 position, quat rotation);
 void DestroyParticleEffect(ParticleEffect* effect);
-ParticleEmitter* AddEmitter(ParticleEffect* effect, bool additive, float spawnRate, float minLifetime, float maxLifetime);
+ParticleEmitter* AddEmitter(ParticleEffect* effect, bool additive, float spawnRate, float minLifetime, float maxLifetime, int burstCount = 0);
 
 void InitParticleInstanceBufferLayouts(VertexBufferLayout* instanceLayouts);
 void InitParticleSystem(ParticleSystem* particles);

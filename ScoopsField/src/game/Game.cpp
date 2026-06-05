@@ -12,7 +12,7 @@
 extern SDL_GPUDevice* device;
 
 
-static Entity* CreateEntity()
+Entity* CreateEntity()
 {
 	return PoolAlloc(&game->entities);
 }
@@ -26,6 +26,7 @@ static Entity* CreateEntity()
 #include "entity/component/RestingSpot.cpp"
 #include "entity/component/Projectile.cpp"
 #include "entity/component/Trail.cpp"
+#include "entity/component/Ragdoll.cpp"
 
 
 static void ResetGame(bool destroy)
@@ -131,7 +132,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	//LoadModel(&game->mapModel, "res/maps/painted_world/painted_world.glb.bin", true, cmdBuffer);
 	LoadModel(&game->mapModel, "res/maps/testmap/testmap.glb.bin", true, cmdBuffer);
 
-	InitRigidBody(&game->mapCollider, RIGID_BODY_STATIC, vec3::Zero, quat::Identity);
+	InitRigidBody(&game->mapCollider, RIGID_BODY_STATIC, vec3::Zero, quat::Identity, nullptr);
 	AddModelCollider(&game->mapCollider, &game->mapModel, vec3::Zero, quat::Identity, vec3::One, 1, 1, false);
 
 	Model* navmeshModel = (Model*)BumpAllocatorMalloc(&memory->transientAllocator, sizeof(Model));

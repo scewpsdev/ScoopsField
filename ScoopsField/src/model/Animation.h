@@ -40,7 +40,7 @@ void InitAnimationState(AnimationState* animationState, Model* model);
 mat4 AnimateNode(Node* node, AnimationChannel* channel, Animation* animation, float time, bool loop);
 void AnimateModel(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr);
 void BlendAnimation(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, float blend, AnimationChannelFilterCallback_t channelFilter = nullptr, void* filterUserPtr = nullptr);
-void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState);
+void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState, bool calculateWorldTransforms = true);
 
 int GetAnimationChannelWithName(Animation* animation, const char* name);
 mat4& GetNodeTransform(AnimationState* animationState, Node* node);

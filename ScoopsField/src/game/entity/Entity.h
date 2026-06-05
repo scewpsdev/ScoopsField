@@ -10,22 +10,27 @@
 #include "component/Projectile.h"
 #include "component/Trail.h"
 #include "game/particle/ParticleSystem.h"
+#include "component/Ragdoll.h"
 
 
 enum EntityPhysicsFilter
 {
 	ENTITY_FILTER_DEFAULT = 1 << 0,
 	ENTITY_FILTER_ENEMY = 1 << 1,
-	ENTITY_FILTER_PLAYER = 1 << 2,
-	ENTITY_FILTER_ITEM = 1 << 3,
-	ENTITY_FILTER_INTERACTABLE = 1 << 4,
+	ENTITY_FILTER_ENEMY_HITBOX = 1 << 2,
+	ENTITY_FILTER_PLAYER = 1 << 3,
+	ENTITY_FILTER_ITEM = 1 << 4,
+	ENTITY_FILTER_INTERACTABLE = 1 << 5,
+	ENTITY_FILTER_RAGDOLL = 1 << 6,
 };
 
 struct HitParams
 {
-	int damage = 1;
+	int damage = 10;
 	float damageMultiplier = 1;
 	vec3 position;
+	RigidBody* body;
+	vec3 impulse;
 };
 
 struct Entity
@@ -49,6 +54,7 @@ struct Entity
 		Projectile projectile;
 		Trail trail;
 		ParticleEffect particles;
+		Ragdoll ragdoll;
 	};
 };
 

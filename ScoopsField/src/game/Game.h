@@ -88,3 +88,6 @@ extern GameState* game;
 extern PhysicsState* physics;
 extern float gameTime;
 extern float deltaTime;
+
+
+Entity* CreateEntity();

@@ -14,6 +14,27 @@
 
 struct HitParams;
 
+enum ColliderType
+{
+	COLLIDER_TYPE_NULL = 0,
+
+	COLLIDER_TYPE_BOX,
+	COLLIDER_TYPE_CAPSULE,
+	COLLIDER_TYPE_SPHERE,
+
+	COLLIDER_TYPE_LAST
+};
+
+struct ColliderData
+{
+	char bone[64];
+	ColliderType type;
+	bool trigger;
+	vec3 size;
+	vec3 offset;
+	vec3 rotation;
+};
+
 struct Creature : EntityBase
 {
 	float lookDirection;
@@ -23,6 +44,10 @@ struct Creature : EntityBase
 	Model* model;
 	AnimationState anim;
 	RigidBody body;
+
+#define MAX_CREATURE_HITBOXES 32
+	//HashMap<uint32_t, ColliderData, MAX_CREATURE_HITBOXES> hitboxData;
+	HashMap<uint32_t, RigidBody, MAX_CREATURE_HITBOXES> hitboxes;
 
 	AnimationPlayback idleAnim;
 	AnimationPlayback runAnim;
@@ -41,10 +66,10 @@ struct Creature : EntityBase
 };
 
 
-void InitCreature(Creature* creature, Entity* entity, const char* model, float lookDirection, int health);
-void DestroyCreature(Creature* creature, Entity* entity);
+void InitCreature(Creature* creature, const char* model, float lookDirection, int health);
+void DestroyCreature(Creature* creature);
 
-bool HitCreature(Creature* creature, Entity* entity, HitParams* hit, Entity* by);
+bool HitCreature(Creature* creature, HitParams* hit, Entity* by);
 
-void UpdateCreature(Creature* creature, Entity* entity);
-void RenderCreature(Creature* creature, Entity* entity);
+void UpdateCreature(Creature* creature);
+void RenderCreature(Creature* creature);

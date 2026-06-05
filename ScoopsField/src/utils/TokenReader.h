@@ -1,5 +1,7 @@
 #pragma once
 
+#include "math/Vector.h"
+
 
 enum TokenType
 {
@@ -41,3 +43,14 @@ bool CheckTokenValue(TokenReader* reader, Token* token, const char* value);
 bool CheckTokenValue(TokenReader* reader, Token* token, char value);
 bool NextIsValue(TokenReader* reader, const char* value);
 bool NextIsValue(TokenReader* reader, char value);
+
+void ReadArray(TokenReader* reader);
+void ReadObject(TokenReader* reader);
+void ReadValue(TokenReader* reader);
+void ReadFloat(TokenReader* reader, float* value);
+void ReadInteger(TokenReader* reader, int* value);
+void ReadBool(TokenReader* reader, bool* value);
+void ReadIVec2(TokenReader* reader, ivec2* value);
+void ReadVec3(TokenReader* reader, vec3* value);
+void ReadVec4(TokenReader* reader, vec4* value);
+void ReadString(TokenReader* reader, char* str, int maxLen);

@@ -47,7 +47,7 @@ void main()
 	vec4 textureColor = mix(vec4(1), animationColor, hasTexture);
 	vec4 color = v_color * textureColor;
 
-	if (color.a < 0.01)
+	if (color.a < 0.001)
 		discard;
 	
 	out_color = color;

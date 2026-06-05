@@ -29,10 +29,12 @@ struct Projectile : EntityBase
 
 	Trail* trail;
 	ParticleEffect* particles;
+
+	int damage;
 };
 
 
-void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, float speed);
+void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, float speed, int damage);
 void DestroyProjectile(Projectile* projectile, Entity* entity);
 
 void UpdateProjectile(Projectile* projectile);

@@ -215,7 +215,7 @@ void* SDLrealloc(void* mem, size_t size)
 void SDLfree(void* mem)
 {
 	memory->defaultFree(mem);
-	uint64_t* memsize = HashMapRemove(&memory->platformAllocations, mem);
+	if (uint64_t* memsize = HashMapRemove(&memory->platformAllocations, mem))
 	{
 		memory->platformMemoryUsage -= *memsize;
 		memory->platformAllocationCount--;
