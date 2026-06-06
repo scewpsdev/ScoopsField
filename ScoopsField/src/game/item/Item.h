@@ -42,6 +42,9 @@ struct AttackEffect
 struct Attack
 {
 	const char* name;
+	const char* animation;
+	float animationSpeed;
+
 	bool secondary;
 	bool twoHanded;
 	bool stance;
@@ -50,8 +53,6 @@ struct Attack
 	bool projectileCast;
 	float projectileCastTime;
 
-	const char* animation;
-	float animationSpeed;
 	const char* itemAnimation;
 
 	vec2 damageWindow;

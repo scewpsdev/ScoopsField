@@ -13,6 +13,7 @@ void InitAction(EntityAction* action, EntityActionType type)
 	action->type = type;
 	action->speed = 1.0f;
 	action->walkSpeed = 1.0f;
+	action->turnSpeed = 1.0f;
 }
 
 
@@ -25,6 +26,7 @@ void InitActionManager(EntityActionManager& actions, Model* moveset)
 static void StartActionInternal(EntityActionManager& actions, EntityAction* action, Entity* entity)
 {
 	action->startTime = gameTime;
+	action->elapsedTime = 0;
 
 	InitAnimation(&action->anim, action->animName, action->animMoveset ? action->animMoveset : actions.moveset, 1.0f, false, false);
 	if (!action->duration)

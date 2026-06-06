@@ -70,7 +70,9 @@ struct Material
 			vec4 color;
 			vec3 emissiveColor;
 			float emissiveStrength;
-			vec4 data3;
+			float roughnessFactor;
+			float metallicFactor;
+			vec2 padding;
 
 			Texture* diffuse;
 			Texture* roughness;

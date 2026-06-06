@@ -893,35 +893,34 @@ void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, GraphicsPipe
 	}
 }
 
-static void RenderModelNode(Renderer* renderer, Model* model, Node* node, GraphicsPipeline* shader, AnimationState* animation, mat4 parentTransform)
+static void RenderModelNode(Renderer* renderer, Model* model, Node* node, GraphicsPipeline* shader, AnimationState* animation, mat4 parentTransform, mat4 modelMatrix)
 {
-	mat4 nodeTransform = animation ? GetNodeTransform(animation, node) : node->transform;
-	mat4 nodeGlobalTransform = parentTransform * nodeTransform;
+	mat4 nodeTransform = animation ? modelMatrix * GetNodeTransform(animation, node) : parentTransform * node->transform;
 
 	for (int i = 0; i < node->numMeshes; i++)
 	{
 		int meshID = node->meshes[i];
 		Mesh* mesh = &model->meshes[meshID];
 		Material* material = mesh->materialID != -1 ? &model->materials[mesh->materialID] : nullptr;
-		RenderMesh(renderer, mesh, material, shader, animation && mesh->skeletonID != -1 ? &animation->skeletons[mesh->skeletonID] : nullptr, nodeGlobalTransform);
+		RenderMesh(renderer, mesh, material, shader, animation && mesh->skeletonID != -1 ? &animation->skeletons[mesh->skeletonID] : nullptr, nodeTransform);
 	}
 
 	for (int i = 0; i < node->numChildren; i++)
 	{
-		RenderModelNode(renderer, model, &model->nodes[node->children[i]], shader, animation, nodeGlobalTransform);
+		RenderModelNode(renderer, model, &model->nodes[node->children[i]], shader, animation, nodeTransform, modelMatrix);
 	}
 }
 
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform)
 {
 	SDL_assert(model);
-	RenderModelNode(renderer, model, &model->nodes[0], nullptr, animation, transform);
+	RenderModelNode(renderer, model, &model->nodes[0], nullptr, animation, transform, transform);
 }
 
 void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform)
 {
 	SDL_assert(model);
-	RenderModelNode(renderer, model, &model->nodes[0], shader, animation, transform);
+	RenderModelNode(renderer, model, &model->nodes[0], shader, animation, transform, transform);
 }
 
 void RenderLight(Renderer* renderer, vec3 position, vec3 color)

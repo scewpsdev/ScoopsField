@@ -20,7 +20,7 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 	vec4 materialData0;
 	vec4 materialData1;
 	vec4 materialData2;
-	vec4 data3;
+	vec4 materialData3;
 
 #define hasDiffuse materialData0.x
 #define hasRoughness materialData0.y
@@ -29,6 +29,8 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 #define materialColor materialData1.rgb
 #define emissiveColor materialData2.rgb
 #define emissiveStrength materialData2.a
+#define roughnessFactor materialData3.r
+#define metallicFactor materialData3.g
 };
 
 
@@ -37,8 +39,8 @@ void main()
 	vec4 textureColor = texture(s_diffuse, v_texcoord);
 	textureColor.rgb = SRGBToLinear(mix(vec3(1), textureColor.rgb, hasDiffuse));
 
-	float roughness = mix(1, texture(s_roughness, v_texcoord).g, hasRoughness);
-	float metallic = mix(0, texture(s_metallic, v_texcoord).b, hasMetallic);
+	float roughness = mix(roughnessFactor, texture(s_roughness, v_texcoord).g, hasRoughness);
+	float metallic = mix(metallicFactor, texture(s_metallic, v_texcoord).b, hasMetallic);
 
 	out_normal = vec4(normalize(v_normal) * 0.5 + 0.5, emissiveStrength);
 	out_color = linearToSRGB(textureColor.rgb * materialColor);

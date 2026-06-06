@@ -25,14 +25,36 @@ enum ColliderType
 	COLLIDER_TYPE_LAST
 };
 
-struct ColliderData
+struct EntityAttack
 {
-	char bone[64];
-	ColliderType type;
-	bool trigger;
-	vec3 size;
-	vec3 offset;
-	vec3 rotation;
+	const char* name;
+	const char* animation;
+	float animationSpeed;
+	bool firstAttack;
+
+	//bool stance;
+	//const char* stanceFollowUp;
+	//bool projectileShoot;
+	//float projectileShootTime;
+
+	vec2 rangeTriggerWindow;
+	vec2 angleTriggerWindow;
+	vec2 damageWindow;
+	float followUpCancelTime;
+	float damageMultiplier;
+
+	const char* followUp;
+	float followUpChance;
+
+	/*
+#define MAX_ATTACK_SOUNDS 8
+	AttackSound sounds[MAX_ATTACK_SOUNDS];
+	int numSounds;
+
+#define MAX_ATTACK_EFFECTS 8
+	AttackEffect effects[MAX_ATTACK_EFFECTS];
+	int numEffects;
+	*/
 };
 
 struct Creature : EntityBase
@@ -40,6 +62,8 @@ struct Creature : EntityBase
 	float lookDirection;
 
 	bool moving;
+	vec3 fsu;
+	float targetDirection;
 
 	Model* model;
 	AnimationState anim;
@@ -53,10 +77,30 @@ struct Creature : EntityBase
 	AnimationPlayback runAnim;
 	AnimationPlayback attackAnim;
 
+	Node* rightWeaponNode;
+
+	Node* rootNode;
+	vec3 rootMotionVelocity;
+	float rootMotionAngle;
+	mat4 lastRootNodeTransform;
+	float lastRootMotionUpdate;
+	Animation* lastActionAnimation;
+	float lastActionAnimationTimer;
+	float currentRootMotionRotation;
+
+#define MAX_ENTITY_ATTACKS 16
+	EntityAttack attacks[MAX_ENTITY_ATTACKS];
+	int numAttacks;
+
 	EntityActionManager actions;
 
 	int health;
 	int maxHealth;
+	float walkSpeed;
+	float turnSpeed;
+
+	int damage;
+	float weaponRange;
 
 	vec3 targetPosition;
 	int currentPath[MAX_NAVMESH_PATH_LENGTH];

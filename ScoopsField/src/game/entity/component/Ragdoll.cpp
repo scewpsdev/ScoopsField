@@ -86,7 +86,7 @@ void InitRagdoll(Ragdoll* ragdoll, Creature* creature)
 	InitArticulation(&ragdoll->articulation);
 
 	Node* root = &ragdoll->model->nodes[0];
-	InitRagdollNode(ragdoll, root, nullptr, nullptr, mat4::Identity, creature);
+	InitRagdollNode(ragdoll, root, nullptr, nullptr, mat4::Rotate(vec3::Up, PI), creature);
 	AnimateRagdollNode(ragdoll, root, nullptr, mat4::Identity, creature);
 
 	SpawnArticulation(&ragdoll->articulation);

@@ -250,7 +250,7 @@ Attack* GetAttackByName(Item* item, const char* name)
 {
 	for (int i = 0; i < item->weapon.numAttacks; i++)
 	{
-		if (SDL_strcmp(item->weapon.attacks[i].animation, name) == 0)
+		if (SDL_strcmp(item->weapon.attacks[i].name, name) == 0)
 			return &item->weapon.attacks[i];
 	}
 	return nullptr;

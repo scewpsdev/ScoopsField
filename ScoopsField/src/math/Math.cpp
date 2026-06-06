@@ -6,14 +6,65 @@
 #include <float.h>
 
 
-float radians(float degrees)
+int ipow(int base, int exp)
 {
-	return degrees / 180.0f * PI;
+	if (!exp)
+		return 1;
+	int result = 1;
+	for (;;)
+	{
+		if (exp & 1)
+			result *= base;
+		exp >>= 1;
+		if (!exp)
+			break;
+		base *= base;
+	}
+
+	return result;
 }
 
-float degrees(float radians)
+int idivfloor(int a, int b)
 {
-	return radians / PI * 180.0f;
+	int q = a / b;
+	int r = a % b;
+	// If remainder != 0 and signs differ, round down
+	if ((r != 0) && ((a ^ b) < 0))
+		q -= 1;
+	return q;
+}
+
+float clamp(float f, float min, float max)
+{
+	return SDL_min(SDL_max(f, min), max);
+}
+
+float remap(float x, float min, float max, float newMin, float newMax)
+{
+	return (x - min) / (max - min) * (newMax - newMin) + newMin;
+}
+
+float smoothstep(float edge0, float edge1, float x)
+{
+	// Scale, bias and saturate x to 0..1 range
+	x = clamp(remap(x, edge0, edge1, 0, 1), 0, 1);
+	// Evaluate polynomial
+	return x * x * (3 - 2 * x);
+}
+
+int sign(float f)
+{
+	return f < 0.0f ? -1 : f > 0.0f ? 1 : 0;
+}
+
+float fract(float x)
+{
+	return x - SDL_floorf(x);
+}
+
+float mod(float x, float y)
+{
+	return x >= 0 ? SDL_fmodf(x, y) : SDL_fmodf(x + SDL_ceilf(-x / y) * y, y);
 }
 
 float lerpAngle(float a, float b, float t)
@@ -27,6 +78,29 @@ float lerpAngle(float a, float b, float t)
 		b -= PI * 2.0f;
 
 	return a + (b - a) * t;
+}
+
+float moveTowards(float a, float b, float t)
+{
+	return clamp(a + sign(b - a) * t, a, b);
+}
+
+float moveTowardsAngle(float a, float b, float t)
+{
+	a = SDL_fmodf(a + PI * 2.0f, PI * 2.0f);
+	b = SDL_fmodf(b + PI * 2.0f, PI * 2.0f);
+
+	if (a - b > PI)
+		a -= PI * 2.0f;
+	else if (b - a > PI)
+		b -= PI * 2.0f;
+
+	float result = a + sign(b - a) * t;
+	if (b > a)
+		result = min(result, b);
+	else
+		result = max(result, b);
+	return result;
 }
 
 mat4 interpolate(const mat4& a, const mat4& b, float blend)

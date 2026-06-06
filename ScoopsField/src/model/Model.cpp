@@ -221,8 +221,8 @@ static Texture* ReadTexture(BinaryReader& reader, const char* scenePath, SDL_GPU
 static void ReadMaterial(Material* material, BinaryReader& reader, const char* scenePath, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	material->color = SRGBToLinear(ARGBToVector(reader.ReadUInt32()));
-	float metallicFactor = reader.ReadFloat();
-	float roughnessFactor = reader.ReadFloat();
+	material->metallicFactor = reader.ReadFloat();
+	material->roughnessFactor = reader.ReadFloat();
 	material->emissiveColor = reader.ReadVector3();
 	material->emissiveStrength = reader.ReadFloat();
 

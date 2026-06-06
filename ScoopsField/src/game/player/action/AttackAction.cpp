@@ -48,7 +48,7 @@ void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackId
 	action->animationSpeed = attack->animationSpeed;
 	//action->moveSpeed = 0.5f;
 	action->followUpCancelTime = attack->followUpCancelTime;
-	action->rootMotion = true;
+	//action->rootMotion = true;
 
 	action->attack.weapon = weapon;
 	action->attack.attack = attack;

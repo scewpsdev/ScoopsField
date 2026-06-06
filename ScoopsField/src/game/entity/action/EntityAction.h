@@ -28,11 +28,13 @@ struct EntityAction
 	EntityActionType type;
 	const char* animName;
 	Model* animMoveset;
+	bool rootMotion;
 	bool fullBody;
 
 	float duration;
 	float speed;
 	float walkSpeed;
+	float turnSpeed;
 	float followUpCancelTime;
 
 	float startTime;

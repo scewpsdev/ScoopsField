@@ -110,3 +110,7 @@ bool GetKeyUp(SDL_Scancode key);
 bool GetMouseButton(uint32_t button);
 bool GetMouseButtonDown(uint32_t button);
 bool GetMouseButtonUp(uint32_t button);
+
+void DebugTextEx(int x, int y, const char* txt, int len, uint32_t color, uint32_t bgcolor);
+void DebugText(int x, int y, uint32_t color, uint32_t bgcolor, const char* fmt, ...);
+void DebugText(int x, int y, const char* fmt, ...);

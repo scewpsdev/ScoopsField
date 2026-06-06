@@ -279,4 +279,5 @@ void InitAnimation(AnimationPlayback* animation, const char* name, Model* movese
 	animation->loop = loop;
 	animation->mirror = mirror;
 	animation->animation = GetAnimationByName(moveset, name);
+	animation->timer = 0;
 }

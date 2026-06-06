@@ -545,13 +545,13 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 
 	EndPhysicsFrame(&app->physics);
 
+	DebugTextRendererBegin(&app->debugTextRenderer);
+
 	GameUpdate();
 
 	StartPhysicsFrame(&app->physics);
 
 	int64_t cpuFrameStart = SDL_GetTicksNS();
-
-	DebugTextRendererBegin(&app->debugTextRenderer);
 
 	if (GetKeyDown(SDL_SCANCODE_F10))
 		app->debugStats = !app->debugStats;

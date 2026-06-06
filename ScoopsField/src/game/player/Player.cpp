@@ -2,8 +2,6 @@
 
 #include "math/Math.h"
 
-#include "model/RootMotion.h"
-
 
 #define HEALTH_REGEN_HIT_DELAY 5.0f
 #define HIT_RECOVERY_DURATION 0.25f
@@ -242,12 +240,12 @@ static void OnDeath(Player* player)
 	//game->gameOverTimer = 0;
 }
 
-void HitPlayer(Player* player, HitParams hit, Entity* by)
+bool HitPlayer(Player* player, HitParams hit, Entity* by)
 {
 	if (player->health <= 0)
-		return;
+		return false;
 	if (player->lastHit && gameTime - player->lastHit < HIT_RECOVERY_DURATION)
-		return;
+		return false;
 
 	int damage = (int)(hit.damage * hit.damageMultiplier);
 	player->health -= damage;
@@ -263,6 +261,8 @@ void HitPlayer(Player* player, HitParams hit, Entity* by)
 	{
 		//
 	}
+
+	return true;
 }
 
 bool GiveItem(Player* player, Item* item)
@@ -495,6 +495,36 @@ static void AnimateAxisBlendSpace(Model* model, AnimationState* animationState, 
 			else
 				animationState->nodeTransforms[node->id] = b;
 		}
+	}
+}
+
+static void UpdateRootMotion(Player* player)
+{
+	player->rootMotion = vec3::Zero;
+
+	mat4& rootNodeTransform = GetNodeTransform(&player->anim, player->rootNode);
+	mat4 rootMotionDelta = rootNodeTransform * player->lastRootNodeTransform.inverted();
+	player->lastRootNodeTransform = rootNodeTransform;
+	rootNodeTransform = mat4::Identity;
+
+	if (Action* currentAction = GetCurrentAction(player))
+	{
+		AnimationPlayback* actionAnimation = &currentAction->bodyAnim;
+
+		if (currentAction->rootMotion)
+		{
+			if (actionAnimation->animation == player->lastActionAnimation
+				&& SDL_fmodf(actionAnimation->timer, actionAnimation->animation->duration) >= SDL_fmodf(player->lastActionAnimationTimer, actionAnimation->animation->duration))
+			{
+				SDL_assert(rootMotionDelta.translation().length() < 0.3f);
+				rootMotionDelta = mat4::Rotate(vec3::Up, PI) * rootMotionDelta;
+				vec3 rootMotion = quat::FromAxisAngle(vec3::Up, PI) * rootMotionDelta.translation();
+				player->rootMotion = rootMotion;
+			}
+		}
+
+		player->lastActionAnimation = actionAnimation->animation;
+		player->lastActionAnimationTimer = actionAnimation->timer;
 	}
 }
 
@@ -941,16 +971,7 @@ void UpdatePlayer(Player* player)
 		*/
 	}
 
-	player->rootMotion = vec3::Zero;
-	mat4 rootMotionDelta = DoRootMotion(&player->anim, player->rootNode, &player->lastRootNodeTransform);
-	if (Action* currentAction = GetCurrentAction(player))
-	{
-		if (currentAction->rootMotion)
-		{
-			rootMotionDelta = mat4::Rotate(vec3::Up, PI) * rootMotionDelta;
-			player->rootMotion = rootMotionDelta.translation();
-		}
-	}
+	UpdateRootMotion(player);
 
 	Item* rightWeapon = GetRightWeapon(player);
 	if (rightWeapon && rightWeapon->model.numAnimations)

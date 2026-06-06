@@ -7,20 +7,20 @@
 #include "utils/List.h"
 
 
+struct Entity;
+struct EntityAction;
+struct EntityAttack;
+
 struct EntityAttackAction
 {
-	Item* weapon;
-	Attack* attack;
+	EntityAttack* attack;
 	int attackIdx;
 
-	vec2 damageRange;
-
-	List<RigidBody*, 16> hitEntities;
+	List<Entity*, 16> hitEntities;
 };
 
 
-void InitEntityAttackAction(struct EntityAction* action, Item* weapon, Attack* attack, int attackIdx);
-void InitEntityAttackAction(struct EntityAction* action, const char* animation, int attackIdx);
-void StartEntityAttackAction(struct EntityAction* action, struct Entity* entity);
-void StopEntityAttackAction(struct EntityAction* action, struct Entity* entity);
-void UpdateEntityAttackAction(struct EntityAction* action, struct Entity* entity);
+void InitEntityAttackAction(EntityAction* action, EntityAttack* attack, int attackIdx);
+void StartEntityAttackAction(EntityAction* action, Entity* entity);
+void StopEntityAttackAction(EntityAction* action, Entity* entity);
+void UpdateEntityAttackAction(EntityAction* action, Entity* entity);

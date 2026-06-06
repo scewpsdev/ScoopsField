@@ -3,13 +3,16 @@
 #include "physics/RigidBody.h"
 
 
+struct Entity;
+struct EntityAction;
+
 struct EntityStaggerAction
 {
 	float duration;
 };
 
 
-void InitEntityStaggerAction(struct EntityAction* action, float duration);
-void StartEntityStaggerAction(struct EntityAction* action, struct Entity* entity);
-void StopEntityStaggerAction(struct EntityAction* action, struct Entity* entity);
-void UpdateEntityStaggerAction(struct EntityAction* action, struct Entity* entity);
+void InitEntityStaggerAction(EntityAction* action, float duration, const char* animation);
+void StartEntityStaggerAction(EntityAction* action, Entity* entity);
+void StopEntityStaggerAction(EntityAction* action, Entity* entity);
+void UpdateEntityStaggerAction(EntityAction* action, Entity* entity);

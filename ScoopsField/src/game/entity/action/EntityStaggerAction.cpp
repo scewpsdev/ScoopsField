@@ -3,11 +3,14 @@
 #include "EntityAction.h"
 
 
-void InitEntityStaggerAction(EntityAction* action, float duration)
+void InitEntityStaggerAction(EntityAction* action, float duration, const char* animation)
 {
 	InitAction(action, ENTITY_ACTION_TYPE_STAGGER);
-	action->animName = "stagger";
-	action->walkSpeed = 0.1f;
+	action->animName = animation;
+	action->walkSpeed = 0;
+	action->turnSpeed = 0;
+	action->fullBody = true;
+	action->rootMotion = true;
 	action->stagger.duration = duration;
 }
 

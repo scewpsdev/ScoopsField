@@ -79,10 +79,13 @@ struct Player : Entity
 
 	Node* rightWeaponNode, * leftWeaponNode;
 	Node* rightShoulderNode, * leftShoulderNode;
-	Node* rootNode, * neckNode, * spineNode;
+	Node* neckNode, * spineNode;
 
+	Node* rootNode;
 	vec3 rootMotion;
 	mat4 lastRootNodeTransform;
+	Animation* lastActionAnimation;
+	float lastActionAnimationTimer;
 
 	AnimationPlayback idleAnim;
 	AnimationPlayback bodyIdleAnim, bodyRunAnim, bodyStrafeAnim, bodyDuckAnim, bodySneakAnim, bodySneakStrafeAnim, bodyFallAnim, bodyFallDuckAnim;
@@ -125,6 +128,6 @@ Item* GetLeftWeapon(Player* player);
 mat4 GetRightWeaponTransform(Player* player);
 mat4 GetLeftWeaponTransform(Player* player);
 
-void HitPlayer(Player* player, HitParams hit, Entity* by);
+bool HitPlayer(Player* player, HitParams hit, Entity* by);
 bool GiveItem(Player* player, Item* item);
 bool DropItem(Player* player, Item* item);
