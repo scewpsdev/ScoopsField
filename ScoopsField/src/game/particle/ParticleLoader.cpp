@@ -210,7 +210,7 @@ static void ReadEmitter(TokenReader* reader, ParticleEffect* effect, const char*
 
 	emitter->size = size;
 	emitter->endSize = endSize;
-	//emitter->follow = follow;
+	emitter->follow = follow;
 	emitter->spawnRate = spawnRate;
 	emitter->spawnShape = spawnShape;
 	emitter->spawnRadius = spawnRadius;

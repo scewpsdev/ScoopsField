@@ -144,10 +144,13 @@ static PxArticulationLink* CreateLink(PxArticulationReducedCoordinate* articulat
 
 		float stiffness = 20.0f;
 		float damping = 5.0f;
-		float maxForce = 500.0f;
+		float maxForce = 5.0f;
 		joint->setDriveParams(PxArticulationAxis::eTWIST, PxArticulationDrive(stiffness, damping, maxForce));
 		joint->setDriveParams(PxArticulationAxis::eSWING1, PxArticulationDrive(stiffness, damping, maxForce));
 		joint->setDriveParams(PxArticulationAxis::eSWING2, PxArticulationDrive(stiffness, damping, maxForce));
+
+		float friction = 0.05f;
+		joint->setFrictionCoefficient(friction);
 	}
 
 	return link;

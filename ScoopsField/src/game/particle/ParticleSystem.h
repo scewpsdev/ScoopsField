@@ -31,6 +31,7 @@ struct ParticleEmitter
 	float spawnRadius;
 	vec3 spawnPoint0, spawnPoint1;
 	vec3 spawnSize;
+	bool follow;
 
 	float minLifetime, maxLifetime;
 	float size, endSize;

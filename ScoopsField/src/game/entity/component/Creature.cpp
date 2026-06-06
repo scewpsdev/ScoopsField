@@ -112,6 +112,9 @@ static void OnDeath(Creature* creature, HitParams* hit)
 
 bool HitCreature(Creature* creature, HitParams* hit, Entity* by)
 {
+	if (creature->health <= 0)
+		return false;
+
 	int damage = (int)(hit->damage * hit->damageMultiplier);
 	creature->health -= damage;
 

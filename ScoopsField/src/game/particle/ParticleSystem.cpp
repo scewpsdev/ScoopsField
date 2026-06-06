@@ -47,6 +47,7 @@ void InitParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitter, bool 
 	emitter->spawnPoint0 = vec3(0);
 	emitter->spawnPoint1 = vec3(0);
 	emitter->spawnSize = vec3(0);
+	emitter->follow = false;
 	emitter->size = 0.1f;
 	emitter->endSize = 0.1f;
 	emitter->gravity = vec3(0);
@@ -178,16 +179,16 @@ static vec3 GetSpawnPosition(ParticleEmitter* emitter)
 	}
 }
 
-static void SpawnParticle(ParticleEffect* effect, ParticleEmitter* emitter, vec3 effectVelocity, vec4 effectAngularVelocity)
+static void SpawnParticle(ParticleEffect* effect, ParticleEmitter* emitter, vec3 effectVelocity, vec4 effectAngularVelocity, mat4 transform)
 {
 	SDL_assert(emitter->numParticles < emitter->maxParticles);
 
 	int particleID = emitter->numParticles++;
 
-	mat4 transform = ModelMatrix((Entity*)effect);
-
 	vec3 localPosition = emitter->startPosition + GetSpawnPosition(emitter);
-	vec3 position = (transform * vec4(localPosition, 1)).xyz;
+	vec3 position = localPosition;
+	if (!emitter->follow)
+		position = (transform * vec4(position, 1)).xyz;
 	emitter->positions[particleID] = position;
 
 	emitter->sizes[particleID] = vec2(emitter->size);
@@ -247,7 +248,7 @@ static void KillParticle(ParticleEmitter* emitter, int id)
 	}
 }
 
-static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitter, vec3 effectVelocity, vec4 effectAngularVelocity)
+static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitter, vec3 effectVelocity, vec4 effectAngularVelocity, mat4 transform)
 {
 	if (emitter->burstCount)
 	{
@@ -267,7 +268,7 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 
 		for (int i = 0; i < numSpawns; i++)
 		{
-			SpawnParticle(effect, emitter, effectVelocity, effectAngularVelocity);
+			SpawnParticle(effect, emitter, effectVelocity, effectAngularVelocity, transform);
 		}
 
 		emitter->burstCount -= numSpawns;
@@ -349,7 +350,7 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 	emitter->spawnRemainder = numSpawnsF - numSpawns;
 
 	for (int i = 0; i < numSpawns; i++)
-		SpawnParticle(effect, emitter, effectVelocity, effectAngularVelocity);
+		SpawnParticle(effect, emitter, effectVelocity, effectAngularVelocity, transform);
 
 
 	if (emitter->numParticles)
@@ -386,7 +387,7 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 	}
 }
 
-static void RenderParticleEmitter(ParticleSystem* particles, ParticleEmitter* emitter)
+static void RenderParticleEmitter(ParticleSystem* particles, ParticleEmitter* emitter, mat4 transform)
 {
 	VertexBuffer* buffers[6];
 	buffers[0] = particles->quad;
@@ -398,7 +399,7 @@ static void RenderParticleEmitter(ParticleSystem* particles, ParticleEmitter* em
 
 	vec4 params = vec4(emitter->texture ? 1.0f : 0.0f, emitter->atlasFrameCount ? 1.0f : 0.0f, (vec2)emitter->atlasSize);
 
-	RenderMesh(&game->renderer, buffers, 6, nullptr, 4, emitter->numParticles, {}, {}, &params, sizeof(params), &emitter->texture, &emitter->textureSampler, 1, emitter->shader, mat4::Identity);
+	RenderMesh(&game->renderer, buffers, 6, nullptr, 4, emitter->numParticles, {}, {}, &params, sizeof(params), &emitter->texture, &emitter->textureSampler, 1, emitter->shader, emitter->follow ? transform : mat4::Identity);
 }
 
 void InitParticleEffect(ParticleEffect* effect, vec3 position, quat rotation)
@@ -451,9 +452,10 @@ void UpdateParticleEffect(ParticleEffect* effect)
 	vec3 effectVelocity = dt > 0 ? dx / dt : vec3::Zero;
 	vec4 effectAngularVelocity = dt > 0 ? dr.toAxisAngle() / vec4(1, 1, 1, dt) : vec4(1, 0, 0, 0);
 
+	mat4 transform = ModelMatrix((Entity*)effect);
 	for (int i = 0; i < effect->numEmitters; i++)
 	{
-		UpdateParticleEmitter(effect, &effect->emitters[i], effectVelocity, effectAngularVelocity);
+		UpdateParticleEmitter(effect, &effect->emitters[i], effectVelocity, effectAngularVelocity, transform);
 	}
 
 	if (effect->destroyOnFinish)
@@ -472,9 +474,10 @@ void UpdateParticleEffect(ParticleEffect* effect)
 
 void RenderParticleEffect(ParticleSystem* particles, ParticleEffect* effect)
 {
+	mat4 transform = ModelMatrix((Entity*)effect);
 	for (int i = 0; i < effect->numEmitters; i++)
 	{
-		RenderParticleEmitter(particles, &effect->emitters[i]);
+		RenderParticleEmitter(particles, &effect->emitters[i], transform);
 	}
 }
 
