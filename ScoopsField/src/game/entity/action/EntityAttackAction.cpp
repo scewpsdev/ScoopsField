@@ -23,6 +23,15 @@ void InitEntityAttackAction(EntityAction* action, EntityAttack* attack, int atta
 	action->attack.attack = attack;
 	action->attack.attackIdx = attackIdx;
 
+	for (int i = 0; i < attack->numSounds; i++)
+	{
+		AddActionSound(action, attack->sounds[i].sound, attack->sounds[i].time, attack->sounds[i].volume, attack->sounds[i].speed);
+	}
+	for (int i = 0; i < attack->numEffects; i++)
+	{
+		AddActionEffect(action, attack->effects[i].path, attack->effects[i].time, attack->effects[i].localPosition);
+	}
+
 	InitList(&action->attack.hitEntities);
 }
 
@@ -40,7 +49,7 @@ void UpdateEntityAttackAction(EntityAction* action, Entity* entity)
 	bool damage = action->elapsedTime >= action->attack.attack->damageWindow.x && action->elapsedTime <= action->attack.attack->damageWindow.y;
 	if (damage)
 	{
-		mat4 weaponTransform = ModelMatrix(entity) * GetNodeTransform(&creature->anim, creature->rightWeaponNode);
+		mat4 weaponTransform = GetRightWeaponTransform(creature);
 		vec3 direction = weaponTransform.rotation().up();
 		vec3 origin = weaponTransform.translation();
 		float range = creature->weaponRange;
@@ -61,9 +70,14 @@ void UpdateEntityAttackAction(EntityAction* action, Entity* entity)
 				params.body = hit->body;
 
 				Player* player = (Player*)hitEntity;
-				if (HitPlayer(player, params, entity))
+				if (HitPlayer(player, &params, entity))
 				{
-					PlaySound(&game->slashHitSound, hit->position);
+					if (!params.wasBlocked && !params.wasParried)
+						PlaySound(&game->hitSlashSound, hit->position);
+					else
+					{
+						// TODO enemy stun
+					}
 				}
 
 				action->attack.hitEntities.add(hitEntity);

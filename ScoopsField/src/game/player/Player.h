@@ -1,6 +1,6 @@
 #pragma once
 
-#include "game/entity/Entity.h"
+#include "game/entity/EntityBase.h"
 
 #include "model/Model.h"
 #include "model/Animation.h"
@@ -20,9 +20,11 @@ enum CameraMode
 	CAMERA_MODE_FREE,
 };
 
-struct Player : Entity
+struct HitParams;
+
+struct Player : EntityBase
 {
-	vec3 position;
+	//vec3 position;
 	float rotation;
 	float pitch, yaw;
 	float cameraHeight;
@@ -38,10 +40,10 @@ struct Player : Entity
 
 	CameraMode cameraMode;
 
-	Model model;
+	Model* model;
 	AnimationState anim;
 
-	Model bodyModel;
+	Model* bodyModel;
 	AnimationState bodyAnim;
 
 	AnimationState rightWeaponAnim;
@@ -83,9 +85,12 @@ struct Player : Entity
 
 	Node* rootNode;
 	vec3 rootMotion;
+	float rootMotionAngle;
 	mat4 lastRootNodeTransform;
+	float lastRootMotionUpdate;
 	Animation* lastActionAnimation;
 	float lastActionAnimationTimer;
+	float currentRootMotionRotation;
 
 	AnimationPlayback idleAnim;
 	AnimationPlayback bodyIdleAnim, bodyRunAnim, bodyStrafeAnim, bodyDuckAnim, bodySneakAnim, bodySneakStrafeAnim, bodyFallAnim, bodyFallDuckAnim;
@@ -104,12 +109,17 @@ struct Player : Entity
 	float lastJumpInput;
 	float lastGroundedTime;
 	float lastLandedTime;
+	float lastProjectileHit;
+	bool lastProjectileHitHeadshot;
 
 	RigidBody kinematicBody;
 
 	ActionManager actions;
 
 	Entity* interactTarget;
+
+	Item* blockItem;
+	bool parry;
 
 	int health;
 	int maxHealth;
@@ -128,6 +138,6 @@ Item* GetLeftWeapon(Player* player);
 mat4 GetRightWeaponTransform(Player* player);
 mat4 GetLeftWeaponTransform(Player* player);
 
-bool HitPlayer(Player* player, HitParams hit, Entity* by);
+bool HitPlayer(Player* player, HitParams* hit, Entity* by);
 bool GiveItem(Player* player, Item* item);
 bool DropItem(Player* player, Item* item);

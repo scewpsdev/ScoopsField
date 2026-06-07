@@ -1171,7 +1171,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 	Bloom(renderer, renderer->hdrTarget->colorAttachments[0], cmdBuffer);
 
-	AutoExposure(renderer, renderer->bloomDownsampleTargets[renderer->bloomStepCount - 1]);
+	AutoExposure(renderer, renderer->bloomDownsampleTargets[renderer->bloomStepCount - 1], cmdBuffer);
 
 	// tonemapping
 	{

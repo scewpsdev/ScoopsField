@@ -102,7 +102,7 @@
     <ClCompile Include="src\physics\CharacterController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\renderer\Renderer2D.cpp">
+    <ClCompile Include="src\renderer\GUIRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\game\player\Player.cpp">
@@ -220,6 +220,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\physics\Articulation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\renderer\ReflectionProbeUpdate.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -410,7 +413,7 @@
     <ClInclude Include="src\physics\CharacterController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\renderer\Renderer2D.h">
+    <ClInclude Include="src\renderer\GUIRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\game\player\Player.h">

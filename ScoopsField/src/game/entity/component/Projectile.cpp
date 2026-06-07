@@ -5,7 +5,7 @@
 #include "game/player/action/Action.h"
 
 
-void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, float speed, int damage)
+void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, float speed, int damage, Entity* shooter)
 {
 	InitEntity((Entity*)projectile, ENTITY_TYPE_PROJECTILE);
 	projectile->position = position;
@@ -16,6 +16,8 @@ void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 
 	projectile->offset = startTransform.translation() - position;
 
 	projectile->damage = damage;
+
+	projectile->shooter = shooter;
 }
 
 void DestroyProjectile(Projectile* projectile, Entity* entity)
@@ -77,9 +79,16 @@ void UpdateProjectile(Projectile* projectile)
 					hit.position = hits[i].position;
 					hit.body = body;
 					hit.impulse = projectile->velocity * 0.005f * 40.0f / 30.0f * projectile->damage / 200.0f;
-					HitEntity((Entity*)body->userPtr, &hit, (Entity*)projectile);
+					if (HitEntity((Entity*)body->userPtr, &hit, (Entity*)projectile))
+					{
+						if (projectile->hitSound)
+							PlaySound(projectile->hitSound, projectile->position, 1);
 
-					projectile->removed = true;
+						if (projectile->shooter && projectile->shooter->type == ENTITY_TYPE_PLAYER)
+							OnProjectileHit(&projectile->shooter->player, hit.wasHeadshot);
+
+						projectile->removed = true;
+					}
 				}
 			}
 		}
@@ -121,12 +130,14 @@ void RenderProjectile(Projectile* projectile)
 }
 
 
-void InitArrow(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform)
+void InitArrow(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, Entity* shooter)
 {
 	float speed = 40;
-	InitProjectile(projectile, position, direction, startTransform, speed, 40);
+	int damage = 40;
+	InitProjectile(projectile, position, direction, startTransform, speed, damage, shooter);
 
 	projectile->model = GetModel("items/arrow/arrow.glb");
+	projectile->hitSound = &game->hitArrowSound;
 
 	projectile->gravity = -10;
 	projectile->rotateForwards = true;
@@ -141,10 +152,11 @@ void InitArrow(Projectile* projectile, vec3 position, vec3 direction, mat4 start
 	projectile->trail->fadeAlpha = true;
 }
 
-void InitMagicProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform)
+void InitMagicProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, Entity* shooter)
 {
 	float speed = 30;
-	InitProjectile(projectile, position, direction, startTransform, speed, 30);
+	int damage = 30;
+	InitProjectile(projectile, position, direction, startTransform, speed, damage, shooter);
 
 	//projectile->model = GetModel("entities/projectile/magic_projectile/magic_projectile.glb");
 	//projectile->shader = game->magicProjectileShader;

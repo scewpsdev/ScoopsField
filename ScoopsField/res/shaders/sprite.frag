@@ -3,7 +3,7 @@
 layout (location = 0) in vec3 v_texcoord;
 layout (location = 1) in vec4 v_color;
 
-layout (location = 0) out vec4 FragColor;
+layout (location = 0) out vec4 out_color;
 
 layout(set = 2, binding = 0) uniform sampler2D s_texture0;
 layout(set = 2, binding = 1) uniform sampler2D s_texture1;
@@ -51,5 +51,6 @@ void main()
 {
 	int textureID = int(v_texcoord.z);
 	vec4 textureColor = textureID >= 0 ? SampleTexture(textureID, v_texcoord.xy) : vec4(1);
-	FragColor = v_color * textureColor;
+	vec4 color = v_color * textureColor;
+	out_color = vec4(color.rgb * color.a * textureColor.a, color.a);
 }

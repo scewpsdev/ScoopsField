@@ -222,6 +222,28 @@ int Raycast(const vec3& origin, const vec3& direction, float distance, PhysicsHi
 	return (int)hitBuffer.getNbAnyHits();
 }
 
+bool Raycast(const vec3& origin, const vec3& direction, float distance, uint32_t filterMask)
+{
+	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);
+	filterData.data.word0 = filterMask;
+
+	PxRaycastBuffer hitBuffer = PxRaycastBuffer();
+	return physics->scene->raycast(PxVector(origin), PxVector(direction), distance, hitBuffer, PxHitFlag::eDEFAULT, filterData);
+}
+
+bool Linecast(vec3 point0, vec3 point1, uint32_t filterMask)
+{
+	vec3 direction = point1 - point0;
+	float distance = direction.length();
+	direction /= distance;
+
+	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);
+	filterData.data.word0 = filterMask;
+
+	PxRaycastBuffer hitBuffer = PxRaycastBuffer();
+	return physics->scene->raycast(PxVector(point0), PxVector(direction), distance, hitBuffer, PxHitFlag::eDEFAULT, filterData);
+}
+
 int OverlapSphere(const vec3& position, float radius, PhysicsHit* hits, int maxHits, uint32_t filterMask)
 {
 	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);

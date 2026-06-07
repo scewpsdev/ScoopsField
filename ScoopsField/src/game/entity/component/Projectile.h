@@ -29,16 +29,19 @@ struct Projectile : EntityBase
 
 	Trail* trail;
 	ParticleEffect* particles;
+	Sound* hitSound;
 
 	int damage;
+
+	Entity* shooter;
 };
 
 
-void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, float speed, int damage);
+void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, float speed, int damage, Entity* shooter);
 void DestroyProjectile(Projectile* projectile, Entity* entity);
 
 void UpdateProjectile(Projectile* projectile);
 void RenderProjectile(Projectile* projectile);
 
-void InitArrow(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform);
-void InitMagicProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform);
+void InitArrow(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, Entity* shooter);
+void InitMagicProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, Entity* shooter);

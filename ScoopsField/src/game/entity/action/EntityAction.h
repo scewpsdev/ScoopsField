@@ -3,14 +3,14 @@
 #include "model/Model.h"
 #include "model/Animation.h"
 
+#include "game/player/action/Action.h"
+
 #include "utils/Queue.h"
 
 #include "EntityAttackAction.h"
 #include "EntityStaggerAction.h"
 #include "EntityDeathAction.h"
 
-
-struct Entity;
 
 enum EntityActionType
 {
@@ -22,6 +22,8 @@ enum EntityActionType
 
 	ENTITY_ACTION_TYPE_LAST
 };
+
+struct Entity;
 
 struct EntityAction
 {
@@ -37,9 +39,14 @@ struct EntityAction
 	float turnSpeed;
 	float followUpCancelTime;
 
+	AnimationPlayback anim;
+
+#define MAX_ACTION_EVENTS 8
+	ActionEvent events[MAX_ACTION_EVENTS];
+	int numEvents;
+
 	float startTime;
 	float elapsedTime;
-	AnimationPlayback anim;
 
 	union
 	{
@@ -66,24 +73,10 @@ EntityActionCase(func, Death, DEATH) \
 default: SDL_assert(false); break; \
 }
 
-inline void StartAction(EntityAction* action, Entity* entity)
-{
-	RunEntityActionFunc(Start);
-}
-
-inline void StopAction(EntityAction* action, Entity* entity)
-{
-	RunEntityActionFunc(Stop);
-}
-
-inline void UpdateAction(EntityAction* action, Entity* entity, float deltaTime)
-{
-	action->elapsedTime += deltaTime;
-	RunEntityActionFunc(Update);
-}
-
 
 void InitAction(EntityAction* action, EntityActionType type);
+void AddActionSound(EntityAction* action, Sound* sound, float time = 0, float volume = 1, float speed = 1);
+void AddActionEffect(EntityAction* action, const char* effect, float time, vec3 localPosition);
 
 void InitActionManager(EntityActionManager& actions, Model* moveset);
 void UpdateActionManager(EntityActionManager& actions, Entity& entity);

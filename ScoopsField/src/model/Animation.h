@@ -19,14 +19,14 @@ struct AnimationPlayback
 
 struct SkeletonState
 {
-	mat4 boneTransforms[MAX_BONES];
+	mat4* boneTransforms;
 	int numBones;
 };
 
 struct AnimationState
 {
 	Model* model;
-	mat4 nodeTransforms[MAX_NODES];
+	mat4* nodeTransforms;
 	SkeletonState skeletons[MAX_SKELETONS];
 
 	HashMap<Node*, int, MAX_NODES> channelMap;
@@ -36,6 +36,7 @@ typedef bool(*AnimationChannelFilterCallback_t)(Node* node, void* userPtr);
 
 
 void InitAnimationState(AnimationState* animationState, Model* model);
+void DestroyAnimationState(AnimationState* animationState);
 
 mat4 AnimateNode(Node* node, AnimationChannel* channel, Animation* animation, float time, bool loop);
 void AnimateModel(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr);

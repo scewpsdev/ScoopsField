@@ -1,7 +1,7 @@
 
 
 
-static void AutoExposure(Renderer* renderer, RenderTarget* input)
+static void AutoExposure(Renderer* renderer, RenderTarget* input, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	GPU_SCOPE("AutoExposure");
 

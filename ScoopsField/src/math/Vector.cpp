@@ -44,6 +44,11 @@ vec2 vec2::rotate(float angle) const
 	return vec2(length * cosf(newAngle), length * sinf(newAngle));
 }
 
+vec2::operator ivec2() const
+{
+	return ivec2((int)x, (int)y);
+}
+
 vec2 vec2::operator-() const
 {
 	return vec2(-x, -y);
@@ -899,7 +904,7 @@ vec3 floor(const vec3& v)
 	return vec3(SDL_floorf(v.x), SDL_floorf(v.y), SDL_floorf(v.z));
 }
 
-vec3 pow(const vec3& a,	float b)
+vec3 pow(const vec3& a, float b)
 {
 	return vec3(SDL_powf(a.x, b), SDL_powf(a.y, b), SDL_powf(a.z, b));
 }

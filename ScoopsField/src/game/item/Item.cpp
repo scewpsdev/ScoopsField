@@ -130,8 +130,8 @@ static int AddBlock(Item* item, const char* name, const char* animation, float a
 	attack->animation = animation;
 	attack->animationSpeed = animationSpeed;
 	attack->parryWindow = vec2(0, (float)parryEndFrame) / 24.0f / animationSpeed;
-	attack->blockWindow = vec2((float)parryEndFrame, 1000) / 24.0f / animationSpeed;
-	attack->followUpCancelTime = parryEndFrame / 24.0f / animationSpeed;
+	attack->blockWindow = vec2(0, 1000) / 24.0f / animationSpeed;
+	attack->followUpCancelTime = parryEndFrame / 24.0f / animationSpeed + 0.2f;
 
 	return attackID;
 }
@@ -158,7 +158,7 @@ static void InitWeapons(ItemDatabase* items)
 
 		AddAttack(item, "attack1", "attack1", 1, 15, 24, 32, 1.0f, "attack2");
 		AddAttack(item, "attack2", "attack2", 1, 15, 24, 32, 1.0f, "attack1");
-		AddBlock(item, "block", "block", 1, 12);
+		AddBlock(item, "block", "block", 1, 6);
 	}
 	// shortbow
 	{

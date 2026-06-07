@@ -2,7 +2,7 @@
 
 #include "renderer/Renderer.h"
 #include "renderer/DebugTextRenderer.h"
-#include "renderer/Renderer2D.h"
+#include "renderer/GUIRenderer.h"
 
 #include "audio/Audio.h"
 
@@ -17,7 +17,7 @@
 #include "utils/Random.h"
 #include "utils/Pool.h"
 
-#include "game/player/Player.h"
+#include "game/entity/Entity.h"
 
 #include "game/item/Item.h"
 
@@ -36,7 +36,7 @@ struct GameState
 	vec4 frustumPlanes[6];
 
 	Renderer renderer;
-	Renderer2D guiRenderer;
+	GUIRenderer guiRenderer;
 
 	Random random;
 
@@ -63,13 +63,18 @@ struct GameState
 	Sound landSound;
 	Sound exhaustedSound;
 	Sound swingSound;
-	Sound slashHitSound;
-	Sound skeletonHitSound;
+	Sound armorSound;
+	Sound hitSlashSound;
+	Sound hitSkeletonSound;
 	Sound hitArmorSound;
+	Sound hitArrowSound;
+	Sound hitBlockSound;
+	Sound hitParrySound;
 	Sound stepBareSound, jumpBareSound, landBareSound;
 
 	Texture* crosshair;
 	Texture* crosshairInteract;
+	Texture* hitmarker;
 	Texture* vignette;
 	Texture* roundCounter;
 	Texture* digits;

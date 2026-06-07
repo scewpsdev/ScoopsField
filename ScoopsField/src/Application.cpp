@@ -100,7 +100,7 @@ void GUIPanel(int x, int y, int w, int h, vec4 color)
 	drawData.size = vec2((float)w, (float)h);
 	drawData.rotation = 0;
 	drawData.color = color;
-	DrawSprite(&game->guiRenderer, 0, &drawData);
+	DrawSprite(&game->guiRenderer, &drawData);
 }
 
 void GUIPanel(int x, int y, int w, int h, Texture* texture, vec4 color)
@@ -112,7 +112,7 @@ void GUIPanel(int x, int y, int w, int h, Texture* texture, vec4 color)
 	drawData.color = color;
 	drawData.texture = texture;
 	drawData.rect = vec4(0, 0, 1, 1);
-	DrawSprite(&game->guiRenderer, 0, &drawData);
+	DrawSprite(&game->guiRenderer, &drawData);
 }
 
 void GUIPanel(int x, int y, Texture* texture, const ivec4& textureRect, vec4 color)
@@ -134,7 +134,7 @@ void GUIPanel(int x, int y, Texture* texture, const ivec4& textureRect, vec4 col
 		w / (float)texture->info.width,
 		h / (float)texture->info.height
 	);
-	DrawSprite(&game->guiRenderer, 0, &drawData);
+	DrawSprite(&game->guiRenderer, &drawData);
 }
 
 void GUIPanel(int x, int y, Texture* texture)

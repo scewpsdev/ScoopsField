@@ -39,6 +39,9 @@ void InitCreature(Creature* creature, const char* model, float lookDirection, in
 	creature->walkSpeed = 4;
 	creature->turnSpeed = 5;
 	creature->damage = 10;
+	creature->eyePosition = vec3(0, 1.5f, 0);
+	creature->detectionRange = 20;
+	creature->detectionAngle = PI * 0.75f;
 }
 
 void DestroyCreature(Creature* creature)
@@ -53,6 +56,8 @@ void DestroyCreature(Creature* creature)
 			DestroyRigidBody(bone);
 		}
 	}
+
+	DestroyAnimationState(&creature->anim);
 }
 
 static Node* GetNodeForHitbox(Creature* creature, RigidBody* hitbox)
@@ -91,8 +96,6 @@ static void OnDeath(Creature* creature, HitParams* hit, Node* hitNode)
 	}
 	*/
 
-	// spawn ragdoll
-
 	Ragdoll* ragdoll = (Ragdoll*)CreateEntity();
 	InitRagdoll(ragdoll, creature);
 
@@ -113,12 +116,17 @@ bool HitCreature(Creature* creature, HitParams* hit, Entity* by)
 	if (creature->health <= 0)
 		return false;
 
-	int damage = (int)(hit->damage * hit->damageMultiplier);
-	creature->health -= damage;
-
-	PlaySound(creature->hitSound, hit->position);
+	float damage = hit->damage * hit->damageMultiplier;
 
 	Node* hitNode = GetNodeForHitbox(creature, hit->body);
+	bool isHeadshot = SDL_strcmp(hitNode->name, "Head") == 0;
+	hit->wasHeadshot = isHeadshot;
+	if (isHeadshot)
+		damage *= 2;
+
+	creature->health -= (int)damage;
+
+	PlaySound(creature->hitSound, hit->position);
 
 	if (creature->health <= 0)
 	{
@@ -134,7 +142,7 @@ bool HitCreature(Creature* creature, HitParams* hit, Entity* by)
 	}
 	else
 	{
-		const char* staggerAnimation = SDL_strcmp(hitNode->name, "Head") == 0 ? "stagger_headshot" : "stagger";
+		const char* staggerAnimation = isHeadshot ? "stagger_headshot" : "stagger";
 
 		if (GetAnimationByName(creature->model, staggerAnimation))
 		{
@@ -143,6 +151,16 @@ bool HitCreature(Creature* creature, HitParams* hit, Entity* by)
 			CancelAction(creature->actions, *(Entity*)creature);
 			QueueAction(creature->actions, action, *(Entity*)creature);
 		}
+
+		Entity* attacker = by;
+		if (attacker->type == ENTITY_TYPE_PROJECTILE)
+		{
+			Projectile* projectile = (Projectile*)attacker;
+			attacker = projectile->shooter;
+		}
+
+		if ((attacker->type == ENTITY_TYPE_PLAYER || attacker->type == ENTITY_TYPE_CREATURE) && !creature->target)
+			creature->target = attacker;
 	}
 
 	return true;
@@ -168,6 +186,17 @@ static bool UpperBodyAnimFilter(Node* node, void* userPtr)
 	return isUpperBody;
 }
 
+static bool ExcludeRootAnimFilter(Node* node, void* userPtr)
+{
+	return SDL_strcmp(node->name, "Root") != 0;
+}
+
+mat4 GetRightWeaponTransform(Creature* creature)
+{
+	mat4 transform = mat4::Translate(creature->position) * mat4::Rotate(vec3::Up, creature->lookDirection + PI);
+	return transform * GetNodeTransform(&creature->anim, creature->rightWeaponNode);
+}
+
 static EntityAction* GetCurrentAction(Creature* creature)
 {
 	return QueuePeek(creature->actions.actions);
@@ -191,50 +220,9 @@ static bool AttackRequirementsMet(Creature* creature, EntityAttack* attack, floa
 	return requirementsMet;
 }
 
-static void UpdateAI(Creature* creature)
+static void UpdateAttackAI(Creature* creature, float distanceToTarget, float toTargetAngle)
 {
-	Player* target = &game->player;
-	creature->targetPosition = target->position;
-	/*
-	if (EveryInterval(1, hash(creature)))
-	{
-		creature->targetPosition = target->position;
-		bool success = CalculateNavmeshPath(&game->mapNavmesh, creature->position, creature->targetPosition, creature->currentPath, creature->currentPathLength);
-		SDL_assert(success);
-	}
-	*/
-
-	vec3 toTarget = creature->targetPosition - creature->position;
-	float distanceToTarget = toTarget.length();
-	toTarget /= distanceToTarget;
-
-	vec3 walkDir = toTarget;
-	/*
-	if (creature->currentPathLength > 0)
-	{
-		NavmeshNode* targetNode = &game->mapNavmesh.nodes[creature->currentPath[1]];
-		walkDir = (targetNode->position - creature->position).normalized();
-	}
-	*/
-	walkDir *= vec3(1, 0, 1);
-
-	quat toTargetRotation = quat::LookAt(walkDir, vec3::Up);
-	float toTargetAngle = toTargetRotation.getAngle() * sign(toTargetRotation.getAxis().y);
-	creature->targetDirection = toTargetAngle;
-
-	if (distanceToTarget > 0.5f)
-	{
-		creature->fsu = vec3(0, 0, -1);
-		creature->moving = true;
-	}
-	else
-	{
-		creature->moving = false;
-	}
-
 	float localAngle = mod(toTargetAngle - creature->lookDirection + PI, 2 * PI) - PI;
-
-	DebugText(0, 10, "%.2f, %.2f", distanceToTarget, localAngle);
 
 	EntityAttack* attack = nullptr;
 	int attackIdx = 0;
@@ -267,11 +255,6 @@ static void UpdateAI(Creature* creature)
 			EntityAttack* attack = &creature->attacks[i];
 
 			bool requirementsMet = AttackRequirementsMet(creature, attack, distanceToTarget, localAngle) && attack->firstAttack;
-			if (requirementsMet && i == 3 && fabsf(localAngle) < 0.5f * PI)
-			{
-				__debugbreak();
-				AttackRequirementsMet(creature, attack, distanceToTarget, localAngle) && attack->firstAttack;
-			}
 			if (requirementsMet)
 				possibleAttacks.add(attack);
 		}
@@ -288,6 +271,144 @@ static void UpdateAI(Creature* creature)
 		InitEntityAttackAction(&action, attack, attackIdx);
 		QueueAction(creature->actions, action, *(Entity*)creature);
 	}
+}
+
+static bool IsEntityVisible(Creature* creature, Entity* entity)
+{
+	vec3 origin = creature->position + creature->eyePosition;
+	vec3 target = entity->position + vec3(0, 1, 0);
+	return !Linecast(origin, target, ENTITY_FILTER_DEFAULT);
+}
+
+static bool IsInViewCone(Creature* creature, Entity* entity)
+{
+	vec3 toTarget = entity->position - creature->position;
+	float distanceToTarget = toTarget.length();
+
+	quat toTargetRotation = quat::LookAt(toTarget * vec3(1, 0, 1), vec3::Up);
+	float toTargetAngle = toTargetRotation.getAngle() * sign(toTargetRotation.getAxis().y);
+
+	float localAngle = mod(toTargetAngle - creature->lookDirection + PI, 2 * PI) - PI;
+
+	return distanceToTarget <= creature->detectionRange && localAngle >= -0.5f * creature->detectionAngle && localAngle <= 0.5f * creature->detectionAngle;
+}
+
+static void UpdateAI(Creature* creature)
+{
+	creature->fsu = vec3(0);
+
+	if (!creature->target)
+	{
+		Entity* potentialTarget = (Entity*)&game->player;
+		if (IsEntityVisible(creature, potentialTarget) && IsInViewCone(creature, potentialTarget))
+		{
+			creature->target = potentialTarget;
+			SDL_Log("target found\n");
+		}
+	}
+
+	if (creature->target)
+	{
+		vec3 toTarget = creature->target->position - creature->position;
+		float distanceToTarget = toTarget.length();
+
+		quat toTargetRotation = quat::LookAt(toTarget * vec3(1, 0, 1), vec3::Up);
+		float toTargetAngle = toTargetRotation.getAngle() * sign(toTargetRotation.getAxis().y);
+
+		if (IsEntityVisible(creature, creature->target))
+		{
+			creature->targetPosition = creature->target->position;
+
+			UpdateAttackAI(creature, distanceToTarget, toTargetAngle);
+		}
+		else
+		{
+			creature->searchEntity = creature->target;
+			creature->target = nullptr;
+			SDL_Log("target lost\n");
+		}
+	}
+
+	DebugText(0, 10, "state: %s", creature->target ? "target" : creature->searchEntity ? "search" : creature->targetPosition != vec3::Zero ? "examine" : "idle");
+
+	if (creature->targetPosition != vec3::Zero && !creature->target && creature->searchEntity)
+	{
+		if (IsEntityVisible(creature, creature->searchEntity) && (creature->searchEntity->position - creature->position).length() < creature->detectionRange)
+		{
+			creature->target = creature->searchEntity;
+			creature->searchEntity = nullptr;
+		}
+	}
+
+	if (creature->targetPosition != vec3::Zero)
+	{
+		/*
+		if (EveryInterval(1, hash(creature)))
+		{
+			creature->targetPosition = target->position;
+			bool success = CalculateNavmeshPath(&game->mapNavmesh, creature->position, creature->targetPosition, creature->currentPath, creature->currentPathLength);
+			SDL_assert(success);
+		}
+		*/
+
+		vec3 toTargetPosition = creature->targetPosition - creature->position;
+		float distanceToTargetPosition = toTargetPosition.length();
+		toTargetPosition /= distanceToTargetPosition;
+
+		/*
+		if (creature->currentPathLength > 0)
+		{
+			NavmeshNode* targetNode = &game->mapNavmesh.nodes[creature->currentPath[1]];
+			walkDir = (targetNode->position - creature->position).normalized();
+		}
+		*/
+
+		quat toTargetPositionRot = quat::LookAt(toTargetPosition * vec3(1, 0, 1), vec3::Up);
+		float toTargetAngle = toTargetPositionRot.getAngle() * sign(toTargetPositionRot.getAxis().y);
+		creature->targetDirection = toTargetAngle;
+
+		if (distanceToTargetPosition > 0.5f)
+		{
+			creature->fsu = vec3(0, 0, -1);
+			creature->moving = true;
+		}
+		else
+		{
+			creature->moving = false;
+
+			creature->targetPosition = vec3(0);
+			creature->searchEntity = nullptr;
+		}
+	}
+}
+
+static void UpdateAnimationBlending(Creature* creature, Animation* currentAnimation, float timer, bool loop)
+{
+	if (currentAnimation != creature->lastAnim && creature->lastAnim)
+	{
+		creature->blendStart = gameTime;
+		creature->blendAnim = creature->lastAnim;
+		creature->blendAnimTimer = creature->lastAnimTimer;
+		creature->blendAnimLoop = creature->lastAnimLoop;
+		creature->blendDuration = 0.2f;
+	}
+
+	if (creature->blendStart)
+	{
+		float blendProgress = creature->blendDuration ? (gameTime - creature->blendStart) / creature->blendDuration : 1;
+		if (blendProgress >= 1)
+		{
+			creature->blendStart = 0;
+		}
+		else
+		{
+			BlendAnimation(creature->model, &creature->anim, creature->blendAnim, creature->blendAnimTimer, creature->blendAnimLoop, 1 - blendProgress, (AnimationChannelFilterCallback_t)ExcludeRootAnimFilter, nullptr);
+		}
+	}
+
+	creature->lastAnim = currentAnimation;
+	creature->lastAnimTimer = timer;
+	creature->lastAnimLoop = loop;
 }
 
 static void UpdateRootMotion(Creature* creature)
@@ -348,11 +469,18 @@ void UpdateCreature(Creature* creature)
 
 	UpdateActionManager(creature->actions, *(Entity*)creature);
 
-	AnimationPlayback* moveAnimation = creature->moving ? &creature->runAnim : &creature->idleAnim;
-	moveAnimation->timer += deltaTime * moveAnimation->speed;
 
-	AnimateModel(creature->model, &creature->anim, moveAnimation->animation, moveAnimation->timer, moveAnimation->loop, nullptr, nullptr);
+	AnimationPlayback* currentAnimation = nullptr;
+	if (EntityAction* currentAction = GetCurrentAction(creature))
+		currentAnimation = &currentAction->anim;
+	else
+		currentAnimation = creature->moving ? &creature->runAnim : &creature->idleAnim;
 
+	currentAnimation->timer += deltaTime * currentAnimation->speed;
+
+	AnimateModel(creature->model, &creature->anim, currentAnimation->animation, currentAnimation->timer, currentAnimation->loop, nullptr, nullptr);
+
+	/*
 	if (EntityAction* currentAction = GetCurrentAction(creature))
 	{
 		AnimationPlayback* actionAnimation = &currentAction->anim;
@@ -361,8 +489,11 @@ void UpdateCreature(Creature* creature)
 		bool right = true;
 		BlendAnimation(creature->model, &creature->anim, actionAnimation->animation, actionAnimation->timer, actionAnimation->loop, 1, !currentAction->fullBody ? (AnimationChannelFilterCallback_t)UpperBodyAnimFilter : nullptr);
 	}
+	*/
 
 	UpdateRootMotion(creature);
+
+	UpdateAnimationBlending(creature, currentAnimation->animation, currentAnimation->timer, currentAnimation->loop);
 
 	ApplyAnimationToSkeleton(creature->model, &creature->anim);
 
@@ -413,13 +544,12 @@ void RenderCreature(Creature* creature)
 	mat4 transform = mat4::Translate(creature->position) * mat4::Rotate(vec3::Up, creature->lookDirection + PI);
 	RenderModel(&game->renderer, creature->model, &creature->anim, transform);
 
-	// render weapon
 	for (int i = 0; i < creature->model->numNodes; i++)
 	{
 		Node* node = &creature->model->nodes[i];
 		if (SDL_strcmp(node->name, "Weapon") == 0)
 		{
-			mat4 weaponTransform = transform * GetNodeTransform(&creature->anim, creature->rightWeaponNode);
+			mat4 weaponTransform = GetRightWeaponTransform(creature);
 			RenderModelNode(&game->renderer, creature->model, node, nullptr, nullptr, weaponTransform, weaponTransform);
 		}
 	}
@@ -434,6 +564,25 @@ void RenderCreature(Creature* creature)
 
 
 
+static void AddAttackSound(EntityAttack* attack, Sound* sound, int frame, float volume, float speed)
+{
+	SDL_assert(attack->numSounds < MAX_ATTACK_SOUNDS);
+	AttackSound* attackSound = &attack->sounds[attack->numSounds++];
+	attackSound->sound = sound;
+	attackSound->time = frame / 24.0f;
+	attackSound->volume = volume;
+	attackSound->speed = speed;
+	attackSound->pan = 0;
+}
+
+static void AddAttackEffect(EntityAttack* attack, const char* path, float time, vec3 localPosition)
+{
+	SDL_assert(attack->numEffects < MAX_ATTACK_EFFECTS);
+	AttackEffect* attackEffect = &attack->effects[attack->numEffects++];
+	attackEffect->path = path;
+	attackEffect->time = time;
+	attackEffect->localPosition = localPosition;
+}
 
 static EntityAttack* AddAttack(Creature* creature, const char* name, const char* animation, bool firstAttack, float animationSpeed, float damageMultiplier, ivec2 damageWindow, int cancelFrame, vec2 rangeTriggerWindow = vec2(0, 5), vec2 angleTriggerWindow = vec2(-0.5f * PI, 0.5f * PI), const char* followUp = nullptr, float followUpChance = 1.0f)
 {
@@ -451,7 +600,8 @@ static EntityAttack* AddAttack(Creature* creature, const char* name, const char*
 	attack->followUp = followUp;
 	attack->followUpChance = followUpChance;
 
-	//AddAttackSound(attack, &game->swingSound, attack->damageWindow.x, 1, 1, (attackID % 2 * -2 + 1) * 0.2f);
+	if (attack->damageWindow.x)
+		AddAttackSound(attack, &game->swingSound, damageWindow.x, 1, 0.5f);
 
 	return attack;
 }
@@ -463,7 +613,7 @@ void InitSkeleton(Entity* skeleton, const vec3& position, float rotation)
 
 	InitCreature(&skeleton->creature, "entities/skeleton/skeleton.glb", rotation, 100);
 
-	skeleton->creature.hitSound = &game->skeletonHitSound;
+	skeleton->creature.hitSound = &game->hitSkeletonSound;
 }
 
 void InitKnight(Creature* creature, const vec3& position, float rotation)
@@ -477,10 +627,26 @@ void InitKnight(Creature* creature, const vec3& position, float rotation)
 	creature->damage = 20;
 	creature->weaponRange = 1.2f;
 
-	AddAttack(creature, "slam", "attack_slam", true, 1, 1, ivec2(15, 23), 40, vec2(1, 4), vec2(-0.5f * PI, 0.5f * PI), "slash", 0.5f);
-	AddAttack(creature, "slash", "attack_slash_backhand", false, 1, 1, ivec2(25, 33), 48, vec2(1, 4));
-	AddAttack(creature, "backstep", "attack_backstep", true, 1, 1, ivec2(0), 0, vec2(0, 2));
-	AddAttack(creature, "turnaround", "attack_turnaround", true, 1, 1, ivec2(0), 0, vec2(0, 5), vec2(0.5f * PI, -0.5f * PI));
+	EntityAttack* slam = AddAttack(creature, "slam", "attack_slam", true, 1, 1, ivec2(15, 23), 40, vec2(0, 3.5f), vec2(-0.5f * PI, 0.5f * PI), "slash", 0.5f);
+	AddAttackSound(slam, &game->stepSound, 15, 2, 1);
+	//AddAttackSound(slam, &game->armorSound, 15, 1, 1);
+	AddAttackSound(slam, &game->armorSound, 20, 1, 1);
+	AddAttackSound(slam, &game->armorSound, 40, 1, 1);
+
+	EntityAttack* slash = AddAttack(creature, "slash", "attack_slash_backhand", false, 1, 1, ivec2(25, 33), 48, vec2(0, 3.5f));
+	AddAttackSound(slash, &game->stepSound, 5, 2, 1);
+	AddAttackSound(slash, &game->stepSound, 10, 2, 1);
+	//AddAttackSound(slash, &game->armorSound, 5, 1, 1);
+	//AddAttackSound(slash, &game->armorSound, 10, 1, 1);
+	AddAttackSound(slash, &game->armorSound, 23, 1, 1);
+	AddAttackSound(slash, &game->armorSound, 55, 1, 1);
+
+	EntityAttack* backstep = AddAttack(creature, "backstep", "attack_backstep", true, 1, 1, ivec2(0), 0, vec2(0, 2));
+	AddAttackSound(backstep, &game->stepSound, 12, 2, 1);
+
+	EntityAttack* turnaround = AddAttack(creature, "turnaround", "attack_turnaround", true, 1, 1, ivec2(0), 0, vec2(0, 5), vec2(0.5f * PI, -0.5f * PI));
+	AddAttackSound(turnaround, &game->armorSound, 4, 1, 1);
+	AddAttackSound(turnaround, &game->stepSound, 10, 2, 1);
 
 	creature->hitSound = &game->hitArmorSound;
 }

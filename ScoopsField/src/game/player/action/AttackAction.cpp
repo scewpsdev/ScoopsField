@@ -88,6 +88,9 @@ void StopAttackAction(Action* action, Player* player)
 		ClearQueuedAction(player->actions);
 		QueueAction(player->actions, shootAction, *player);
 	}
+
+	player->blockItem = nullptr;
+	player->parry = false;
 }
 
 void UpdateAttackAction(Action* action, Player* player)
@@ -95,6 +98,13 @@ void UpdateAttackAction(Action* action, Player* player)
 	action->animationSpeed = action->attack.attack->animationSpeed * (action->attack.lastHitTime && gameTime - action->attack.lastHitTime < HIT_FREEZE_DURATION ? 0.2f : 1);
 	action->rightAnim.speed = action->animationSpeed;
 	//action->speed = action->attack.attack->animationSpeed * (action->attack.lastHitTime && gameTime - action->attack.lastHitTime < HIT_FREEZE_DURATION ? 0.2f : 1);
+
+	if (action->elapsedTime >= action->attack.attack->blockWindow.x && action->elapsedTime <= action->attack.attack->blockWindow.y)
+		player->blockItem = action->attack.weapon;
+	else
+		player->blockItem = nullptr;
+
+	player->parry = action->elapsedTime >= action->attack.attack->parryWindow.x && action->elapsedTime <= action->attack.attack->parryWindow.y;
 
 	if (action->attack.attack->stance)
 	{
@@ -134,13 +144,13 @@ void UpdateAttackAction(Action* action, Player* player)
 					params.body = hit->body;
 					params.impulse = direction * 0.1f;
 
-					if (HitEntity(hitEntity, &params, player))
+					if (HitEntity(hitEntity, &params, (Entity*)player))
 					{
 						action->attack.lastHitTime = gameTime;
 
 						//game->points += 10;
 
-						PlaySound(&game->slashHitSound, hit->position);
+						PlaySound(&game->hitSlashSound, hit->position);
 					}
 
 					action->attack.hitEntities.add(hitEntity);
@@ -153,7 +163,7 @@ void UpdateAttackAction(Action* action, Player* player)
 	{
 		Projectile* projectile = (Projectile*)PoolAlloc(&game->entities);
 		mat4 transform = GetRightWeaponTransform(player) * mat4::Translate(action->attack.weapon->weapon.castOffset);
-		InitMagicProjectile(projectile, game->cameraPosition, game->cameraRotation.forward(), transform);
+		InitMagicProjectile(projectile, game->cameraPosition, game->cameraRotation.forward(), transform, (Entity*)player);
 		action->attack.projectile = projectile;
 	}
 

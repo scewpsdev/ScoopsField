@@ -35,11 +35,11 @@ void InitEquipAction(Action* action, Item* weapon, int dstLoadout)
 	else
 	{
 		action->rightAnimName = "equip";
-		action->rightAnimMoveset = &game->player.model;
+		action->rightAnimMoveset = game->player.model;
 		action->rightAnimBlendDuration = 0.0f;
 
 		action->leftAnimName = "equip";
-		action->leftAnimMoveset = &game->player.model;
+		action->leftAnimMoveset = game->player.model;
 		action->leftAnimBlendDuration = 0.0f;
 
 		AddActionSound(action, &game->items.equipLightSound, 0, 1, 1, 0);

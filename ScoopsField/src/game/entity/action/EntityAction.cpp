@@ -1,5 +1,7 @@
 #include "EntityAction.h"
 
+#include "Application.h"
+
 #include "game/entity/Entity.h"
 
 
@@ -14,6 +16,75 @@ void InitAction(EntityAction* action, EntityActionType type)
 	action->speed = 1.0f;
 	action->walkSpeed = 1.0f;
 	action->turnSpeed = 1.0f;
+}
+
+void AddActionSound(EntityAction* action, Sound* sound, float time, float volume, float speed)
+{
+	SDL_assert(action->numEvents < MAX_ACTION_EVENTS);
+	ActionEvent* actionEvent = &action->events[action->numEvents++];
+	*actionEvent = { };
+	actionEvent->time = time;
+	actionEvent->sound = sound;
+	actionEvent->volume = volume;
+	actionEvent->speed = speed;
+	actionEvent->triggered = false;
+}
+
+void AddActionEffect(EntityAction* action, const char* effect, float time, vec3 localPosition)
+{
+	SDL_assert(action->numEvents < MAX_ACTION_EVENTS);
+	ActionEvent* actionEvent = &action->events[action->numEvents++];
+	*actionEvent = { };
+	actionEvent->time = time;
+	actionEvent->effectPath = effect;
+	actionEvent->effectPosition = localPosition;
+	actionEvent->triggered = false;
+}
+
+void StartAction(EntityAction* action, Entity* entity)
+{
+	RunEntityActionFunc(Start);
+}
+
+void StopAction(EntityAction* action, Entity* entity)
+{
+	RunEntityActionFunc(Stop);
+}
+
+void UpdateAction(EntityAction* action, Entity* entity, float deltaTime)
+{
+	action->elapsedTime += deltaTime;
+
+	Creature* creature = &entity->creature;
+
+	for (int i = 0; i < action->numEvents; i++)
+	{
+		ActionEvent* event = &action->events[i];
+		if (!event->triggered && action->elapsedTime >= event->time)
+		{
+			if (event->sound)
+			{
+				uint32_t handle = PlaySound(event->sound, entity->position, event->volume);
+				float variation = remap(game->random.nextFloat(), 0, 1, 0.9f, 1.1f);
+				SetSoundRelativeSpeed(handle, event->speed * variation);
+			}
+			if (event->effectPath)
+			{
+				ParticleEffect* effect = (ParticleEffect*)CreateEntity();
+				mat4 transform = GetRightWeaponTransform(creature) * mat4::Translate(event->effectPosition);
+				LoadParticleEffect(effect, event->effectPath, transform.translation(), transform.rotation());
+				effect->destroyOnFinish = true;
+				event->effect = effect;
+			}
+			event->triggered = true;
+		}
+		if (event->triggered && event->effect)
+		{
+			event->effect->position = GetRightWeaponTransform(creature) * event->effectPosition;
+		}
+	}
+
+	RunEntityActionFunc(Update);
 }
 
 

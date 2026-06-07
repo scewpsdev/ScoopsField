@@ -4,6 +4,7 @@
 
 #include "utils/Optional.h"
 
+#include "game/player/Player.h"
 #include "component/Creature.h"
 #include "component/ItemEntity.h"
 #include "component/RestingSpot.h"
@@ -31,6 +32,10 @@ struct HitParams
 	vec3 position;
 	RigidBody* body;
 	vec3 impulse;
+
+	bool wasHeadshot;
+	bool wasBlocked;
+	bool wasParried;
 };
 
 struct Entity
@@ -48,6 +53,7 @@ struct Entity
 			GraphicsPipeline* shader;
 		};
 
+		Player player;
 		Creature creature;
 		ItemEntity item;
 		RestingSpot restingSpot;

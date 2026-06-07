@@ -41,7 +41,6 @@ static const uint32_t vertexElementFormatSizes[SDL_GPU_VERTEXELEMENTFORMAT_HALF4
 
 
 extern SDL_GPUDevice* device;
-extern SDL_GPUCommandBuffer* cmdBuffer;
 extern GraphicsState* graphics;
 
 

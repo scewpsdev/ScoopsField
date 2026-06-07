@@ -14,7 +14,9 @@ extern SDL_GPUDevice* device;
 
 Entity* CreateEntity()
 {
-	return PoolAlloc(&game->entities);
+	Entity* entity = PoolAlloc(&game->entities);
+	SDL_memset(entity, 0, sizeof(Entity));
+	return entity;
 }
 
 
@@ -114,12 +116,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 {
 	InitRenderer(&game->renderer, app->width, app->height, cmdBuffer);
 
-	Renderer2DLayerInfo layerInfo = {};
-	layerInfo.width = app->width;
-	layerInfo.height = app->height;
-	layerInfo.maxSprites = 1000;
-	layerInfo.textureFormat = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-	InitRenderer2D(&game->guiRenderer, 1, &layerInfo, cmdBuffer);
+	InitGUIRenderer(&game->guiRenderer, 1000, cmdBuffer);
 
 	InitRandom(&game->random, (uint32_t)SDL_GetTicks());
 
@@ -143,15 +140,20 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	LoadSound(&game->landSound, "res/sounds/land.ogg.bin");
 	LoadSounds(&game->exhaustedSound, "sounds/exhausted", 2);
 	LoadSounds(&game->swingSound, "sounds/swing", 3);
-	LoadSounds(&game->slashHitSound, "sounds/hit_slash", 2);
-	LoadSounds(&game->skeletonHitSound, "sounds/hit_rock", 5);
+	LoadSounds(&game->armorSound, "sounds/armor", 10);
+	LoadSounds(&game->hitSlashSound, "sounds/hit_slash", 2);
+	LoadSounds(&game->hitSkeletonSound, "sounds/hit_rock", 5);
 	LoadSounds(&game->hitArmorSound, "sounds/hit/hit_armor", 10);
+	LoadSound(&game->hitArrowSound, "res/sounds/hit/hit_arrow.ogg.bin");
+	LoadSounds(&game->hitBlockSound, "sounds/hit/hit_block", 2);
+	LoadSound(&game->hitParrySound, "res/sounds/hit/hit_parry.ogg.bin");
 	LoadSounds(&game->stepBareSound, "sounds/step/step_bare", 3);
 	LoadSound(&game->jumpBareSound, "res/sounds/step/jump_bare.ogg.bin");
 	LoadSounds(&game->landBareSound, "sounds/step/land_bare", 3);
 
 	game->crosshair = LoadTexture("res/textures/ui/crosshair.png.bin", cmdBuffer);
 	game->crosshairInteract = LoadTexture("res/textures/ui/crosshair_hand.png.bin", cmdBuffer);
+	game->hitmarker = LoadTexture("res/textures/ui/hitmarker.png.bin", cmdBuffer);
 	game->vignette = LoadTexture("res/textures/vignette.png.bin", cmdBuffer);
 	game->roundCounter = LoadTexture("res/textures/counter.png.bin", cmdBuffer);
 	game->digits = LoadTexture("res/textures/digits.png.bin", cmdBuffer);
@@ -212,7 +214,6 @@ void GameDestroy()
 void GameResize(int newWidth, int newHeight)
 {
 	ResizeRenderer(&game->renderer, newWidth, newHeight);
-	ResizeRenderer2D(&game->guiRenderer, newWidth, newHeight);
 }
 
 static bool cameraZoom = false;
@@ -268,7 +269,8 @@ void GameUpdate()
 
 void GameRender()
 {
-	BeginRenderer2D(&game->guiRenderer);
+	mat4 guiPV = mat4::Orthographic(0, (float)app->width, 0, (float)app->height, -1, 1);
+	BeginGUIRenderer(&game->guiRenderer, guiPV);
 
 	RenderPlayer(&game->player);
 
@@ -341,7 +343,5 @@ void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 
 	RendererShow(&game->renderer, game->cameraPosition, game->cameraRotation, game->cameraNear, game->cameraFov, app->width / (float)app->height, game->projection, game->view, game->pv, game->frustumPlanes, sunDirection, swapchain, cmdBuffer);
 
-	mat4 guiProjectionView = mat4::Orthographic(0, (float)app->width, 0, (float)app->height, -1, 1);
-	SetRenderer2DCamera(&game->guiRenderer, 0, guiProjectionView);
-	EndRenderer2D(&game->guiRenderer, cmdBuffer);
+	EndGUIRenderer(&game->guiRenderer, cmdBuffer);
 }

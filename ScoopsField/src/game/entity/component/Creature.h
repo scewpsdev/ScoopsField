@@ -46,7 +46,6 @@ struct EntityAttack
 	const char* followUp;
 	float followUpChance;
 
-	/*
 #define MAX_ATTACK_SOUNDS 8
 	AttackSound sounds[MAX_ATTACK_SOUNDS];
 	int numSounds;
@@ -54,7 +53,6 @@ struct EntityAttack
 #define MAX_ATTACK_EFFECTS 8
 	AttackEffect effects[MAX_ATTACK_EFFECTS];
 	int numEffects;
-	*/
 };
 
 struct Creature : EntityBase
@@ -76,6 +74,16 @@ struct Creature : EntityBase
 	AnimationPlayback idleAnim;
 	AnimationPlayback runAnim;
 	AnimationPlayback attackAnim;
+
+	Animation* blendAnim;
+	float blendAnimTimer;
+	bool blendAnimLoop;
+	float blendDuration;
+	float blendStart;
+
+	Animation* lastAnim;
+	float lastAnimTimer;
+	bool lastAnimLoop;
 
 	Node* rightWeaponNode;
 
@@ -102,7 +110,12 @@ struct Creature : EntityBase
 	int damage;
 	float weaponRange;
 
+	vec3 eyePosition;
+	float detectionRange;
+	float detectionAngle;
+	Entity* target;
 	vec3 targetPosition;
+	Entity* searchEntity;
 	int currentPath[MAX_NAVMESH_PATH_LENGTH];
 	int currentPathLength;
 
@@ -114,6 +127,8 @@ void InitCreature(Creature* creature, const char* model, float lookDirection, in
 void DestroyCreature(Creature* creature);
 
 bool HitCreature(Creature* creature, HitParams* hit, Entity* by);
+
+mat4 GetRightWeaponTransform(Creature* creature);
 
 void UpdateCreature(Creature* creature);
 void RenderCreature(Creature* creature);

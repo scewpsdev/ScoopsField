@@ -24,6 +24,10 @@ static void SetRightWeapon(Player* player, int loadout, Item* weapon)
 	if (player->rightWeapons[loadout] != weapon)
 	{
 		Item* lastWeapon = player->rightWeapons[loadout];
+
+		if (lastWeapon && lastWeapon->model.numAnimations)
+			DestroyAnimationState(&player->rightWeaponAnim);
+
 		player->rightWeapons[loadout] = weapon;
 
 		if (loadout == player->currentLoadout)
@@ -52,12 +56,18 @@ static void SetLeftWeapon(Player* player, int loadout, Item* weapon)
 	if (player->leftWeapons[loadout] != weapon)
 	{
 		Item* lastWeapon = player->leftWeapons[loadout];
+
+		//if (lastWeapon && lastWeapon->model.numAnimations)
+		//	DestroyAnimationState(&player->leftWeaponAnim);
+
 		player->leftWeapons[loadout] = weapon;
 
 		if (loadout == player->currentLoadout)
 		{
 			if (weapon)
 			{
+				//if (lastWeapon->model.numAnimations)
+				//	DestroyAnimationState(&player->leftWeaponAnim);
 				//if (weapon->model.numAnimations)
 				//	InitAnimationState(&player->leftWeaponAnim, &weapon->model);
 
@@ -147,6 +157,8 @@ void SwitchLoadout(Player* player, int loadout)
 	{
 		if (player->rightWeapons[loadout])
 		{
+			if (player->rightWeapons[player->currentLoadout] && player->rightWeapons[player->currentLoadout]->model.numAnimations)
+				DestroyAnimationState(&player->rightWeaponAnim);
 			if (player->rightWeapons[loadout]->model.numAnimations)
 				InitAnimationState(&player->rightWeaponAnim, &player->rightWeapons[loadout]->model);
 
@@ -170,42 +182,46 @@ void SwitchLoadout(Player* player, int loadout)
 void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, float rotation)
 {
 	SDL_memset(player, 0, sizeof(Player));
-	InitEntity(player, ENTITY_TYPE_PLAYER);
+	InitEntity((Entity*)player, ENTITY_TYPE_PLAYER);
 
 	player->position = position;
 	player->rotation = rotation;
 	player->yaw = rotation;
 
-	LoadModel(&player->model, "res/models/viewmodel.glb.bin", false, cmdBuffer);
-	InitAnimationState(&player->anim, &player->model);
+	player->model = GetModel("models/viewmodel.glb");
+	//LoadModel(player->model, "res/models/viewmodel.glb.bin", false, cmdBuffer);
+	InitAnimationState(&player->anim, player->model);
 
-	LoadModel(&player->bodyModel, "res/models/bodymodel_.glb.bin", false, cmdBuffer);
-	InitAnimationState(&player->bodyAnim, &player->bodyModel);
+	player->bodyModel = GetModel("models/bodymodel_.glb");
+	//LoadModel(player->bodyModel, "res/models/bodymodel_.glb.bin", false, cmdBuffer);
+	InitAnimationState(&player->bodyAnim, player->bodyModel);
 
-	player->rightWeaponNode = GetNodeByName(&player->bodyModel, "weapon_r");
-	player->leftWeaponNode = GetNodeByName(&player->bodyModel, "weapon_l");
-	player->rootNode = GetNodeByName(&player->model, "root");
+	player->rightWeaponNode = GetNodeByName(player->bodyModel, "weapon_r");
+	player->leftWeaponNode = GetNodeByName(player->bodyModel, "weapon_l");
+	player->rootNode = GetNodeByName(player->model, "root");
 
-	player->rightShoulderNode = GetNodeByName(&player->bodyModel, "clavicle_r");
-	player->leftShoulderNode = GetNodeByName(&player->bodyModel, "clavicle_l");
-	player->neckNode = GetNodeByName(&player->bodyModel, "neck_01");
-	player->spineNode = GetNodeByName(&player->bodyModel, "spine_03");
+	player->rightShoulderNode = GetNodeByName(player->bodyModel, "clavicle_r");
+	player->leftShoulderNode = GetNodeByName(player->bodyModel, "clavicle_l");
+	player->neckNode = GetNodeByName(player->bodyModel, "neck_01");
+	player->spineNode = GetNodeByName(player->bodyModel, "spine_03");
 
-	InitAnimation(&player->idleAnim, "idle", &player->model, 0.005f, true, false);
-	InitAnimation(&player->bodyIdleAnim, "idle", &player->bodyModel, 1.0f, true, false);
-	InitAnimation(&player->bodyRunAnim, "run", &player->bodyModel, 1.0f, true, false);
-	InitAnimation(&player->bodyStrafeAnim, "strafe", &player->bodyModel, 1.0f, true, false);
-	InitAnimation(&player->bodyDuckAnim, "duck", &player->bodyModel, 1.0f, true, false);
-	InitAnimation(&player->bodySneakAnim, "sneak", &player->bodyModel, 1.0f, true, false);
-	InitAnimation(&player->bodySneakStrafeAnim, "sneak_strafe", &player->bodyModel, 1.0f, true, false);
-	InitAnimation(&player->bodyFallAnim, "fall", &player->bodyModel, 1.0f, true, false);
-	InitAnimation(&player->bodyFallDuckAnim, "fall_duck", &player->bodyModel, 1.0f, true, false);
+	player->lastRootNodeTransform = mat4::Identity;
+
+	InitAnimation(&player->idleAnim, "idle", player->model, 0.005f, true, false);
+	InitAnimation(&player->bodyIdleAnim, "idle", player->bodyModel, 1.0f, true, false);
+	InitAnimation(&player->bodyRunAnim, "run", player->bodyModel, 1.0f, true, false);
+	InitAnimation(&player->bodyStrafeAnim, "strafe", player->bodyModel, 1.0f, true, false);
+	InitAnimation(&player->bodyDuckAnim, "duck", player->bodyModel, 1.0f, true, false);
+	InitAnimation(&player->bodySneakAnim, "sneak", player->bodyModel, 1.0f, true, false);
+	InitAnimation(&player->bodySneakStrafeAnim, "sneak_strafe", player->bodyModel, 1.0f, true, false);
+	InitAnimation(&player->bodyFallAnim, "fall", player->bodyModel, 1.0f, true, false);
+	InitAnimation(&player->bodyFallDuckAnim, "fall_duck", player->bodyModel, 1.0f, true, false);
 
 	InitCharacterController(&player->controller, 0.3f, CONTROLLER_HEIGHT, 0.2f, player->position);
 	InitRigidBody(&player->kinematicBody, RIGID_BODY_KINEMATIC, player->position, quat::Identity, player);
 	AddCapsuleCollider(&player->kinematicBody, 0.2f, 1.5f, vec3(0, 1, 0), quat::Identity, ENTITY_FILTER_PLAYER, ENTITY_FILTER_ENEMY | ENTITY_FILTER_RAGDOLL, false);
 
-	InitActionManager(player->actions, &player->model, &player->bodyModel);
+	InitActionManager(player->actions, player->model, player->bodyModel);
 
 	player->walkSpeed = 4.0f;
 
@@ -224,7 +240,11 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 void DestroyPlayer(Player* player)
 {
 	DestroyCharacterController(&player->controller);
-	//DestroyModel(&player->model);
+
+	DestroyAnimationState(&player->anim);
+	DestroyAnimationState(&player->bodyAnim);
+
+	//DestroyModel(player->model);
 	//DestroyAnimationState(&player->anim);
 }
 
@@ -240,29 +260,60 @@ static void OnDeath(Player* player)
 	//game->gameOverTimer = 0;
 }
 
-bool HitPlayer(Player* player, HitParams hit, Entity* by)
+bool HitPlayer(Player* player, HitParams* hit, Entity* by)
 {
 	if (player->health <= 0)
 		return false;
 	if (player->lastHit && gameTime - player->lastHit < HIT_RECOVERY_DURATION)
 		return false;
 
-	int damage = (int)(hit.damage * hit.damageMultiplier);
-	player->health -= damage;
-	player->lastHit = gameTime;
-
-	if (player->health <= 0)
+	float damage = hit->damage * hit->damageMultiplier;
+	if (player->blockItem)
 	{
-		//
+		if (player->stamina >= 0 || player->parry)
+		{
+			damage = 0;
+			if (!player->parry)
+				player->stamina -= 0.1f;
 
-		OnDeath(player);
+			Sound* sound = player->parry ? &game->hitParrySound : &game->hitBlockSound;
+			PlaySound(sound, 0, 1);
+
+			// TODO player hit block action
+
+			hit->wasBlocked = true;
+			hit->wasParried = player->parry;
+		}
+		else
+		{
+			// TODO stun player
+		}
 	}
-	else
+
+	if (damage)
 	{
-		//
+		player->health -= (int)damage;
+		player->lastHit = gameTime;
+
+		if (player->health <= 0)
+		{
+			//
+
+			OnDeath(player);
+		}
+		else
+		{
+			//
+		}
 	}
 
 	return true;
+}
+
+void OnProjectileHit(Player* player, bool headshot)
+{
+	player->lastProjectileHit = gameTime;
+	player->lastProjectileHitHeadshot = headshot;
 }
 
 bool GiveItem(Player* player, Item* item)
@@ -501,9 +552,11 @@ static void AnimateAxisBlendSpace(Model* model, AnimationState* animationState, 
 static void UpdateRootMotion(Player* player)
 {
 	player->rootMotion = vec3::Zero;
+	player->rootMotionAngle = 0;
 
 	mat4& rootNodeTransform = GetNodeTransform(&player->anim, player->rootNode);
-	mat4 rootMotionDelta = rootNodeTransform * player->lastRootNodeTransform.inverted();
+	vec3 rootMotionTranslation = rootNodeTransform.translation() - player->lastRootNodeTransform.translation();
+	quat rootMotionRotation = player->lastRootNodeTransform.rotation().conjugated() * rootNodeTransform.rotation();
 	player->lastRootNodeTransform = rootNodeTransform;
 	rootNodeTransform = mat4::Identity;
 
@@ -511,21 +564,32 @@ static void UpdateRootMotion(Player* player)
 	{
 		AnimationPlayback* actionAnimation = &currentAction->bodyAnim;
 
-		if (currentAction->rootMotion)
+		if (currentAction->rootMotion && actionAnimation->animation == player->lastActionAnimation
+			&& SDL_fmodf(actionAnimation->timer, actionAnimation->animation->duration) >= SDL_fmodf(player->lastActionAnimationTimer, actionAnimation->animation->duration))
 		{
-			if (actionAnimation->animation == player->lastActionAnimation
-				&& SDL_fmodf(actionAnimation->timer, actionAnimation->animation->duration) >= SDL_fmodf(player->lastActionAnimationTimer, actionAnimation->animation->duration))
-			{
-				SDL_assert(rootMotionDelta.translation().length() < 0.3f);
-				rootMotionDelta = mat4::Rotate(vec3::Up, PI) * rootMotionDelta;
-				vec3 rootMotion = quat::FromAxisAngle(vec3::Up, PI) * rootMotionDelta.translation();
-				player->rootMotion = rootMotion;
-			}
+			vec3 rootMotion = quat::FromAxisAngle(vec3::Up, PI + player->rotation - player->currentRootMotionRotation) * rootMotionTranslation;
+			float rootMotionAngle = rootMotionRotation.getAngle() * sign(rootMotionRotation.getAxis().y);
+
+			float dt = gameTime - player->lastRootMotionUpdate;
+
+			player->rootMotion = rootMotion;
+			player->rootMotionAngle = rootMotionAngle;
+
+			// we need this because the root motion translation direction should not be affected by a root motion rotation during this animation
+			// since it is applied independently in blender. otherwise the translation will constantly change direction as the rotation is turning the character.
+			// we may want to rotate the character manually which does affect translation direction
+			player->currentRootMotionRotation += rootMotionAngle;
+		}
+		else
+		{
+			player->currentRootMotionRotation = 0;
 		}
 
 		player->lastActionAnimation = actionAnimation->animation;
 		player->lastActionAnimationTimer = actionAnimation->timer;
 	}
+
+	player->lastRootMotionUpdate = gameTime;
 }
 
 void UpdatePlayer(Player* player)
@@ -551,7 +615,7 @@ void UpdatePlayer(Player* player)
 
 			if (!(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim))
 			{
-				SourceMovement(player, quat::FromAxisAngle(vec3::Up, player->rotation) * player->rootMotion);
+				SourceMovement(player, player->rootMotion);
 				player->rootMotion = vec3::Zero;
 
 				player->cameraHeight = player->ducked ? CAMERA_HEIGHT_DUCKED :
@@ -600,7 +664,7 @@ void UpdatePlayer(Player* player)
 		{
 			if (!GetCurrentAction(player) && GetKeyDown(SDL_SCANCODE_E))
 			{
-				InteractEntity(player->interactTarget, player);
+				InteractEntity(player->interactTarget, (Entity*)player);
 			}
 		}
 	}
@@ -659,7 +723,7 @@ void UpdatePlayer(Player* player)
 	AnimationPlayback* moveAnimation = &player->idleAnim;
 	moveAnimation->timer += deltaTime * moveAnimation->speed;
 
-	AnimateModel(&player->model, &player->anim, moveAnimation->animation, moveAnimation->timer, moveAnimation->loop, nullptr, nullptr);
+	AnimateModel(player->model, &player->anim, moveAnimation->animation, moveAnimation->timer, moveAnimation->loop, nullptr, nullptr);
 
 	AnimationPlayback* bodyMoveAnimation = nullptr;
 
@@ -760,12 +824,12 @@ void UpdatePlayer(Player* player)
 
 		if (currentAction->twoHanded)
 		{
-			AnimateModel(&player->model, &player->anim, actionAnimation->animation, actionAnimation->timer, actionAnimation->loop, nullptr, nullptr);
+			AnimateModel(player->model, &player->anim, actionAnimation->animation, actionAnimation->timer, actionAnimation->loop, nullptr, nullptr);
 		}
 		else
 		{
 			bool right = true;
-			AnimateModel(&player->model, &player->anim, actionAnimation->animation, actionAnimation->timer, actionAnimation->loop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+			AnimateModel(player->model, &player->anim, actionAnimation->animation, actionAnimation->timer, actionAnimation->loop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 		}
 		*/
 	}
@@ -773,13 +837,13 @@ void UpdatePlayer(Player* player)
 	if (bodyAnimation)
 	{
 		if (bodyAnimation == player->bodyIdleAnim.animation)
-			AnimateAxisBlendSpace(&player->bodyModel, &player->bodyAnim, player, &player->bodyIdleAnim, &player->bodyRunAnim, &player->bodyStrafeAnim, 1);
+			AnimateAxisBlendSpace(player->bodyModel, &player->bodyAnim, player, &player->bodyIdleAnim, &player->bodyRunAnim, &player->bodyStrafeAnim, 1);
 		else if (bodyAnimation == player->bodyDuckAnim.animation)
-			AnimateAxisBlendSpace(&player->bodyModel, &player->bodyAnim, player, &player->bodyDuckAnim, &player->bodySneakAnim, &player->bodySneakStrafeAnim, 1);
+			AnimateAxisBlendSpace(player->bodyModel, &player->bodyAnim, player, &player->bodyDuckAnim, &player->bodySneakAnim, &player->bodySneakStrafeAnim, 1);
 		else
-			AnimateModel(&player->bodyModel, &player->bodyAnim, bodyAnimation, bodyAnimationTimer, bodyAnimationLoop, nullptr, nullptr);
+			AnimateModel(player->bodyModel, &player->bodyAnim, bodyAnimation, bodyAnimationTimer, bodyAnimationLoop, nullptr, nullptr);
 
-		//AnimateModel(&player->bodyModel, &player->bodyAnim, moveAnimation->animation, moveAnimation->timer, moveAnimation->loop, nullptr, nullptr);
+		//AnimateModel(player->bodyModel, &player->bodyAnim, moveAnimation->animation, moveAnimation->timer, moveAnimation->loop, nullptr, nullptr);
 
 		if (bodyAnimation != player->lastBodyAnim && player->lastBodyAnim)
 		{
@@ -807,11 +871,11 @@ void UpdatePlayer(Player* player)
 					blendProgress = remap(player->cameraHeight, CAMERA_HEIGHT, CAMERA_HEIGHT_DUCKED, 1, 0);
 
 				if (player->bodyBlendAnim == player->bodyIdleAnim.animation)
-					AnimateAxisBlendSpace(&player->bodyModel, &player->bodyAnim, player, &player->bodyIdleAnim, &player->bodyRunAnim, &player->bodyStrafeAnim, 1 - blendProgress);
+					AnimateAxisBlendSpace(player->bodyModel, &player->bodyAnim, player, &player->bodyIdleAnim, &player->bodyRunAnim, &player->bodyStrafeAnim, 1 - blendProgress);
 				else if (player->bodyBlendAnim == player->bodyDuckAnim.animation)
-					AnimateAxisBlendSpace(&player->bodyModel, &player->bodyAnim, player, &player->bodyDuckAnim, &player->bodySneakAnim, &player->bodySneakStrafeAnim, 1 - blendProgress);
+					AnimateAxisBlendSpace(player->bodyModel, &player->bodyAnim, player, &player->bodyDuckAnim, &player->bodySneakAnim, &player->bodySneakStrafeAnim, 1 - blendProgress);
 				else
-					BlendAnimation(&player->bodyModel, &player->bodyAnim, player->bodyBlendAnim, player->bodyBlendAnimTimer, player->bodyBlendAnimLoop, 1 - blendProgress, nullptr, nullptr);
+					BlendAnimation(player->bodyModel, &player->bodyAnim, player->bodyBlendAnim, player->bodyBlendAnimTimer, player->bodyBlendAnimLoop, 1 - blendProgress, nullptr, nullptr);
 			}
 		}
 
@@ -822,9 +886,9 @@ void UpdatePlayer(Player* player)
 	if (rightAnimation)
 	{
 		bool right = true;
-		//AnimateModel(&player->model, &player->anim, rightAnimation, rightAnimationTimer, rightAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+		//AnimateModel(player->model, &player->anim, rightAnimation, rightAnimationTimer, rightAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 
-		AnimateModel(&player->bodyModel, &player->bodyAnim, rightAnimation, rightAnimationTimer, rightAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+		AnimateModel(player->bodyModel, &player->bodyAnim, rightAnimation, rightAnimationTimer, rightAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 
 		if (rightAnimation != player->lastRightAnim && player->lastRightAnim)
 		{
@@ -844,9 +908,9 @@ void UpdatePlayer(Player* player)
 			}
 			else
 			{
-				//BlendAnimation(&player->model, &player->anim, player->rightBlendAnim, player->rightBlendAnimTimer, player->rightBlendAnimLoop, 1 - blendProgress, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+				//BlendAnimation(player->model, &player->anim, player->rightBlendAnim, player->rightBlendAnimTimer, player->rightBlendAnimLoop, 1 - blendProgress, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 
-				BlendAnimation(&player->bodyModel, &player->bodyAnim, player->rightBlendAnim, player->rightBlendAnimTimer, player->rightBlendAnimLoop, 1 - blendProgress, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+				BlendAnimation(player->bodyModel, &player->bodyAnim, player->rightBlendAnim, player->rightBlendAnimTimer, player->rightBlendAnimLoop, 1 - blendProgress, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 			}
 		}
 
@@ -857,9 +921,9 @@ void UpdatePlayer(Player* player)
 	if (leftAnimation)
 	{
 		bool right = false;
-		//AnimateModel(&player->model, &player->anim, leftAnimation, leftAnimationTimer, leftAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+		//AnimateModel(player->model, &player->anim, leftAnimation, leftAnimationTimer, leftAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 
-		AnimateModel(&player->bodyModel, &player->bodyAnim, leftAnimation, leftAnimationTimer, leftAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+		AnimateModel(player->bodyModel, &player->bodyAnim, leftAnimation, leftAnimationTimer, leftAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 
 		if (leftAnimation != player->lastLeftAnim && player->lastLeftAnim)
 		{
@@ -879,9 +943,9 @@ void UpdatePlayer(Player* player)
 			}
 			else
 			{
-				//BlendAnimation(&player->model, &player->anim, player->leftBlendAnim, player->leftBlendAnimTimer, player->leftBlendAnimLoop, 1 - blendProgress, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+				//BlendAnimation(player->model, &player->anim, player->leftBlendAnim, player->leftBlendAnimTimer, player->leftBlendAnimLoop, 1 - blendProgress, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 
-				BlendAnimation(&player->bodyModel, &player->bodyAnim, player->leftBlendAnim, player->leftBlendAnimTimer, player->leftBlendAnimLoop, 1 - blendProgress, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+				BlendAnimation(player->bodyModel, &player->bodyAnim, player->leftBlendAnim, player->leftBlendAnimTimer, player->leftBlendAnimLoop, 1 - blendProgress, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 			}
 		}
 
@@ -937,7 +1001,7 @@ void UpdatePlayer(Player* player)
 		mat4& spineTransform = GetNodeTransform(&player->bodyAnim, player->spineNode);
 		spineTransform = mat4::Transform(spineTransform.translation() + vec3(0, max(SDL_sinf(-player->pitch), 0.0f) * 0.2f, 0), quat::FromAxisAngle(vec3::AxisX, -player->pitch * 0.5f) * spineTransform.rotation());
 
-		mat4& spine2Transform = GetNodeTransform(&player->bodyAnim, GetNodeByName(&player->bodyModel, "spine_02"));
+		mat4& spine2Transform = GetNodeTransform(&player->bodyAnim, GetNodeByName(player->bodyModel, "spine_02"));
 		spine2Transform = mat4::Transform(spine2Transform.translation(), quat::FromAxisAngle(vec3::AxisX, -player->pitch * 0.5f) * spine2Transform.rotation());
 
 		mat4& neckTransform = GetNodeTransform(&player->bodyAnim, player->neckNode);
@@ -990,8 +1054,8 @@ void UpdatePlayer(Player* player)
 		ApplyAnimationToSkeleton(&rightWeapon->model, &player->rightWeaponAnim);
 	}
 
-	ApplyAnimationToSkeleton(&player->model, &player->anim);
-	ApplyAnimationToSkeleton(&player->bodyModel, &player->bodyAnim);
+	ApplyAnimationToSkeleton(player->model, &player->anim);
+	ApplyAnimationToSkeleton(player->bodyModel, &player->bodyAnim);
 
 	if (GetKeyDown(SDL_SCANCODE_F5))
 		player->cameraMode = player->cameraMode == CAMERA_MODE_FIRST_PERSON ? CAMERA_MODE_FREE : CAMERA_MODE_FIRST_PERSON;
@@ -1046,7 +1110,7 @@ void UpdatePlayer(Player* player)
 			player->exhausted = false;
 		}
 
-		if (player->stamina < 1.0f && player->actions.actions.size == 0 && !player->sprinting)
+		if (player->stamina < 1.0f && player->actions.actions.size == 0 && !player->sprinting && !player->blockItem)
 		{
 			player->stamina = min(player->stamina + 0.2f * deltaTime, 1.0f);
 		}
@@ -1087,9 +1151,9 @@ void UpdatePlayer(Player* player)
 void RenderPlayer(Player* player)
 {
 	mat4 bodyTransform = mat4::Translate(player->position) * mat4::Rotate(vec3::Up, player->rotation + PI);
-	RenderModel(&game->renderer, &player->bodyModel, &player->bodyAnim, bodyTransform);
+	RenderModel(&game->renderer, player->bodyModel, &player->bodyAnim, bodyTransform);
 
-	RenderModel(&game->renderer, &player->bodyModel, &player->bodyAnim, mat4::Translate(-1, 0, -1));
+	RenderModel(&game->renderer, player->bodyModel, &player->bodyAnim, mat4::Translate(-1, 0, -1));
 
 	//mat4 cameraTransform = GetCameraTransform(player);
 
@@ -1105,7 +1169,7 @@ void RenderPlayer(Player* player)
 		viewmodelTransform = bodyTransform * GetNodeTransform(&player->bodyAnim, player->bodyCameraNode);
 	}
 
-	RenderModel(&game->renderer, &player->model, &player->anim, viewmodelTransform);
+	RenderModel(&game->renderer, player->model, &player->anim, viewmodelTransform);
 	*/
 
 	Item* rightWeapon = GetRightWeapon(player);
@@ -1166,6 +1230,22 @@ void RenderPlayer(Player* player)
 		else
 		{
 			GUIPanel(app->width / 2 - game->crosshair->info.width / 2, app->height / 2 - game->crosshair->info.height / 2, game->crosshair);
+		}
+
+		float showDuration = 0.2f;
+		if (gameTime - player->lastProjectileHit < showDuration)
+		{
+			float progress = (gameTime - player->lastProjectileHit) / showDuration;
+			ivec2 size = (ivec2)(mix(1.0f, 1.5f, progress) * vec2((float)game->hitmarker->info.width, (float)game->hitmarker->info.height));
+			int x = app->width / 2 - size.x / 2;
+			int y = app->height / 2 - size.y / 2;
+
+			vec4 color = vec4(1);
+			if (player->lastProjectileHitHeadshot)
+				color.rgb = vec3(1, 0.2f, 0.2f);
+			color.a = 1 - progress * progress;
+
+			GUIPanel(x, y, size.x, size.y, game->hitmarker, color);
 		}
 	}
 }

@@ -3,6 +3,8 @@
 #include <stdint.h>
 
 
+struct ivec2;
+
 struct vec2
 {
 	float x, y;
@@ -18,6 +20,8 @@ struct vec2
 
 	float angle() const;
 	vec2 rotate(float angle) const;
+
+	operator ivec2() const;
 
 	vec2 operator-() const;
 

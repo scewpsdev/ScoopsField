@@ -6,21 +6,60 @@
 void InitAnimationState(AnimationState* animationState, Model* model)
 {
 	animationState->model = model;
+
+	animationState->nodeTransforms = (mat4*)SDL_malloc(model->numNodes * sizeof(mat4));
+	SDL_memset(animationState->nodeTransforms, 0, model->numNodes * sizeof(mat4));
+
 	for (int i = 0; i < model->numNodes; i++)
 	{
 		animationState->nodeTransforms[i] = model->nodes[i].transform;
 	}
+
 	for (int i = 0; i < model->numMeshes; i++)
 	{
-		SkeletonState* skeletonState = &animationState->skeletons[model->meshes[i].skeletonID];
-		skeletonState->numBones = model->skeletons[model->meshes[i].skeletonID].numBones;
-		for (int j = 0; j < skeletonState->numBones; j++)
+		if (model->meshes[i].skeletonID != -1)
 		{
-			skeletonState->boneTransforms[j] = mat4::Identity;
+			SkeletonState* skeletonState = &animationState->skeletons[model->meshes[i].skeletonID];
+			skeletonState->numBones = model->skeletons[model->meshes[i].skeletonID].numBones;
+
+			skeletonState->boneTransforms = (mat4*)SDL_malloc(skeletonState->numBones * sizeof(mat4));
+			SDL_memset(skeletonState->boneTransforms, 0, skeletonState->numBones * sizeof(mat4));
+
+			for (int j = 0; j < skeletonState->numBones; j++)
+			{
+				skeletonState->boneTransforms[j] = mat4::Identity;
+			}
 		}
 	}
 
 	InitHashMap(&animationState->channelMap);
+}
+
+//
+// [X] hitmarker
+// [X] enemy visibility
+// [ ] enemy pathfinding
+// [X] blocking
+// [ ] healthbar
+// [ ] enemy healthbar
+// [ ] healing potions
+// [ ] armor
+// [ ] inventory ui
+// [ ] 3d preview
+// [ ] simple test combat rooms
+//
+
+void DestroyAnimationState(AnimationState* animationState)
+{
+	SDL_free(animationState->nodeTransforms);
+	for (int i = 0; i < animationState->model->numMeshes; i++)
+	{
+		if (animationState->model->meshes[i].skeletonID != -1)
+		{
+			SkeletonState* skeletonState = &animationState->skeletons[animationState->model->meshes[i].skeletonID];
+			SDL_free(skeletonState->boneTransforms);
+		}
+	}
 }
 
 int GetAnimationChannelWithName(Animation* animation, const char* name)
@@ -239,15 +278,18 @@ void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState, bool
 	for (int i = 0; i < model->numMeshes; i++)
 	{
 		Mesh* mesh = &model->meshes[i];
-		int nodeID = GetNodeForMesh(i, model);
-		SDL_assert(nodeID != -1 && nodeID < MAX_NODES);
-		mat4 inverseBindPose = animationState->nodeTransforms[nodeID];
-
-		Skeleton* skeleton = &model->skeletons[mesh->skeletonID];
-		for (int j = 0; j < skeleton->numBones; j++)
+		if (mesh->skeletonID != -1)
 		{
-			Bone* bone = &skeleton->bones[j];
-			animationState->skeletons[mesh->skeletonID].boneTransforms[j] = skeleton->inverseBindPose * animationState->nodeTransforms[bone->nodeID] * bone->offsetMatrix;
+			int nodeID = GetNodeForMesh(i, model);
+			SDL_assert(nodeID != -1 && nodeID < MAX_NODES);
+			mat4 inverseBindPose = animationState->nodeTransforms[nodeID];
+
+			Skeleton* skeleton = &model->skeletons[mesh->skeletonID];
+			for (int j = 0; j < skeleton->numBones; j++)
+			{
+				Bone* bone = &skeleton->bones[j];
+				animationState->skeletons[mesh->skeletonID].boneTransforms[j] = skeleton->inverseBindPose * animationState->nodeTransforms[bone->nodeID] * bone->offsetMatrix;
+			}
 		}
 	}
 }

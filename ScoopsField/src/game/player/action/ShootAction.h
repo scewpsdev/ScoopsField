@@ -7,12 +7,15 @@
 #include "utils/List.h"
 
 
+struct Action;
+struct Player;
+
 struct ShootAction
 {
 };
 
 
-void InitShootAction(struct Action* action, Item* weapon);
-void StartShootAction(struct Action* action, struct Player* player);
-void StopShootAction(struct Action* action, struct Player* player);
-void UpdateShootAction(struct Action* action, struct Player* player);
+void InitShootAction(Action* action, Item* weapon);
+void StartShootAction(Action* action, Player* player);
+void StopShootAction(Action* action, Player* player);
+void UpdateShootAction(Action* action, Player* player);
