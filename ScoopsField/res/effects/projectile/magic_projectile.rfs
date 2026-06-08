@@ -61,7 +61,7 @@ rotationSpeed = 0
 applyEntityVelocity = 1
 applyCentrifugalForce = 0
 rotateAlongMovement = 1
-movementStretch = 0.7200000286102295
+movementStretch = 4.650000095367432
 textureAtlas = "..\..\textures\particle\smoke.png"
 atlasSize = [ 5, 3 ]
 numFrames = 15
@@ -81,3 +81,4 @@ colorAnim2 = [ 0.29051443934440613, 0.32923173904418945, 0.6486486196517944, 0 ]
 } ]
 } ]
 selectedEntity = "2339055181"
+simulatedVelocity = 10
