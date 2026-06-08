@@ -75,6 +75,7 @@ struct GameState
 	Texture* crosshair;
 	Texture* crosshairInteract;
 	Texture* hitmarker;
+	Texture* blockmarker;
 	Texture* vignette;
 	Texture* roundCounter;
 	Texture* digits;

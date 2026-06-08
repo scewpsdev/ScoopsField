@@ -268,12 +268,16 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 		player->lastJumpInput = gameTime;
 	if (player->grounded)
 		player->lastGroundedTime = gameTime;
-	if ((player->grounded || gameTime - player->lastGroundedTime < COYOTE_TIME) && player->lastJumpInput && gameTime - player->lastJumpInput < JUMP_BUFFER)
+	if ((player->grounded || gameTime - player->lastGroundedTime < COYOTE_TIME) && player->lastJumpInput && gameTime - player->lastJumpInput < JUMP_BUFFER && !player->exhausted)
 	{
 		const float jumpPower = 7;
 		player->velocity.y = jumpPower;
 		player->grounded = false;
 		player->lastJumpInput = 0;
+
+		const float staminaCost = 0.15f;
+		player->stamina -= staminaCost;
+
 		OnJump(player);
 	}
 

@@ -97,8 +97,9 @@ static void ResetGame(bool destroy)
 
 	InitPlayer(&game->player, cmdBuffer, game->playerSpawn.translation(), game->playerSpawn.rotation().getAngle());
 
-	Creature* enemy = (Creature*)CreateEntity();
-	InitKnight(enemy, vec3(0, 0, -5), 0);
+	InitKnight((Creature*)CreateEntity(), vec3(0, 0, -5), 0);
+	InitKnight((Creature*)CreateEntity(), vec3(-4, 0, -5), 0);
+	InitKnight((Creature*)CreateEntity(), vec3(4, 0, -5), 0);
 
 	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_KINGS_SWORD), vec3(-2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
 	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_LONGSWORD), vec3(0, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
@@ -154,6 +155,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	game->crosshair = LoadTexture("res/textures/ui/crosshair.png.bin", cmdBuffer);
 	game->crosshairInteract = LoadTexture("res/textures/ui/crosshair_hand.png.bin", cmdBuffer);
 	game->hitmarker = LoadTexture("res/textures/ui/hitmarker.png.bin", cmdBuffer);
+	game->blockmarker = LoadTexture("res/textures/ui/blockmarker.png.bin", cmdBuffer);
 	game->vignette = LoadTexture("res/textures/vignette.png.bin", cmdBuffer);
 	game->roundCounter = LoadTexture("res/textures/counter.png.bin", cmdBuffer);
 	game->digits = LoadTexture("res/textures/digits.png.bin", cmdBuffer);
@@ -234,7 +236,7 @@ void GameUpdate()
 		{
 			Entity* entity = &game->entities.data[i];
 			UpdateEntity(entity);
-			if (entity->removed)
+			if (entity->removed || entity->position.y < -200)
 			{
 				DestroyEntity(entity);
 				PoolRelease(&game->entities, entity);
@@ -336,7 +338,7 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -5 * 0.1f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 	//sunDirection = vec3(0.5f, -1, -1).normalized();

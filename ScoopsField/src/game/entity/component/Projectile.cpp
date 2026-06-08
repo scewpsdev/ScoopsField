@@ -155,7 +155,7 @@ void InitArrow(Projectile* projectile, vec3 position, vec3 direction, mat4 start
 void InitMagicProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, Entity* shooter)
 {
 	float speed = 30;
-	int damage = 30;
+	int damage = 50;
 	InitProjectile(projectile, position, direction, startTransform, speed, damage, shooter);
 
 	//projectile->model = GetModel("entities/projectile/magic_projectile/magic_projectile.glb");

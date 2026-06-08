@@ -47,6 +47,8 @@ struct ParticleEmitter
 	bool inheritVelocity;
 	bool inheritCentrifugal;
 	bool randomRotation;
+	bool rotateForward;
+	float stretchForward;
 	float rotationSpeed;
 	float randomRotationSpeed;
 	vec4 color;
@@ -55,14 +57,11 @@ struct ParticleEmitter
 	TextureSampler textureSampler;
 	ivec2 atlasSize;
 	int atlasFrameCount;
+	bool randomFrame;
 
-	//bool isBurst;
-	//float burstTime;
 	int burstCount;
 	float burstDuration;
 	float burstRemainder;
-	//float burstDuration;
-	//bool hasBursted;
 
 	GraphicsPipeline* shader;
 

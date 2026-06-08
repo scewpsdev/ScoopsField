@@ -14,6 +14,7 @@
 #include "PickUpAction.h"
 #include "DropAction.h"
 #include "SitAction.h"
+#include "StaggerAction.h"
 
 
 enum ActionType
@@ -27,6 +28,7 @@ enum ActionType
 	ACTION_TYPE_PICKUP,
 	ACTION_TYPE_DROP,
 	ACTION_TYPE_SIT,
+	ACTION_TYPE_STAGGER,
 
 	ACTION_TYPE_LAST
 };
@@ -106,6 +108,7 @@ struct Action
 		PickUpAction pickup;
 		DropAction drop;
 		SitAction sit;
+		StaggerAction stagger;
 	};
 };
 
@@ -128,6 +131,7 @@ ActionCase(func, Unequip, UNEQUIP) \
 ActionCase(func, PickUp, PICKUP) \
 ActionCase(func, Drop, DROP) \
 ActionCase(func, Sit, SIT) \
+ActionCase(func, Stagger, STAGGER) \
 default: SDL_assert(false); break; \
 }
 

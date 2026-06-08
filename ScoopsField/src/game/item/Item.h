@@ -84,6 +84,7 @@ struct Weapon
 	Attack attacks[MAX_WEAPON_ATTACKS];
 	int numAttacks;
 	int runningAttack;
+	int riposteAttack;
 };
 
 struct Item
@@ -119,4 +120,3 @@ void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer);
 Item* GetItem(ItemType type);
 
 Attack* GetFirstAttack(Item* item, bool secondary);
-Attack* GetNextAttack(Attack* attack, Item* item);

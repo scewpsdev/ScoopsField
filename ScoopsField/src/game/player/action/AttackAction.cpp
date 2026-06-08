@@ -109,10 +109,11 @@ void UpdateAttackAction(Action* action, Player* player)
 	if (action->attack.attack->stance)
 	{
 		bool parry = action->elapsedTime <= action->attack.attack->parryWindow.y;
+		bool blockStagger = gameTime - player->lastBlockTime < GUARD_BREAK_STAGGER_DURATION && player->lastBlockStagger;
 
-		action->moveSpeed = action->attack.attack->projectileShoot || parry ? 0.5f : 1.0f;
+		action->moveSpeed = action->attack.attack->projectileShoot || parry ? 0.5f : blockStagger ? 0.3f : 1.0f;
 
-		if (!GetMouseButton(action->attack.button) && action->elapsedTime > action->attack.attack->followUpCancelTime)
+		if (!GetMouseButton(action->attack.button) && action->elapsedTime > action->followUpCancelTime)
 			CancelAction(player->actions, *player);
 	}
 	else

@@ -27,7 +27,7 @@ void InitCreature(Creature* creature, const char* model, float lookDirection, in
 	InitAnimation(&creature->runAnim, "run", creature->model, 1.6f, true, false);
 
 	InitRigidBody(&creature->body, RIGID_BODY_DYNAMIC, creature->position, quat::FromAxisAngle(vec3::Up, lookDirection), creature);
-	AddCapsuleCollider(&creature->body, 0.3f, 2, vec3(0, 1, 0), quat::Identity, ENTITY_FILTER_ENEMY, ENTITY_FILTER_DEFAULT, false);
+	AddCapsuleCollider(&creature->body, 0.3f, 2, vec3(0, 1, 0), quat::Identity, ENTITY_FILTER_ENEMY, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ENEMY, false);
 	SetRigidBodyAxisLock(&creature->body, RIGID_BODY_LOCK_ROTATION);
 
 	InitHashMap(&creature->hitboxes);
@@ -127,6 +127,12 @@ bool HitCreature(Creature* creature, HitParams* hit, Entity* by)
 	creature->health -= (int)damage;
 
 	PlaySound(creature->hitSound, hit->position);
+
+	SDL_assert(hit->impulse.lengthSquared() != 0);
+
+	ParticleEffect* hitParticles = (ParticleEffect*)CreateEntity();
+	LoadParticleEffect(hitParticles, "effects/impact/spark.rfs", hit->position, quat::LookAt(hit->impulse, vec3::Up));
+	hitParticles->destroyOnFinish = true;
 
 	if (creature->health <= 0)
 	{
@@ -503,7 +509,11 @@ void UpdateCreature(Creature* creature)
 	vec3 walkVelocity = creature->fsu * walkSpeed;
 	walkVelocity = quat::FromAxisAngle(vec3::Up, creature->lookDirection) * walkVelocity;
 	walkVelocity += creature->rootMotionVelocity;
-	SetRigidBodyVelocity(&creature->body, walkVelocity, vec3(0));
+
+	vec3 currentVelocity;
+	GetRigidBodyVelocity(&creature->body, &currentVelocity, nullptr);
+
+	SetRigidBodyVelocity(&creature->body, vec3(walkVelocity.x, currentVelocity.y, walkVelocity.z), vec3(0));
 
 	float turnSpeed = creature->turnSpeed;
 	if (EntityAction* currentAction = GetCurrentAction(creature))
@@ -621,13 +631,13 @@ void InitKnight(Creature* creature, const vec3& position, float rotation)
 	InitEntity((Entity*)creature, ENTITY_TYPE_CREATURE);
 	creature->position = position;
 
-	InitCreature(creature, "entities/creature/knight/knight.glb", rotation, 200);
+	InitCreature(creature, "entities/creature/knight/knight.glb", rotation, 300);
 	LoadCreatureHitbox(creature, "entities/creature/knight/knight.rfs");
 
 	creature->damage = 20;
-	creature->weaponRange = 1.2f;
+	creature->weaponRange = 1.5f;
 
-	EntityAttack* slam = AddAttack(creature, "slam", "attack_slam", true, 1, 1, ivec2(15, 23), 40, vec2(0, 3.5f), vec2(-0.5f * PI, 0.5f * PI), "slash", 0.5f);
+	EntityAttack* slam = AddAttack(creature, "slam", "attack_slam", true, 1, 1, ivec2(15, 23), 40, vec2(0, 2.5f), vec2(-0.5f * PI, 0.5f * PI), "slash", 0.8f);
 	AddAttackSound(slam, &game->stepSound, 15, 2, 1);
 	//AddAttackSound(slam, &game->armorSound, 15, 1, 1);
 	AddAttackSound(slam, &game->armorSound, 20, 1, 1);
@@ -641,7 +651,7 @@ void InitKnight(Creature* creature, const vec3& position, float rotation)
 	AddAttackSound(slash, &game->armorSound, 23, 1, 1);
 	AddAttackSound(slash, &game->armorSound, 55, 1, 1);
 
-	EntityAttack* backstep = AddAttack(creature, "backstep", "attack_backstep", true, 1, 1, ivec2(0), 0, vec2(0, 2));
+	EntityAttack* backstep = AddAttack(creature, "backstep", "attack_backstep", true, 1, 1, ivec2(0), 0, vec2(0, 1.5f));
 	AddAttackSound(backstep, &game->stepSound, 12, 2, 1);
 
 	EntityAttack* turnaround = AddAttack(creature, "turnaround", "attack_turnaround", true, 1, 1, ivec2(0), 0, vec2(0, 5), vec2(0.5f * PI, -0.5f * PI));

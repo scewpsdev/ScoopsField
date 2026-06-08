@@ -235,8 +235,8 @@ static void ReadEmitter(TokenReader* reader, ParticleEffect* effect, const char*
 	emitter->randomRotationSpeed = randomRotationSpeed;
 	//emitter->inheritRotationSpeed = inheritRotationSpeed;
 
-	//emitter->rotateForward = rotateForward;
-	//emitter->stretchForward = stretchForward;
+	emitter->rotateForward = rotateForward;
+	emitter->stretchForward = stretchForward;
 
 	if (texture[0])
 	{
@@ -246,7 +246,7 @@ static void ReadEmitter(TokenReader* reader, ParticleEffect* effect, const char*
 	}
 	emitter->atlasSize = atlasSize;
 	emitter->atlasFrameCount = frameCount;
-	//emitter->randomFrame = randomFrame;
+	emitter->randomFrame = randomFrame;
 	emitter->textureSampler = linearFiltering ? TEXTURE_SAMPLER_LINEAR : TEXTURE_SAMPLER_DEFAULT;
 
 	emitter->color = SRGBToLinear(color) * vec4(vec3(emissiveIntensity ? emissiveIntensity : 1), 1);

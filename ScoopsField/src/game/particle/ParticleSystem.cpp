@@ -58,6 +58,8 @@ void InitParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitter, bool 
 	emitter->randomVelocity = 0;
 	emitter->velocityNoise = 0;
 	emitter->randomRotation = false;
+	emitter->rotateForward = false;
+	emitter->stretchForward = 0;
 	emitter->rotationSpeed = 0;
 	emitter->randomRotationSpeed = 0;
 	emitter->color = vec4(1);
@@ -66,11 +68,8 @@ void InitParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitter, bool 
 	emitter->textureSampler = TEXTURE_SAMPLER_DEFAULT;
 	emitter->atlasSize = ivec2(0);
 	emitter->atlasFrameCount = 0;
-	//emitter->isBurst = burstCount;
-	//emitter->burstTime = 0;
+	emitter->randomFrame = 0;
 	emitter->burstCount = burstCount;
-	//emitter->burstDuration = 0;
-	//emitter->hasBursted = false;
 
 	int maxParticles = (int)SDL_ceilf((emitter->maxLifetime + 0.1f) * emitter->spawnRate) + burstCount;
 
@@ -193,11 +192,17 @@ static void SpawnParticle(ParticleEffect* effect, ParticleEmitter* emitter, vec3
 
 	emitter->sizes[particleID] = vec2(emitter->size);
 
-	emitter->rotations[particleID] = emitter->randomRotation ? game->random.nextFloat() * 2 * PI : 0;
+	float rotation = 0;
+	if (emitter->randomRotation)
+		rotation = game->random.nextFloat() * 2 * PI;
+	emitter->rotations[particleID] = rotation;
 
 	emitter->colors[particleID] = emitter->color;
 
-	emitter->animations[particleID] = 0;
+	float animation = 0;
+	if (emitter->randomFrame)
+		animation = game->random.next() % emitter->atlasFrameCount / (float)(emitter->atlasSize.x * emitter->atlasSize.y);
+	emitter->animations[particleID] = animation;
 
 	vec3 velocity = emitter->startVelocity;
 	if (emitter->randomDirection)
@@ -256,10 +261,11 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 
 		if (emitter->burstDuration)
 		{
-			float numSpawnsF = emitter->burstCount / emitter->burstDuration * deltaTime + emitter->burstRemainder;
+			float dt = min(emitter->burstDuration, deltaTime);
+			float numSpawnsF = emitter->burstCount / emitter->burstDuration * dt + emitter->burstRemainder;
 			numSpawns = (int)numSpawnsF;
 			emitter->burstRemainder = numSpawnsF - numSpawns;
-			emitter->burstDuration = max(emitter->burstDuration - deltaTime, 0.0f);
+			emitter->burstDuration -= dt;
 		}
 		else
 		{
@@ -280,19 +286,36 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 			KillParticle(emitter, i--);
 	}
 
+	quat invCameraRotation = game->cameraRotation.conjugated();
+
 	for (int i = 0; i < emitter->numParticles; i++)
 	{
 		float progress = remap(gameTime, emitter->birthTimes[i], emitter->deathTimes[i], 0, 1);
-		float size = mix(emitter->size, emitter->endSize, progress);
-		emitter->sizes[i] = vec2(size);
+		vec2 size = vec2(mix(emitter->size, emitter->endSize, progress));
+
+		if (emitter->rotateForward && emitter->stretchForward)
+		{
+			vec3 screenSpaceVelocity = invCameraRotation * emitter->velocities[i];
+			size.x *= 1 + emitter->stretchForward * screenSpaceVelocity.xy.length();
+		}
+
+		emitter->sizes[i] = size;
 	}
 
 	for (int i = 0; i < emitter->numParticles; i++)
 	{
-		float rotationSpeed = emitter->rotationSpeed;
-		if (emitter->randomRotationSpeed)
-			rotationSpeed += (hash(i) % 0xFF / 255.0f * 2 - 1) * emitter->randomRotationSpeed;
-		emitter->rotations[i] += rotationSpeed * deltaTime;
+		if (emitter->rotateForward)
+		{
+			vec3 screenSpaceVelocity = invCameraRotation * emitter->velocities[i];
+			emitter->rotations[i] = SDL_atan2f(screenSpaceVelocity.y, screenSpaceVelocity.x);
+		}
+		else
+		{
+			float rotationSpeed = emitter->rotationSpeed;
+			if (emitter->randomRotationSpeed)
+				rotationSpeed += (hash(i) % 0xFF / 255.0f * 2 - 1) * emitter->randomRotationSpeed;
+			emitter->rotations[i] += rotationSpeed * deltaTime;
+		}
 	}
 
 	for (int i = 0; i < emitter->numParticles; i++)
@@ -302,7 +325,7 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 		emitter->colors[i] = color;
 	}
 
-	if (emitter->atlasFrameCount)
+	if (emitter->atlasFrameCount && !emitter->randomFrame)
 	{
 		for (int i = 0; i < emitter->numParticles; i++)
 		{

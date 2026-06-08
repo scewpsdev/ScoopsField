@@ -27,7 +27,7 @@ struct GraphicsState
 #define MAX_STORAGE_BUFFERS 64
 	Pool<StorageBuffer, MAX_STORAGE_BUFFERS> storageBuffers;
 
-#define MAX_TRANSFER_BUFFERS 64
+#define MAX_TRANSFER_BUFFERS 256
 	Pool<TransferBuffer, MAX_TRANSFER_BUFFERS> transferBuffers;
 
 #define MAX_SHADERS 256

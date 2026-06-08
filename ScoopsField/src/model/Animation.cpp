@@ -38,8 +38,19 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 //
 // [X] hitmarker
 // [X] enemy visibility
-// [ ] enemy pathfinding
 // [X] blocking
+// [X] blood particles
+// [X] block particles
+// [X] magic particles
+// [ ] kings sword secondary attacks
+// [ ] kings sword secondary follow ups
+// [ ] kings sword backstab
+// [ ] longsword moveset
+// [ ] staff cast follow up
+// [ ] staff melee secondary
+// [ ] bow secondary arrow cancel
+// [ ] arrows stick to rigid bodies
+// [ ] enemy pathfinding
 // [ ] healthbar
 // [ ] enemy healthbar
 // [ ] healing potions

@@ -38,6 +38,7 @@ static void InitStaff(ItemDatabase* items, Item* item, const char* name, bool tw
 	item->weapon.castOffset = castOffset;
 
 	item->weapon.runningAttack = -1;
+	item->weapon.riposteAttack = -1;
 }
 
 static void AddAttackSound(Attack* attack, Sound* sound, float time, float volume, float speed, float pan)
@@ -116,6 +117,7 @@ static int AddCast(Item* item, const char* name, const char* animation, float an
 	attack->followUpCancelTime = GetAnimationByName(&item->moveset, animation)->duration;
 	attack->projectileCast = true;
 	attack->projectileCastTime = castTime;
+	attack->twoHanded = item->twoHanded;
 
 	return attackID;
 }
@@ -132,6 +134,7 @@ static int AddBlock(Item* item, const char* name, const char* animation, float a
 	attack->parryWindow = vec2(0, (float)parryEndFrame) / 24.0f / animationSpeed;
 	attack->blockWindow = vec2(0, 1000) / 24.0f / animationSpeed;
 	attack->followUpCancelTime = parryEndFrame / 24.0f / animationSpeed + 0.2f;
+	attack->twoHanded = item->twoHanded;
 
 	return attackID;
 }
@@ -147,6 +150,8 @@ static void InitWeapons(ItemDatabase* items)
 
 		AddAttack(item, "attack1", "attack1", 1.0f, 10, 18, 24, 1.0f, "attack2");
 		AddAttack(item, "attack2", "attack2", 1.0f, 10, 18, 24, 1.0f, "attack1");
+		item->weapon.riposteAttack = AddAttack(item, "riposte", "attack_riposte", 1.0f, 13, 17, 20, 1.0f, "attack1");
+		AddBlock(item, "block", "block", 1, 6);
 		item->weapon.runningAttack = AddAttack(item, "attack_running", "attack_running", 1.0f, 15, 22, 28, 1.0f, "attack1");
 	}
 	// longsword
@@ -264,16 +269,4 @@ Attack* GetFirstAttack(Item* item, bool secondary)
 			return &item->weapon.attacks[i];
 	}
 	return nullptr;
-}
-
-Attack* GetNextAttack(Attack* attack, Item* item)
-{
-	if (attack->followUp)
-	{
-		return GetAttackByName(item, attack->followUp);
-	}
-	else
-	{
-		return &item->weapon.attacks[0];
-	}
 }

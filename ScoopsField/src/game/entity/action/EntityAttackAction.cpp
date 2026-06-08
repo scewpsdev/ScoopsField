@@ -68,6 +68,7 @@ void UpdateEntityAttackAction(EntityAction* action, Entity* entity)
 				params.damage = creature->damage;
 				params.position = hit->position;
 				params.body = hit->body;
+				params.impulse = direction * 0.1f;
 
 				Player* player = (Player*)hitEntity;
 				if (HitPlayer(player, &params, entity))

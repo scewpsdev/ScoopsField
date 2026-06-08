@@ -232,7 +232,7 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 	player->exhausted = false;
 
 	SetRightWeapon(player, 0, GetItem(ITEM_DARKWOOD_STAFF));
-	//SetRightWeapon(player, 1, GetItem(ITEM_KINGS_SWORD));
+	SetRightWeapon(player, 1, GetItem(ITEM_KINGS_SWORD));
 	SetRightWeapon(player, 2, GetItem(ITEM_SHORTBOW));
 	//SetLeftWeapon(player, 1, GetItem(ITEM_WOODEN_SHIELD));
 }
@@ -270,24 +270,52 @@ bool HitPlayer(Player* player, HitParams* hit, Entity* by)
 	float damage = hit->damage * hit->damageMultiplier;
 	if (player->blockItem)
 	{
-		if (player->stamina >= 0 || player->parry)
-		{
+		const float blockStaminaCost = 0.2f;
+
+		bool wasBlocked = player->stamina >= blockStaminaCost || player->parry;
+
+		if (wasBlocked)
 			damage = 0;
-			if (!player->parry)
-				player->stamina -= 0.1f;
 
-			Sound* sound = player->parry ? &game->hitParrySound : &game->hitBlockSound;
-			PlaySound(sound, 0, 1);
+		if (!player->parry)
+			player->stamina -= blockStaminaCost;
 
-			// TODO player hit block action
+		Sound* sound = player->parry ? &game->hitParrySound : &game->hitBlockSound;
+		PlaySound(sound, 0, 1);
 
-			hit->wasBlocked = true;
-			hit->wasParried = player->parry;
-		}
-		else
-		{
-			// TODO stun player
-		}
+		SDL_assert(hit->impulse.lengthSquared() != 0);
+
+		mat4 weaponTransform = GetRightWeaponTransform(player);
+		vec3 direction = weaponTransform.rotation().up();
+		vec3 origin = weaponTransform.translation() + player->blockItem->weapon.damageRange.x * direction;
+
+		float projectedHitDistance = dot(direction, hit->position - origin);
+		projectedHitDistance = clamp(projectedHitDistance, player->blockItem->weapon.damageRange.x, player->blockItem->weapon.damageRange.y);
+		vec3 projectedHitPosition = origin + direction * projectedHitDistance;
+
+		ParticleEffect* hitParticles = (ParticleEffect*)CreateEntity();
+		LoadParticleEffect(hitParticles, "effects/impact/spark.rfs", projectedHitPosition, quat::LookAt(hit->impulse, vec3::Up));
+		hitParticles->destroyOnFinish = true;
+
+		player->lastBlockTime = gameTime;
+		player->lastBlockParry = player->parry;
+		player->lastBlockStagger = !wasBlocked;
+
+		Action* currentAction = GetCurrentAction(player);
+		SDL_assert(currentAction && currentAction->type == ACTION_TYPE_ATTACK);
+		float recoverAnim = wasBlocked ? BLOCK_STAGGER_DURATION : GUARD_BREAK_STAGGER_DURATION;
+		currentAction->followUpCancelTime = max(currentAction->followUpCancelTime, currentAction->elapsedTime + recoverAnim);
+
+		hit->wasBlocked = wasBlocked;
+		hit->wasParried = player->parry;
+	}
+	else
+	{
+		ClearQueuedAction(player->actions);
+
+		Action staggerAction = {};
+		InitStaggerAction(&staggerAction, 0.5f);
+		QueueAction(player->actions, staggerAction, *player);
 	}
 
 	if (damage)
@@ -419,6 +447,16 @@ static mat4 CalculateViewBobbing(Player* player, int side)
 		float timeSinceLanding = gameTime - player->lastLandedTime;
 		float landBob = (1.0f - SDL_powf(0.5f, timeSinceLanding * 4.0f)) * SDL_powf(0.1f, timeSinceLanding * 4.0f) * 0.5f;
 		sway.y -= landBob;
+	}
+
+	if (player->lastBlockTime)
+	{
+		float timeSinceBlock = gameTime - player->lastBlockTime;
+		float strength = player->lastBlockStagger ? 6.0f : 3.0f;
+		float speed = player->lastBlockStagger ? 0.3f : 1.0f;
+		float animation = (1.0f - SDL_powf(0.5f, timeSinceBlock * speed * 4.0f)) * SDL_powf(0.1f, timeSinceBlock * speed * 4.0f) * strength;
+		sway.z -= animation;
+		sway.y -= 0.5f * animation;
 	}
 
 	// Look sway
@@ -680,10 +718,15 @@ void UpdatePlayer(Player* player)
 				int attackIdx = 0;
 
 				Action* currentAction = GetCurrentAction(player);
-				if (currentAction && currentAction->type == ACTION_TYPE_ATTACK && currentAction->attack.weapon == right)
+				if (currentAction && currentAction->type == ACTION_TYPE_ATTACK && currentAction->attack.weapon == right && currentAction->attack.attack->followUp)
 				{
-					nextAttack = GetNextAttack(currentAction->attack.attack, currentAction->attack.weapon);
+					nextAttack = GetAttackByName(currentAction->attack.weapon, currentAction->attack.attack->followUp);
 					attackIdx = currentAction->attack.attackIdx + 1;
+				}
+				else if (player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry && right->weapon.riposteAttack != -1)
+				{
+					nextAttack = &right->weapon.attacks[right->weapon.riposteAttack];
+					CancelAction(player->actions, *player);
 				}
 				else if (player->sprinting && right->weapon.runningAttack != -1)
 				{
@@ -1112,7 +1155,7 @@ void UpdatePlayer(Player* player)
 
 		if (player->stamina < 1.0f && player->actions.actions.size == 0 && !player->sprinting && !player->blockItem)
 		{
-			player->stamina = min(player->stamina + 0.2f * deltaTime, 1.0f);
+			player->stamina = min(player->stamina + 0.15f * deltaTime, 1.0f);
 		}
 	}
 	else
@@ -1195,12 +1238,22 @@ void RenderPlayer(Player* player)
 		RenderModel(&game->renderer, &leftWeapon->model, nullptr, weaponTransform);
 	}
 
-	// vignette
+	// exhaustion vignette
 	{
-		float vignetteStrength = 1 - player->health / (float)player->maxHealth;
+		float vignetteStrength = player->exhausted ? max(0.5f - player->stamina, 0.0f) * 2 : SDL_powf(clamp(remap(player->stamina, 0.3f, 0, 0, 1), 0, 1), 3);
+		vignetteStrength *= 0.5f;
+
+		vec3 color = ARGBToVector(0xFF6090FF).rgb;
+
+		GUIPanel(0, 0, app->width, app->height, game->vignette, vec4(color, vignetteStrength));
+	}
+	// health vignette
+	{
+		float vignetteStrength = max(0.5f - player->health / (float)player->maxHealth, 0.0f) * 2;
 		if (player->lastHit && gameTime - player->lastHit < 5)
 			vignetteStrength += SDL_expf(-(gameTime - player->lastHit) * 2) * 0.5f;
 		vignetteStrength = min(vignetteStrength, 1.0f);
+		vignetteStrength *= 0.5f;
 
 		vec3 color = vec3(1, 0, 0);
 
@@ -1229,11 +1282,14 @@ void RenderPlayer(Player* player)
 		}
 		else
 		{
-			GUIPanel(app->width / 2 - game->crosshair->info.width / 2, app->height / 2 - game->crosshair->info.height / 2, game->crosshair);
+			//GUIPanel(app->width / 2 - game->crosshair->info.width / 2, app->height / 2 - game->crosshair->info.height / 2, game->crosshair);
 		}
+	}
 
+	// hitmarker
+	{
 		float showDuration = 0.2f;
-		if (gameTime - player->lastProjectileHit < showDuration)
+		if (player->lastProjectileHit && gameTime - player->lastProjectileHit < showDuration)
 		{
 			float progress = (gameTime - player->lastProjectileHit) / showDuration;
 			ivec2 size = (ivec2)(mix(1.0f, 1.5f, progress) * vec2((float)game->hitmarker->info.width, (float)game->hitmarker->info.height));
@@ -1246,6 +1302,25 @@ void RenderPlayer(Player* player)
 			color.a = 1 - progress * progress;
 
 			GUIPanel(x, y, size.x, size.y, game->hitmarker, color);
+		}
+	}
+
+	// blockmarker
+	{
+		float showDuration = 0.2f;
+		if (player->lastBlockTime && gameTime - player->lastBlockTime < showDuration)
+		{
+			float progress = (gameTime - player->lastBlockTime) / showDuration;
+			ivec2 size = (ivec2)(mix(0.5f, 0.75f, progress) * vec2((float)game->hitmarker->info.width, (float)game->hitmarker->info.height));
+			int x = app->width / 2 - size.x / 2;
+			int y = app->height / 2 - size.y / 2;
+
+			vec4 color = vec4(1);
+			if (player->lastBlockParry)
+				color.rgb = vec3(1, 0.2f, 0.2f);
+			color.a = 1 - progress * progress;
+
+			GUIPanel(x, y, size.x, size.y, game->blockmarker, color);
 		}
 	}
 }

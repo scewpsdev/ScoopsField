@@ -9,6 +9,8 @@
 
 struct Projectile;
 struct Entity;
+struct Action;
+struct Player;
 
 struct AttackAction
 {
@@ -26,7 +28,7 @@ struct AttackAction
 };
 
 
-void InitAttackAction(struct Action* action, Item* weapon, Attack* attack, int attackIdx, uint32_t button);
-void StartAttackAction(struct Action* action, struct Player* player);
-void StopAttackAction(struct Action* action, struct Player* player);
-void UpdateAttackAction(struct Action* action, struct Player* player);
+void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackIdx, uint32_t button);
+void StartAttackAction(Action* action, Player* player);
+void StopAttackAction(Action* action, Player* player);
+void UpdateAttackAction(Action* action, Player* player);

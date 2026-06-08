@@ -14,6 +14,10 @@
 #include "utils/Simplex.h"
 
 
+#define BLOCK_STAGGER_DURATION 0.5f
+#define GUARD_BREAK_STAGGER_DURATION 1.5f
+
+
 enum CameraMode
 {
 	CAMERA_MODE_FIRST_PERSON,
@@ -111,6 +115,9 @@ struct Player : EntityBase
 	float lastLandedTime;
 	float lastProjectileHit;
 	bool lastProjectileHitHeadshot;
+	float lastBlockTime;
+	bool lastBlockParry;
+	bool lastBlockStagger;
 
 	RigidBody kinematicBody;
 
