@@ -9,6 +9,11 @@ void InitEntity(Entity* entity, EntityType type)
 
 void DestroyEntity(Entity* entity)
 {
+	for (int i = 0; i < entity->numDestroyCallbacks; i++)
+	{
+		OnEntityDestroyed(entity->destroyCallbacks[i], entity);
+	}
+
 	switch (entity->type)
 	{
 	case ENTITY_TYPE_CREATURE:
@@ -32,11 +37,21 @@ void DestroyEntity(Entity* entity)
 	case ENTITY_TYPE_RAGDOLL:
 		DestroyRagdoll(&entity->ragdoll);
 		break;
+	case ENTITY_TYPE_SCONCE:
+		DestroySconce(&entity->sconce);
+		break;
 	default:
 		break;
 	}
 
 	SDL_memset(entity, 0, sizeof(Entity));
+}
+
+void AddDestroyCallback(Entity* entity, Entity* callbackEntity)
+{
+	SDL_assert(entity->numDestroyCallbacks < MAX_DESTROY_CALLBACKS);
+
+	entity->destroyCallbacks[entity->numDestroyCallbacks++] = callbackEntity;
 }
 
 bool HitEntity(Entity* entity, HitParams* hit, Entity* by)
@@ -58,8 +73,21 @@ bool InteractEntity(Entity* entity, Entity* by)
 		return InteractItemEntity(&entity->item, entity, by);
 	case ENTITY_TYPE_RESTING_SPOT:
 		return InteractRestingSpot(&entity->restingSpot, entity, by);
+	case ENTITY_TYPE_SCONCE:
+		return InteractSconce(&entity->sconce, by);
 	default:
 		return false;
+	}
+}
+
+void OnEntityDestroyed(Entity* entity, Entity* destroyed)
+{
+	switch (entity->type)
+	{
+	case ENTITY_TYPE_PROJECTILE:
+		return OnEntityDestroyed(&entity->projectile, destroyed);
+	default:
+		return;
 	}
 }
 
@@ -84,6 +112,9 @@ void UpdateEntity(Entity* entity)
 		break;
 	case ENTITY_TYPE_RAGDOLL:
 		UpdateRagdoll(&entity->ragdoll);
+		break;
+	case ENTITY_TYPE_SCONCE:
+		UpdateSconce(&entity->sconce);
 		break;
 	default:
 		break;
@@ -111,6 +142,9 @@ void RenderEntity(Entity* entity)
 		break;
 	case ENTITY_TYPE_RAGDOLL:
 		RenderRagdoll(&entity->ragdoll);
+		break;
+	case ENTITY_TYPE_SCONCE:
+		RenderSconce(&entity->sconce);
 		break;
 	default:
 		break;

@@ -7,14 +7,6 @@
 #include <immintrin.h>
 
 
-mat4::mat4() :
-	m00(1.0f), m10(0.0f), m20(0.0f), m30(0.0f),
-	m01(0.0f), m11(1.0f), m21(0.0f), m31(0.0f),
-	m02(0.0f), m12(0.0f), m22(1.0f), m32(0.0f),
-	m03(0.0f), m13(0.0f), m23(0.0f), m33(1.0f)
-{
-}
-
 mat4::mat4(float diagonal) :
 	m00(diagonal), m10(0.0f), m20(0.0f), m30(0.0f),
 	m01(0.0f), m11(diagonal), m21(0.0f), m31(0.0f),
@@ -80,6 +72,13 @@ void mat4::decompose(vec3& translation, quat& rotation, vec3& scale) const
 {
 	translation = this->translation();
 	scale = this->scale();
+	rotation = ExtractRotation(*this, scale);
+}
+
+void mat4::decompose(vec3& translation, quat& rotation) const
+{
+	translation = this->translation();
+	vec3 scale = this->scale();
 	rotation = ExtractRotation(*this, scale);
 }
 

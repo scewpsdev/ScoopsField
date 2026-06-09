@@ -48,7 +48,8 @@ struct Attack
 	bool secondary;
 	bool twoHanded;
 	bool stance;
-	bool projectileShoot;
+	bool bowDraw;
+	bool canCancel;
 
 	bool projectileCast;
 	float projectileCastTime;

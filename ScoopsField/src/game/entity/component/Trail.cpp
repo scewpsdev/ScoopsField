@@ -38,6 +38,10 @@ void InitTrail(Trail* trail, vec3 position, bool additive, int numNodes)
 
 	trail->width = 0.1f;
 	trail->color = vec4(1);
+	trail->emissive = 0.0f;
+	trail->scrollSpeed = 1.0f;
+
+	trail->textureSampler = TEXTURE_SAMPLER_LINEAR_CLAMPED_VERTICAL;
 
 	SDL_assert(numNodes <= MAX_TRAIL_NODES);
 
@@ -75,6 +79,14 @@ void UpdateTrail(Trail* trail)
 
 		trail->nodes[0].position = trail->position;
 		trail->nodes[0].distance = trail->nodes[1].distance + (trail->position - trail->nodes[1].position).length();
+
+		trail->boundingBox = {};
+		for (int i = 0; i < trail->numNodes; i++)
+		{
+			TrailNode* node = &trail->nodes[i];
+			trail->boundingBox.min = min(trail->boundingBox.min, node->position);
+			trail->boundingBox.max = min(trail->boundingBox.max, node->position);
+		}
 	}
 
 	if (trail->destroyOnCollapse && trail->nodes[trail->numNodes - 1].position == trail->position)
@@ -109,11 +121,11 @@ void UpdateTrail(Trail* trail)
 			color.a *= 1 - progress;
 
 		vertex0->position = node->position + right * 0.5f * width;
-		vertex0->uv = vec2(node->distance, 0);
+		vertex0->uv = vec2(node->distance * trail->scrollSpeed, 0);
 		vertex0->color = color;
 
 		vertex1->position = node->position - right * 0.5f * width;
-		vertex1->uv = vec2(node->distance, 1);
+		vertex1->uv = vec2(node->distance * trail->scrollSpeed, 1);
 		vertex1->color = color;
 	}
 
@@ -155,7 +167,7 @@ void BendTrailEnd(Trail* trail, vec3 position, float range)
 
 void RenderTrail(Trail* trail)
 {
-	vec4 params = vec4(trail->texture ? 1.0f : 0.0f, 0, 0, 0);
+	vec4 params = vec4(trail->texture ? 1.0f : 0.0f, trail->emissive, 0, 0);
 
-	RenderMesh(&game->renderer, &trail->vertexBuffer, 1, nullptr, trail->numNodes * 2, 1, {}, {}, &params, sizeof(params), &trail->texture, &trail->textureSampler, 1, trail->shader, mat4::Identity);
+	RenderMesh(&game->renderer, &trail->vertexBuffer, 1, nullptr, trail->numNodes * 2, 1, trail->boundingBox, {}, &params, sizeof(params), &trail->texture, &trail->textureSampler, 1, trail->shader, mat4::Identity);
 }

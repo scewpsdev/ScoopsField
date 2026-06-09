@@ -29,6 +29,7 @@ Entity* CreateEntity()
 #include "entity/component/Projectile.cpp"
 #include "entity/component/Trail.cpp"
 #include "entity/component/Ragdoll.cpp"
+#include "entity/component/Sconce.cpp"
 
 
 static void ResetGame(bool destroy)
@@ -101,11 +102,18 @@ static void ResetGame(bool destroy)
 	InitKnight((Creature*)CreateEntity(), vec3(-4, 0, -5), 0);
 	InitKnight((Creature*)CreateEntity(), vec3(4, 0, -5), 0);
 
+	InitSconce((Sconce*)CreateEntity(), vec3(-6, 0, -6));
+	InitSconce((Sconce*)CreateEntity(), vec3(6, 0, -6));
+	InitSconce((Sconce*)CreateEntity(), vec3(-6, 0, 6));
+	InitSconce((Sconce*)CreateEntity(), vec3(6, 0, 6));
+
 	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_KINGS_SWORD), vec3(-2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
 	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_LONGSWORD), vec3(0, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
 	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_DARKWOOD_STAFF), vec3(2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
 
-	InitReflectionProbe(&game->reflectionProbe, vec3(0, 29, -58), vec3(9, 13, 9));
+	InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, 29, -58), vec3(9, 13, 9));
+	InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, -15, 47), vec3(4, 15, 4));
+	InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, -33.5f, 47), vec3(9, 3.5f, 9));
 
 	{
 		ParticleEffect* effect = (ParticleEffect*)CreateEntity();
@@ -127,10 +135,13 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 
 	//LoadModel(&game->mapModel, "res/maps/testmap/testmap.gltf.bin", true, cmdBuffer);
 	//LoadModel(&game->mapModel, "res/maps/painted_world/painted_world.glb.bin", true, cmdBuffer);
-	LoadModel(&game->mapModel, "res/maps/testmap/testmap.glb.bin", true, cmdBuffer);
+	LoadModel(&game->mapModel, "res/maps/testmap/testmap.glb.bin", false, cmdBuffer);
+
+	Model mapCollider;
+	LoadModel(&mapCollider, "res/maps/testmap/testmap_collider.glb.bin", true, cmdBuffer);
 
 	InitRigidBody(&game->mapCollider, RIGID_BODY_STATIC, vec3::Zero, quat::Identity, nullptr);
-	AddModelCollider(&game->mapCollider, &game->mapModel, vec3::Zero, quat::Identity, vec3::One, 1, 1, false);
+	AddModelCollider(&game->mapCollider, &mapCollider, vec3::Zero, quat::Identity, vec3::One, 1, 1, false);
 
 	Model* navmeshModel = (Model*)BumpAllocatorMalloc(&memory->transientAllocator, sizeof(Model));
 	LoadModel(navmeshModel, "res/maps/testmap/testmap_navmesh.glb.bin", true, cmdBuffer);
@@ -151,6 +162,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	LoadSounds(&game->stepBareSound, "sounds/step/step_bare", 3);
 	LoadSound(&game->jumpBareSound, "res/sounds/step/jump_bare.ogg.bin");
 	LoadSounds(&game->landBareSound, "sounds/step/land_bare", 3);
+	LoadSound(&game->fireSound, "res/sounds/fire.ogg.bin");
 
 	game->crosshair = LoadTexture("res/textures/ui/crosshair.png.bin", cmdBuffer);
 	game->crosshairInteract = LoadTexture("res/textures/ui/crosshair_hand.png.bin", cmdBuffer);
@@ -288,11 +300,14 @@ void GameRender()
 
 	RenderModel(&game->renderer, &game->mapModel, nullptr, mat4::Identity);
 
-	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 50);
-	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * 0.5f * PI * 0.7f) * vec3(2, 2, 0), vec3(0.5f, 1, 0.5f) * 50);
+	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 50);
+	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * 0.5f * PI * 0.7f) * vec3(2, 2, 0), vec3(0.5f, 1, 0.5f) * 50);
 
-	UpdateReflectionProbe(&game->renderer, &game->reflectionProbe);
-	RenderReflectionProbe(&game->renderer, &game->reflectionProbe);
+	for (int i = 0; i < game->numReflectionProbes; i++)
+	{
+		UpdateReflectionProbe(&game->renderer, &game->reflectionProbes[i]);
+		RenderReflectionProbe(&game->renderer, &game->reflectionProbes[i]);
+	}
 
 	/*
 	// round counter
@@ -338,7 +353,7 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.1f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -5 * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 	//sunDirection = vec3(0.5f, -1, -1).normalized();

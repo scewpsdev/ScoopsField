@@ -10,11 +10,11 @@ layout (location = 0) out vec4 out_color;
 layout(set = 2, binding = 0) uniform sampler2D s_texture;
 
 layout(set = 3, binding = 0) uniform UniformBlock {
-	vec4 params;
 	vec4 materialData0;
 	vec4 data1;
 	vec4 data2;
 	vec4 data3;
+	vec4 params;
 
 #define hasTexture materialData0.x
 #define hasAnimation materialData0.y
@@ -47,7 +47,7 @@ void main()
 	vec4 textureColor = mix(vec4(1), animationColor, hasTexture);
 	vec4 color = v_color * textureColor;
 
-	if (color.a < 0.001)
+	if (color.a < 0.0001)
 		discard;
 	
 	out_color = color;

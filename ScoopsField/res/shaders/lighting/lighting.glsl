@@ -40,9 +40,13 @@ vec3 fresnel2(float hdotv, vec3 f0, float roughness)
 }
 
 // Radiance calculation for radial flux over the angle w
-vec3 L(vec3 color, float dist)
+vec3 L(vec3 color, float distanceSquared, float areaRadiusSquared)
 {
-	float attenuation = 1.0 / (1.0 + 1 * dist + 2 * dist * dist);
+	float attenuation = 1.0 / (distanceSquared + areaRadiusSquared);
+	float radius = 20;
+	float d2 = distanceSquared / (radius * radius);
+	float windowing = max(0, 1 - d2 * d2);
+	//attenuation *= windowing * windowing;
 
 	vec3 radiance = color * attenuation;
 

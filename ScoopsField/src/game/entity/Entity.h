@@ -12,6 +12,7 @@
 #include "component/Trail.h"
 #include "game/particle/ParticleSystem.h"
 #include "component/Ragdoll.h"
+#include "component/Sconce.h"
 
 
 enum EntityPhysicsFilter
@@ -45,6 +46,10 @@ struct Entity
 			EntityType type;
 			bool removed;
 
+#define MAX_DESTROY_CALLBACKS 16
+			Entity* destroyCallbacks[MAX_DESTROY_CALLBACKS];
+			int numDestroyCallbacks;
+
 			vec3 position;
 			quat rotation;
 			vec3 scale;
@@ -61,15 +66,18 @@ struct Entity
 		Trail trail;
 		ParticleEffect particles;
 		Ragdoll ragdoll;
+		Sconce sconce;
 	};
 };
 
 
 void InitEntity(Entity* entity, EntityType type);
 void DestroyEntity(Entity* entity);
+void AddDestroyCallback(Entity* entity, Entity* callbackEntity);
 
 bool HitEntity(Entity* entity, HitParams* hit, Entity* by);
 bool InteractEntity(Entity* entity, Entity* by);
+void OnEntityDestroyed(Entity* entity, Entity* destroyed);
 
 void UpdateEntity(Entity* entity);
 void RenderEntity(Entity* entity);

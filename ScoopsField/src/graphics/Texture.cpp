@@ -181,8 +181,8 @@ Texture* LoadTextureFromData(const uint8_t* data, uint32_t size, const TextureIn
 
 	SDL_EndGPUCopyPass(copyPass);
 
-	if (info->numMips > 1)
-		SDL_GenerateMipmapsForGPUTexture(cmdBuffer, handle);
+	//if (info->numMips > 1)
+	//	SDL_GenerateMipmapsForGPUTexture(cmdBuffer, handle);
 
 	Texture* texture = PoolAlloc(&graphics->textures);
 	texture->handle = handle;

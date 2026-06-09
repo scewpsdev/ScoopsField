@@ -9,13 +9,15 @@
 
 struct Action;
 struct Player;
+struct Projectile;
 
 struct ShootAction
 {
+	float power;
 };
 
 
-void InitShootAction(Action* action, Item* weapon);
+void InitShootAction(Action* action, Item* weapon, float power);
 void StartShootAction(Action* action, Player* player);
 void StopShootAction(Action* action, Player* player);
 void UpdateShootAction(Action* action, Player* player);

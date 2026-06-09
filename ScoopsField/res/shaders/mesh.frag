@@ -16,11 +16,11 @@ layout(set = 2, binding = 1) uniform sampler2D s_roughness;
 layout(set = 2, binding = 2) uniform sampler2D s_metallic;
 
 layout(set = 3, binding = 0) uniform UniformBlock {
-	vec4 params;
 	vec4 materialData0;
 	vec4 materialData1;
 	vec4 materialData2;
 	vec4 materialData3;
+	vec4 params;
 
 #define hasDiffuse materialData0.x
 #define hasRoughness materialData0.y

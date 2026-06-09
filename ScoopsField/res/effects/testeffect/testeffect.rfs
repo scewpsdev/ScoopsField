@@ -32,15 +32,16 @@ rotateAlongMovement = 0
 movementStretch = 0
 color = [ 1, 0, 1, 1 ]
 additive = 0
-emissiveIntensity = 0
+emissiveIntensity = 1
 randomRotation = 1
 randomRotationSpeed = 2.8448867797851562
 randomLifetime = 0
 velocityNoise = 0.27000001072883606
 sizeAnim = [ 0.10000000149011612, 0, 0 ]
-colorAnim0 = [ 1, 0, 1, 1 ]
-colorAnim1 = [ 1, 1, 1, 1 ]
+colorAnim0 = [ 0.999936580657959, 0, 1, 1 ]
+colorAnim1 = [ 0.9999682903289795, 0.5, 1, 1 ]
 colorAnim2 = [ 1, 1, 1, 1 ]
 } ]
 } ]
 selectedEntity = "2339055181"
+simulatedVelocity = 0

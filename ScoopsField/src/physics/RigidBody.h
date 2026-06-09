@@ -52,6 +52,7 @@ void RemoveColliders(RigidBody* body);
 void CopyColliders(RigidBody* dst, RigidBody* src, uint32_t filterGroup, uint32_t filterMask);
 
 void GetRigidBodyTransform(RigidBody* body, vec3* position, quat* rotation);
+mat4 GetRigidBodyTransform(RigidBody* body);
 void SetRigidBodyTransform(RigidBody* body, const vec3& position, const quat& rotation);
 void GetRigidBodyVelocity(RigidBody* body, vec3* velocity, vec3* angularVelocity);
 void SetRigidBodyVelocity(RigidBody* body, const vec3& velocity, const vec3& angularVelocity);

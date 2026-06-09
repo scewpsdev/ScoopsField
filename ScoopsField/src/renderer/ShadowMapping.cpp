@@ -142,7 +142,7 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 	{
 		MeshDrawData* mesh = &renderer->meshes[i];
 		if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->uniformData, mesh->uniformDataSize, mesh->textures, mesh->samplers, mesh->numTextures, mesh->skeleton, mesh->transform, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
 	}
 
 	SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedShadowMapPipeline->pipeline);
@@ -151,7 +151,7 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 	{
 		MeshDrawData* mesh = &renderer->animatedMeshes[i];
 		if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->uniformData, mesh->uniformDataSize, mesh->textures, mesh->samplers, mesh->numTextures, mesh->skeleton, mesh->transform, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
 	}
 }
 

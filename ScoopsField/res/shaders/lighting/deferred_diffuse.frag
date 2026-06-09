@@ -26,6 +26,9 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 	vec4 params3;
 	vec4 params4;
 
+	//vec3 pointLightPosition[4];
+	//vec3 pointLightColor[4];
+
 #define sunDirection params.xyz
 #define cameraPosition params2.xyz
 #define probePosition params3.xyz

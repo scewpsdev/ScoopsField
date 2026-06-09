@@ -71,6 +71,7 @@ struct GameState
 	Sound hitBlockSound;
 	Sound hitParrySound;
 	Sound stepBareSound, jumpBareSound, landBareSound;
+	Sound fireSound;
 
 	Texture* crosshair;
 	Texture* crosshairInteract;
@@ -86,7 +87,8 @@ struct GameState
 	GraphicsPipeline* particleShader;
 	GraphicsPipeline* particleAdditiveShader;
 
-	ReflectionProbe reflectionProbe;
+	ReflectionProbe reflectionProbes[8];
+	int numReflectionProbes;
 };
 
 

@@ -75,7 +75,7 @@ struct vec3
 	};
 
 
-	vec3();
+	vec3() = default;
 	// we need explicit here because otherwise floats will be able to implicitly cast to vec3 in function calls.
 	// this will then cause ambiguous function overload errors because c++ is absolute trash. amazing mr starsoup
 	explicit vec3(float xyz);
@@ -170,7 +170,7 @@ struct vec4
 	};
 
 
-	vec4();
+	vec4() = default;
 	explicit vec4(float f);
 	vec4(float x, float y, float z, float w);
 	vec4(const vec3& xyz, float w);

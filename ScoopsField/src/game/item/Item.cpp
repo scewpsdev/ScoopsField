@@ -95,8 +95,9 @@ static int AddBowDraw(Item* item, const char* name, const char* animation, float
 	attack->followUp = nullptr;
 	attack->followUpCancelTime = GetAnimationByName(&item->moveset, animation)->duration;
 	attack->stance = true;
-	attack->projectileShoot = true;
+	attack->bowDraw = true;
 	attack->twoHanded = true;
+	attack->canCancel = true;
 
 	return attackID;
 }
@@ -133,7 +134,7 @@ static int AddBlock(Item* item, const char* name, const char* animation, float a
 	attack->animationSpeed = animationSpeed;
 	attack->parryWindow = vec2(0, (float)parryEndFrame) / 24.0f / animationSpeed;
 	attack->blockWindow = vec2(0, 1000) / 24.0f / animationSpeed;
-	attack->followUpCancelTime = parryEndFrame / 24.0f / animationSpeed + 0.2f;
+	attack->followUpCancelTime = parryEndFrame / 24.0f / animationSpeed + 0.4f;
 	attack->twoHanded = item->twoHanded;
 
 	return attackID;

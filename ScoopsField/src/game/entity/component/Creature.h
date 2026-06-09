@@ -6,13 +6,13 @@
 
 #include "game/entity/action/EntityAction.h"
 
-#include "model/Model.h"
-#include "model/Animation.h"
-
 #include "physics/RigidBody.h"
 
 
 struct HitParams;
+struct Ragdoll;
+struct Model;
+struct Animation;
 
 enum ColliderType
 {
@@ -34,7 +34,7 @@ struct EntityAttack
 
 	//bool stance;
 	//const char* stanceFollowUp;
-	//bool projectileShoot;
+	//bool bowDraw;
 	//float projectileShootTime;
 
 	vec2 rangeTriggerWindow;
@@ -66,6 +66,8 @@ struct Creature : EntityBase
 	Model* model;
 	AnimationState anim;
 	RigidBody body;
+
+	Ragdoll* ragdoll;
 
 #define MAX_CREATURE_HITBOXES 32
 	//HashMap<uint32_t, ColliderData, MAX_CREATURE_HITBOXES> hitboxData;

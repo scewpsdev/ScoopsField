@@ -14,14 +14,14 @@
 #define HIT_FREEZE_DURATION 0.1f
 
 
-void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackIdx, uint32_t button)
+void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackIdx, uint32_t button, uint32_t cancelButton)
 {
 	InitAction(action, ACTION_TYPE_ATTACK);
 
 	action->rightAnimName = attack->animation;
 	action->rightAnimMoveset = &weapon->moveset;
 
-	if (attack->projectileShoot)
+	if (attack->bowDraw)
 	{
 		action->overrideLeftWeapon = true;
 		action->leftWeapon = &game->items.items[ITEM_ARROW];
@@ -55,6 +55,7 @@ void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackId
 	action->attack.attackIdx = attackIdx;
 
 	action->attack.button = button;
+	action->attack.cancelButton = cancelButton;
 
 	if (attack->stance)
 	{
@@ -81,10 +82,12 @@ void StartAttackAction(Action* action, Player* player)
 
 void StopAttackAction(Action* action, Player* player)
 {
-	if (action->attack.attack->projectileShoot)
+	if (action->attack.attack->bowDraw && !action->attack.cancelled)
 	{
+		float power = min(action->elapsedTime / action->followUpCancelTime, 1.0f);
+
 		Action shootAction = {};
-		InitShootAction(&shootAction, action->attack.weapon);
+		InitShootAction(&shootAction, action->attack.weapon, power);
 		ClearQueuedAction(player->actions);
 		QueueAction(player->actions, shootAction, *player);
 	}
@@ -111,10 +114,15 @@ void UpdateAttackAction(Action* action, Player* player)
 		bool parry = action->elapsedTime <= action->attack.attack->parryWindow.y;
 		bool blockStagger = gameTime - player->lastBlockTime < GUARD_BREAK_STAGGER_DURATION && player->lastBlockStagger;
 
-		action->moveSpeed = action->attack.attack->projectileShoot || parry ? 0.5f : blockStagger ? 0.3f : 1.0f;
+		action->moveSpeed = action->attack.attack->bowDraw || parry || blockStagger ? 0.3f : player->blockItem ? 0.7f : 1.0f;
 
-		if (!GetMouseButton(action->attack.button) && action->elapsedTime > action->followUpCancelTime)
+		if (action->attack.button && !GetMouseButton(action->attack.button) && action->elapsedTime > action->followUpCancelTime)
 			CancelAction(player->actions, *player);
+		if (action->attack.attack->bowDraw && action->attack.cancelButton && GetMouseButton(action->attack.cancelButton))
+		{
+			action->attack.cancelled = true;
+			CancelAction(player->actions, *player);
+		}
 	}
 	else
 	{

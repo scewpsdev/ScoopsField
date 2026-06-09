@@ -53,6 +53,7 @@ struct ParticleEmitter
 	float randomRotationSpeed;
 	vec4 color;
 	vec4 endColor;
+	float emissive;
 	Texture* texture;
 	TextureSampler textureSampler;
 	ivec2 atlasSize;

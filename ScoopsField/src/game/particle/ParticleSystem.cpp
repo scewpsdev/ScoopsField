@@ -197,7 +197,9 @@ static void SpawnParticle(ParticleEffect* effect, ParticleEmitter* emitter, vec3
 		rotation = game->random.nextFloat() * 2 * PI;
 	emitter->rotations[particleID] = rotation;
 
-	emitter->colors[particleID] = emitter->color;
+	vec4 color = emitter->color;
+	color.rgb = SRGBToLinear(emitter->color.rgb) * (emitter->emissive ? emitter->emissive : 1);
+	emitter->colors[particleID] = color;
 
 	float animation = 0;
 	if (emitter->randomFrame)
@@ -288,14 +290,31 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 
 	quat invCameraRotation = game->cameraRotation.conjugated();
 
+	if (emitter->velocityNoise)
+	{
+		for (int i = 0; i < emitter->numParticles; i++)
+		{
+			float t = gameTime + i;
+			vec3 velocityNoise = vec3(Simplex1f(t), Simplex1f(100 + t), Simplex1f(200 + -t)).normalized();
+			emitter->positions[i] += emitter->velocityNoise * velocityNoise * deltaTime;
+		}
+	}
+
 	for (int i = 0; i < emitter->numParticles; i++)
 	{
 		float progress = remap(gameTime, emitter->birthTimes[i], emitter->deathTimes[i], 0, 1);
 		vec2 size = vec2(mix(emitter->size, emitter->endSize, progress));
 
+		vec3 velocityNoise = vec3::Zero;
+		if (emitter->velocityNoise)
+		{
+			float t = gameTime + i;
+			velocityNoise = emitter->velocityNoise * vec3(Simplex1f(t), Simplex1f(100 + t), Simplex1f(200 + -t)).normalized();
+			emitter->positions[i] += velocityNoise * deltaTime;
+		}
 		if (emitter->rotateForward && emitter->stretchForward)
 		{
-			vec3 screenSpaceVelocity = invCameraRotation * emitter->velocities[i];
+			vec3 screenSpaceVelocity = invCameraRotation * (emitter->velocities[i] + velocityNoise);
 			size.x *= 1 + emitter->stretchForward * screenSpaceVelocity.xy.length();
 		}
 
@@ -322,6 +341,7 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 	{
 		float progress = remap(gameTime, emitter->birthTimes[i], emitter->deathTimes[i], 0, 1);
 		vec4 color = mix(emitter->color, emitter->endColor, progress);
+		color.rgb = SRGBToLinear(color.rgb) * (emitter->emissive ? emitter->emissive : 1);
 		emitter->colors[i] = color;
 	}
 
@@ -341,6 +361,16 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 
 	}
 
+	for (int i = 0; i < emitter->numParticles; i++)
+	{
+		emitter->positions[i] += emitter->velocities[i] * deltaTime;
+	}
+
+	for (int i = 0; i < emitter->numParticles; i++)
+	{
+		emitter->velocities[i] += 0.5f * emitter->gravity * deltaTime;
+	}
+
 	if (emitter->drag)
 	{
 		for (int i = 0; i < emitter->numParticles; i++)
@@ -349,24 +379,6 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 			emitter->velocities[i] += -dragForce * deltaTime;
 		}
 	}
-
-	for (int i = 0; i < emitter->numParticles; i++)
-	{
-		emitter->positions[i] += emitter->velocities[i] * deltaTime;
-	}
-
-	if (emitter->velocityNoise)
-	{
-		for (int i = 0; i < emitter->numParticles; i++)
-		{
-			float t = gameTime + i;
-			vec3 velocityNoise = vec3(Simplex1f(t), Simplex1f(100 + t), Simplex1f(200 + -t)).normalized();
-			emitter->positions[i] += emitter->velocityNoise * velocityNoise * deltaTime;
-		}
-	}
-
-	for (int i = 0; i < emitter->numParticles; i++)
-		emitter->velocities[i] += 0.5f * emitter->gravity * deltaTime;
 
 	float numSpawnsF = emitter->spawnRate * deltaTime + emitter->spawnRemainder;
 	int numSpawns = (int)numSpawnsF;
@@ -423,6 +435,15 @@ static void RenderParticleEmitter(ParticleSystem* particles, ParticleEmitter* em
 	vec4 params = vec4(emitter->texture ? 1.0f : 0.0f, emitter->atlasFrameCount ? 1.0f : 0.0f, (vec2)emitter->atlasSize);
 
 	RenderMesh(&game->renderer, buffers, 6, nullptr, 4, emitter->numParticles, {}, {}, &params, sizeof(params), &emitter->texture, &emitter->textureSampler, 1, emitter->shader, emitter->follow ? transform : mat4::Identity);
+
+	if (emitter->emissive && emitter->numParticles)
+	{
+		float brightness = emitter->numParticles * 0.5f * (emitter->size + emitter->endSize);
+		vec4 color = 0.5f * ((emitter->color) + (emitter->endColor));
+		color.rgb *= emitter->emissive;
+		vec3 light = 0.05f * color.rgb * color.a * brightness;
+		RenderLight(&game->renderer, transform * emitter->startPosition, light);
+	}
 }
 
 void InitParticleEffect(ParticleEffect* effect, vec3 position, quat rotation)

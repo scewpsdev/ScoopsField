@@ -273,6 +273,14 @@ void GetRigidBodyTransform(RigidBody* body, vec3* position, quat* rotation)
 		*rotation = FromPxQuaternion(transform.q);
 }
 
+mat4 GetRigidBodyTransform(RigidBody* body)
+{
+	vec3 position;
+	quat rotation;
+	GetRigidBodyTransform(body, &position, &rotation);
+	return mat4::Transform(position, rotation);
+}
+
 void SetRigidBodyTransform(RigidBody* body, const vec3& position, const quat& rotation)
 {
 	PxTransform transform(PxVector(position), PxQuaternion(rotation));

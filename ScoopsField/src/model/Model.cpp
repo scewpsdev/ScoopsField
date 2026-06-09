@@ -280,9 +280,9 @@ static void ReadAnimation(Animation* animation, BinaryReader& reader)
 	animation->numScalings = reader.ReadInt32();
 	animation->numChannels = reader.ReadInt32();
 
-	animation->positions = (PositionKeyframe*)BumpAllocatorMalloc(&resource->animationCache.positionAllocator, animation->numPositions * sizeof(PositionKeyframe));
-	animation->rotations = (RotationKeyframe*)BumpAllocatorMalloc(&resource->animationCache.rotationAllocator, animation->numRotations * sizeof(RotationKeyframe));
-	animation->scalings = (ScalingKeyframe*)BumpAllocatorMalloc(&resource->animationCache.scalingAllocator, animation->numScalings * sizeof(ScalingKeyframe));
+	animation->positions = (PositionKeyframe*)SDL_malloc(animation->numPositions * sizeof(PositionKeyframe)); //BumpAllocatorMalloc(&resource->animationCache.positionAllocator, animation->numPositions * sizeof(PositionKeyframe));
+	animation->rotations = (RotationKeyframe*)SDL_malloc(animation->numRotations * sizeof(RotationKeyframe)); //BumpAllocatorMalloc(&resource->animationCache.rotationAllocator, animation->numRotations * sizeof(RotationKeyframe));
+	animation->scalings = (ScalingKeyframe*)SDL_malloc(animation->numScalings * sizeof(ScalingKeyframe)); //BumpAllocatorMalloc(&resource->animationCache.scalingAllocator, animation->numScalings * sizeof(ScalingKeyframe));
 
 	SDL_assert(animation->positions);
 	SDL_assert(animation->rotations);
@@ -434,6 +434,47 @@ bool LoadModel(Model* model, const char* path, bool cacheMeshes, SDL_GPUCommandB
 	}
 
 	return false;
+}
+
+static void DestroyMesh(Mesh* mesh)
+{
+	if (mesh->positionBuffer)
+		DestroyVertexBuffer(mesh->positionBuffer);
+	if (mesh->normalBuffer)
+		DestroyVertexBuffer(mesh->normalBuffer);
+	if (mesh->weightsBuffer)
+		DestroyVertexBuffer(mesh->weightsBuffer);
+	if (mesh->texcoordBuffer)
+		DestroyVertexBuffer(mesh->texcoordBuffer);
+	if (mesh->indexBuffer)
+		DestroyIndexBuffer(mesh->indexBuffer);
+}
+
+static void DestroyMaterial(Material* material)
+{
+	for (int i = 0; i < material->numTextures; i++)
+	{
+		DestroyTexture(material->textures[i]);
+	}
+}
+
+static void DestroyAnimation(Animation* animation)
+{
+	SDL_free(animation->positions);
+	SDL_free(animation->rotations);
+	SDL_free(animation->scalings);
+}
+
+void DestroyModel(Model* model)
+{
+	for (int i = 0; i < model->numMeshes; i++)
+		DestroyMesh(&model->meshes[i]);
+
+	for (int i = 0; i < model->numMaterials; i++)
+		DestroyMaterial(&model->materials[i]);
+
+	for (int i = 0; i < model->numAnimations; i++)
+		DestroyAnimation(&model->animations[i]);
 }
 
 Node* GetNodeByName(Model* model, const char* name)

@@ -12,24 +12,6 @@
 #include "utils/HashMap.h"
 
 
-struct PositionKeyframe
-{
-	vec3 value;
-	float time;
-};
-
-struct RotationKeyframe
-{
-	quat value;
-	float time;
-};
-
-struct ScalingKeyframe
-{
-	vec3 value;
-	float time;
-};
-
 struct Mesh
 {
 	int vertexCount;
@@ -118,6 +100,24 @@ struct Skeleton
 	mat4 inverseBindPose;
 };
 
+struct PositionKeyframe
+{
+	vec3 value;
+	float time;
+};
+
+struct RotationKeyframe
+{
+	quat value;
+	float time;
+};
+
+struct ScalingKeyframe
+{
+	vec3 value;
+	float time;
+};
+
 struct AnimationChannel
 {
 	char name[32];
@@ -178,6 +178,7 @@ struct Model
 
 
 bool LoadModel(Model* model, const char* path, bool cacheMeshes, SDL_GPUCommandBuffer* cmdBuffer);
+void DestroyModel(Model* model);
 
 Node* GetNodeByName(Model* model, const char* name);
 Animation* GetAnimationByName(Model* model, const char* name);

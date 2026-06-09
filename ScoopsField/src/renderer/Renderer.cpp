@@ -460,13 +460,7 @@ static SDL_GPUTexture* CreateCloudNoiseDetailTexture(Renderer* renderer, SDL_GPU
 }
 
 static void SubmitMesh(Renderer* renderer,
-	VertexBuffer* vertexBuffers[], int numVertexBuffers,
-	IndexBuffer* indexBuffer,
-	int vertexCount, int indexCount, int instanceCount,
-	vec4* uniformData, int uniformDataSize,
-	Texture* textures[], TextureSampler samplers[], int numTextures,
-	SkeletonState* skeleton,
-	const mat4& transform,
+	MeshDrawData* mesh,
 	const mat4& projection, const mat4& view, const mat4& pv, vec3 cameraPosition, bool viewSpaceBuffer,
 	SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer);
 
@@ -657,7 +651,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	linearClampedVSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
 	linearClampedVSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
 	linearClampedVSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-	renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED_VERTICAL] = SDL_CreateGPUSampler(device, &linearClampedSamplerInfo);
+	renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED_VERTICAL] = SDL_CreateGPUSampler(device, &linearClampedVSamplerInfo);
 
 	SDL_GPUSamplerCreateInfo shadowSamplerInfo = {};
 	shadowSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
@@ -796,7 +790,7 @@ void RenderMesh(Renderer* renderer,
 	IndexBuffer* indexBuffer,
 	int vertexCount, int instanceCount,
 	AABB boundingBox, Sphere boundingSphere,
-	vec4 uniformData[4], int uniformDataSize,
+	vec4 uniformData[], int uniformDataSize,
 	Texture* textures[], TextureSampler samplers[], int numTextures,
 	GraphicsPipeline* shader,
 	mat4 transform)
@@ -816,9 +810,11 @@ void RenderMesh(Renderer* renderer,
 	data.boundingBox = boundingBox;
 	data.boundingSphere = boundingSphere;
 
+	SDL_assert(uniformDataSize <= 4 * sizeof(vec4));
 	SDL_memcpy(data.uniformData, uniformData, uniformDataSize);
 	data.uniformDataSize = uniformDataSize;
 
+	SDL_assert(numTextures <= MAX_MATERIAL_TEXTURES);
 	SDL_memcpy(data.textures, textures, numTextures * sizeof(textures[0]));
 	SDL_memcpy(data.samplers, samplers, numTextures * sizeof(samplers[0]));
 	data.numTextures = numTextures;
@@ -940,39 +936,84 @@ void RenderReflectionProbe(Renderer* renderer, ReflectionProbe* probe)
 
 void UpdateReflectionProbe(Renderer* renderer, ReflectionProbe* probe)
 {
-	renderer->reflectionProbeUpdates.add(probe);
+	if (!renderer->reflectionProbeUpdates.contains(probe))
+		renderer->reflectionProbeUpdates.add(probe);
+}
+
+static float CalculateLightRadius(vec3 color)
+{
+	float maxChannel = max(color.r, max(color.g, color.b));
+	float threshold = 0.001f; //1.0f / 255;
+	float maxDistance = SDL_sqrtf(maxChannel / threshold);
+	return maxDistance;
+}
+
+static int GetFurthestLight(float distances[4])
+{
+	float distance = distances[0];
+	int result = 0;
+	for (int i = 1; i < 4; i++)
+	{
+		if (distances[i] > distance)
+		{
+			distance = distances[i];
+			result = i;
+		}
+	}
+	return result;
+}
+
+static void GetClosestPointLightData(Renderer* renderer, vec3 position, vec4* lightPositions, vec4* lightColors, float* lightCount)
+{
+	float distances[4] = { INFINITY, INFINITY, INFINITY, INFINITY };
+	int furthestLight = 0;
+	for (int i = 0; i < renderer->pointLights.size; i++)
+	{
+		vec3 toLight = renderer->pointLights[i].position - position;
+		float effectiveDistance = toLight.length() - CalculateLightRadius(renderer->pointLights[i].color);
+		if (effectiveDistance < distances[furthestLight])
+		{
+			distances[furthestLight] = effectiveDistance;
+			lightPositions[furthestLight].xyz = renderer->pointLights[i].position;
+			lightColors[furthestLight].rgb = renderer->pointLights[i].color;
+			furthestLight = GetFurthestLight(distances);
+		}
+	}
+
+	int numLights;
+	for (numLights = 0; numLights < 4; numLights++)
+	{
+		if (distances[numLights] == INFINITY)
+			break;
+	}
+
+	*lightCount = (float)numLights;
 }
 
 static void SubmitMesh(Renderer* renderer,
-	VertexBuffer* vertexBuffers[], int numVertexBuffers,
-	IndexBuffer* indexBuffer,
-	int vertexCount, int indexCount, int instanceCount,
-	vec4* uniformData, int uniformDataSize,
-	Texture* textures[], TextureSampler samplers[], int numTextures,
-	SkeletonState* skeleton,
-	const mat4& transform,
+	MeshDrawData* mesh,
 	const mat4& projection, const mat4& view, const mat4& pv, vec3 cameraPosition, bool viewSpaceBuffer,
 	SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	SDL_GPUBufferBinding vertexBindings[16] = {};
-	for (int i = 0; i < numVertexBuffers; i++)
+	for (int i = 0; i < mesh->numVertexBuffers; i++)
 	{
-		vertexBindings[i].buffer = vertexBuffers[i] ? vertexBuffers[i]->buffer : renderer->emptyBuffer;
+		vertexBindings[i].buffer = mesh->vertexBuffers[i] ? mesh->vertexBuffers[i]->buffer : renderer->emptyBuffer;
 		vertexBindings[i].offset = 0;
 	}
 
-	SDL_BindGPUVertexBuffers(renderPass, 0, vertexBindings, numVertexBuffers);
+	SDL_BindGPUVertexBuffers(renderPass, 0, vertexBindings, mesh->numVertexBuffers);
 
-	if (indexBuffer)
+	if (mesh->indexBuffer)
 	{
 		SDL_GPUBufferBinding indexBinding = {};
-		indexBinding.buffer = indexBuffer->buffer;
+		indexBinding.buffer = mesh->indexBuffer->buffer;
 		indexBinding.offset = 0;
 
-		SDL_BindGPUIndexBuffer(renderPass, &indexBinding, indexBuffer->elementSize);
+		SDL_BindGPUIndexBuffer(renderPass, &indexBinding, mesh->indexBuffer->elementSize);
 	}
 
-	if (skeleton)
+	if (mesh->skeleton)
 	{
 		struct UniformData
 		{
@@ -984,11 +1025,11 @@ static void SubmitMesh(Renderer* renderer,
 		};
 
 		UniformData uniforms = {};
-		uniforms.projectionViewModel = pv * transform;
-		uniforms.viewModel = view * transform;
+		uniforms.projectionViewModel = pv * mesh->transform;
+		uniforms.viewModel = view * mesh->transform;
 		uniforms.projection = projection;
-		uniforms.model = viewSpaceBuffer ? view * transform : transform;
-		SDL_memcpy(uniforms.boneTransforms, skeleton->boneTransforms, skeleton->numBones * sizeof(mat4));
+		uniforms.model = viewSpaceBuffer ? view * mesh->transform : mesh->transform;
+		SDL_memcpy(uniforms.boneTransforms, mesh->skeleton->boneTransforms, mesh->skeleton->numBones * sizeof(mat4));
 		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 	}
 	else
@@ -1002,41 +1043,55 @@ static void SubmitMesh(Renderer* renderer,
 		};
 
 		UniformData uniforms = {};
-		uniforms.projectionViewModel = pv * transform;
-		uniforms.viewModel = view * transform;
+		uniforms.projectionViewModel = pv * mesh->transform;
+		uniforms.viewModel = view * mesh->transform;
 		uniforms.projection = projection;
-		uniforms.model = viewSpaceBuffer ? view * transform : transform;
+		uniforms.model = viewSpaceBuffer ? view * mesh->transform : mesh->transform;
 		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 	}
 
-	if (uniformData)
+	if (mesh->uniformData)
 	{
-		uint8_t* data = BumpAllocatorMalloc(&memory->transientAllocator, uniformDataSize + sizeof(vec4));
-		*(vec4*)data = vec4(cameraPosition, 0);
-		SDL_memcpy(data + sizeof(vec4), uniformData, uniformDataSize);
-
-		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, data, uniformDataSize + sizeof(vec4));
-
-		SDL_GPUTextureSamplerBinding textureBindings[MAX_MATERIAL_TEXTURES] = {};
-		for (int i = 0; i < numTextures; i++)
+		if (mesh->shader && IsForward(mesh->shader))
 		{
-			textureBindings[i].texture = textures[i] ? textures[i]->handle : renderer->emptyTexture;
-			textureBindings[i].sampler = renderer->samplers[samplers[i]];
+			struct UniformData
+			{
+				vec4 params;
+				vec4 pointLightPositions[4];
+				vec4 pointLightColors[4];
+			};
+
+			uint8_t* data = BumpAllocatorMalloc(&memory->transientAllocator, mesh->uniformDataSize + sizeof(UniformData));
+			SDL_memcpy(data, mesh->uniformData, mesh->uniformDataSize);
+
+			UniformData* extraUniforms = (UniformData*)(data + mesh->uniformDataSize);
+			extraUniforms->params = vec4(cameraPosition, 0);
+
+			GetClosestPointLightData(renderer, 0.5f * (mesh->boundingBox.min + mesh->boundingBox.max), extraUniforms->pointLightPositions, extraUniforms->pointLightColors, &extraUniforms->params.w);
+
+			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, data, mesh->uniformDataSize + sizeof(UniformData));
+		}
+		else
+		{
+			uint8_t* data = BumpAllocatorMalloc(&memory->transientAllocator, mesh->uniformDataSize);
+			SDL_memcpy(data, mesh->uniformData, mesh->uniformDataSize);
+			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, data, mesh->uniformDataSize);
 		}
 
-		SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, numTextures);
+		SDL_GPUTextureSamplerBinding textureBindings[MAX_MATERIAL_TEXTURES] = {};
+		for (int i = 0; i < mesh->numTextures; i++)
+		{
+			textureBindings[i].texture = mesh->textures[i] ? mesh->textures[i]->handle : renderer->emptyTexture;
+			textureBindings[i].sampler = renderer->samplers[mesh->samplers[i]];
+		}
+
+		SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, mesh->numTextures);
 	}
 
-	if (indexBuffer)
-		SDL_DrawGPUIndexedPrimitives(renderPass, indexCount, instanceCount, 0, 0, 0);
+	if (mesh->indexBuffer)
+		SDL_DrawGPUIndexedPrimitives(renderPass, mesh->indexCount, mesh->instanceCount, 0, 0, 0);
 	else
-		SDL_DrawGPUPrimitives(renderPass, vertexCount, instanceCount, 0, 0);
-}
-
-static float CalculateLightRadius(vec3 color)
-{
-	// TODO calculate this based on color and attenuation function
-	return 10;
+		SDL_DrawGPUPrimitives(renderPass, mesh->vertexCount, mesh->instanceCount, 0, 0);
 }
 
 // TODO
@@ -1083,7 +1138,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		for (int i = 0; i < renderer->meshes.size; i++)
 		{
 			MeshDrawData* mesh = &renderer->meshes[i];
-			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->uniformData, mesh->uniformDataSize, mesh->textures, mesh->samplers, mesh->numTextures, mesh->skeleton, mesh->transform, projection, view, pv, cameraPosition, true, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, true, renderPass, cmdBuffer);
 		}
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
@@ -1091,7 +1146,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		for (int i = 0; i < renderer->animatedMeshes.size; i++)
 		{
 			MeshDrawData* mesh = &renderer->animatedMeshes[i];
-			SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->uniformData, mesh->uniformDataSize, mesh->textures, mesh->samplers, mesh->numTextures, mesh->skeleton, mesh->transform, projection, view, pv, cameraPosition, true, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, true, renderPass, cmdBuffer);
 		}
 
 		SDL_EndGPURenderPass(renderPass);
@@ -1162,7 +1217,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 				SDL_BindGPUGraphicsPipeline(renderPass, mesh->shader->pipeline);
 
-				SubmitMesh(renderer, mesh->vertexBuffers, mesh->numVertexBuffers, mesh->indexBuffer, mesh->vertexCount, mesh->indexCount, mesh->instanceCount, mesh->uniformData, mesh->uniformDataSize, mesh->textures, mesh->samplers, mesh->numTextures, mesh->skeleton, mesh->transform, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
+				SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
 			}
 		}
 

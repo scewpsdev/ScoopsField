@@ -33,20 +33,21 @@ randomFrame = 1
 linearFiltering = 0
 color = [ 0, 2.15922474861145, 5.5920000076293945, 1 ]
 additive = 1
-emissiveIntensity = 0
+emissiveIntensity = 1
 randomRotation = 1
 randomRotationSpeed = 1.3613568544387817
 randomLifetime = 0
 velocityNoise = 0
 sizeAnim = [ 0.5, 0.25, 0 ]
-colorAnim0 = [ 0, 2.169696092605591, 5.5920000076293945, 0 ]
-colorAnim1 = [ 0, 2.169696092605591, 5.5920000076293945, 0.25 ]
-colorAnim2 = [ 0, 2.1590728759765625, 5.5920000076293945, 0.5 ]
+colorAnim0 = [ 0, 0.6400001049041748, 1, 0 ]
+colorAnim1 = [ 0, 0.6404633522033691, 1, 0.25 ]
+colorAnim2 = [ 0, 0.6409265995025635, 1, 0.5 ]
 bursts = [ {
 time = 0
-count = 8
-duration = 1
+count = 3
+duration = 0.6000000238418579
 } ]
 } ]
 } ]
 selectedEntity = "500556259"
+simulatedVelocity = 0

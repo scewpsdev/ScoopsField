@@ -301,6 +301,9 @@ bool HitPlayer(Player* player, HitParams* hit, Entity* by)
 		player->lastBlockParry = player->parry;
 		player->lastBlockStagger = !wasBlocked;
 
+		vec3 impulse = quat::FromAxisAngle(vec3::Up, player->rotation) * vec3(0, 0, 1) * 5;
+		player->velocity += impulse;
+
 		Action* currentAction = GetCurrentAction(player);
 		SDL_assert(currentAction && currentAction->type == ACTION_TYPE_ATTACK);
 		float recoverAnim = wasBlocked ? BLOCK_STAGGER_DURATION : GUARD_BREAK_STAGGER_DURATION;
@@ -311,6 +314,7 @@ bool HitPlayer(Player* player, HitParams* hit, Entity* by)
 	}
 	else
 	{
+		CancelAction(player->actions, *player);
 		ClearQueuedAction(player->actions);
 
 		Action staggerAction = {};
@@ -740,7 +744,7 @@ void UpdatePlayer(Player* player)
 				if (nextAttack)
 				{
 					Action action;
-					InitAttackAction(&action, right, nextAttack, attackIdx, SDL_BUTTON_LEFT);
+					InitAttackAction(&action, right, nextAttack, attackIdx, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT);
 					QueueAction(player->actions, action, *player);
 				}
 			}
@@ -754,7 +758,7 @@ void UpdatePlayer(Player* player)
 					int attackIdx = 0;
 
 					Action action;
-					InitAttackAction(&action, right, nextAttack, attackIdx, SDL_BUTTON_RIGHT);
+					InitAttackAction(&action, right, nextAttack, attackIdx, SDL_BUTTON_RIGHT, SDL_BUTTON_LEFT);
 					QueueAction(player->actions, action, *player);
 				}
 			}
@@ -1148,7 +1152,7 @@ void UpdatePlayer(Player* player)
 			player->exhausted = true;
 			PlaySound(&game->exhaustedSound, 0.4f);
 		}
-		else if (player->stamina >= 0.5f)
+		else if (player->stamina >= 0.3f)
 		{
 			player->exhausted = false;
 		}
@@ -1240,7 +1244,7 @@ void RenderPlayer(Player* player)
 
 	// exhaustion vignette
 	{
-		float vignetteStrength = player->exhausted ? max(0.5f - player->stamina, 0.0f) * 2 : SDL_powf(clamp(remap(player->stamina, 0.3f, 0, 0, 1), 0, 1), 3);
+		float vignetteStrength = player->exhausted ? max(0.3f - player->stamina, 0.0f) / 0.3f : SDL_powf(clamp(remap(player->stamina, 0.3f, 0, 0, 1), 0, 1), 3);
 		vignetteStrength *= 0.5f;
 
 		vec3 color = ARGBToVector(0xFF6090FF).rgb;
@@ -1298,7 +1302,7 @@ void RenderPlayer(Player* player)
 
 			vec4 color = vec4(1);
 			if (player->lastProjectileHitHeadshot)
-				color.rgb = vec3(1, 0.2f, 0.2f);
+				color.rgb = vec3(1, 0.4f, 0.4f);
 			color.a = 1 - progress * progress;
 
 			GUIPanel(x, y, size.x, size.y, game->hitmarker, color);
@@ -1317,7 +1321,7 @@ void RenderPlayer(Player* player)
 
 			vec4 color = vec4(1);
 			if (player->lastBlockParry)
-				color.rgb = vec3(1, 0.2f, 0.2f);
+				color.rgb = vec3(1, 0.4f, 0.4f);
 			color.a = 1 - progress * progress;
 
 			GUIPanel(x, y, size.x, size.y, game->blockmarker, color);

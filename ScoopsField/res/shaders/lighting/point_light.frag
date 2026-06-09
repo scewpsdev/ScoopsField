@@ -31,7 +31,7 @@ vec3 pointLight(vec3 position, vec3 normal, vec3 view, vec3 albedo, float roughn
 	vec3 h = normalize(view + wi);
 
 	float distanceSq = dot(toLight, toLight);
-	vec3 radiance = L(lightColor, distanceSq);
+	vec3 radiance = L(lightColor, distanceSq, 0.1);
 
 	// Cook-Torrance BRDF
 	float d = normalDistribution(normal, h, roughness);

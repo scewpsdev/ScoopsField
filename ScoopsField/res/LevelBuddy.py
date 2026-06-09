@@ -189,15 +189,15 @@ def update_brush_sector_materials(ob):
     
     if bpy.data.materials.find(ob.ceiling_texture) != -1:
         ob.material_slots[0].material = bpy.data.materials[ob.ceiling_texture]
-    else:
+    elif scn.default_material != "":
         ob.material_slots[0].material = bpy.data.materials[scn.default_material]
     if bpy.data.materials.find(ob.floor_texture) != -1:
         ob.material_slots[1].material = bpy.data.materials[ob.floor_texture]
-    else:
+    elif scn.default_material != "":
         ob.material_slots[1].material = bpy.data.materials[scn.default_material]
     if bpy.data.materials.find(ob.wall_texture) != -1:
         ob.material_slots[2].material = bpy.data.materials[ob.wall_texture]
-    else:
+    elif scn.default_material != "":
         ob.material_slots[2].material = bpy.data.materials[scn.default_material]
 
 def update_brush_material(ob):
@@ -206,7 +206,7 @@ def update_brush_material(ob):
     
     scn = bpy.context.scene
     
-    if ob.material_slots[0].material == None:
+    if ob.material_slots[0].material == None and scn.default_material != "":
         ob.material_slots[0].material = bpy.data.materials[scn.default_material]
 
 

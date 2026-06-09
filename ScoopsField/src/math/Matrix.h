@@ -20,7 +20,7 @@ struct mat4
 		vec4 columns[4];
 	};
 
-	mat4();
+	mat4() = default;
 	mat4(float diagonal);
 	mat4(const vec4& col0, const vec4& col1, const vec4& col2, const vec4& col3);
 	mat4(const float elements[16]);
@@ -30,6 +30,7 @@ struct mat4
 	quat rotation() const;
 
 	void decompose(vec3& translation, quat& rotation, vec3& scale) const;
+	void decompose(vec3& translation, quat& rotation) const;
 
 	mat4 transpose() const;
 

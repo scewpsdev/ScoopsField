@@ -21,8 +21,10 @@ struct Trail : EntityBase
 {
 	float width;
 	vec4 color;
+	float emissive;
 	Texture* texture;
 	TextureSampler textureSampler;
+	float scrollSpeed;
 
 	bool fadeWidth;
 	bool fadeAlpha;
@@ -36,6 +38,8 @@ struct Trail : EntityBase
 	TransferBuffer* transferBuffer;
 
 	float lastNodeUpdate;
+
+	AABB boundingBox;
 };
 
 

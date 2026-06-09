@@ -44,7 +44,7 @@ void main()
 	//vec3 sunlight = attenuateSun(cameraPosition, sunDirection);
 
 	vec3 color = imageLoad(s_sunColor, ivec2(0)).rgb;
-	color = mix(color, sunlight, 0.05);
+	color = mix(color, sunlight, 0.01);
 
 	imageStore(s_sunColor, ivec2(0), vec4(color, 0));
 }

@@ -4,6 +4,9 @@
 
 #include "game/entity/Entity.h"
 
+#include "model/Model.h"
+#include "model/Animation.h"
+
 #include "utils/StringUtils.h"
 
 
@@ -98,6 +101,7 @@ static void OnDeath(Creature* creature, HitParams* hit, Node* hitNode)
 
 	Ragdoll* ragdoll = (Ragdoll*)CreateEntity();
 	InitRagdoll(ragdoll, creature);
+	creature->ragdoll = ragdoll;
 
 	RigidBody* ragdollBody = hitNode ? HashMapGet(&ragdoll->bones, hash(hitNode->name)) : nullptr;
 	if (ragdollBody)
@@ -309,7 +313,6 @@ static void UpdateAI(Creature* creature)
 		if (IsEntityVisible(creature, potentialTarget) && IsInViewCone(creature, potentialTarget))
 		{
 			creature->target = potentialTarget;
-			SDL_Log("target found\n");
 		}
 	}
 
@@ -331,11 +334,8 @@ static void UpdateAI(Creature* creature)
 		{
 			creature->searchEntity = creature->target;
 			creature->target = nullptr;
-			SDL_Log("target lost\n");
 		}
 	}
-
-	DebugText(0, 10, "state: %s", creature->target ? "target" : creature->searchEntity ? "search" : creature->targetPosition != vec3::Zero ? "examine" : "idle");
 
 	if (creature->targetPosition != vec3::Zero && !creature->target && creature->searchEntity)
 	{

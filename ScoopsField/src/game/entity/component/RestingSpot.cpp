@@ -19,12 +19,12 @@ void InitRestingSpot(Entity* entity, vec3 position, quat rotation)
 	AddBoxCollider(&entity->restingSpot.body, size, center, quat::Identity, ENTITY_FILTER_INTERACTABLE, 0, false);
 }
 
-void DestroyRestingSpot(RestingSpot* item, Entity* entity)
+void DestroyRestingSpot(RestingSpot* restingSpot, Entity* entity)
 {
-
+	DestroyRigidBody(&restingSpot->body);
 }
 
-bool InteractRestingSpot(RestingSpot* item, Entity* entity, Entity* by)
+bool InteractRestingSpot(RestingSpot* restingSpot, Entity* entity, Entity* by)
 {
 	Action action = {};
 	InitSitAction(&action);
@@ -32,12 +32,12 @@ bool InteractRestingSpot(RestingSpot* item, Entity* entity, Entity* by)
 	return true;
 }
 
-void UpdateRestingSpot(RestingSpot* item, Entity* entity)
+void UpdateRestingSpot(RestingSpot* restingSpot, Entity* entity)
 {
 
 }
 
-void RenderRestingSpot(RestingSpot* item, Entity* entity)
+void RenderRestingSpot(RestingSpot* restingSpot, Entity* entity)
 {
 	RenderModel(&game->renderer, entity->model, nullptr, ModelMatrix(entity));
 }

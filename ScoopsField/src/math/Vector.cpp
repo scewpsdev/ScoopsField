@@ -119,11 +119,6 @@ const vec2 vec2::Up = vec2(0.0f, 1.0f);
 const vec2 vec2::AxisX = vec2(1.0f, 0.0f);
 const vec2 vec2::AxisY = vec2(0.0f, 1.0f);
 
-vec3::vec3()
-	: x(0.0f), y(0.0f), z(0.0f)
-{
-}
-
 vec3::vec3(float xyz)
 	: x(xyz), y(xyz), z(xyz)
 {
@@ -270,11 +265,6 @@ const vec3 vec3::Back = vec3(0.0f, 0.0f, 1.0f);
 const vec3 vec3::AxisX = vec3(1.0f, 0.0f, 0.0f);
 const vec3 vec3::AxisY = vec3(0.0f, 1.0f, 0.0f);
 const vec3 vec3::AxisZ = vec3(0.0f, 0.0f, 1.0f);
-
-vec4::vec4()
-	: x(0.0f), y(0.0f), z(0.0f), w(0.0f)
-{
-}
 
 vec4::vec4(float f)
 	: x(f), y(f), z(f), w(f)

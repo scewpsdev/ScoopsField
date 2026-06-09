@@ -33,6 +33,27 @@ void DestroyProjectile(Projectile* projectile, Entity* entity)
 	}
 }
 
+void OnEntityDestroyed(Projectile* projectile, Entity* destroyed)
+{
+	if (projectile->stuckToBody && projectile->stuckToBody->userPtr == destroyed)
+	{
+		if (destroyed->type == ENTITY_TYPE_CREATURE)
+		{
+			Creature* creature = &destroyed->creature;
+			Node* hitboxNode = GetNodeForHitbox(creature, projectile->stuckToBody);
+			RigidBody* ragdollBody = GetRagdollBodyWithName(creature->ragdoll, hitboxNode->name);
+
+			projectile->stuckLocalTransform = GetRigidBodyTransform(ragdollBody).inverted() * GetRigidBodyTransform(projectile->stuckToBody) * projectile->stuckLocalTransform;
+			projectile->stuckToBody = ragdollBody;
+		}
+		else
+		{
+			projectile->stuckToBody = nullptr;
+			projectile->removed = true;
+		}
+	}
+}
+
 void UpdateProjectile(Projectile* projectile)
 {
 	if (!projectile->stuck)
@@ -56,30 +77,23 @@ void UpdateProjectile(Projectile* projectile)
 			for (int i = 0; i < numHits; i++)
 			{
 				RigidBody* body = hits[i].body;
-				if (body->type == RIGID_BODY_STATIC)
-				{
-					if (projectile->stickToObjects)
-					{
-						projectile->stuck = true;
-						projectile->position += d * hits[i].distance;
 
-						if (projectile->trail)
-							projectile->trail->destroyOnCollapse = true;
-					}
-					else
-					{
-						projectile->removed = true;
-					}
-					return;
+				if (projectile->hitEffect)
+				{
+					ParticleEffect* hitEffect = (ParticleEffect*)CreateEntity();
+					LoadParticleEffect(hitEffect, projectile->hitEffect, projectile->position, projectile->rotation);
+					hitEffect->destroyOnFinish = true;
 				}
-				else
+
+				if (Entity* bodyEntity = (Entity*)body->userPtr)
 				{
 					HitParams hit = {};
 					hit.damage = projectile->damage;
 					hit.position = hits[i].position;
 					hit.body = body;
 					hit.impulse = projectile->velocity * 0.005f * 40.0f / 30.0f * projectile->damage / 200.0f;
-					if (HitEntity((Entity*)body->userPtr, &hit, (Entity*)projectile))
+
+					if (HitEntity(bodyEntity, &hit, (Entity*)projectile))
 					{
 						if (projectile->hitSound)
 							PlaySound(projectile->hitSound, projectile->position, 1);
@@ -87,8 +101,32 @@ void UpdateProjectile(Projectile* projectile)
 						if (projectile->shooter && projectile->shooter->type == ENTITY_TYPE_PLAYER)
 							OnProjectileHit(&projectile->shooter->player, hit.wasHeadshot);
 
-						projectile->removed = true;
+						if (projectile->stickToObjects)
+						{
+							projectile->stuckToBody = body;
+
+							projectile->stuckLocalTransform = GetRigidBodyTransform(body).inverted() * ModelMatrix((Entity*)projectile);
+							AddDestroyCallback(bodyEntity, (Entity*)projectile);
+						}
 					}
+				}
+
+				if (projectile->stickToObjects)
+				{
+					projectile->stuck = true;
+					projectile->position += d * hits[i].distance;
+				}
+				else
+				{
+					projectile->removed = true;
+				}
+
+				if (projectile->trail)
+					projectile->trail->destroyOnCollapse = true;
+				if (projectile->particles)
+				{
+					projectile->particles->destroyOnFinish = true;
+					StopParticleEffect(projectile->particles);
 				}
 			}
 		}
@@ -117,6 +155,14 @@ void UpdateProjectile(Projectile* projectile)
 				projectile->particles->scale = projectile->scale;
 			}
 		}
+	}
+
+	if (projectile->stuck && projectile->stuckToBody)
+	{
+		mat4 bodyTransform = GetRigidBodyTransform(projectile->stuckToBody);
+		mat4 transform = bodyTransform * projectile->stuckLocalTransform;
+		projectile->position = transform.translation();
+		projectile->rotation = transform.rotation();
 	}
 }
 
@@ -158,8 +204,8 @@ void InitMagicProjectile(Projectile* projectile, vec3 position, vec3 direction, 
 	int damage = 50;
 	InitProjectile(projectile, position, direction, startTransform, speed, damage, shooter);
 
-	//projectile->model = GetModel("entities/projectile/magic_projectile/magic_projectile.glb");
-	//projectile->shader = game->magicProjectileShader;
+	projectile->model = GetModel("entities/projectile/magic_projectile/magic_projectile.glb");
+	projectile->shader = game->magicProjectileShader;
 
 	projectile->gravity = -4.0f;
 	projectile->rotationSpeed = 5 * PI;
@@ -168,17 +214,21 @@ void InitMagicProjectile(Projectile* projectile, vec3 position, vec3 direction, 
 
 	projectile->trail = (Trail*)CreateEntity();
 	InitTrail(projectile->trail, position + projectile->offset, true);
-	projectile->trail->width = 0.1f;
+	projectile->trail->width = 0.25f;
 	projectile->trail->color = vec4(SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 5, 0.3f);
-	projectile->trail->texture = GetTexture("textures/effect/trail.png");
+	projectile->trail->emissive = 1.0f;
+	projectile->trail->texture = GetTexture("textures/effect/trail_magic.png");
 	projectile->trail->fadeWidth = true;
 	projectile->trail->fadeAlpha = true;
+	projectile->trail->scrollSpeed = 0.2f;
 
 	projectile->hasLight = true;
-	projectile->lightColor = SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 15;
+	projectile->lightColor = SRGBToLinear(ARGBToVector(0xFF95C8FF)).xyz * 5;
 
-	projectile->particles = (ParticleEffect*)CreateEntity();
-	LoadParticleEffect(projectile->particles, "effects/projectile/magic_projectile.rfs", position, projectile->rotation);
+	projectile->hitEffect = "effects/impact/magic.rfs";
+
+	//projectile->particles = (ParticleEffect*)CreateEntity();
+	//LoadParticleEffect(projectile->particles, "effects/projectile/magic_projectile.rfs", position, projectile->rotation);
 
 	/*
 	InitParticleEffect(projectile->particles, position);

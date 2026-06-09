@@ -16,10 +16,12 @@ enum EntityType
 	ENTITY_TYPE_TRAIL,
 	ENTITY_TYPE_PARTICLE_EFFECT,
 	ENTITY_TYPE_RAGDOLL,
+	ENTITY_TYPE_SCONCE,
 
 	ENTITY_TYPE_LAST
 };
 
+struct Entity;
 struct Model;
 struct GraphicsPipeline;
 
@@ -27,6 +29,10 @@ struct EntityBase
 {
 	EntityType type;
 	bool removed;
+
+#define MAX_DESTROY_CALLBACKS 16
+	Entity* destroyCallbacks[MAX_DESTROY_CALLBACKS];
+	int numDestroyCallbacks;
 
 	vec3 position;
 	quat rotation;
