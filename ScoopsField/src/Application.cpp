@@ -267,7 +267,7 @@ static AppState* InitAppState()
 #if _DEBUG
 	gpuDebug = false;
 
-	SDL_SetLogPriority(SDL_LOG_CATEGORY_GPU, SDL_LOG_PRIORITY_INFO);
+	SDL_SetLogPriority(SDL_LOG_CATEGORY_GPU, SDL_LOG_PRIORITY_TRACE);
 #endif
 
 	SDL_GPUDevice* device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, gpuDebug, nullptr);

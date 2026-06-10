@@ -43,6 +43,9 @@ struct MeshDrawData
 	SkeletonState* skeleton;
 	GraphicsPipeline* shader;
 	mat4 transform;
+
+	bool renderToShadows;
+	bool renderToReflections;
 };
 
 struct LightDrawData
@@ -113,7 +116,7 @@ struct Renderer
 	RenderTarget* cubemapGbuffers[6];
 	RenderTarget* reflectionProbeShadowMap;
 
-#define BLOOM_STEPS 12
+#define BLOOM_STEPS 16
 	RenderTarget* bloomDownsampleTargets[BLOOM_STEPS];
 	RenderTarget* bloomUpsampleTargets[BLOOM_STEPS - 1];
 	int bloomStepCount;
@@ -203,10 +206,12 @@ void RenderMesh(Renderer* renderer,
 	vec4 uniformData[4], int uniformDataSize,
 	Texture* textures[], TextureSampler samplers[], int numTextures,
 	GraphicsPipeline* shader,
-	mat4 transform);
+	mat4 transform,
+	bool renderToShadows, bool renderToReflections);
 
-void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform);
-void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform);
+void RenderModel(Renderer* renderer, Model* model, mat4 transform, bool isStatic = false);
+void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform, bool isStatic = false);
+void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform, bool isStatic = false);
 void RenderLight(Renderer* renderer, vec3 position, vec3 color);
 void RenderReflectionProbe(Renderer* renderer, ReflectionProbe* probe);
 void UpdateReflectionProbe(Renderer* renderer, ReflectionProbe* probe);

@@ -82,7 +82,11 @@ float lerpAngle(float a, float b, float t)
 
 float moveTowards(float a, float b, float t)
 {
-	return clamp(a + sign(b - a) * t, a, b);
+	float c = a + sign(b - a) * t;
+	if (a > b)
+		return clamp(c, b, a);
+	else
+		return clamp(c, a, b);
 }
 
 float moveTowardsAngle(float a, float b, float t)

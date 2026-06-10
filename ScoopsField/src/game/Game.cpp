@@ -30,6 +30,7 @@ Entity* CreateEntity()
 #include "entity/component/Trail.cpp"
 #include "entity/component/Ragdoll.cpp"
 #include "entity/component/Sconce.cpp"
+#include "entity/component/Elevator.cpp"
 
 
 static void ResetGame(bool destroy)
@@ -102,17 +103,19 @@ static void ResetGame(bool destroy)
 	InitKnight((Creature*)CreateEntity(), vec3(-4, 0, -5), 0);
 	InitKnight((Creature*)CreateEntity(), vec3(4, 0, -5), 0);
 
-	InitSconce((Sconce*)CreateEntity(), vec3(-6, 0, -6));
-	InitSconce((Sconce*)CreateEntity(), vec3(6, 0, -6));
-	InitSconce((Sconce*)CreateEntity(), vec3(-6, 0, 6));
-	InitSconce((Sconce*)CreateEntity(), vec3(6, 0, 6));
+	InitSconce((Sconce*)CreateEntity(), vec3(-7, -37, 40));
+	InitSconce((Sconce*)CreateEntity(), vec3(7, -37, 40));
+	InitSconce((Sconce*)CreateEntity(), vec3(-7, -37, 54));
+	InitSconce((Sconce*)CreateEntity(), vec3(7, -37, 54));
+
+	InitElevator((Elevator*)CreateEntity(), vec3(0, -37, 47), quat::Identity, 37);
 
 	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_KINGS_SWORD), vec3(-2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
 	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_LONGSWORD), vec3(0, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
 	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_DARKWOOD_STAFF), vec3(2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
 
 	InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, 29, -58), vec3(9, 13, 9));
-	InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, -15, 47), vec3(4, 15, 4));
+	InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, -15.5f, 47), vec3(4, 14.5f, 4));
 	InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, -33.5f, 47), vec3(9, 3.5f, 9));
 
 	{
@@ -298,7 +301,7 @@ void GameRender()
 
 	RenderParticleSystem(&game->particles);
 
-	RenderModel(&game->renderer, &game->mapModel, nullptr, mat4::Identity);
+	RenderModel(&game->renderer, &game->mapModel, nullptr, mat4::Identity, true);
 
 	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 50);
 	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * 0.5f * PI * 0.7f) * vec3(2, 2, 0), vec3(0.5f, 1, 0.5f) * 50);

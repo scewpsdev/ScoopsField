@@ -2,6 +2,8 @@
 
 #include "Physics.h"
 
+#include "game/player/Player.h"
+
 #include <characterkinematic/PxCapsuleController.h>
 
 using namespace physx;
@@ -21,12 +23,47 @@ static PxVec3d PxVectord(const vec3& v)
 	return PxVec3d(v.x, v.y, v.z);
 }
 
+static vec3 FromPxVector(const PxVec3& v)
+{
+	return vec3(v.x, v.y, v.z);
+}
+
 static vec3 FromPxVectord(const PxVec3d& v)
 {
 	return vec3((float)v.x, (float)v.y, (float)v.z);
 }
 
-void InitCharacterController(CharacterController* controller, float radius, float height, float stepOffset, const vec3& position)
+class ControllerHitCallback : public physx::PxUserControllerHitReport
+{
+public:
+	CharacterController* controller;
+
+public:
+	void onShapeHit(const physx::PxControllerShapeHit& hit) override;
+	void onControllerHit(const physx::PxControllersHit& hit) override;
+	void onObstacleHit(const physx::PxControllerObstacleHit& hit) override;
+};
+
+void ControllerHitCallback::onShapeHit(const PxControllerShapeHit& hit)
+{
+	vec3 position = FromPxVectord(hit.worldPos);
+	vec3 normal = FromPxVector(hit.worldNormal);
+	float length = hit.length;
+	vec3 direction = FromPxVector(hit.dir);
+
+	Player* player = (Player*)controller->controller->getUserData();
+	OnControllerHit(player, position, normal, length, direction);
+}
+
+void ControllerHitCallback::onControllerHit(const PxControllersHit& hit)
+{
+}
+
+void ControllerHitCallback::onObstacleHit(const PxControllerObstacleHit& hit)
+{
+}
+
+void InitCharacterController(CharacterController* controller, float radius, float height, float stepOffset, const vec3& position, void* userPtr)
 {
 	PxCapsuleControllerDesc desc = {};
 	desc.position = PxVectord(position + vec3::Up * (height * 0.5f + desc.contactOffset));
@@ -37,8 +74,13 @@ void InitCharacterController(CharacterController* controller, float radius, floa
 	desc.climbingMode = PxCapsuleClimbingMode::eEASY;
 	desc.nonWalkableMode = PxControllerNonWalkableMode::ePREVENT_CLIMBING_AND_FORCE_SLIDING;
 
+	new((ControllerHitCallback*)controller->hitCallback)ControllerHitCallback();
+	desc.reportCallback = (PxUserControllerHitReport*)controller->hitCallback;
+	((ControllerHitCallback*)controller->hitCallback)->controller = controller;
+
 	PxCapsuleController* capsule = (PxCapsuleController*)physics->controllers->createController(desc);
 	capsule->setFootPosition((PxVec3d)PxVectord(position));
+	capsule->setUserData(userPtr);
 
 	controller->controller = capsule;
 }

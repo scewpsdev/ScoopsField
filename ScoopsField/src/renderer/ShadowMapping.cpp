@@ -141,7 +141,7 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 	for (int i = 0; i < renderer->meshes.size; i++)
 	{
 		MeshDrawData* mesh = &renderer->meshes[i];
-		if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
+		if (mesh->renderToShadows && FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
 			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
 	}
 
@@ -150,7 +150,7 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 	for (int i = 0; i < renderer->animatedMeshes.size; i++)
 	{
 		MeshDrawData* mesh = &renderer->animatedMeshes[i];
-		if (FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
+		if (mesh->renderToShadows && FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
 			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
 	}
 }

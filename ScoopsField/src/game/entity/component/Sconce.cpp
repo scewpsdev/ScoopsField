@@ -28,6 +28,8 @@ void InitSconce(Sconce* sconce, vec3 position)
 		sconce->particlesSpawnRate[i] = sconce->particles->emitters[i].spawnRate;
 		sconce->particles->emitters[i].spawnRate = 0;
 	}
+
+	InteractSconce(sconce, nullptr);
 }
 
 void DestroySconce(Sconce* sconce)

@@ -80,7 +80,8 @@ void UpdateTrail(Trail* trail)
 		trail->nodes[0].position = trail->position;
 		trail->nodes[0].distance = trail->nodes[1].distance + (trail->position - trail->nodes[1].position).length();
 
-		trail->boundingBox = {};
+		trail->boundingBox.min = vec3(INFINITY);
+		trail->boundingBox.max = vec3(-INFINITY);
 		for (int i = 0; i < trail->numNodes; i++)
 		{
 			TrailNode* node = &trail->nodes[i];
@@ -169,5 +170,5 @@ void RenderTrail(Trail* trail)
 {
 	vec4 params = vec4(trail->texture ? 1.0f : 0.0f, trail->emissive, 0, 0);
 
-	RenderMesh(&game->renderer, &trail->vertexBuffer, 1, nullptr, trail->numNodes * 2, 1, trail->boundingBox, {}, &params, sizeof(params), &trail->texture, &trail->textureSampler, 1, trail->shader, mat4::Identity);
+	RenderMesh(&game->renderer, &trail->vertexBuffer, 1, nullptr, trail->numNodes * 2, 1, trail->boundingBox, {}, &params, sizeof(params), &trail->texture, &trail->textureSampler, 1, trail->shader, mat4::Identity, false, false);
 }

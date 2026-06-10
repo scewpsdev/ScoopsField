@@ -110,7 +110,7 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 				VertexUniformData vertexUniforms = {};
 				vertexUniforms.projectionView = mat4::Identity;
 				vertexUniforms.params = vec4(0, 0, 1, 0);
-				vertexUniforms.params2 = vec4(0);
+				vertexUniforms.params2 = vec4(0.001f, 0.001f, 0.001f, 1);
 
 				SDL_PushGPUVertexUniformData(cmdBuffer, 0, &vertexUniforms, sizeof(vertexUniforms));
 

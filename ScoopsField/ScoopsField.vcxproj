@@ -153,6 +153,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="src\game\entity\component\Elevator.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\game\entity\component\ItemEntity.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -292,6 +296,7 @@
     <ClInclude Include="src\audio\Audio.h" />
     <ClInclude Include="src\GameMemory.h" />
     <ClInclude Include="src\game\entity\component\Creature.h" />
+    <ClInclude Include="src\game\entity\component\Elevator.h" />
     <ClInclude Include="src\game\entity\component\ItemEntity.h" />
     <ClInclude Include="src\game\entity\component\Projectile.h" />
     <ClInclude Include="src\game\entity\component\Ragdoll.h" />

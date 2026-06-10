@@ -361,9 +361,13 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 
 	}
 
+	emitter->boundingBox.min = vec3(INFINITY);
+	emitter->boundingBox.max = vec3(-INFINITY);
 	for (int i = 0; i < emitter->numParticles; i++)
 	{
 		emitter->positions[i] += emitter->velocities[i] * deltaTime;
+		emitter->boundingBox.min = min(emitter->boundingBox.min, emitter->positions[i]);
+		emitter->boundingBox.max = max(emitter->boundingBox.max, emitter->positions[i]);
 	}
 
 	for (int i = 0; i < emitter->numParticles; i++)
@@ -434,7 +438,7 @@ static void RenderParticleEmitter(ParticleSystem* particles, ParticleEmitter* em
 
 	vec4 params = vec4(emitter->texture ? 1.0f : 0.0f, emitter->atlasFrameCount ? 1.0f : 0.0f, (vec2)emitter->atlasSize);
 
-	RenderMesh(&game->renderer, buffers, 6, nullptr, 4, emitter->numParticles, {}, {}, &params, sizeof(params), &emitter->texture, &emitter->textureSampler, 1, emitter->shader, emitter->follow ? transform : mat4::Identity);
+	RenderMesh(&game->renderer, buffers, 6, nullptr, 4, emitter->numParticles, emitter->boundingBox, {}, &params, sizeof(params), &emitter->texture, &emitter->textureSampler, 1, emitter->shader, emitter->follow ? transform : mat4::Identity, false, false);
 
 	if (emitter->emissive && emitter->numParticles)
 	{
@@ -442,7 +446,10 @@ static void RenderParticleEmitter(ParticleSystem* particles, ParticleEmitter* em
 		vec4 color = 0.5f * ((emitter->color) + (emitter->endColor));
 		color.rgb *= emitter->emissive;
 		vec3 light = 0.05f * color.rgb * color.a * brightness;
-		RenderLight(&game->renderer, transform * emitter->startPosition, light);
+		vec3 position = 0.5f * (emitter->boundingBox.min + emitter->boundingBox.max);
+		if (emitter->follow)
+			position = transform * position;
+		RenderLight(&game->renderer, position, light);
 	}
 }
 

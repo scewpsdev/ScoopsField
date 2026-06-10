@@ -4,10 +4,10 @@
 
 #include "math/Vector.h"
 
-#include <physx/PxPhysics.h>
-#include <physx/PxScene.h>
-#include <physx/cooking/PxCooking.h>
-#include <physx/characterkinematic/PxControllerManager.h>
+#include <PxPhysics.h>
+#include <PxScene.h>
+#include <cooking/PxCooking.h>
+#include <characterkinematic/PxControllerManager.h>
 #include <physx/pvd/PxPvd.h>
 
 
@@ -59,5 +59,9 @@ void EndPhysicsFrame(PhysicsState* physics);
 int Raycast(const vec3& origin, const vec3& direction, float distance, PhysicsHit* hits, int maxHits, uint32_t filterMask);
 bool Raycast(const vec3& origin, const vec3& direction, float distance, uint32_t filterMask);
 bool Linecast(vec3 point0, vec3 point1, uint32_t filterMask);
+int OverlapBox(vec3 position, vec3 size, PhysicsHit* hits, int maxHits, uint32_t filterMask);
+bool OverlapBox(vec3 position, vec3 size, uint32_t filterMask);
 int OverlapSphere(const vec3& position, float radius, PhysicsHit* hits, int maxHits, uint32_t filterMask);
+bool OverlapSphere(vec3 position, float radius, uint32_t filterMask);
 int SweepSphere(float radius, const vec3& position, const vec3& direction, float maxDistance, PhysicsHit* hits, int maxHits, uint32_t filterMask);
+bool SweepSphere(float radius, const vec3& position, const vec3& direction, float maxDistance, uint32_t filterMask);

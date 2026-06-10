@@ -21,6 +21,33 @@ static void OnJump(Player* player)
 	PlaySound(&game->jumpBareSound, 0.5f);
 }
 
+void OnControllerHit(Player* player, vec3 position, vec3 normal, float length, vec3 direction)
+{
+	if (dot(player->velocity, normal) < 0.0f)
+	{
+		vec3 lastVelocity = player->velocity;
+		// If this is a slope, don't modify velocity to allow for smooth climbing
+		if (SDL_fabsf(normal.x) > 0.999f || SDL_fabsf(normal.y) > 0.999f || SDL_fabsf(normal.z) > 0.999f || normal.y < 0.001f)
+		{
+			float bounceCoefficient = 1.0f;
+			vec3 newVelocity = player->velocity - bounceCoefficient * dot(player->velocity, normal) * normal;
+			player->velocity = newVelocity;
+		}
+
+		/*
+		float velocityChange = SDL_fabsf(player->velocity.y - lastVelocity.y);
+		bool groundHit = normal.y > 0.5f && velocityChange > FALL_IMPACT_MIN_SPEED;
+		if (groundHit)
+		{
+			lastLandedTime = Time.currentTime;
+
+			if (onLand != null)
+				onLand(velocityChange);
+		}
+		*/
+	}
+}
+
 static vec3 GetMovementInputs(Player* player, Action* currentAction, float speed)
 {
 	vec3 fsu = vec3::Zero;
@@ -326,7 +353,13 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 	}
 	else
 	{
-		player->grounded = false;
+		player->grounded = OverlapSphere(player->position + vec3(0, 0.3f - 0.01f, 0), 0.3f, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ENEMY);
+
+		if (player->velocity.y < -5 && gameTime - player->lastLandedTime > 0.2f)
+		{
+			player->lastLandedTime = gameTime;
+			OnLand(player);
+		}
 	}
 
 	player->moving = xzSpeed > 1;

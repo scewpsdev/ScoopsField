@@ -39,7 +39,7 @@ vec3 sampleEnvironmentPrefiltered(vec3 position, vec3 normal, vec3 view, float r
 	vec3 toSample = parallaxCorrect(localPos, r, probeSize);
 	vec3 dir = localPos + toSample;
 
-	return textureLod(environmentMap, dir * vec3(1, 1, -1), lodFactor * log2(textureSize(environmentMap, 0).x)).rgb;
+	return textureLod(environmentMap, dir * vec3(1, 1, 1), lodFactor * log2(textureSize(environmentMap, 0).x)).rgb;
 }
 
 vec3 environmentLight(vec3 position, vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, samplerCube environmentMap)

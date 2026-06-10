@@ -16,13 +16,14 @@ enum ControllerCollisionFlags : uint8_t
 struct CharacterController
 {
 	physx::PxCapsuleController* controller;
+	uint8_t hitCallback[16]; // declaring hit callback struct like this because c++ is absolute garbage (implicitly deleted default constructor trash)
 
 	float getRadius() const { return controller->getRadius(); }
 	float getHeight() const { return controller->getHeight() + 2 * controller->getRadius(); }
 };
 
 
-void InitCharacterController(CharacterController* controller, float radius, float height, float stepOffset, const vec3& position);
+void InitCharacterController(CharacterController* controller, float radius, float height, float stepOffset, const vec3& position, void* userPtr);
 void DestroyCharacterController(CharacterController* controller);
 
 ControllerCollisionFlags MoveCharacterController(CharacterController* controller, const vec3& delta, uint32_t filterMask);

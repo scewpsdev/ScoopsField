@@ -217,7 +217,7 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 	InitAnimation(&player->bodyFallAnim, "fall", player->bodyModel, 1.0f, true, false);
 	InitAnimation(&player->bodyFallDuckAnim, "fall_duck", player->bodyModel, 1.0f, true, false);
 
-	InitCharacterController(&player->controller, 0.3f, CONTROLLER_HEIGHT, 0.2f, player->position);
+	InitCharacterController(&player->controller, 0.3f, CONTROLLER_HEIGHT, 0.2f, player->position, player);
 	InitRigidBody(&player->kinematicBody, RIGID_BODY_KINEMATIC, player->position, quat::Identity, player);
 	AddCapsuleCollider(&player->kinematicBody, 0.2f, 1.5f, vec3(0, 1, 0), quat::Identity, ENTITY_FILTER_PLAYER, ENTITY_FILTER_ENEMY | ENTITY_FILTER_RAGDOLL, false);
 
@@ -246,6 +246,11 @@ void DestroyPlayer(Player* player)
 
 	//DestroyModel(player->model);
 	//DestroyAnimationState(&player->anim);
+}
+
+void MovePlayer(Player* player, vec3 delta)
+{
+	MoveCharacterController(&player->controller, delta, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ENEMY);
 }
 
 void TeleportPlayer(Player* player, vec3 position)
@@ -643,28 +648,28 @@ void UpdatePlayer(Player* player)
 		return;
 	}
 
-	if (game->mouseLocked)
+	if (player->cameraMode == CAMERA_MODE_FIRST_PERSON)
 	{
-		if (player->cameraMode == CAMERA_MODE_FIRST_PERSON)
+		if (game->mouseLocked)
 		{
 			player->yaw -= app->mouseDelta.x * 0.001f;
 			player->pitch -= app->mouseDelta.y * 0.001f;
 
 			player->pitch = clamp(player->pitch, -0.5f * PI, 0.5f * PI);
+		}
 
-			if (!(GetCurrentAction(player) && GetCurrentAction(player)->lockPlayerRotation))
-				player->rotation = player->yaw;
+		if (!(GetCurrentAction(player) && GetCurrentAction(player)->lockPlayerRotation))
+			player->rotation = player->yaw;
 
-			if (!(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim))
-			{
-				SourceMovement(player, player->rootMotion);
-				player->rootMotion = vec3::Zero;
+		if (!(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim))
+		{
+			SourceMovement(player, player->rootMotion);
+			player->rootMotion = vec3::Zero;
 
-				player->cameraHeight = player->ducked ? CAMERA_HEIGHT_DUCKED :
-					player->duckTimer != -1 ? min(player->cameraHeight, mix(CAMERA_HEIGHT, CAMERA_HEIGHT_DUCKED, player->duckTimer / DUCK_TRANSITION)) :
-					player->grounded ? mix(player->cameraHeight, CAMERA_HEIGHT, 10 * deltaTime) :
-					CAMERA_HEIGHT;
-			}
+			player->cameraHeight = player->ducked ? CAMERA_HEIGHT_DUCKED :
+				player->duckTimer != -1 ? min(player->cameraHeight, mix(CAMERA_HEIGHT, CAMERA_HEIGHT_DUCKED, player->duckTimer / DUCK_TRANSITION)) :
+				player->grounded ? mix(player->cameraHeight, CAMERA_HEIGHT, 10 * deltaTime) :
+				CAMERA_HEIGHT;
 		}
 	}
 

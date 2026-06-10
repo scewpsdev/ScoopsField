@@ -13,6 +13,7 @@
 #include "game/particle/ParticleSystem.h"
 #include "component/Ragdoll.h"
 #include "component/Sconce.h"
+#include "component/Elevator.h"
 
 
 enum EntityPhysicsFilter
@@ -67,6 +68,7 @@ struct Entity
 		ParticleEffect particles;
 		Ragdoll ragdoll;
 		Sconce sconce;
+		Elevator elevator;
 	};
 };
 

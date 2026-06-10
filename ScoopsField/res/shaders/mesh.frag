@@ -20,7 +20,6 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 	vec4 materialData1;
 	vec4 materialData2;
 	vec4 materialData3;
-	vec4 params;
 
 #define hasDiffuse materialData0.x
 #define hasRoughness materialData0.y

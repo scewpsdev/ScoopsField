@@ -137,6 +137,7 @@ struct Player : EntityBase
 	float lastHit;
 };
 
+
 Action* GetCurrentAction(Player* player);
 
 Item* GetRightWeapon(Player* player);
@@ -145,6 +146,11 @@ Item* GetLeftWeapon(Player* player);
 mat4 GetRightWeaponTransform(Player* player);
 mat4 GetLeftWeaponTransform(Player* player);
 
+void MovePlayer(Player* player, vec3 delta);
+void TeleportPlayer(Player* player, vec3 position);
+
 bool HitPlayer(Player* player, HitParams* hit, Entity* by);
 bool GiveItem(Player* player, Item* item);
 bool DropItem(Player* player, Item* item);
+
+void OnControllerHit(Player* player, vec3 position, vec3 normal, float length, vec3 direction);

@@ -44,7 +44,7 @@ vec3 parallaxCorrect(vec3 position, vec3 dir, vec3 size)
 float getSampleWeight(vec3 toSample, vec3 size)
 {
 	float r = length(abs(toSample) / size);
-	float weight = exp(-r * 2);
+	float weight = exp(-r * 1.0);
 	return weight;
 }
 
@@ -65,7 +65,6 @@ vec3 getIrradiance(vec3 position, vec3 normal)
 	vec3 tangent = normalize(cross(worldUp, normal));
 	vec3 bitangent = cross(normal, tangent);
 	
-	// Your 4 side directions
 	vec3 sampleRight = normalize(normal + tangent);
 	vec3 sampleLeft  = normalize(normal - tangent);
 	vec3 sampleFwd   = normalize(normal + bitangent);

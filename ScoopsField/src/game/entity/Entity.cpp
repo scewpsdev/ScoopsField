@@ -40,6 +40,9 @@ void DestroyEntity(Entity* entity)
 	case ENTITY_TYPE_SCONCE:
 		DestroySconce(&entity->sconce);
 		break;
+	case ENTITY_TYPE_ELEVATOR:
+		DestroyElevator(&entity->elevator);
+		break;
 	default:
 		break;
 	}
@@ -116,6 +119,9 @@ void UpdateEntity(Entity* entity)
 	case ENTITY_TYPE_SCONCE:
 		UpdateSconce(&entity->sconce);
 		break;
+	case ENTITY_TYPE_ELEVATOR:
+		UpdateElevator(&entity->elevator);
+		break;
 	default:
 		break;
 	}
@@ -145,6 +151,9 @@ void RenderEntity(Entity* entity)
 		break;
 	case ENTITY_TYPE_SCONCE:
 		RenderSconce(&entity->sconce);
+		break;
+	case ENTITY_TYPE_ELEVATOR:
+		RenderElevator(&entity->elevator);
 		break;
 	default:
 		break;

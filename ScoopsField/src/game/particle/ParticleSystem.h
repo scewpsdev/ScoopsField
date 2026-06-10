@@ -64,6 +64,8 @@ struct ParticleEmitter
 	float burstDuration;
 	float burstRemainder;
 
+	AABB boundingBox;
+
 	GraphicsPipeline* shader;
 
 	VertexBuffer* positionBuffer;

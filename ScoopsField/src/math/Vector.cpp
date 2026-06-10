@@ -23,7 +23,7 @@ float vec2::lengthSquared() const
 
 float vec2::length() const
 {
-	return sqrtf(x * x + y * y);
+	return SDL_sqrtf(x * x + y * y);
 }
 
 vec2 vec2::normalized() const
@@ -33,7 +33,7 @@ vec2 vec2::normalized() const
 
 float vec2::angle() const
 {
-	return atan2f(y, x);
+	return SDL_atan2f(y, x);
 }
 
 vec2 vec2::rotate(float angle) const
@@ -41,7 +41,7 @@ vec2 vec2::rotate(float angle) const
 	float currentAngle = this->angle();
 	float length = this->length();
 	float newAngle = currentAngle + angle;
-	return vec2(length * cosf(newAngle), length * sinf(newAngle));
+	return vec2(length * SDL_cosf(newAngle), length * SDL_sinf(newAngle));
 }
 
 vec2::operator ivec2() const
@@ -156,12 +156,12 @@ float vec3::lengthSquared() const
 
 float vec3::length() const
 {
-	return sqrtf(x * x + y * y + z * z);
+	return SDL_sqrtf(x * x + y * y + z * z);
 }
 
 vec3 vec3::normalized() const
 {
-	if (fabsf(this->lengthSquared() - 1.0f) > 0.001f && this->lengthSquared() != 0.0f)
+	if (SDL_fabsf(this->lengthSquared() - 1.0f) > 0.001f && this->lengthSquared() != 0.0f)
 		return *this / length();
 	else
 		return *this;
@@ -824,37 +824,37 @@ vec3 cross(const vec3& a, const vec3& b)
 
 ivec3 abs(const ivec3& v)
 {
-	return ivec3(abs(v.x), abs(v.y), abs(v.z));
+	return ivec3(SDL_abs(v.x), SDL_abs(v.y), SDL_abs(v.z));
 }
 
 vec3 abs(const vec3& v)
 {
-	return vec3(fabsf(v.x), fabsf(v.y), fabsf(v.z));
+	return vec3(SDL_fabsf(v.x), SDL_fabsf(v.y), SDL_fabsf(v.z));
 }
 
 vec2 abs(const vec2& v)
 {
-	return vec2(fabsf(v.x), fabsf(v.y));
+	return vec2(SDL_fabsf(v.x), SDL_fabsf(v.y));
 }
 
 vec2 min(const vec2& a, const vec2& b)
 {
-	return vec2(fminf(a.x, b.x), fminf(a.y, b.y));
+	return vec2(SDL_min(a.x, b.x), SDL_min(a.y, b.y));
 }
 
 vec2 max(const vec2& a, const vec2& b)
 {
-	return vec2(fmaxf(a.x, b.x), fmaxf(a.y, b.y));
+	return vec2(SDL_max(a.x, b.x), SDL_max(a.y, b.y));
 }
 
 vec3 min(const vec3& a, const vec3& b)
 {
-	return vec3(fminf(a.x, b.x), fminf(a.y, b.y), fminf(a.z, b.z));
+	return vec3(SDL_min(a.x, b.x), SDL_min(a.y, b.y), SDL_min(a.z, b.z));
 }
 
 vec3 max(const vec3& a, const vec3& b)
 {
-	return vec3(fmaxf(a.x, b.x), fmaxf(a.y, b.y), fmaxf(a.z, b.z));
+	return vec3(SDL_max(a.x, b.x), SDL_max(a.y, b.y), SDL_max(a.z, b.z));
 }
 
 ivec2 sign(const vec2& v)

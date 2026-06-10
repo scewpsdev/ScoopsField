@@ -123,7 +123,7 @@ vec3 bloom(vec3 color)
 void main()
 {
 	vec3 color = texture(s_hdrFrame, v_texcoord).rgb;
-	color += bloom(texture(s_bloom, v_texcoord).rgb);
+	//color += bloom(texture(s_bloom, v_texcoord).rgb);
 	color *= exposure;
 	//color = linearToSRGB(color);
 
