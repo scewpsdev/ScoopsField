@@ -127,7 +127,7 @@ void main()
 	color *= exposure;
 	//color = linearToSRGB(color);
 
-	color = acesFitted(color * 2);
+	color = acesFitted(color * 1.5);
 	//color = color / (color + 1);
 	//color = ToneMapFilmic_Hejl2015(color, 10);
 	color = gammaCorrection(color);

@@ -102,8 +102,9 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 					vec4 params3;
 					vec4 params4;
 
-					vec3 pointLightPosition[4];
-					vec3 pointLightColor[4];
+					vec4 pointLightPosition[4];
+					vec4 pointLightColor[4];
+					vec4 params5;
 				};
 
 				UniformData uniforms = {};
@@ -115,6 +116,8 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 				uniforms.params2 = vec4(probe->position, 0);
 				uniforms.params3 = vec4(probe->position, 0);
 				uniforms.params4 = vec4(probe->size, 0);
+
+				GetClosestPointLightData(renderer, probe->position, uniforms.pointLightPosition, uniforms.pointLightColor, &uniforms.params5.x);
 
 				SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 

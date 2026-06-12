@@ -44,8 +44,10 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 // [X] magic particles
 // [X] bow secondary arrow cancel
 // [X] arrows stick to rigid bodies
-// [ ] trail lighting
-// [ ] fire sconces
+// [X] trail lighting
+// [X] fire sconces
+// [ ] reflection probe point lights
+// [ ] particle lighting
 // [ ] kings sword secondary attacks
 // [ ] kings sword secondary follow ups
 // [ ] kings sword backstab
@@ -58,7 +60,6 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 // [ ] different armor resistance to different damage types
 // [ ] damaging armor piece enough will knock it off
 // [ ] armor condition damage independent from damage type
-// [ ] particle lighting
 // [ ] enemy pathfinding
 // [ ] healthbar
 // [ ] enemy healthbar

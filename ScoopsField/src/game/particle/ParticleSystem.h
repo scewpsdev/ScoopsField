@@ -92,6 +92,8 @@ struct ParticleEffect : EntityBase
 	float lastUpdate;
 
 	bool destroyOnFinish;
+	Entity* parent;
+	mat4 parentLocalTransform;
 };
 
 struct ParticleSystem

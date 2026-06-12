@@ -115,6 +115,8 @@ static void OnDeath(Creature* creature, HitParams* hit, Node* hitNode)
 	//game->numSkeletonsRemaining--;
 }
 
+static bool IsEntityVisible(Creature* creature, Entity* entity);
+
 bool HitCreature(Creature* creature, HitParams* hit, Entity* by)
 {
 	if (creature->health <= 0)
@@ -170,7 +172,25 @@ bool HitCreature(Creature* creature, HitParams* hit, Entity* by)
 		}
 
 		if ((attacker->type == ENTITY_TYPE_PLAYER || attacker->type == ENTITY_TYPE_CREATURE) && !creature->target)
-			creature->target = attacker;
+		{
+			if (IsEntityVisible(creature, attacker))
+				creature->target = attacker;
+			else
+			{
+				vec3 origin = creature->position + creature->eyePosition;
+				vec3 target = attacker->position + vec3(0, 1, 0);
+				vec3 dir = target - origin;
+				float d = dir.length();
+
+				PhysicsHit hits[16];
+				int numHits = Raycast(origin, dir / d, d, hits, 16, ENTITY_FILTER_DEFAULT);
+				for (int i = 0; i < numHits; i++)
+				{
+					creature->targetPosition = hits[i].position;
+					break;
+				}
+			}
+		}
 	}
 
 	return true;
@@ -290,17 +310,21 @@ static bool IsEntityVisible(Creature* creature, Entity* entity)
 	return !Linecast(origin, target, ENTITY_FILTER_DEFAULT);
 }
 
-static bool IsInViewCone(Creature* creature, Entity* entity)
+static bool IsInViewCone(Creature* creature, Entity* entity, vec3 toTarget, float distanceToTarget)
 {
-	vec3 toTarget = entity->position - creature->position;
-	float distanceToTarget = toTarget.length();
-
 	quat toTargetRotation = quat::LookAt(toTarget * vec3(1, 0, 1), vec3::Up);
 	float toTargetAngle = toTargetRotation.getAngle() * sign(toTargetRotation.getAxis().y);
 
 	float localAngle = mod(toTargetAngle - creature->lookDirection + PI, 2 * PI) - PI;
 
 	return distanceToTarget <= creature->detectionRange && localAngle >= -0.5f * creature->detectionAngle && localAngle <= 0.5f * creature->detectionAngle;
+}
+
+static bool IsEntityAudible(Creature* creature, Entity* entity, float distanceToTarget)
+{
+	const float hearingRange = 2.0f;
+	float effectiveHearingRange = hearingRange * (entity->type == ENTITY_TYPE_PLAYER && ((Player*)entity)->ducked ? 0.25f : 1);
+	return distanceToTarget < effectiveHearingRange;
 }
 
 static void UpdateAI(Creature* creature)
@@ -310,9 +334,14 @@ static void UpdateAI(Creature* creature)
 	if (!creature->target)
 	{
 		Entity* potentialTarget = (Entity*)&game->player;
-		if (IsEntityVisible(creature, potentialTarget) && IsInViewCone(creature, potentialTarget))
+
+		vec3 toTarget = potentialTarget->position - creature->position;
+		float distanceToTarget = toTarget.length();
+
+		if (IsEntityVisible(creature, potentialTarget))
 		{
-			creature->target = potentialTarget;
+			if (IsInViewCone(creature, potentialTarget, toTarget, distanceToTarget) || IsEntityAudible(creature, potentialTarget, distanceToTarget))
+				creature->target = potentialTarget;
 		}
 	}
 

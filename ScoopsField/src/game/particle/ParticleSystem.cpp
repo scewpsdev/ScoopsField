@@ -312,10 +312,17 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 			velocityNoise = emitter->velocityNoise * vec3(Simplex1f(t), Simplex1f(100 + t), Simplex1f(200 + -t)).normalized();
 			emitter->positions[i] += velocityNoise * deltaTime;
 		}
-		if (emitter->rotateForward && emitter->stretchForward)
+		if (emitter->rotateForward)
 		{
-			vec3 screenSpaceVelocity = invCameraRotation * (emitter->velocities[i] + velocityNoise);
-			size.x *= 1 + emitter->stretchForward * screenSpaceVelocity.xy.length();
+			vec3 dir = emitter->velocities[i] + velocityNoise;
+			if (emitter->follow || effect->parent)
+				dir = effect->rotation * dir;
+			dir = invCameraRotation * dir;
+
+			emitter->rotations[i] = SDL_atan2f(dir.y, dir.x);
+
+			if (emitter->stretchForward)
+				size.x *= 1 + emitter->stretchForward * dir.xy.length();
 		}
 
 		emitter->sizes[i] = size;
@@ -323,12 +330,7 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 
 	for (int i = 0; i < emitter->numParticles; i++)
 	{
-		if (emitter->rotateForward)
-		{
-			vec3 screenSpaceVelocity = invCameraRotation * emitter->velocities[i];
-			emitter->rotations[i] = SDL_atan2f(screenSpaceVelocity.y, screenSpaceVelocity.x);
-		}
-		else
+		if (!emitter->rotateForward)
 		{
 			float rotationSpeed = emitter->rotationSpeed;
 			if (emitter->randomRotationSpeed)
@@ -355,10 +357,13 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 		}
 	}
 
+	vec3 gravity = emitter->gravity;
+	if (emitter->follow)
+		gravity = transform.rotation().conjugated() * gravity;
+
 	for (int i = 0; i < emitter->numParticles; i++)
 	{
-		emitter->velocities[i] += 0.5f * emitter->gravity * deltaTime;
-
+		emitter->velocities[i] += 0.5f * gravity * deltaTime;
 	}
 
 	emitter->boundingBox.min = vec3(INFINITY);
@@ -372,7 +377,7 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 
 	for (int i = 0; i < emitter->numParticles; i++)
 	{
-		emitter->velocities[i] += 0.5f * emitter->gravity * deltaTime;
+		emitter->velocities[i] += 0.5f * gravity * deltaTime;
 	}
 
 	if (emitter->drag)
@@ -494,6 +499,12 @@ void StopParticleEffect(ParticleEffect* effect)
 
 void UpdateParticleEffect(ParticleEffect* effect)
 {
+	if (effect->parent)
+	{
+		mat4 transform = ModelMatrix((Entity*)effect->parent) * effect->parentLocalTransform;
+		transform.decompose(effect->position, effect->rotation);
+	}
+
 	vec3 dx = effect->position - effect->lastPosition;
 	quat dr = effect->rotation * effect->lastRotation.conjugated();
 	float dt = gameTime - effect->lastUpdate;

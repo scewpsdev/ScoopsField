@@ -283,7 +283,7 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 	player->sprinting = GetKey(SDL_SCANCODE_LSHIFT) && player->stamina > 0 && !player->exhausted;
 	float speed = (player->sprinting ? 1.5f : GetKey(SDL_SCANCODE_LALT) ? 0.25f : 1) * player->walkSpeed;
 	if (player->sprinting)
-		player->stamina -= 0.15f * deltaTime;
+		player->stamina -= 0.1f * deltaTime;
 	if (currentAction)
 		speed *= currentAction->moveSpeed;
 

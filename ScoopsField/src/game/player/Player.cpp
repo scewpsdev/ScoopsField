@@ -300,6 +300,8 @@ bool HitPlayer(Player* player, HitParams* hit, Entity* by)
 
 		ParticleEffect* hitParticles = (ParticleEffect*)CreateEntity();
 		LoadParticleEffect(hitParticles, "effects/impact/spark.rfs", projectedHitPosition, quat::LookAt(hit->impulse, vec3::Up));
+		hitParticles->parent = (Entity*)player;
+		hitParticles->parentLocalTransform = ModelMatrix((Entity*)player).inverted() * ModelMatrix((Entity*)hitParticles);
 		hitParticles->destroyOnFinish = true;
 
 		player->lastBlockTime = gameTime;
@@ -672,6 +674,8 @@ void UpdatePlayer(Player* player)
 				CAMERA_HEIGHT;
 		}
 	}
+
+	((EntityBase*)player)->rotation = quat::FromAxisAngle(vec3::Up, player->rotation);
 
 	for (int i = 0; i < NUM_LOADOUTS; i++)
 	{
@@ -1203,6 +1207,8 @@ void UpdatePlayer(Player* player)
 void RenderPlayer(Player* player)
 {
 	mat4 bodyTransform = mat4::Translate(player->position) * mat4::Rotate(vec3::Up, player->rotation + PI);
+	mat4 scaleToCamera = game->view.inverted() * mat4::Scale(0.5f) * game->view;
+	bodyTransform = scaleToCamera * bodyTransform;
 	RenderModel(&game->renderer, player->bodyModel, &player->bodyAnim, bodyTransform);
 
 	RenderModel(&game->renderer, player->bodyModel, &player->bodyAnim, mat4::Translate(-1, 0, -1));
@@ -1239,11 +1245,13 @@ void RenderPlayer(Player* player)
 	if (rightWeapon)
 	{
 		mat4 weaponTransform = viewmodelTransform * GetNodeTransform(&player->bodyAnim, player->rightWeaponNode);
+		weaponTransform = scaleToCamera * weaponTransform;
 		RenderModel(&game->renderer, &rightWeapon->model, rightWeapon->model.numAnimations ? &player->rightWeaponAnim : nullptr, weaponTransform);
 	}
 	if (leftWeapon)
 	{
 		mat4 weaponTransform = viewmodelTransform * GetNodeTransform(&player->bodyAnim, player->leftWeaponNode);
+		weaponTransform = scaleToCamera * weaponTransform;
 		RenderModel(&game->renderer, &leftWeapon->model, nullptr, weaponTransform);
 	}
 

@@ -459,6 +459,56 @@ static SDL_GPUTexture* CreateCloudNoiseDetailTexture(Renderer* renderer, SDL_GPU
 	return texture;
 }
 
+static float CalculateLightRadius(vec3 color)
+{
+	float maxChannel = max(color.r, max(color.g, color.b));
+	float threshold = 0.001f; //1.0f / 255;
+	float maxDistance = SDL_sqrtf(maxChannel / threshold);
+	return maxDistance;
+}
+
+static int GetFurthestLight(float distances[4])
+{
+	float distance = distances[0];
+	int result = 0;
+	for (int i = 1; i < 4; i++)
+	{
+		if (distances[i] > distance)
+		{
+			distance = distances[i];
+			result = i;
+		}
+	}
+	return result;
+}
+
+static void GetClosestPointLightData(Renderer* renderer, vec3 position, vec4* lightPositions, vec4* lightColors, float* lightCount)
+{
+	float distances[4] = { INFINITY, INFINITY, INFINITY, INFINITY };
+	int furthestLight = 0;
+	for (int i = 0; i < renderer->pointLights.size; i++)
+	{
+		vec3 toLight = renderer->pointLights[i].position - position;
+		float effectiveDistance = toLight.length() - CalculateLightRadius(renderer->pointLights[i].color);
+		if (effectiveDistance < distances[furthestLight])
+		{
+			distances[furthestLight] = effectiveDistance;
+			lightPositions[furthestLight].xyz = renderer->pointLights[i].position;
+			lightColors[furthestLight].rgb = renderer->pointLights[i].color;
+			furthestLight = GetFurthestLight(distances);
+		}
+	}
+
+	int numLights;
+	for (numLights = 0; numLights < 4; numLights++)
+	{
+		if (distances[numLights] == INFINITY)
+			break;
+	}
+
+	*lightCount = (float)numLights;
+}
+
 static void SubmitMesh(Renderer* renderer,
 	MeshDrawData* mesh,
 	const mat4& projection, const mat4& view, const mat4& pv, vec3 cameraPosition, bool viewSpaceBuffer,
@@ -958,56 +1008,6 @@ void UpdateReflectionProbe(Renderer* renderer, ReflectionProbe* probe)
 {
 	if (!renderer->reflectionProbeUpdates.contains(probe))
 		renderer->reflectionProbeUpdates.add(probe);
-}
-
-static float CalculateLightRadius(vec3 color)
-{
-	float maxChannel = max(color.r, max(color.g, color.b));
-	float threshold = 0.001f; //1.0f / 255;
-	float maxDistance = SDL_sqrtf(maxChannel / threshold);
-	return maxDistance;
-}
-
-static int GetFurthestLight(float distances[4])
-{
-	float distance = distances[0];
-	int result = 0;
-	for (int i = 1; i < 4; i++)
-	{
-		if (distances[i] > distance)
-		{
-			distance = distances[i];
-			result = i;
-		}
-	}
-	return result;
-}
-
-static void GetClosestPointLightData(Renderer* renderer, vec3 position, vec4* lightPositions, vec4* lightColors, float* lightCount)
-{
-	float distances[4] = { INFINITY, INFINITY, INFINITY, INFINITY };
-	int furthestLight = 0;
-	for (int i = 0; i < renderer->pointLights.size; i++)
-	{
-		vec3 toLight = renderer->pointLights[i].position - position;
-		float effectiveDistance = toLight.length() - CalculateLightRadius(renderer->pointLights[i].color);
-		if (effectiveDistance < distances[furthestLight])
-		{
-			distances[furthestLight] = effectiveDistance;
-			lightPositions[furthestLight].xyz = renderer->pointLights[i].position;
-			lightColors[furthestLight].rgb = renderer->pointLights[i].color;
-			furthestLight = GetFurthestLight(distances);
-		}
-	}
-
-	int numLights;
-	for (numLights = 0; numLights < 4; numLights++)
-	{
-		if (distances[numLights] == INFINITY)
-			break;
-	}
-
-	*lightCount = (float)numLights;
 }
 
 static void SubmitMesh(Renderer* renderer,
