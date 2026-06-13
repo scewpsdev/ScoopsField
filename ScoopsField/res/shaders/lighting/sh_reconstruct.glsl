@@ -50,7 +50,7 @@ float getSampleWeight(vec3 toSample, vec3 size)
 
 vec3 getIrradianceSample(vec3 position, vec3 normal, out float weight)
 {
-	vec3 localPos = position - probePosition;
+	vec3 localPos = position - probePosition;	
 	vec3 toSample = parallaxCorrect(localPos, normal, probeSize);
 	weight = getSampleWeight(toSample, probeSize);
 

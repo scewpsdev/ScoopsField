@@ -46,7 +46,7 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 // [X] arrows stick to rigid bodies
 // [X] trail lighting
 // [X] fire sconces
-// [ ] reflection probe point lights
+// [X] reflection probe point lights
 // [ ] particle lighting
 // [ ] kings sword secondary attacks
 // [ ] kings sword secondary follow ups

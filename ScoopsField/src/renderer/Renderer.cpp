@@ -489,7 +489,7 @@ static void GetClosestPointLightData(Renderer* renderer, vec3 position, vec4* li
 	for (int i = 0; i < renderer->pointLights.size; i++)
 	{
 		vec3 toLight = renderer->pointLights[i].position - position;
-		float effectiveDistance = toLight.length() - CalculateLightRadius(renderer->pointLights[i].color);
+		float effectiveDistance = toLight.length(); // - CalculateLightRadius(renderer->pointLights[i].color);
 		if (effectiveDistance < distances[furthestLight])
 		{
 			distances[furthestLight] = effectiveDistance;
@@ -507,6 +507,11 @@ static void GetClosestPointLightData(Renderer* renderer, vec3 position, vec4* li
 	}
 
 	*lightCount = (float)numLights;
+}
+
+static SDL_GPUTexture* GetClosestEnvironment(Renderer* renderer)
+{
+	return renderer->skyCubemap->colorAttachments[0];
 }
 
 static void SubmitMesh(Renderer* renderer,
@@ -844,7 +849,7 @@ void RenderMesh(Renderer* renderer,
 	Texture* textures[], TextureSampler samplers[], int numTextures,
 	GraphicsPipeline* shader,
 	mat4 transform,
-	bool renderToShadows, bool renderToReflections)
+	uint32_t flags)
 {
 	MeshDrawData data = {};
 
@@ -873,13 +878,12 @@ void RenderMesh(Renderer* renderer,
 	data.transform = transform;
 	data.shader = shader;
 
-	data.renderToShadows = renderToShadows;
-	data.renderToReflections = renderToReflections;
+	data.flags = flags;
 
 	if (shader && IsForward(shader))
 	{
 		renderer->forwardMeshes.add(data);
-		SDL_assert(!renderToShadows && !renderToReflections);
+		SDL_assert(!HasFlag(flags, MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP) && !HasFlag(flags, MESH_DRAW_FLAG_RENDER_TO_REFLECTION));
 	}
 	else
 	{
@@ -887,7 +891,7 @@ void RenderMesh(Renderer* renderer,
 	}
 }
 
-static void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, GraphicsPipeline* shader, SkeletonState* skeleton, mat4 transform, bool renderToShadows, bool renderToReflections)
+static void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, GraphicsPipeline* shader, SkeletonState* skeleton, mat4 transform, uint32_t flags)
 {
 	MeshDrawData data = {};
 
@@ -930,8 +934,7 @@ static void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, Graph
 	data.transform = transform;
 	data.shader = shader;
 
-	data.renderToShadows = renderToShadows;
-	data.renderToReflections = renderToReflections;
+	data.flags = flags;
 
 	if (shader && IsForward(shader))
 	{
@@ -942,7 +945,7 @@ static void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, Graph
 		else
 			renderer->forwardMeshes.add(data);
 
-		SDL_assert(!renderToShadows && !renderToReflections);
+		SDL_assert(!HasFlag(flags, MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP) && !HasFlag(flags, MESH_DRAW_FLAG_RENDER_TO_REFLECTION));
 	}
 	else
 	{
@@ -953,7 +956,7 @@ static void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, Graph
 	}
 }
 
-void RenderModelNode(Renderer* renderer, Model* model, Node* node, GraphicsPipeline* shader, AnimationState* animation, mat4 parentTransform, mat4 modelMatrix, bool renderToShadows, bool renderToReflections)
+void RenderModelNode(Renderer* renderer, Model* model, Node* node, GraphicsPipeline* shader, AnimationState* animation, mat4 parentTransform, mat4 modelMatrix, uint32_t flags)
 {
 	mat4 nodeTransform = animation ? modelMatrix * GetNodeTransform(animation, node) : parentTransform * node->transform;
 
@@ -962,31 +965,34 @@ void RenderModelNode(Renderer* renderer, Model* model, Node* node, GraphicsPipel
 		int meshID = node->meshes[i];
 		Mesh* mesh = &model->meshes[meshID];
 		Material* material = mesh->materialID != -1 ? &model->materials[mesh->materialID] : nullptr;
-		RenderMesh(renderer, mesh, material, shader, animation && mesh->skeletonID != -1 ? &animation->skeletons[mesh->skeletonID] : nullptr, nodeTransform, renderToShadows, renderToReflections);
+		RenderMesh(renderer, mesh, material, shader, animation && mesh->skeletonID != -1 ? &animation->skeletons[mesh->skeletonID] : nullptr, nodeTransform, flags);
 	}
 
 	for (int i = 0; i < node->numChildren; i++)
 	{
-		RenderModelNode(renderer, model, &model->nodes[node->children[i]], shader, animation, nodeTransform, modelMatrix, renderToShadows, renderToReflections);
+		RenderModelNode(renderer, model, &model->nodes[node->children[i]], shader, animation, nodeTransform, modelMatrix, flags);
 	}
 }
 
 void RenderModel(Renderer* renderer, Model* model, mat4 transform, bool isStatic)
 {
 	SDL_assert(model);
-	RenderModelNode(renderer, model, &model->nodes[0], nullptr, nullptr, transform, transform, isStatic, isStatic);
+	uint32_t flags = isStatic ? (MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP | MESH_DRAW_FLAG_RENDER_TO_REFLECTION) : 0;
+	RenderModelNode(renderer, model, &model->nodes[0], nullptr, nullptr, transform, transform, flags);
 }
 
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform, bool isStatic)
 {
 	SDL_assert(model);
-	RenderModelNode(renderer, model, &model->nodes[0], nullptr, animation, transform, transform, isStatic, isStatic);
+	uint32_t flags = isStatic ? (MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP | MESH_DRAW_FLAG_RENDER_TO_REFLECTION) : 0;
+	RenderModelNode(renderer, model, &model->nodes[0], nullptr, animation, transform, transform, flags);
 }
 
 void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform, bool isStatic)
 {
 	SDL_assert(model);
-	RenderModelNode(renderer, model, &model->nodes[0], shader, animation, transform, transform, isStatic, isStatic);
+	uint32_t flags = isStatic ? (MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP | MESH_DRAW_FLAG_RENDER_TO_REFLECTION) : 0;
+	RenderModelNode(renderer, model, &model->nodes[0], shader, animation, transform, transform, flags);
 }
 
 void RenderLight(Renderer* renderer, vec3 position, vec3 color)
@@ -1038,7 +1044,7 @@ static void SubmitMesh(Renderer* renderer,
 		struct UniformData
 		{
 			mat4 projectionViewModel;
-			mat4 viewModel;
+			mat4 view;
 			mat4 projection;
 			mat4 model;
 			mat4 boneTransforms[MAX_BONES];
@@ -1046,7 +1052,7 @@ static void SubmitMesh(Renderer* renderer,
 
 		UniformData uniforms = {};
 		uniforms.projectionViewModel = pv * mesh->transform;
-		uniforms.viewModel = view * mesh->transform;
+		uniforms.view = view;
 		uniforms.projection = projection;
 		uniforms.model = viewSpaceBuffer ? view * mesh->transform : mesh->transform;
 		SDL_memcpy(uniforms.boneTransforms, mesh->skeleton->boneTransforms, mesh->skeleton->numBones * sizeof(mat4));
@@ -1072,8 +1078,10 @@ static void SubmitMesh(Renderer* renderer,
 
 	if (mesh->uniformData)
 	{
-		if (mesh->shader && IsForward(mesh->shader))
+		if (mesh->flags & MESH_DRAW_FLAG_SHADER_EXTRA_UNIFORMS)
 		{
+			SDL_assert(mesh->shader && IsForward(mesh->shader));
+
 			struct UniformData
 			{
 				vec4 params;
@@ -1089,6 +1097,12 @@ static void SubmitMesh(Renderer* renderer,
 
 			GetClosestPointLightData(renderer, 0.5f * (mesh->boundingBox.min + mesh->boundingBox.max), extraUniforms->pointLightPositions, extraUniforms->pointLightColors, &extraUniforms->params.w);
 
+			DebugText(0, 10, COLOR_WHITE, COLOR_BLACK, "%.2f, %.2f, %.2f",
+				0.5f * (mesh->boundingBox.min + mesh->boundingBox.max).x,
+				0.5f * (mesh->boundingBox.min + mesh->boundingBox.max).y,
+				0.5f * (mesh->boundingBox.min + mesh->boundingBox.max).z);
+			DebugText(0, 11, COLOR_WHITE, COLOR_BLACK, "%.2f", extraUniforms->params.w);
+
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, data, mesh->uniformDataSize + sizeof(UniformData));
 		}
 		else
@@ -1098,14 +1112,30 @@ static void SubmitMesh(Renderer* renderer,
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, data, mesh->uniformDataSize);
 		}
 
-		SDL_GPUTextureSamplerBinding textureBindings[MAX_MATERIAL_TEXTURES] = {};
-		for (int i = 0; i < mesh->numTextures; i++)
+		if (mesh->flags & MESH_DRAW_FLAG_SHADER_ENVIRONMENT_MAP)
 		{
-			textureBindings[i].texture = mesh->textures[i] ? mesh->textures[i]->handle : renderer->emptyTexture;
-			textureBindings[i].sampler = renderer->samplers[mesh->samplers[i]];
-		}
+			SDL_assert(mesh->shader && IsForward(mesh->shader));
 
-		SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, mesh->numTextures);
+			SDL_GPUTextureSamplerBinding textureBindings[MAX_MATERIAL_TEXTURES + 1] = {};
+			for (int i = 0; i < mesh->numTextures; i++)
+			{
+				textureBindings[i].texture = mesh->textures[i] ? mesh->textures[i]->handle : renderer->emptyTexture;
+				textureBindings[i].sampler = renderer->samplers[mesh->samplers[i]];
+			}
+			textureBindings[mesh->numTextures].texture = GetClosestEnvironment(renderer);
+			textureBindings[mesh->numTextures].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
+			SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, mesh->numTextures + 1);
+		}
+		else
+		{
+			SDL_GPUTextureSamplerBinding textureBindings[MAX_MATERIAL_TEXTURES] = {};
+			for (int i = 0; i < mesh->numTextures; i++)
+			{
+				textureBindings[i].texture = mesh->textures[i] ? mesh->textures[i]->handle : renderer->emptyTexture;
+				textureBindings[i].sampler = renderer->samplers[mesh->samplers[i]];
+			}
+			SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, mesh->numTextures);
+		}
 	}
 
 	if (mesh->indexBuffer)
@@ -1237,16 +1267,17 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 				SDL_BindGPUGraphicsPipeline(renderPass, mesh->shader->pipeline);
 
-				SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
+				if (!mesh->boundingSphere.radius || FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
+					SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
 			}
 		}
 
 		SDL_EndGPURenderPass(renderPass);
 	}
 
-	//Bloom(renderer, renderer->hdrTarget->colorAttachments[0], cmdBuffer);
+	Bloom(renderer, renderer->hdrTarget->colorAttachments[0], cmdBuffer);
 
-	//AutoExposure(renderer, renderer->bloomDownsampleTargets[renderer->bloomStepCount - 1], cmdBuffer);
+	AutoExposure(renderer, renderer->bloomDownsampleTargets[renderer->bloomStepCount - 1], cmdBuffer);
 
 	// tonemapping
 	{

@@ -216,6 +216,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/tonemapping.frag", game->renderer.tonemappingShader, game->renderer.tonemappingPipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/deferred_diffuse.frag", game->renderer.deferredDiffuseShader, game->renderer.deferredDiffusePipeline);
 	AddHotReloadedShader("shaders/entity/magic_projectile.vert", "shaders/entity/magic_projectile.frag", game->magicProjectileShader->pipelineInfo.shader, game->magicProjectileShader);
+	AddHotReloadedShader("shaders/entity/particle.vert", "shaders/entity/particle.frag", game->particleShader->pipelineInfo.shader, game->particleShader);
 #endif
 
 	InitItemDatabase(&game->items, cmdBuffer);
@@ -303,8 +304,8 @@ void GameRender()
 
 	RenderModel(&game->renderer, &game->mapModel, nullptr, mat4::Identity, true);
 
-	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 50);
-	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * 0.5f * PI * 0.7f) * vec3(2, 2, 0), vec3(0.5f, 1, 0.5f) * 50);
+	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 10);
+	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * 0.5f * PI * 0.7f) * vec3(-1, 2, 0), vec3(0.5f, 1, 0.5f) * 10);
 
 	for (int i = 0; i < game->numReflectionProbes; i++)
 	{

@@ -33,7 +33,7 @@ layout(std140, set = 3, binding = 0) uniform UniformBlock {
 vec3 sampleEnvironmentPrefiltered(vec3 position, vec3 normal, vec3 view, float roughness, samplerCube environmentMap)
 {
 	vec3 r = reflect(-view, normal);
-	float lodFactor = roughness; //1.0 - exp(-roughness * 12);
+	float lodFactor = 1 - (1 - roughness) * (1 - roughness); //1.0 - exp(-roughness * 12);
 
 	vec3 localPos = position - probePosition;
 	vec3 toSample = parallaxCorrect(localPos, r, probeSize);

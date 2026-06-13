@@ -65,6 +65,7 @@ struct ParticleEmitter
 	float burstRemainder;
 
 	AABB boundingBox;
+	Sphere boundingSphere;
 
 	GraphicsPipeline* shader;
 

@@ -46,7 +46,7 @@ colorAnim1 = [ 1.2975000143051147, 0.2664092481136322, 0, 0.5 ]
 colorAnim2 = [ 1, 0.5328184962272644, 0, 0 ]
 }, {
 lifetime = 0.7200000286102295
-size = 0.09799999743700027
+size = 0.05000000074505806
 follow = 0
 emissionRate = 2.5999999046325684
 spawnShape = Circle
@@ -75,7 +75,7 @@ emissiveIntensity = 5.679999828338623
 randomRotation = 1
 randomRotationSpeed = 0
 randomLifetime = 1
-velocityNoise = 0
+velocityNoise = 0.4819999933242798
 colorAnim0 = [ 1, 0.8803088665008545, 0, 1 ]
 colorAnim1 = [ 1, 0.5559845566749573, 0, 1 ]
 colorAnim2 = [ 1, 0.23166024684906006, 0, 1 ]

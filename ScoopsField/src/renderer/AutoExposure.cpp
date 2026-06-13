@@ -47,7 +47,7 @@ static void AutoExposure(Renderer* renderer, RenderTarget* input, SDL_GPUCommand
 			float luminance = dot(rgb, vec3(0.3f, 0.59f, 0.11f));
 			float minExposure = 0.1f;
 			float maxExposure = 100;
-			renderer->targetExposure = clamp(powf(0.18f / luminance, 0.5f), minExposure, maxExposure); // luminance of 0.18 corresponds to middle gray
+			renderer->targetExposure = clamp(powf(0.18f / luminance, 0.8f), minExposure, maxExposure); // luminance of 0.18 corresponds to middle gray
 
 			SDL_UnmapGPUTransferBuffer(device, renderer->luminanceReadbackBuffer);
 

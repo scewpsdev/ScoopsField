@@ -41,7 +41,8 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 				for (int i = 0; i < renderer->meshes.size; i++)
 				{
 					MeshDrawData* mesh = &renderer->meshes[i];
-					if (mesh->renderToReflections && FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
+					bool renderToReflection = mesh->flags & MESH_DRAW_FLAG_RENDER_TO_REFLECTION;
+					if (renderToReflection && FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
 						SubmitMesh(renderer, mesh, projection, views[face], pvs[face], cameraPosition, true, renderPass, cmdBuffer);
 				}
 
@@ -50,7 +51,8 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 				for (int i = 0; i < renderer->animatedMeshes.size; i++)
 				{
 					MeshDrawData* mesh = &renderer->animatedMeshes[i];
-					if (mesh->renderToReflections && FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
+					bool renderToReflection = mesh->flags & MESH_DRAW_FLAG_RENDER_TO_REFLECTION;
+					if (renderToReflection && FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
 						SubmitMesh(renderer, mesh, projection, views[face], pvs[face], cameraPosition, true, renderPass, cmdBuffer);
 				}
 
@@ -80,6 +82,12 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 
 		{
 			GPU_SCOPE("Deferred");
+
+			vec4 pointLightPosition[4];
+			vec4 pointLightColor[4];
+			float numPointLights;
+
+			GetClosestPointLightData(renderer, probe->position, pointLightPosition, pointLightColor, &numPointLights);
 
 			for (int i = 0; i < 6; i++)
 			{
@@ -117,7 +125,9 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 				uniforms.params3 = vec4(probe->position, 0);
 				uniforms.params4 = vec4(probe->size, 0);
 
-				GetClosestPointLightData(renderer, probe->position, uniforms.pointLightPosition, uniforms.pointLightColor, &uniforms.params5.x);
+				SDL_memcpy(uniforms.pointLightPosition, pointLightPosition, sizeof(pointLightPosition));
+				SDL_memcpy(uniforms.pointLightColor, pointLightColor, sizeof(pointLightColor));
+				uniforms.params5.x = numPointLights;
 
 				SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 

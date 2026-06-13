@@ -40,6 +40,7 @@ struct Trail : EntityBase
 	float lastNodeUpdate;
 
 	AABB boundingBox;
+	Sphere boundingSphere;
 };
 
 

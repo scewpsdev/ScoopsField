@@ -35,10 +35,12 @@ void main()
 {
 	vec3 normal = normalize(v_normal);
 	vec3 view = normalize(v_position - cameraPosition);
-	
-	vec3 color = materialColor;
-	float fresnel = abs(dot(normal, -view));
-	color *= 1 + fresnel * 20;
 
-	out_color = vec4(color, 1);
+	vec4 textureColor = mix(vec4(1), SRGBToLinear(texture(s_diffuse, v_texcoord)), hasDiffuse);
+	
+	vec3 color = textureColor.rgb * materialColor * emissiveColor * 5;
+	//float fresnel = abs(dot(normal, -view));
+	//color *= 1 + fresnel * 5;
+
+	out_color = vec4(color, textureColor.a);
 }

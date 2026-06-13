@@ -10,7 +10,7 @@ layout (location = 1) out vec2 v_texcoord;
 
 layout(std140, set = 1, binding = 0) uniform UniformBlock {
     mat4 u_projectionViewModel;
-	mat4 u_viewModel;
+	mat4 u_view;
 	mat4 u_projection;
 	mat4 u_model;
 };

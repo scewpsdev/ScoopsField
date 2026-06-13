@@ -21,6 +21,22 @@
 #include <SDL3/SDL.h>
 
 
+template<typename T>
+inline bool HasFlag(uint32_t flags, T flag)
+{
+	return (flags & (uint32_t)flag) != 0;
+}
+
+enum MeshDrawFlags : uint32_t
+{
+	MESH_DRAW_FLAG_NONE = 0,
+
+	MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP = 1 << 0,
+	MESH_DRAW_FLAG_RENDER_TO_REFLECTION = 1 << 1,
+	MESH_DRAW_FLAG_SHADER_EXTRA_UNIFORMS = 1 << 2,
+	MESH_DRAW_FLAG_SHADER_ENVIRONMENT_MAP = 1 << 3,
+};
+
 struct MeshDrawData
 {
 	VertexBuffer* vertexBuffers[16];
@@ -44,8 +60,7 @@ struct MeshDrawData
 	GraphicsPipeline* shader;
 	mat4 transform;
 
-	bool renderToShadows;
-	bool renderToReflections;
+	uint32_t flags;
 };
 
 struct LightDrawData
@@ -207,7 +222,7 @@ void RenderMesh(Renderer* renderer,
 	Texture* textures[], TextureSampler samplers[], int numTextures,
 	GraphicsPipeline* shader,
 	mat4 transform,
-	bool renderToShadows, bool renderToReflections);
+	uint32_t flags);
 
 void RenderModel(Renderer* renderer, Model* model, mat4 transform, bool isStatic = false);
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform, bool isStatic = false);

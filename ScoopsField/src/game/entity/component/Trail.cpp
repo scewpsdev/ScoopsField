@@ -82,12 +82,20 @@ void UpdateTrail(Trail* trail)
 
 		trail->boundingBox.min = vec3(INFINITY);
 		trail->boundingBox.max = vec3(-INFINITY);
+		float radiusSquared = 0;
 		for (int i = 0; i < trail->numNodes; i++)
 		{
 			TrailNode* node = &trail->nodes[i];
 			trail->boundingBox.min = min(trail->boundingBox.min, node->position);
 			trail->boundingBox.max = min(trail->boundingBox.max, node->position);
+
+			vec3 fromCenter = node->position - trail->boundingSphere.center;
+			float distanceFromCenterSquared = dot(fromCenter, fromCenter);
+			radiusSquared = max(radiusSquared, distanceFromCenterSquared);
 		}
+
+		trail->boundingSphere.center = 0.5f * (trail->boundingBox.min + trail->boundingBox.max);
+		trail->boundingSphere.radius = SDL_sqrtf(radiusSquared);
 	}
 
 	if (trail->destroyOnCollapse && trail->nodes[trail->numNodes - 1].position == trail->position)
@@ -170,5 +178,5 @@ void RenderTrail(Trail* trail)
 {
 	vec4 params = vec4(trail->texture ? 1.0f : 0.0f, trail->emissive, 0, 0);
 
-	RenderMesh(&game->renderer, &trail->vertexBuffer, 1, nullptr, trail->numNodes * 2, 1, trail->boundingBox, {}, &params, sizeof(params), &trail->texture, &trail->textureSampler, 1, trail->shader, mat4::Identity, false, false);
+	RenderMesh(&game->renderer, &trail->vertexBuffer, 1, nullptr, trail->numNodes * 2, 1, trail->boundingBox, trail->boundingSphere, &params, sizeof(params), &trail->texture, &trail->textureSampler, 1, trail->shader, mat4::Identity, MESH_DRAW_FLAG_SHADER_EXTRA_UNIFORMS | MESH_DRAW_FLAG_SHADER_ENVIRONMENT_MAP);
 }

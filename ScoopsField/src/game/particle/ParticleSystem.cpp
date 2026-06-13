@@ -366,13 +366,25 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 		emitter->velocities[i] += 0.5f * gravity * deltaTime;
 	}
 
-	emitter->boundingBox.min = vec3(INFINITY);
-	emitter->boundingBox.max = vec3(-INFINITY);
-	for (int i = 0; i < emitter->numParticles; i++)
+	if (emitter->numParticles)
 	{
-		emitter->positions[i] += emitter->velocities[i] * deltaTime;
-		emitter->boundingBox.min = min(emitter->boundingBox.min, emitter->positions[i]);
-		emitter->boundingBox.max = max(emitter->boundingBox.max, emitter->positions[i]);
+		emitter->boundingBox.min = vec3(INFINITY);
+		emitter->boundingBox.max = vec3(-INFINITY);
+		float radiusSquared = 0;
+		for (int i = 0; i < emitter->numParticles; i++)
+		{
+			emitter->positions[i] += emitter->velocities[i] * deltaTime;
+
+			emitter->boundingBox.min = min(emitter->boundingBox.min, emitter->positions[i]);
+			emitter->boundingBox.max = max(emitter->boundingBox.max, emitter->positions[i]);
+
+			vec3 fromCenter = emitter->positions[i] - emitter->boundingSphere.center;
+			float distanceFromCenterSquared = dot(fromCenter, fromCenter);
+			radiusSquared = max(radiusSquared, distanceFromCenterSquared);
+		}
+
+		emitter->boundingSphere.center = 0.5f * (emitter->boundingBox.min + emitter->boundingBox.max);
+		emitter->boundingSphere.radius = SDL_sqrtf(radiusSquared);
 	}
 
 	for (int i = 0; i < emitter->numParticles; i++)
@@ -433,28 +445,33 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 
 static void RenderParticleEmitter(ParticleSystem* particles, ParticleEmitter* emitter, mat4 transform)
 {
-	VertexBuffer* buffers[6];
-	buffers[0] = particles->quad;
-	buffers[1] = emitter->positionBuffer;
-	buffers[2] = emitter->sizeBuffer;
-	buffers[3] = emitter->rotationBuffer;
-	buffers[4] = emitter->colorBuffer;
-	buffers[5] = emitter->animationBuffer;
-
-	vec4 params = vec4(emitter->texture ? 1.0f : 0.0f, emitter->atlasFrameCount ? 1.0f : 0.0f, (vec2)emitter->atlasSize);
-
-	RenderMesh(&game->renderer, buffers, 6, nullptr, 4, emitter->numParticles, emitter->boundingBox, {}, &params, sizeof(params), &emitter->texture, &emitter->textureSampler, 1, emitter->shader, emitter->follow ? transform : mat4::Identity, false, false);
-
-	if (emitter->emissive && emitter->numParticles)
+	if (emitter->numParticles)
 	{
-		float brightness = emitter->numParticles * 0.5f * (emitter->size + emitter->endSize);
-		vec4 color = 0.5f * ((emitter->color) + (emitter->endColor));
-		color.rgb *= emitter->emissive;
-		vec3 light = 0.05f * color.rgb * color.a * brightness;
-		vec3 position = 0.5f * (emitter->boundingBox.min + emitter->boundingBox.max);
-		if (emitter->follow)
-			position = transform * position;
-		RenderLight(&game->renderer, position, light);
+		VertexBuffer* buffers[6];
+		buffers[0] = particles->quad;
+		buffers[1] = emitter->positionBuffer;
+		buffers[2] = emitter->sizeBuffer;
+		buffers[3] = emitter->rotationBuffer;
+		buffers[4] = emitter->colorBuffer;
+		buffers[5] = emitter->animationBuffer;
+
+		vec4 params[2];
+		params[0] = vec4(emitter->texture ? 1.0f : 0.0f, emitter->atlasFrameCount ? 1.0f : 0.0f, (vec2)emitter->atlasSize);
+		params[1] = vec4(emitter->emissive, 0, 0, 0);
+
+		RenderMesh(&game->renderer, buffers, 6, nullptr, 4, emitter->numParticles, emitter->boundingBox, emitter->boundingSphere, params, sizeof(params), &emitter->texture, &emitter->textureSampler, 1, emitter->shader, emitter->follow ? transform : mat4::Identity, MESH_DRAW_FLAG_SHADER_EXTRA_UNIFORMS | MESH_DRAW_FLAG_SHADER_ENVIRONMENT_MAP);
+
+		if (emitter->emissive)
+		{
+			float brightness = emitter->numParticles * 0.5f * (emitter->size + emitter->endSize);
+			vec4 color = 0.5f * ((emitter->color) + (emitter->endColor));
+			color.rgb *= emitter->emissive;
+			vec3 light = 0.05f * color.rgb * color.a * brightness;
+			vec3 position = 0.5f * (emitter->boundingBox.min + emitter->boundingBox.max);
+			if (emitter->follow)
+				position = transform * position;
+			RenderLight(&game->renderer, position, light);
+		}
 	}
 }
 

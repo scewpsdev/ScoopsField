@@ -11,7 +11,7 @@ layout (location = 2) out vec3 v_position;
 
 layout(std140, set = 1, binding = 0) uniform UniformBlock {
     mat4 u_projectionViewModel;
-	mat4 u_viewModel;
+	mat4 u_view;
 	mat4 u_projection;
 	mat4 u_model;
 };

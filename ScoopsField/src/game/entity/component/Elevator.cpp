@@ -85,8 +85,6 @@ void UpdateElevator(Elevator* elevator)
 	float buttonTargetHeight = elevator->buttonActive ? -0.08f : 0;
 	elevator->buttonHeight = moveTowards(elevator->buttonHeight, buttonTargetHeight, 0.08f * deltaTime);
 
-	DebugText(0, 12, COLOR_WHITE, COLOR_BLACK, "%.2f", elevator->buttonHeight);
-
 	if (elevator->moving)
 	{
 		SetRigidBodyTransform(&elevator->body, elevator->position + vec3(0, elevator->platformHeight, 0), elevator->rotation);

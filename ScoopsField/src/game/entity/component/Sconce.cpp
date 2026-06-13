@@ -64,6 +64,6 @@ void RenderSconce(Sconce* sconce)
 	if (sconce->particles->emitters[0].numParticles)
 	{
 		float brightness = sconce->particles->emitters[0].numParticles / (float)sconce->particles->emitters[0].maxParticles;
-		RenderLight(&game->renderer, sconce->position + vec3(0, 1.2f, 0), SRGBToLinear(ARGBToVector(0xFFFF6400)).rgb * brightness * 5);
+		//RenderLight(&game->renderer, sconce->position + vec3(0, 1.2f, 0), SRGBToLinear(ARGBToVector(0xFFFF6400)).rgb * brightness * 5);
 	}
 }
