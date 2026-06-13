@@ -27,10 +27,22 @@ enum EntityPhysicsFilter
 	ENTITY_FILTER_RAGDOLL = 1 << 6,
 };
 
+enum DamageType
+{
+	DAMAGE_TYPE_NONE = 0,
+
+	DAMAGE_TYPE_SLASH,
+	DAMAGE_TYPE_THRUST,
+	DAMAGE_TYPE_BLUNT,
+	DAMAGE_TYPE_MAGIC,
+	//DAMAGE_TYPE_FIRE,
+	//DAMAGE_TYPE_POISON,
+};
+
 struct HitParams
 {
-	int damage = 10;
-	float damageMultiplier = 1;
+	float damage = 10;
+	DamageType damageType;
 	vec3 position;
 	RigidBody* body;
 	vec3 impulse;

@@ -47,7 +47,9 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 // [X] trail lighting
 // [X] fire sconces
 // [X] reflection probe point lights
-// [ ] particle lighting
+// [X] particle lighting
+// [X] damage types
+// [ ] magic damage particles
 // [ ] kings sword secondary attacks
 // [ ] kings sword secondary follow ups
 // [ ] kings sword backstab
@@ -56,7 +58,6 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 // [ ] staff melee secondary
 // [ ] armor covers only certain body parts
 // [ ] different impact effect and sound for armored body parts
-// [ ] damage types
 // [ ] different armor resistance to different damage types
 // [ ] damaging armor piece enough will knock it off
 // [ ] armor condition damage independent from damage type

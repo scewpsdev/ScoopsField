@@ -122,7 +122,9 @@ bool HitCreature(Creature* creature, HitParams* hit, Entity* by)
 	if (creature->health <= 0)
 		return false;
 
-	float damage = hit->damage * hit->damageMultiplier;
+	SDL_assert(hit->damageType != DAMAGE_TYPE_NONE);
+
+	float damage = hit->damage;
 
 	Node* hitNode = GetNodeForHitbox(creature, hit->body);
 	bool isHeadshot = SDL_strcmp(hitNode->name, "Head") == 0;

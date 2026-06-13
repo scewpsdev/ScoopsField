@@ -147,8 +147,7 @@ void UpdateAttackAction(Action* action, Player* player)
 				if (!action->attack.hitEntities.contains(hitEntity))
 				{
 					HitParams params = {};
-					params.damage = action->attack.weapon->weapon.damage;
-					params.damageMultiplier = action->attack.attack->damageMultiplier;
+					params.damage = action->attack.weapon->weapon.damage * action->attack.attack->damageMultiplier;
 					params.position = hit->position;
 					params.body = hit->body;
 					params.impulse = direction * 0.1f;

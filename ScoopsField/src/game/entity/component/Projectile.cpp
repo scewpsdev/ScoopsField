@@ -88,7 +88,7 @@ void UpdateProjectile(Projectile* projectile)
 				if (Entity* bodyEntity = (Entity*)body->userPtr)
 				{
 					HitParams hit = {};
-					hit.damage = projectile->damage;
+					hit.damage = (float)projectile->damage;
 					hit.position = hits[i].position;
 					hit.body = body;
 					hit.impulse = projectile->velocity * 0.005f * 40.0f / 30.0f * projectile->damage / 200.0f;

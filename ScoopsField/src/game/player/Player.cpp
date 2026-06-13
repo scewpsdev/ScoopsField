@@ -272,7 +272,9 @@ bool HitPlayer(Player* player, HitParams* hit, Entity* by)
 	if (player->lastHit && gameTime - player->lastHit < HIT_RECOVERY_DURATION)
 		return false;
 
-	float damage = hit->damage * hit->damageMultiplier;
+	SDL_assert(hit->damageType != DAMAGE_TYPE_NONE);
+
+	float damage = hit->damage;
 	if (player->blockItem)
 	{
 		const float blockStaminaCost = 0.2f;
