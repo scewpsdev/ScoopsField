@@ -227,6 +227,55 @@ quat quat::LookAt(const vec3& dir, const vec3& up)
 	*/
 }
 
+quat quat::FromAxes(vec3 right, vec3 up)
+{
+	vec3 forward = cross(up, right).normalized();
+	vec3 up2 = cross(right, forward);
+
+	// Build rotation matrix
+	float m00 = right.x; float m01 = right.y; float m02 = right.z;
+	float m10 = up.x; float m11 = up.y; float m12 = up.z;
+	float m20 = -forward.x; float m21 = -forward.y; float m22 = -forward.z;
+
+	float trace = m00 + m11 + m22;
+
+	quat q;
+	if (trace > 0.0f)
+	{
+		float s = sqrtf(trace + 1.0f) * 2.0f;
+		q.w = 0.25f * s;
+		q.x = (m12 - m21) / s;
+		q.y = (m20 - m02) / s;
+		q.z = (m01 - m10) / s;
+	}
+	else if ((m00 > m11) && (m00 > m22))
+	{
+		float s = sqrtf(1.0f + m00 - m11 - m22) * 2.0f;
+		q.w = (m12 - m21) / s;
+		q.x = 0.25f * s;
+		q.y = (m10 + m01) / s;
+		q.z = (m20 + m02) / s;
+	}
+	else if (m11 > m22)
+	{
+		float s = sqrtf(1.0f + m11 - m00 - m22) * 2.0f;
+		q.w = (m20 - m02) / s;
+		q.x = (m10 + m01) / s;
+		q.y = 0.25f * s;
+		q.z = (m21 + m12) / s;
+	}
+	else
+	{
+		float s = sqrtf(1.0f + m22 - m00 - m11) * 2.0f;
+		q.w = (m01 - m10) / s;
+		q.x = (m20 + m02) / s;
+		q.y = (m21 + m12) / s;
+		q.z = 0.25f * s;
+	}
+
+	return q.normalized();
+}
+
 quat quat::FromEulers(vec3 eulers)
 {
 	float c1 = cosf(eulers.y / 2.0f);

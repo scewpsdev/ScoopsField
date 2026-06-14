@@ -40,6 +40,7 @@ void InitTrail(Trail* trail, vec3 position, bool additive, int numNodes)
 	trail->color = vec4(1);
 	trail->emissive = 0.0f;
 	trail->scrollSpeed = 1.0f;
+	trail->billboard = true;
 
 	trail->textureSampler = TEXTURE_SAMPLER_LINEAR_CLAMPED_VERTICAL;
 
@@ -79,6 +80,8 @@ void UpdateTrail(Trail* trail)
 
 		trail->nodes[0].position = trail->position;
 		trail->nodes[0].distance = trail->nodes[1].distance + (trail->position - trail->nodes[1].position).length();
+		trail->nodes[0].right = trail->rotation.right();
+		trail->nodes[0].width = trail->width;
 
 		trail->boundingBox.min = vec3(INFINITY);
 		trail->boundingBox.max = vec3(-INFINITY);
@@ -87,7 +90,7 @@ void UpdateTrail(Trail* trail)
 		{
 			TrailNode* node = &trail->nodes[i];
 			trail->boundingBox.min = min(trail->boundingBox.min, node->position);
-			trail->boundingBox.max = min(trail->boundingBox.max, node->position);
+			trail->boundingBox.max = max(trail->boundingBox.max, node->position);
 
 			vec3 fromCenter = node->position - trail->boundingSphere.center;
 			float distanceFromCenterSquared = dot(fromCenter, fromCenter);
@@ -107,21 +110,24 @@ void UpdateTrail(Trail* trail)
 	{
 		TrailNode* node = &trail->nodes[i];
 
-		vec3 forward = i > 0 ? trail->nodes[i - 1].position - node->position : node->position - trail->nodes[i + 1].position;
-		forward = forward.normalized();
+		if (trail->billboard)
+		{
+			vec3 forward = i > 0 ? trail->nodes[i - 1].position - node->position : node->position - trail->nodes[i + 1].position;
+			forward = forward.normalized();
 
-		vec3 toCamera = game->cameraPosition - node->position;
-		toCamera = toCamera.normalized();
+			vec3 toCamera = game->cameraPosition - node->position;
+			toCamera = toCamera.normalized();
 
-		vec3 right = cross(forward, toCamera);
-		right = right.normalized();
+			vec3 right = cross(forward, toCamera);
+			node->right = right.normalized();
+		}
 
 		TrailVertex* vertex0 = &vertices[i * 2 + 0];
 		TrailVertex* vertex1 = &vertices[i * 2 + 1];
 
 		float progress = i / (float)(trail->numNodes - 1);
 
-		float width = node->distance == 0 ? 0 : trail->width;
+		float width = node->distance == 0 ? 0 : node->width;
 		if (trail->fadeWidth)
 			width *= 1 - progress;
 
@@ -129,11 +135,11 @@ void UpdateTrail(Trail* trail)
 		if (trail->fadeAlpha)
 			color.a *= 1 - progress;
 
-		vertex0->position = node->position + right * 0.5f * width;
+		vertex0->position = node->position + node->right * 0.5f * width;
 		vertex0->uv = vec2(node->distance * trail->scrollSpeed, 0);
 		vertex0->color = color;
 
-		vertex1->position = node->position - right * 0.5f * width;
+		vertex1->position = node->position - node->right * 0.5f * width;
 		vertex1->uv = vec2(node->distance * trail->scrollSpeed, 1);
 		vertex1->color = color;
 	}

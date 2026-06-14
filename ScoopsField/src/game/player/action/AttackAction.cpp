@@ -165,6 +165,30 @@ void UpdateAttackAction(Action* action, Player* player)
 					action->attack.hitEntities.add(hitEntity);
 				}
 			}
+
+			vec3 mid = origin + 0.5f * range * direction;
+
+			if (!action->attack.trail)
+			{
+				action->attack.trail = (Trail*)CreateEntity();
+				InitTrail(action->attack.trail, mid, false, 8);
+				action->attack.trail->texture = GetTexture("textures/effect/trail_weapon.png");
+				action->attack.trail->color = vec4(1);
+				action->attack.trail->billboard = false;
+				action->attack.trail->fadeAlpha = true;
+			}
+
+			action->attack.trail->position = mid;
+			action->attack.trail->rotation = quat::FromAxes(direction, vec3::Up);
+			action->attack.trail->width = range;
+		}
+		else
+		{
+			if (action->attack.trail)
+			{
+				action->attack.trail->destroyOnCollapse = true;
+				action->attack.trail = nullptr;
+			}
 		}
 	}
 

@@ -11,13 +11,15 @@ layout (location = 3) in vec3 v_normal;
 layout (location = 0) out vec4 out_color;
 
 layout (set = 2, binding = 0) uniform sampler2D s_texture;
-layout (set = 2, binding = 1) uniform samplerCube s_environment;
+layout (set = 2, binding = 1) uniform sampler2D s_sunColor;
+layout (set = 2, binding = 2) uniform samplerCube s_environment;
 
 layout (set = 3, binding = 0) uniform UniformBlock {
 	vec4 data0;
 	vec4 data1;
 
 	vec4 params;
+	vec4 sunDirection;
 	vec4 pointLightPositions[4];
 	vec4 pointLightColors[4];
 
@@ -34,14 +36,19 @@ layout (set = 3, binding = 0) uniform UniformBlock {
 vec3 lighting(vec3 position, vec3 normal)
 {
 	vec3 radiance = vec3(0);
+
 	for (int i = 0; i < numPointLights; i++)
 	{
 		vec3 toLight = pointLightPositions[i].xyz - position;
 		float distanceSq = dot(toLight, toLight);
 		float ndotwi = max(dot(toLight, normal), 0.0);
-		radiance += L(pointLightColors[i].rgb, distanceSq, 0.1) * ndotwi / PI;
+		radiance += L(pointLightColors[i].rgb, distanceSq, 0.1) * ndotwi;
 	}
+
 	radiance += textureLod(s_environment, normal, 12).rgb;
+
+	radiance += texture(s_sunColor, vec2(0.0)).rgb * max(dot(-sunDirection.xyz, normal), 0);
+
 	return radiance;
 }
 
@@ -68,7 +75,7 @@ void main()
 	vec4 textureColor = mix(vec4(1), animationColor, hasTexture);
 	vec4 color = v_color * textureColor;
 
-	vec3 radiance = color.rgb * (emissive + lighting(v_position, v_normal));
+	vec3 radiance = color.rgb / PI * (emissive + lighting(v_position, v_normal));
 
 	if (color.a < 0.0001)
 		discard;

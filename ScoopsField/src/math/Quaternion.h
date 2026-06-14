@@ -32,6 +32,7 @@ struct quat
 
 	static quat FromAxisAngle(vec3 axis, float angle);
 	static quat LookAt(const vec3& dir, const vec3& up);
+	static quat FromAxes(vec3 right, vec3 up);
 	static quat FromEulers(vec3 eulers);
 
 	static const quat Identity;

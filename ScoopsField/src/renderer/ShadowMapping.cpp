@@ -97,12 +97,12 @@ static void CalculateShadowMatricesForCascade(vec3 position, quat rotation, floa
 	//vec3 localMin = vmin - center;
 	//vec3 localMax = vmax - center;
 
-	SDL_assert(fabs(vmin.x - center.x) <= 0.5f * size);
-	SDL_assert(fabs(vmax.x - center.x) <= 0.5f * size);
-	SDL_assert(fabs(vmin.y - center.y) <= 0.5f * size);
-	SDL_assert(fabs(vmax.y - center.y) <= 0.5f * size);
-	SDL_assert(fabs(vmin.z - center.z) <= 0.5f * size);
-	SDL_assert(fabs(vmax.z - center.z) <= 0.5f * size);
+	SDL_assert(fabs(vmin.x - center.x) <= 0.501f * size);
+	SDL_assert(fabs(vmax.x - center.x) <= 0.501f * size);
+	SDL_assert(fabs(vmin.y - center.y) <= 0.501f * size);
+	SDL_assert(fabs(vmax.y - center.y) <= 0.501f * size);
+	SDL_assert(fabs(vmin.z - center.z) <= 0.501f * size);
+	SDL_assert(fabs(vmax.z - center.z) <= 0.501f * size);
 
 	vec3 localMin = vec3(-0.5f * size);
 	vec3 localMax = vec3(0.5f * size);
@@ -134,7 +134,7 @@ static void CalculateShadowMatricesForFrustum(vec3 position, quat rotation, floa
 	}
 }
 
-static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* renderPass, mat4 projection, mat4 view, mat4 pv, vec3 cameraPosition, vec4 frustumPlanes[6], SDL_GPUCommandBuffer* cmdBuffer)
+static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* renderPass, mat4 projection, mat4 view, mat4 pv, vec3 cameraPosition, vec3 sunDirection, vec4 frustumPlanes[6], SDL_GPUCommandBuffer* cmdBuffer)
 {
 	SDL_BindGPUGraphicsPipeline(renderPass, renderer->shadowMapPipeline->pipeline);
 
@@ -143,7 +143,7 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 		MeshDrawData* mesh = &renderer->meshes[i];
 		bool renderToShadowMap = mesh->flags & MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP;
 		if (renderToShadowMap && FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, false, renderPass, cmdBuffer);
 	}
 
 	SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedShadowMapPipeline->pipeline);
@@ -153,7 +153,7 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 		MeshDrawData* mesh = &renderer->animatedMeshes[i];
 		bool renderToShadowMap = mesh->flags & MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP;
 		if (renderToShadowMap && FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, false, renderPass, cmdBuffer);
 	}
 }
 
@@ -181,7 +181,7 @@ static void ShadowMapping(Renderer* renderer, vec3 cameraPosition, quat cameraRo
 
 			SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->shadowMaps[cascade], 0, cmdBuffer);
 
-			RenderShadowMapGeometry(renderer, renderPass, cascadeProjections[cascade], cascadeViews[cascade], cascadePVs[cascade], cameraPosition, frustumPlanes, cmdBuffer);
+			RenderShadowMapGeometry(renderer, renderPass, cascadeProjections[cascade], cascadeViews[cascade], cascadePVs[cascade], cameraPosition, sunDirection, frustumPlanes, cmdBuffer);
 
 			SDL_EndGPURenderPass(renderPass);
 		}

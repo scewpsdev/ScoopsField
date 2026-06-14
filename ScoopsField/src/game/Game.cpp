@@ -103,10 +103,10 @@ static void ResetGame(bool destroy)
 	InitKnight((Creature*)CreateEntity(), vec3(-4, 0, -5), 0);
 	InitKnight((Creature*)CreateEntity(), vec3(4, 0, -5), 0);
 
-	//InitSconce((Sconce*)CreateEntity(), vec3(-7, -37, 40));
-	//InitSconce((Sconce*)CreateEntity(), vec3(7, -37, 40));
-	//InitSconce((Sconce*)CreateEntity(), vec3(-7, -37, 54));
-	//InitSconce((Sconce*)CreateEntity(), vec3(7, -37, 54));
+	InitSconce((Sconce*)CreateEntity(), vec3(-7, -37, 40));
+	InitSconce((Sconce*)CreateEntity(), vec3(7, -37, 40));
+	InitSconce((Sconce*)CreateEntity(), vec3(-7, -37, 54));
+	InitSconce((Sconce*)CreateEntity(), vec3(7, -37, 54));
 
 	InitElevator((Elevator*)CreateEntity(), vec3(0, -37, 47), quat::Identity, 37);
 
@@ -120,7 +120,7 @@ static void ResetGame(bool destroy)
 
 	{
 		ParticleEffect* effect = (ParticleEffect*)CreateEntity();
-		//LoadParticleEffect(effect, "effects/testeffect/testeffect.rfs", vec3(0, 2, 0), quat::Identity);
+		LoadParticleEffect(effect, "effects/testeffect/testeffect.rfs", vec3(0, 2, 0), quat::Identity);
 	}
 }
 
@@ -183,10 +183,10 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	InitTrailVertexLayout(&trailLayout);
 	game->trailShader = CreateForwardGraphicsPipeline(
 		LoadGraphicsShader("res/shaders/entity/trail.vert.bin", "res/shaders/entity/trail.frag.bin"),
-		&trailLayout, 1, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, false);
+		&trailLayout, 1, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_NONE, false);
 	game->trailAdditiveShader = CreateForwardGraphicsPipeline(
 		LoadGraphicsShader("res/shaders/entity/trail.vert.bin", "res/shaders/entity/trail.frag.bin"),
-		&trailLayout, 1, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, true);
+		&trailLayout, 1, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_NONE, true);
 
 	VertexBufferLayout particleLayouts[6];
 	particleLayouts[0] = game->particles.quad->layout;

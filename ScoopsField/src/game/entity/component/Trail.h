@@ -15,6 +15,8 @@ struct TrailNode
 {
 	vec3 position;
 	float distance;
+	vec3 right;
+	float width;
 };
 
 struct Trail : EntityBase
@@ -25,6 +27,7 @@ struct Trail : EntityBase
 	Texture* texture;
 	TextureSampler textureSampler;
 	float scrollSpeed;
+	bool billboard;
 
 	bool fadeWidth;
 	bool fadeAlpha;

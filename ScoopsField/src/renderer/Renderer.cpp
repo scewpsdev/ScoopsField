@@ -516,7 +516,7 @@ static SDL_GPUTexture* GetClosestEnvironment(Renderer* renderer)
 
 static void SubmitMesh(Renderer* renderer,
 	MeshDrawData* mesh,
-	const mat4& projection, const mat4& view, const mat4& pv, vec3 cameraPosition, bool viewSpaceBuffer,
+	const mat4& projection, const mat4& view, const mat4& pv, vec3 cameraPosition, vec3 sunDirection, bool viewSpaceBuffer,
 	SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer);
 
 #define SHADOW_MAP_RESOLUTION 1024
@@ -1018,7 +1018,7 @@ void UpdateReflectionProbe(Renderer* renderer, ReflectionProbe* probe)
 
 static void SubmitMesh(Renderer* renderer,
 	MeshDrawData* mesh,
-	const mat4& projection, const mat4& view, const mat4& pv, vec3 cameraPosition, bool viewSpaceBuffer,
+	const mat4& projection, const mat4& view, const mat4& pv, vec3 cameraPosition, vec3 sunDirection, bool viewSpaceBuffer,
 	SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	SDL_GPUBufferBinding vertexBindings[16] = {};
@@ -1078,6 +1078,16 @@ static void SubmitMesh(Renderer* renderer,
 
 	if (mesh->uniformData)
 	{
+		SDL_GPUTextureSamplerBinding textureBindings[MAX_MATERIAL_TEXTURES + 2] = {};
+		int numTextureBindings = 0;
+
+		for (int i = 0; i < mesh->numTextures; i++)
+		{
+			textureBindings[numTextureBindings].texture = mesh->textures[i] ? mesh->textures[i]->handle : renderer->emptyTexture;
+			textureBindings[numTextureBindings].sampler = renderer->samplers[mesh->samplers[i]];
+			numTextureBindings++;
+		}
+
 		if (mesh->flags & MESH_DRAW_FLAG_SHADER_EXTRA_UNIFORMS)
 		{
 			SDL_assert(mesh->shader && IsForward(mesh->shader));
@@ -1085,6 +1095,7 @@ static void SubmitMesh(Renderer* renderer,
 			struct UniformData
 			{
 				vec4 params;
+				vec4 sunDirection;
 				vec4 pointLightPositions[4];
 				vec4 pointLightColors[4];
 			};
@@ -1094,16 +1105,15 @@ static void SubmitMesh(Renderer* renderer,
 
 			UniformData* extraUniforms = (UniformData*)(data + mesh->uniformDataSize);
 			extraUniforms->params = vec4(cameraPosition, 0);
+			extraUniforms->sunDirection = vec4(sunDirection, 0);
 
 			GetClosestPointLightData(renderer, 0.5f * (mesh->boundingBox.min + mesh->boundingBox.max), extraUniforms->pointLightPositions, extraUniforms->pointLightColors, &extraUniforms->params.w);
 
-			DebugText(0, 10, COLOR_WHITE, COLOR_BLACK, "%.2f, %.2f, %.2f",
-				0.5f * (mesh->boundingBox.min + mesh->boundingBox.max).x,
-				0.5f * (mesh->boundingBox.min + mesh->boundingBox.max).y,
-				0.5f * (mesh->boundingBox.min + mesh->boundingBox.max).z);
-			DebugText(0, 11, COLOR_WHITE, COLOR_BLACK, "%.2f", extraUniforms->params.w);
-
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, data, mesh->uniformDataSize + sizeof(UniformData));
+
+			textureBindings[numTextureBindings].texture = renderer->sunColorBuffer;
+			textureBindings[numTextureBindings].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+			numTextureBindings++;
 		}
 		else
 		{
@@ -1116,26 +1126,12 @@ static void SubmitMesh(Renderer* renderer,
 		{
 			SDL_assert(mesh->shader && IsForward(mesh->shader));
 
-			SDL_GPUTextureSamplerBinding textureBindings[MAX_MATERIAL_TEXTURES + 1] = {};
-			for (int i = 0; i < mesh->numTextures; i++)
-			{
-				textureBindings[i].texture = mesh->textures[i] ? mesh->textures[i]->handle : renderer->emptyTexture;
-				textureBindings[i].sampler = renderer->samplers[mesh->samplers[i]];
-			}
-			textureBindings[mesh->numTextures].texture = GetClosestEnvironment(renderer);
-			textureBindings[mesh->numTextures].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
-			SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, mesh->numTextures + 1);
+			textureBindings[numTextureBindings].texture = GetClosestEnvironment(renderer);
+			textureBindings[numTextureBindings].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
+			numTextureBindings++;
 		}
-		else
-		{
-			SDL_GPUTextureSamplerBinding textureBindings[MAX_MATERIAL_TEXTURES] = {};
-			for (int i = 0; i < mesh->numTextures; i++)
-			{
-				textureBindings[i].texture = mesh->textures[i] ? mesh->textures[i]->handle : renderer->emptyTexture;
-				textureBindings[i].sampler = renderer->samplers[mesh->samplers[i]];
-			}
-			SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, mesh->numTextures);
-		}
+
+		SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, numTextureBindings);
 	}
 
 	if (mesh->indexBuffer)
@@ -1188,7 +1184,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		for (int i = 0; i < renderer->meshes.size; i++)
 		{
 			MeshDrawData* mesh = &renderer->meshes[i];
-			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, true, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
 		}
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
@@ -1196,7 +1192,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		for (int i = 0; i < renderer->animatedMeshes.size; i++)
 		{
 			MeshDrawData* mesh = &renderer->animatedMeshes[i];
-			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, true, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
 		}
 
 		SDL_EndGPURenderPass(renderPass);
@@ -1267,8 +1263,8 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 				SDL_BindGPUGraphicsPipeline(renderPass, mesh->shader->pipeline);
 
-				//if (!mesh->boundingSphere.radius || FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-					SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
+				if (!mesh->boundingSphere.radius || FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
+					SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, false, renderPass, cmdBuffer);
 			}
 		}
 

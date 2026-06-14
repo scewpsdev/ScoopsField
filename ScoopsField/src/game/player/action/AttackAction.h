@@ -11,6 +11,7 @@ struct Projectile;
 struct Entity;
 struct Action;
 struct Player;
+struct Trail;
 
 struct AttackAction
 {
@@ -25,6 +26,8 @@ struct AttackAction
 
 	bool cancelled;
 	Projectile* projectile;
+
+	Trail* trail;
 
 	float lastHitTime;
 };

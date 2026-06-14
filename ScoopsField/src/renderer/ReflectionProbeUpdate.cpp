@@ -43,7 +43,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 					MeshDrawData* mesh = &renderer->meshes[i];
 					bool renderToReflection = mesh->flags & MESH_DRAW_FLAG_RENDER_TO_REFLECTION;
 					if (renderToReflection && FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-						SubmitMesh(renderer, mesh, projection, views[face], pvs[face], cameraPosition, true, renderPass, cmdBuffer);
+						SubmitMesh(renderer, mesh, projection, views[face], pvs[face], cameraPosition, sunDirection, true, renderPass, cmdBuffer);
 				}
 
 				SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
@@ -53,7 +53,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 					MeshDrawData* mesh = &renderer->animatedMeshes[i];
 					bool renderToReflection = mesh->flags & MESH_DRAW_FLAG_RENDER_TO_REFLECTION;
 					if (renderToReflection && FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-						SubmitMesh(renderer, mesh, projection, views[face], pvs[face], cameraPosition, true, renderPass, cmdBuffer);
+						SubmitMesh(renderer, mesh, projection, views[face], pvs[face], cameraPosition, sunDirection, true, renderPass, cmdBuffer);
 				}
 
 				SDL_EndGPURenderPass(renderPass);
@@ -75,7 +75,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 
 			SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->reflectionProbeShadowMap, 0, cmdBuffer);
 
-			RenderShadowMapGeometry(renderer, renderPass, projection, view, shadowPV, cameraPosition, frustumPlanes, cmdBuffer);
+			RenderShadowMapGeometry(renderer, renderPass, projection, view, shadowPV, cameraPosition, sunDirection, frustumPlanes, cmdBuffer);
 
 			SDL_EndGPURenderPass(renderPass);
 		}

@@ -52,9 +52,9 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 // [X] fix block sparks
 // [X] elevator collider
 // [X] turn ik
+// [X] swing trail
 // [ ] elevator sound effects
 // [ ] player leg ik
-// [ ] swing trail
 // [ ] second block animation
 // [ ] block/parry sound variation
 // [ ] knight parry stagger animation
