@@ -65,7 +65,8 @@ void UpdateEntityAttackAction(EntityAction* action, Entity* entity)
 			if (!action->attack.hitEntities.contains(hitEntity))
 			{
 				HitParams params = {};
-				params.damage = (float)creature->damage;
+				params.damage = creature->damage * action->attack.attack->damageMultiplier;
+				params.damageType = action->attack.attack->damageType;
 				params.position = hit->position;
 				params.body = hit->body;
 				params.impulse = direction * 0.1f;

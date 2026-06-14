@@ -45,6 +45,7 @@ void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState, bool
 
 int GetAnimationChannelWithName(Animation* animation, const char* name);
 mat4& GetNodeTransform(AnimationState* animationState, Node* node);
+mat4 CalculateNodeWorldTransform(AnimationState* animationState, Node* node);
 mat4 CalculateNodeDefaultWorldTransform(Model* model, Node* node);
 
 void InitAnimation(AnimationPlayback* animation, const char* name, Model* moveset, float speed, bool loop, bool mirror);

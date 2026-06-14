@@ -234,6 +234,9 @@
     <ClCompile Include="src\game\entity\component\Elevator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\game\player\action\TurnAction.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\spirv_cross\spirv.h">
@@ -537,6 +540,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\game\entity\component\Elevator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\player\action\TurnAction.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

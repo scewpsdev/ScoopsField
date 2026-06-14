@@ -1063,14 +1063,14 @@ static void SubmitMesh(Renderer* renderer,
 		struct UniformData
 		{
 			mat4 projectionViewModel;
-			mat4 viewModel;
+			mat4 view;
 			mat4 projection;
 			mat4 model;
 		};
 
 		UniformData uniforms = {};
 		uniforms.projectionViewModel = pv * mesh->transform;
-		uniforms.viewModel = view * mesh->transform;
+		uniforms.view = view;
 		uniforms.projection = projection;
 		uniforms.model = viewSpaceBuffer ? view * mesh->transform : mesh->transform;
 		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
@@ -1267,7 +1267,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 				SDL_BindGPUGraphicsPipeline(renderPass, mesh->shader->pipeline);
 
-				if (!mesh->boundingSphere.radius || FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
+				//if (!mesh->boundingSphere.radius || FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
 					SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, false, renderPass, cmdBuffer);
 			}
 		}

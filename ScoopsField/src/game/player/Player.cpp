@@ -204,6 +204,8 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 	player->leftShoulderNode = GetNodeByName(player->bodyModel, "clavicle_l");
 	player->neckNode = GetNodeByName(player->bodyModel, "neck_01");
 	player->spineNode = GetNodeByName(player->bodyModel, "spine_03");
+	player->spine2Node = GetNodeByName(player->bodyModel, "spine_02");
+	player->pelvisNode = GetNodeByName(player->bodyModel, "pelvis");
 
 	player->lastRootNodeTransform = mat4::Identity;
 
@@ -310,7 +312,7 @@ bool HitPlayer(Player* player, HitParams* hit, Entity* by)
 		player->lastBlockParry = player->parry;
 		player->lastBlockStagger = !wasBlocked;
 
-		vec3 impulse = quat::FromAxisAngle(vec3::Up, player->rotation) * vec3(0, 0, 1) * 5;
+		vec3 impulse = quat::FromAxisAngle(vec3::Up, player->yaw) * vec3(0, 0, 1) * 5;
 		player->velocity += impulse;
 
 		Action* currentAction = GetCurrentAction(player);
@@ -662,8 +664,54 @@ void UpdatePlayer(Player* player)
 			player->pitch = clamp(player->pitch, -0.5f * PI, 0.5f * PI);
 		}
 
-		if (!(GetCurrentAction(player) && GetCurrentAction(player)->lockPlayerRotation))
+		player->upperBodyTurn = player->yaw - player->rotation;
+
+		if (!player->moving && SDL_fabsf(player->upperBodyTurn) > 0.5f * PI)
+		{
+			player->resetUpperBodyTurn = true;
+
+			if (!GetCurrentAction(player))
+			{
+				Action action = {};
+				InitTurnAction(&action, sign(player->yaw - player->rotation));
+				QueueAction(player->actions, action, *player);
+			}
+		}
+
+		if (player->moving || GetCurrentAction(player) && GetCurrentAction(player)->lockPlayerRotation || player->resetUpperBodyTurn)
+		{
+			player->upperBodyTurn = moveTowardsAngle(player->upperBodyTurn, 0.0f, 0.5f * PI * 4 * deltaTime);
+			player->rotation = player->yaw - player->upperBodyTurn;
+
+			if (player->resetUpperBodyTurn && SDL_fabsf(player->upperBodyTurn) < 0.1f)
+				player->resetUpperBodyTurn = false;
+		}
+
+		/*
+		bool lockTurn = player->upperBodyTurn < 0.1f && (player->resetUpperBodyTurn || player->moving);
+		if (lockTurn)
+		{
+			player->upperBodyTurn = 0;
+			player->resetUpperBodyTurn = false;
 			player->rotation = player->yaw;
+		}
+		else
+		{
+
+		}
+
+		if (!player->moving && SDL_fabsf(player->upperBodyTurn) > 0.5f * PI && !(GetCurrentAction(player) && GetCurrentAction(player)->lockPlayerRotation))
+		{
+			if (!GetCurrentAction(player))
+				; // turn animation
+
+			player->resetUpperBodyTurn = true;
+			player->upperBodyTurn = player->yaw - player->rotation;
+		}
+		*/
+
+		//if (!(GetCurrentAction(player) && GetCurrentAction(player)->lockPlayerRotation))
+		//	player->rotation = player->yaw;
 
 		if (!(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim))
 		{
@@ -791,7 +839,7 @@ void UpdatePlayer(Player* player)
 		{
 			bodyMoveAnimation = &player->bodyDuckAnim;
 
-			vec3 fsu = quat::FromAxisAngle(vec3::Up, player->rotation).conjugated() * player->velocity;
+			vec3 fsu = quat::FromAxisAngle(vec3::Up, player->yaw).conjugated() * player->velocity;
 			player->bodySneakAnim.speed = (fsu.z < 0 ? 1.0f : -1.0f) * fsu.length() / 3.0f * (49.0f / 24) * 1.5f;
 			player->bodySneakStrafeAnim.speed = (fsu.x > 0 ? 1.0f : -1.0f) * fsu.length() / 3.0f * (49.0f / 24) * 1.5f;
 
@@ -802,7 +850,7 @@ void UpdatePlayer(Player* player)
 		{
 			bodyMoveAnimation = &player->bodyIdleAnim;
 
-			vec3 fsu = quat::FromAxisAngle(vec3::Up, player->rotation).conjugated() * player->velocity;
+			vec3 fsu = quat::FromAxisAngle(vec3::Up, player->yaw).conjugated() * player->velocity;
 			player->bodyRunAnim.speed = (fsu.z < 0 ? 1.0f : -1.0f) * fsu.length() / 3.0f;
 			player->bodyStrafeAnim.speed = (fsu.x > 0 ? 1.0f : -1.0f) * fsu.length() / 3.0f;
 
@@ -1059,11 +1107,15 @@ void UpdatePlayer(Player* player)
 		mat4& spineTransform = GetNodeTransform(&player->bodyAnim, player->spineNode);
 		spineTransform = mat4::Transform(spineTransform.translation() + vec3(0, max(SDL_sinf(-player->pitch), 0.0f) * 0.2f, 0), quat::FromAxisAngle(vec3::AxisX, -player->pitch * 0.5f) * spineTransform.rotation());
 
-		mat4& spine2Transform = GetNodeTransform(&player->bodyAnim, GetNodeByName(player->bodyModel, "spine_02"));
+		mat4& spine2Transform = GetNodeTransform(&player->bodyAnim, player->spine2Node);
 		spine2Transform = mat4::Transform(spine2Transform.translation(), quat::FromAxisAngle(vec3::AxisX, -player->pitch * 0.5f) * spine2Transform.rotation());
 
 		mat4& neckTransform = GetNodeTransform(&player->bodyAnim, player->neckNode);
 		neckTransform = mat4::Transform(neckTransform.translation(), neckTransform.rotation(), vec3(0.01f));
+
+		mat4& spine1Transform = GetNodeTransform(&player->bodyAnim, GetNodeByName(player->bodyModel, "spine_01"));
+		vec3 localUp = (CalculateNodeWorldTransform(&player->bodyAnim, player->pelvisNode).inverted() * vec4(0, 1, 0, 0)).xyz;
+		spine1Transform = mat4::Rotate(localUp, player->yaw - player->rotation) * spine1Transform;
 
 		/*
 		mat4& neckTransform = GetNodeTransform(&player->bodyAnim, player->neckNode);
@@ -1213,7 +1265,7 @@ void RenderPlayer(Player* player)
 	bodyTransform = scaleToCamera * bodyTransform;
 	RenderModel(&game->renderer, player->bodyModel, &player->bodyAnim, bodyTransform);
 
-	RenderModel(&game->renderer, player->bodyModel, &player->bodyAnim, mat4::Translate(-1, 0, -1));
+	RenderModel(&game->renderer, player->bodyModel, &player->bodyAnim, mat4::Translate(-1, 0, -1) * mat4::Rotate(vec3::Up, player->rotation));
 
 	//mat4 cameraTransform = GetCameraTransform(player);
 

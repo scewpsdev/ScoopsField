@@ -275,7 +275,7 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 
 	player->sprinting = false;
 
-	quat playerRotation = quat::FromAxisAngle(vec3::Up, player->rotation);
+	quat playerRotation = quat::FromAxisAngle(vec3::Up, player->yaw);
 	vec3 forward = playerRotation.forward();
 	vec3 right = playerRotation.right();
 	vec3 up = playerRotation.up();

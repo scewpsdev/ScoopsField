@@ -23,6 +23,18 @@ enum ItemType
 	ITEM_LAST
 };
 
+enum DamageType
+{
+	DAMAGE_TYPE_NONE = 0,
+
+	DAMAGE_TYPE_SLASH,
+	DAMAGE_TYPE_THRUST,
+	DAMAGE_TYPE_BLUNT,
+	DAMAGE_TYPE_MAGIC,
+	//DAMAGE_TYPE_FIRE,
+	//DAMAGE_TYPE_POISON,
+};
+
 struct AttackSound
 {
 	Sound* sound;
@@ -61,6 +73,7 @@ struct Attack
 	vec2 parryWindow;
 	float followUpCancelTime;
 	float damageMultiplier;
+	DamageType damageType;
 	float staminaCost;
 
 	const char* followUp;
@@ -78,6 +91,7 @@ struct Weapon
 {
 	int damage;
 	vec2 damageRange;
+	DamageType damageType;
 
 	vec3 castOffset;
 

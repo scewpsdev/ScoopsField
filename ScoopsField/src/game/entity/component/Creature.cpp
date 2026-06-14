@@ -625,7 +625,7 @@ static void AddAttackEffect(EntityAttack* attack, const char* path, float time, 
 	attackEffect->localPosition = localPosition;
 }
 
-static EntityAttack* AddAttack(Creature* creature, const char* name, const char* animation, bool firstAttack, float animationSpeed, float damageMultiplier, ivec2 damageWindow, int cancelFrame, vec2 rangeTriggerWindow = vec2(0, 5), vec2 angleTriggerWindow = vec2(-0.5f * PI, 0.5f * PI), const char* followUp = nullptr, float followUpChance = 1.0f)
+static EntityAttack* AddAttack(Creature* creature, const char* name, const char* animation, bool firstAttack, float animationSpeed, float damageMultiplier, DamageType damageType, ivec2 damageWindow, int cancelFrame, vec2 rangeTriggerWindow = vec2(0, 5), vec2 angleTriggerWindow = vec2(-0.5f * PI, 0.5f * PI), const char* followUp = nullptr, float followUpChance = 1.0f)
 {
 	int attackID = creature->numAttacks++;
 	EntityAttack* attack = &creature->attacks[attackID];
@@ -640,9 +640,30 @@ static EntityAttack* AddAttack(Creature* creature, const char* name, const char*
 	attack->damageMultiplier = damageMultiplier;
 	attack->followUp = followUp;
 	attack->followUpChance = followUpChance;
+	attack->damageType = damageType;
 
 	if (attack->damageWindow.x)
 		AddAttackSound(attack, &game->swingSound, damageWindow.x, 1, 0.5f);
+
+	return attack;
+}
+
+static EntityAttack* AddMoveAction(Creature* creature, const char* name, const char* animation, float animationSpeed, int cancelFrame, vec2 rangeTriggerWindow = vec2(0, 5), vec2 angleTriggerWindow = vec2(-0.5f * PI, 0.5f * PI), const char* followUp = nullptr, float followUpChance = 1.0f)
+{
+	int attackID = creature->numAttacks++;
+	EntityAttack* attack = &creature->attacks[attackID];
+	attack->name = name;
+	attack->animation = animation;
+	attack->animationSpeed = animationSpeed;
+	attack->firstAttack = true;
+	attack->damageWindow = vec2(0);
+	attack->rangeTriggerWindow = rangeTriggerWindow;
+	attack->angleTriggerWindow = angleTriggerWindow;
+	attack->followUpCancelTime = cancelFrame / 24.0f / animationSpeed;
+	attack->damageMultiplier = 1;
+	attack->followUp = followUp;
+	attack->followUpChance = followUpChance;
+	attack->damageType = DAMAGE_TYPE_NONE;
 
 	return attack;
 }
@@ -668,13 +689,13 @@ void InitKnight(Creature* creature, const vec3& position, float rotation)
 	creature->damage = 20;
 	creature->weaponRange = 1.5f;
 
-	EntityAttack* slam = AddAttack(creature, "slam", "attack_slam", true, 1, 1, ivec2(15, 23), 40, vec2(0, 2.5f), vec2(-0.5f * PI, 0.5f * PI), "slash", 0.8f);
+	EntityAttack* slam = AddAttack(creature, "slam", "attack_slam", true, 1, 1, DAMAGE_TYPE_SLASH, ivec2(15, 23), 40, vec2(0, 2.5f), vec2(-0.5f * PI, 0.5f * PI), "slash", 0.8f);
 	AddAttackSound(slam, &game->stepSound, 15, 2, 1);
 	//AddAttackSound(slam, &game->armorSound, 15, 1, 1);
 	AddAttackSound(slam, &game->armorSound, 20, 1, 1);
 	AddAttackSound(slam, &game->armorSound, 40, 1, 1);
 
-	EntityAttack* slash = AddAttack(creature, "slash", "attack_slash_backhand", false, 1, 1, ivec2(25, 33), 48, vec2(0, 3.5f));
+	EntityAttack* slash = AddAttack(creature, "slash", "attack_slash_backhand", false, 1, 1, DAMAGE_TYPE_SLASH, ivec2(25, 33), 48, vec2(0, 3.5f));
 	AddAttackSound(slash, &game->stepSound, 5, 2, 1);
 	AddAttackSound(slash, &game->stepSound, 10, 2, 1);
 	//AddAttackSound(slash, &game->armorSound, 5, 1, 1);
@@ -682,10 +703,10 @@ void InitKnight(Creature* creature, const vec3& position, float rotation)
 	AddAttackSound(slash, &game->armorSound, 23, 1, 1);
 	AddAttackSound(slash, &game->armorSound, 55, 1, 1);
 
-	EntityAttack* backstep = AddAttack(creature, "backstep", "attack_backstep", true, 1, 1, ivec2(0), 0, vec2(0, 1.5f));
+	EntityAttack* backstep = AddMoveAction(creature, "backstep", "attack_backstep", 1, 0, vec2(0, 1.5f));
 	AddAttackSound(backstep, &game->stepSound, 12, 2, 1);
 
-	EntityAttack* turnaround = AddAttack(creature, "turnaround", "attack_turnaround", true, 1, 1, ivec2(0), 0, vec2(0, 5), vec2(0.5f * PI, -0.5f * PI));
+	EntityAttack* turnaround = AddMoveAction(creature, "turnaround", "attack_turnaround", 1, 0, vec2(0, 5), vec2(0.5f * PI, -0.5f * PI));
 	AddAttackSound(turnaround, &game->armorSound, 4, 1, 1);
 	AddAttackSound(turnaround, &game->stepSound, 10, 2, 1);
 

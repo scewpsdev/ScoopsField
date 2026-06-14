@@ -33,6 +33,9 @@ struct Player : EntityBase
 	float pitch, yaw;
 	float cameraHeight;
 
+	float upperBodyTurn;
+	bool resetUpperBodyTurn;
+
 	vec3 velocity;
 	bool grounded;
 	bool moving;
@@ -85,7 +88,7 @@ struct Player : EntityBase
 
 	Node* rightWeaponNode, * leftWeaponNode;
 	Node* rightShoulderNode, * leftShoulderNode;
-	Node* neckNode, * spineNode;
+	Node* neckNode, * spineNode, * spine2Node, * pelvisNode;
 
 	Node* rootNode;
 	vec3 rootMotion;

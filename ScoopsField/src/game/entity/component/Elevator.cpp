@@ -19,6 +19,8 @@ void InitElevator(Elevator* elevator, vec3 position, quat rotation, float shaftH
 
 	InitRigidBody(&elevator->body, RIGID_BODY_KINEMATIC, position, rotation, elevator);
 	AddBoxCollider(&elevator->body, vec3(4, 0.5f, 4), vec3(0, -0.25f, 0), quat::Identity, ENTITY_FILTER_DEFAULT, ENTITY_FILTER_DEFAULT, false);
+	AddBoxCollider(&elevator->body, vec3(0.4f, 1, 4), vec3(-2, 0.5f, 0), quat::Identity, ENTITY_FILTER_DEFAULT, ENTITY_FILTER_DEFAULT, false);
+	AddBoxCollider(&elevator->body, vec3(0.4f, 1, 4), vec3(2, 0.5f, 0), quat::Identity, ENTITY_FILTER_DEFAULT, ENTITY_FILTER_DEFAULT, false);
 
 	InitRigidBody(&elevator->buttonBody, RIGID_BODY_KINEMATIC, position, rotation, elevator);
 	AddBoxCollider(&elevator->buttonBody, vec3(1, 0.2f, 1), vec3(0, 0.1f, 0), quat::Identity, ENTITY_FILTER_DEFAULT, ENTITY_FILTER_DEFAULT, false);
@@ -82,8 +84,8 @@ void UpdateElevator(Elevator* elevator)
 		}
 	}
 
-	float buttonTargetHeight = elevator->buttonActive ? -0.08f : 0;
-	elevator->buttonHeight = moveTowards(elevator->buttonHeight, buttonTargetHeight, 0.08f * deltaTime);
+	float buttonTargetHeight = elevator->buttonActive ? -0.1f : 0;
+	elevator->buttonHeight = moveTowards(elevator->buttonHeight, buttonTargetHeight, 0.08f * 1.5f * deltaTime);
 
 	if (elevator->moving)
 	{

@@ -290,16 +290,6 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 
 	quat invCameraRotation = game->cameraRotation.conjugated();
 
-	if (emitter->velocityNoise)
-	{
-		for (int i = 0; i < emitter->numParticles; i++)
-		{
-			float t = gameTime + i;
-			vec3 velocityNoise = vec3(Simplex1f(t), Simplex1f(100 + t), Simplex1f(200 + -t)).normalized();
-			emitter->positions[i] += emitter->velocityNoise * velocityNoise * deltaTime;
-		}
-	}
-
 	for (int i = 0; i < emitter->numParticles; i++)
 	{
 		float progress = remap(gameTime, emitter->birthTimes[i], emitter->deathTimes[i], 0, 1);

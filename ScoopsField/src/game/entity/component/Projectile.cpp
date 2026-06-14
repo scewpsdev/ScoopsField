@@ -5,7 +5,7 @@
 #include "game/player/action/Action.h"
 
 
-void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, float speed, int damage, Entity* shooter)
+void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, float speed, int damage, DamageType damageType, Entity* shooter)
 {
 	InitEntity((Entity*)projectile, ENTITY_TYPE_PROJECTILE);
 	projectile->position = position;
@@ -16,6 +16,7 @@ void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 
 	projectile->offset = startTransform.translation() - position;
 
 	projectile->damage = damage;
+	projectile->damageType = damageType;
 
 	projectile->shooter = shooter;
 }
@@ -78,6 +79,8 @@ void UpdateProjectile(Projectile* projectile)
 			{
 				RigidBody* body = hits[i].body;
 
+				projectile->position += d * hits[i].distance;
+
 				if (projectile->hitEffect)
 				{
 					ParticleEffect* hitEffect = (ParticleEffect*)CreateEntity();
@@ -89,6 +92,7 @@ void UpdateProjectile(Projectile* projectile)
 				{
 					HitParams hit = {};
 					hit.damage = (float)projectile->damage;
+					hit.damageType = projectile->damageType;
 					hit.position = hits[i].position;
 					hit.body = body;
 					hit.impulse = projectile->velocity * 0.005f * 40.0f / 30.0f * projectile->damage / 200.0f;
@@ -114,7 +118,6 @@ void UpdateProjectile(Projectile* projectile)
 				if (projectile->stickToObjects)
 				{
 					projectile->stuck = true;
-					projectile->position += d * hits[i].distance;
 				}
 				else
 				{
@@ -180,7 +183,7 @@ void InitArrow(Projectile* projectile, vec3 position, vec3 direction, mat4 start
 {
 	float speed = 40;
 	int damage = 40;
-	InitProjectile(projectile, position, direction, startTransform, speed, damage, shooter);
+	InitProjectile(projectile, position, direction, startTransform, speed, damage, DAMAGE_TYPE_THRUST, shooter);
 
 	projectile->model = GetModel("items/arrow/arrow.glb");
 	projectile->hitSound = &game->hitArrowSound;
@@ -203,7 +206,7 @@ void InitMagicProjectile(Projectile* projectile, vec3 position, vec3 direction, 
 {
 	float speed = 30;
 	int damage = 50;
-	InitProjectile(projectile, position, direction, startTransform, speed, damage, shooter);
+	InitProjectile(projectile, position, direction, startTransform, speed, damage, DAMAGE_TYPE_MAGIC, shooter);
 
 	projectile->model = GetModel("entities/projectile/magic_projectile/magic_projectile.gltf");
 	projectile->shader = game->magicProjectileShader;

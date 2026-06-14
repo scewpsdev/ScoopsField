@@ -36,12 +36,13 @@ struct Projectile : EntityBase
 	const char* hitEffect;
 
 	int damage;
+	DamageType damageType;
 
 	Entity* shooter;
 };
 
 
-void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, float speed, int damage, Entity* shooter);
+void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, float speed, int damage, DamageType damageType, Entity* shooter);
 void DestroyProjectile(Projectile* projectile, Entity* entity);
 
 void OnEntityDestroyed(Projectile* projectile, Entity* destroyed);

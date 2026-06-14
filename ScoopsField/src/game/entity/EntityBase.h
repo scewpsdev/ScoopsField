@@ -25,6 +25,7 @@ enum EntityType
 struct Entity;
 struct Model;
 struct GraphicsPipeline;
+struct RigidBody;
 
 struct EntityBase
 {

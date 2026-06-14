@@ -148,6 +148,7 @@ void UpdateAttackAction(Action* action, Player* player)
 				{
 					HitParams params = {};
 					params.damage = action->attack.weapon->weapon.damage * action->attack.attack->damageMultiplier;
+					params.damageType = action->attack.attack->damageType;
 					params.position = hit->position;
 					params.body = hit->body;
 					params.impulse = direction * 0.1f;

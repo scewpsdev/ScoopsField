@@ -42,6 +42,7 @@ struct EntityAttack
 	vec2 damageWindow;
 	float followUpCancelTime;
 	float damageMultiplier;
+	DamageType damageType;
 
 	const char* followUp;
 	float followUpChance;

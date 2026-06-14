@@ -1,7 +1,7 @@
 #include "Item.h"
 
 
-static void InitWeapon(ItemDatabase* items, Item* item, const char* name, bool twoHanded, int damage, vec2 damageRange)
+static void InitWeapon(ItemDatabase* items, Item* item, const char* name, bool twoHanded, int damage, vec2 damageRange, DamageType damageType)
 {
 	item->twoHanded = twoHanded;
 
@@ -17,11 +17,12 @@ static void InitWeapon(ItemDatabase* items, Item* item, const char* name, bool t
 
 	item->weapon.damage = damage;
 	item->weapon.damageRange = damageRange;
+	item->weapon.damageType = damageType;
 
 	item->weapon.runningAttack = -1;
 }
 
-static void InitStaff(ItemDatabase* items, Item* item, const char* name, bool twoHanded, vec3 castOffset)
+static void InitStaff(ItemDatabase* items, Item* item, const char* name, bool twoHanded, vec3 castOffset, DamageType damageType)
 {
 	item->twoHanded = twoHanded;
 
@@ -36,6 +37,7 @@ static void InitStaff(ItemDatabase* items, Item* item, const char* name, bool tw
 	item->equipSound = &items->equipLightSound;
 
 	item->weapon.castOffset = castOffset;
+	item->weapon.damageType = damageType;
 
 	item->weapon.runningAttack = -1;
 	item->weapon.riposteAttack = -1;
@@ -71,6 +73,7 @@ static int AddAttack(Item* item, const char* name, const char* animation, float 
 	attack->damageWindow = vec2((float)damageStartFrame, (float)damageEndFrame) / 24.0f / animationSpeed;
 	attack->followUpCancelTime = cancelFrame / 24.0f / animationSpeed;
 	attack->damageMultiplier = damageMultiplier;
+	attack->damageType = item->weapon.damageType;
 	attack->staminaCost = 0.1f;
 	attack->followUp = followUp;
 	attack->twoHanded = item->twoHanded;
@@ -91,6 +94,7 @@ static int AddBowDraw(Item* item, const char* name, const char* animation, float
 	attack->damageWindow = vec2(0);
 	attack->followUpCancelTime = 0;
 	attack->damageMultiplier = 1;
+	attack->damageType = item->weapon.damageType;
 	attack->staminaCost = 0.1f;
 	attack->followUp = nullptr;
 	attack->followUpCancelTime = GetAnimationByName(&item->moveset, animation)->duration;
@@ -113,6 +117,7 @@ static int AddCast(Item* item, const char* name, const char* animation, float an
 	attack->damageWindow = vec2(0);
 	attack->followUpCancelTime = 0;
 	attack->damageMultiplier = 1;
+	attack->damageType = item->weapon.damageType;
 	attack->staminaCost = 0.1f;
 	attack->followUp = nullptr;
 	attack->followUpCancelTime = GetAnimationByName(&item->moveset, animation)->duration;
@@ -145,20 +150,20 @@ static void InitWeapons(ItemDatabase* items)
 	// kings sword
 	{
 		Item* item = &items->items[ITEM_KINGS_SWORD];
-		InitWeapon(items, item, "kings_sword", false, 50, vec2(0.1f, 0.85f));
+		InitWeapon(items, item, "kings_sword", false, 50, vec2(0.1f, 0.85f), DAMAGE_TYPE_SLASH);
 
 		item->equipSound = &items->equipSwordSound;
 
-		AddAttack(item, "attack1", "attack1", 1.0f, 10, 18, 24, 1.0f, "attack2");
-		AddAttack(item, "attack2", "attack2", 1.0f, 10, 18, 24, 1.0f, "attack1");
-		item->weapon.riposteAttack = AddAttack(item, "riposte", "attack_riposte", 1.0f, 13, 17, 20, 1.0f, "attack1");
+		AddAttack(item, "attack1", "attack1", 1.0f, 10, 18, 24, 1, "attack2");
+		AddAttack(item, "attack2", "attack2", 1.0f, 10, 18, 24, 1, "attack1");
+		item->weapon.riposteAttack = AddAttack(item, "riposte", "attack_riposte", 1.0f, 13, 17, 20, 1, "attack1");
 		AddBlock(item, "block", "block", 1, 6);
-		item->weapon.runningAttack = AddAttack(item, "attack_running", "attack_running", 1.0f, 15, 22, 28, 1.0f, "attack1");
+		item->weapon.runningAttack = AddAttack(item, "attack_running", "attack_running", 1.0f, 15, 22, 28, 1, "attack1");
 	}
 	// longsword
 	{
 		Item* item = &items->items[ITEM_LONGSWORD];
-		InitWeapon(items, item, "longsword", true, 70, vec2(0.1f, 1.0f));
+		InitWeapon(items, item, "longsword", true, 70, vec2(0.1f, 1.0f), DAMAGE_TYPE_SLASH);
 
 		item->equipSound = &items->equipHeavySound;
 
@@ -169,7 +174,7 @@ static void InitWeapons(ItemDatabase* items)
 	// shortbow
 	{
 		Item* item = &items->items[ITEM_SHORTBOW];
-		InitWeapon(items, item, "shortbow", true, 50, vec2());
+		InitWeapon(items, item, "shortbow", true, 50, vec2(), DAMAGE_TYPE_BLUNT);
 
 		item->equipSound = &items->equipLightSound;
 
@@ -181,7 +186,7 @@ static void InitWeapons(ItemDatabase* items)
 	// darkwood staff
 	{
 		Item* item = &items->items[ITEM_DARKWOOD_STAFF];
-		InitStaff(items, item, "darkwood_staff", false, vec3(0, 0.275f, 0));
+		InitStaff(items, item, "darkwood_staff", false, vec3(0, 0.275f, 0), DAMAGE_TYPE_BLUNT);
 
 		item->equipSound = &items->equipLightSound;
 
@@ -194,7 +199,7 @@ static void InitWeapons(ItemDatabase* items)
 	// arrow
 	{
 		Item* item = &items->items[ITEM_ARROW];
-		InitWeapon(items, item, "arrow", false, 50, vec2());
+		InitWeapon(items, item, "arrow", false, 50, vec2(), DAMAGE_TYPE_NONE);
 	}
 }
 

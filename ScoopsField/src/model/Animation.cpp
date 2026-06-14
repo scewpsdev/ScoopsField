@@ -49,7 +49,16 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 // [X] reflection probe point lights
 // [X] particle lighting
 // [X] damage types
-// [ ] magic damage particles
+// [X] fix block sparks
+// [X] elevator collider
+// [X] turn ik
+// [ ] elevator sound effects
+// [ ] player leg ik
+// [ ] swing trail
+// [ ] second block animation
+// [ ] block/parry sound variation
+// [ ] knight parry stagger animation
+// [ ] entity attack parryable flag
 // [ ] kings sword secondary attacks
 // [ ] kings sword secondary follow ups
 // [ ] kings sword backstab
@@ -322,6 +331,18 @@ mat4& GetNodeTransform(AnimationState* animationState, Node* node)
 	//SDL_assert(GetNodeByName(animationState->model, node->name) == node);
 	SDL_assert(&animationState->model->nodes[node->id] == node);
 	return animationState->nodeTransforms[node->id];
+}
+
+mat4 CalculateNodeWorldTransform(AnimationState* animationState, Node* node)
+{
+	mat4 transform = GetNodeTransform(animationState, node);
+	while (node->parent != -1)
+	{
+		Node* parentNode = &animationState->model->nodes[node->parent];
+		transform = GetNodeTransform(animationState, parentNode) * transform;
+		node = parentNode;
+	}
+	return transform;
 }
 
 mat4 CalculateNodeDefaultWorldTransform(Model* model, Node* node)
