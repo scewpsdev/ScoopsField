@@ -39,6 +39,7 @@ void SetAudioListener(const vec3& position, const quat& rotation);
 
 bool LoadSound(Sound* sound, const char* path);
 bool LoadSounds(Sound* sound, const char* name, int count);
+void DestroySound(Sound* sound);
 uint32_t PlaySound(Sound* sound, float volume = -1);
 uint32_t PlaySound(Sound* sound, float pan, float volume);
 uint32_t PlaySound(Sound* sound, vec3 position, float volume = 1);

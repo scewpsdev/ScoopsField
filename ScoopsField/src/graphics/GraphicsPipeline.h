@@ -2,10 +2,11 @@
 
 #include <SDL3/SDL.h>
 
-#include "VertexBuffer.h"
-#include "Shader.h"
-#include "RenderTarget.h"
 
+struct VertexBuffer;
+struct VertexBufferLayout;
+struct Shader;
+struct RenderTarget;
 
 struct GraphicsPipelineInfo
 {

@@ -38,23 +38,12 @@ static vec3 FromPxVector(const PxVec3& v)
 
 void* PhysicsAllocator::allocate(size_t size, const char* typeName, const char* filename, int line)
 {
-	memory->physicsMemoryUsage += size;
-	memory->physicsAllocationCount++;
-	memory->physicsAllocationsPerFrame++;
-	void* mem = SDL_malloc(size);
-	//if (HashMapHasSlot(&memory->physicsAllocations))
-	HashMapAdd(&memory->physicsAllocations, mem, size);
-	return mem;
+	return PhysicsMalloc(size);
 }
 
 void PhysicsAllocator::deallocate(void* ptr)
 {
-	SDL_free(ptr);
-	if (uint64_t* memsize = HashMapRemove(&memory->physicsAllocations, ptr))
-	{
-		memory->physicsMemoryUsage -= *memsize;
-		memory->physicsAllocationCount--;
-	}
+	PhysicsFree(ptr);
 }
 
 void PhysicsErrorCallback::reportError(physx::PxErrorCode::Enum code, const char* message, const char* file, int line)

@@ -26,3 +26,9 @@ void InitReflectionProbe(ReflectionProbe* probe, vec3 position, vec3 size)
 
 	probe->irradiance = SDL_CreateGPUBuffer(device, &bufferInfo);
 }
+
+void DestroyReflectionProbe(ReflectionProbe* probe)
+{
+	DestroyRenderTarget(probe->cubemap);
+	SDL_ReleaseGPUBuffer(device, probe->irradiance);
+}

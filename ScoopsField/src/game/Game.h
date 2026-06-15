@@ -26,6 +26,8 @@
 
 struct GameState
 {
+	float gameTime;
+
 	bool mouseLocked;
 	vec3 cameraPosition;
 	quat cameraRotation;

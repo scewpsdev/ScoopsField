@@ -24,15 +24,10 @@ struct GameMemory
 	BumpAllocator constantAllocator;
 	BumpAllocator transientAllocator;
 
-	HashMap<void*, uint64_t, 10000> platformAllocations;
-	uint64_t platformMemoryUsage;
-	int platformAllocationCount;
-	int platformAllocationsPerFrame;
-
-	HashMap<void*, uint64_t, 4000> physicsAllocations;
-	uint64_t physicsMemoryUsage;
-	int physicsAllocationCount;
-	int physicsAllocationsPerFrame;
+	//HashMap<void*, uint64_t, 20000> platformAllocations;
+	//uint64_t platformMemoryUsage;
+	//int platformAllocationCount;
+	//int platformAllocationsPerFrame;
 
 	AppState* appState;
 };

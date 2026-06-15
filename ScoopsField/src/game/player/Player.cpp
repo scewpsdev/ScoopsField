@@ -242,9 +242,13 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 void DestroyPlayer(Player* player)
 {
 	DestroyCharacterController(&player->controller);
+	DestroyRigidBody(&player->kinematicBody);
 
 	DestroyAnimationState(&player->anim);
 	DestroyAnimationState(&player->bodyAnim);
+
+	if (player->rightWeapons[player->currentLoadout] && player->rightWeapons[player->currentLoadout]->model.numAnimations)
+		DestroyAnimationState(&player->rightWeaponAnim);
 
 	//DestroyModel(player->model);
 	//DestroyAnimationState(&player->anim);
@@ -572,9 +576,9 @@ static void AnimateAxisBlendSpace(Model* model, AnimationState* animationState, 
 			const mat4& a = animationState->nodeTransforms[node->id];
 			mat4 b;
 
-			mat4 idle = AnimateNode(node, &idleAnim->animation->channels[channelID], idleAnim->animation, idleAnim->timer, idleAnim->loop);
-			mat4 forward = AnimateNode(node, &forwardAnim->animation->channels[channelID], forwardAnim->animation, forwardAnim->timer, forwardAnim->loop);
-			mat4 side = AnimateNode(node, &sideAnim->animation->channels[channelID], sideAnim->animation, sideAnim->timer, sideAnim->loop);
+			mat4 idle = AnimateNode(node, channelID, idleAnim->animation, idleAnim->timer, idleAnim->loop);
+			mat4 forward = AnimateNode(node, channelID, forwardAnim->animation, forwardAnim->timer, forwardAnim->loop);
+			mat4 side = AnimateNode(node, channelID, sideAnim->animation, sideAnim->timer, sideAnim->loop);
 
 			float moveAmount = clamp(speed * 0.5f, 0, 1);
 
@@ -1265,7 +1269,7 @@ void RenderPlayer(Player* player)
 	bodyTransform = scaleToCamera * bodyTransform;
 	RenderModel(&game->renderer, player->bodyModel, &player->bodyAnim, bodyTransform);
 
-	RenderModel(&game->renderer, player->bodyModel, &player->bodyAnim, mat4::Translate(-1, 0, -1) * mat4::Rotate(vec3::Up, player->rotation));
+	//RenderModel(&game->renderer, player->bodyModel, &player->bodyAnim, mat4::Translate(-1, 0, -1) * mat4::Rotate(vec3::Up, player->rotation));
 
 	//mat4 cameraTransform = GetCameraTransform(player);
 

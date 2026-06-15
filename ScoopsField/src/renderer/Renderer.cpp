@@ -3,9 +3,8 @@
 #include "Application.h"
 
 #include "graphics/GPUTiming.h"
-#include "graphics/GPUVulkan.h"
 
-#include "CloudNoise.cpp"
+//#include "CloudNoise.cpp"
 
 
 struct LightInstanceData
@@ -687,14 +686,12 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	linearSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	linearSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
 	linearSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
-	linearSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
 	renderer->samplers[TEXTURE_SAMPLER_LINEAR] = SDL_CreateGPUSampler(device, &linearSamplerInfo);
 
 	SDL_GPUSamplerCreateInfo linearClampedSamplerInfo = {};
 	linearClampedSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	linearClampedSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
 	linearClampedSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
-	linearClampedSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
 	linearClampedSamplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	linearClampedSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	linearClampedSamplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
@@ -704,7 +701,6 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	linearClampedVSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	linearClampedVSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
 	linearClampedVSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
-	linearClampedVSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
 	linearClampedVSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED_VERTICAL] = SDL_CreateGPUSampler(device, &linearClampedVSamplerInfo);
 
@@ -1047,7 +1043,7 @@ static void SubmitMesh(Renderer* renderer,
 			mat4 view;
 			mat4 projection;
 			mat4 model;
-			mat4 boneTransforms[MAX_BONES];
+			mat4 boneTransforms[64];
 		};
 
 		UniformData uniforms = {};

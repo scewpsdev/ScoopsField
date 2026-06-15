@@ -6,6 +6,7 @@
 
 
 #define InitTrashCppObject(x, T) new(x)T()
+#define DestroyTrashCppObject(x, T) x->~T()
 
 
 using namespace SoLoud;
@@ -92,6 +93,15 @@ bool LoadSounds(Sound* sound, const char* name, int count)
 	sound->numWavs = count;
 
 	return r;
+}
+
+void DestroySound(Sound* sound)
+{
+	for (int i = 0; i < sound->numWavs; i++)
+	{
+		sound->wavs[i].stop();
+		sound->wavs[i].~Wav();
+	}
 }
 
 static int GetRandom(int count)

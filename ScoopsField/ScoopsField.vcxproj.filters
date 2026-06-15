@@ -165,9 +165,6 @@
     <ClCompile Include="src\graphics\GPUTiming.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\renderer\CloudNoise.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\renderer\Sky.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

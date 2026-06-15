@@ -76,14 +76,14 @@ void InitParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitter, bool 
 	emitter->maxParticles = maxParticles;
 	emitter->numParticles = 0;
 
-	emitter->positions = (vec3*)SDL_malloc(maxParticles * sizeof(vec3));
-	emitter->sizes = (vec2*)SDL_malloc(maxParticles * sizeof(vec2));
-	emitter->rotations = (float*)SDL_malloc(maxParticles * sizeof(float));
-	emitter->velocities = (vec3*)SDL_malloc(maxParticles * sizeof(vec3));
-	emitter->colors = (vec4*)SDL_malloc(maxParticles * sizeof(vec4));
-	emitter->animations = (float*)SDL_malloc(maxParticles * sizeof(float));
-	emitter->birthTimes = (float*)SDL_malloc(maxParticles * sizeof(float));
-	emitter->deathTimes = (float*)SDL_malloc(maxParticles * sizeof(float));
+	emitter->positions = (vec3*)ParticleMalloc(maxParticles * sizeof(vec3));
+	emitter->sizes = (vec2*)ParticleMalloc(maxParticles * sizeof(vec2));
+	emitter->rotations = (float*)ParticleMalloc(maxParticles * sizeof(float));
+	emitter->velocities = (vec3*)ParticleMalloc(maxParticles * sizeof(vec3));
+	emitter->colors = (vec4*)ParticleMalloc(maxParticles * sizeof(vec4));
+	emitter->animations = (float*)ParticleMalloc(maxParticles * sizeof(float));
+	emitter->birthTimes = (float*)ParticleMalloc(maxParticles * sizeof(float));
+	emitter->deathTimes = (float*)ParticleMalloc(maxParticles * sizeof(float));
 
 	VertexBufferLayout instanceLayouts[5];
 	InitParticleInstanceBufferLayouts(instanceLayouts);
@@ -115,14 +115,14 @@ void DestroyParticleEmitter(ParticleEmitter* emitter)
 	DestroyTransferBuffer(emitter->colorTransferBuffer);
 	DestroyTransferBuffer(emitter->animationTransferBuffer);
 
-	SDL_free(emitter->positions);
-	SDL_free(emitter->sizes);
-	SDL_free(emitter->rotations);
-	SDL_free(emitter->velocities);
-	SDL_free(emitter->colors);
-	SDL_free(emitter->animations);
-	SDL_free(emitter->birthTimes);
-	SDL_free(emitter->deathTimes);
+	ParticleFree(emitter->positions);
+	ParticleFree(emitter->sizes);
+	ParticleFree(emitter->rotations);
+	ParticleFree(emitter->velocities);
+	ParticleFree(emitter->colors);
+	ParticleFree(emitter->animations);
+	ParticleFree(emitter->birthTimes);
+	ParticleFree(emitter->deathTimes);
 }
 
 static vec3 GetSpawnPosition(ParticleEmitter* emitter)
@@ -566,6 +566,11 @@ void InitParticleSystem(ParticleSystem* particles)
 
 	particles->quad = CreateVertexBuffer(4, &quadLayout, SDL_GPU_BUFFERUSAGE_VERTEX);
 	UpdateVertexBuffer(particles->quad, 0, (const uint8_t*)quadVertices, sizeof(quadVertices), cmdBuffer);
+}
+
+void DestroyParticleSystem(ParticleSystem* particles)
+{
+	DestroyVertexBuffer(particles->quad);
 }
 
 void UpdateParticleSystem(ParticleSystem* particles)

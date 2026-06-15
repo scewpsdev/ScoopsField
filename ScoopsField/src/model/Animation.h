@@ -38,7 +38,7 @@ typedef bool(*AnimationChannelFilterCallback_t)(Node* node, void* userPtr);
 void InitAnimationState(AnimationState* animationState, Model* model);
 void DestroyAnimationState(AnimationState* animationState);
 
-mat4 AnimateNode(Node* node, AnimationChannel* channel, Animation* animation, float time, bool loop);
+mat4 AnimateNode(Node* node, int channelID, Animation* animation, float time, bool loop);
 void AnimateModel(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr);
 void BlendAnimation(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, float blend, AnimationChannelFilterCallback_t channelFilter = nullptr, void* filterUserPtr = nullptr);
 void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState, bool calculateWorldTransforms = true);

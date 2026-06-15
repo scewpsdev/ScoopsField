@@ -112,5 +112,6 @@ ParticleEmitter* AddEmitter(ParticleEffect* effect, bool additive, float spawnRa
 
 void InitParticleInstanceBufferLayouts(VertexBufferLayout* instanceLayouts);
 void InitParticleSystem(ParticleSystem* particles);
+void DestroyParticleSystem(ParticleSystem* particles);
 
 void LoadParticleEffect(ParticleEffect* effect, const char* path, vec3 position, quat rotation);

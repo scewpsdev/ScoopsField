@@ -355,7 +355,7 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 	{
 		player->grounded = OverlapSphere(player->position + vec3(0, 0.3f - 0.01f, 0), 0.3f, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ENEMY);
 
-		if (player->velocity.y < -5 && gameTime - player->lastLandedTime > 0.2f)
+		if (player->grounded && player->velocity.y < -5 && gameTime - player->lastLandedTime > 0.2f)
 		{
 			player->lastLandedTime = gameTime;
 			OnLand(player);

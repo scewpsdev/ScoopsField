@@ -33,7 +33,7 @@ Entity* CreateEntity()
 #include "entity/component/Elevator.cpp"
 
 
-static void ResetGame(bool destroy)
+static void ResetGame(bool destroy, bool init)
 {
 	if (destroy)
 	{
@@ -43,7 +43,7 @@ static void ResetGame(bool destroy)
 			game->ambientSource = 0;
 		}
 
-		DestroyPlayer(&game->player);
+		//DestroyPlayer(&game->player);
 
 		for (int i = 0; i < game->entities.capacity; i++)
 		{
@@ -54,73 +54,103 @@ static void ResetGame(bool destroy)
 			}
 		}
 		ClearPool(&game->entities);
+
+		for (int i = 0; i < game->numReflectionProbes; i++)
+		{
+			DestroyReflectionProbe(&game->reflectionProbes[i]);
+		}
+		game->numReflectionProbes = 0;
+
+		DestroyModel(&game->mapModel);
+		//DestroyRigidBody(&game->mapCollider);
 	}
 
 
-	InitPool(&game->entities);
-
-	//game->ambientSource = PlaySound(&game->ambientSound, 0.5f);
-
-	game->cameraPosition = vec3(0, 0, 3);
-	//game->cameraPitch = -0.4f * PI;
-	//game->cameraYaw = 0.25f * PI;
-	game->cameraNear = 0.01f;
-	//game->cameraFar = 1000;
-
-	game->mouseLocked = true;
-
-	game->playerSpawn = mat4::Identity;
-
-	for (int i = 0; i < game->mapModel.numNodes; i++)
+	if (init)
 	{
-		Node* node = &game->mapModel.nodes[i];
-		if (SDL_strncmp(node->name, "Spawn", 5) == 0)
-		{
-			// spawn
-			game->playerSpawn = node->transform;
-		}
-		else if (SDL_strncmp(node->name, "Entity", 6) == 0)
-		{
-			// entity
-			SDL_assert(SDL_strlen(node->name) == 6 || node->name[6] == ' ' && SDL_strlen(node->name) > 7);
-			char entityType[32] = "";
-			char* entityTypeStart = node->name + 7;
-			char* entityTypeEnd = SDL_strchr(entityTypeStart, '#');
-			SDL_memcpy(entityType, entityTypeStart, (int)(entityTypeEnd - entityTypeStart));
+		game->gameTime = 0.0f;
 
-			if (SDL_strcmp(entityType, "carpet") == 0)
+		//game->ambientSource = PlaySound(&game->ambientSound, 0.5f);
+
+		game->cameraPosition = vec3(0, 0, 3);
+		//game->cameraPitch = -0.4f * PI;
+		//game->cameraYaw = 0.25f * PI;
+		game->cameraNear = 0.01f;
+		//game->cameraFar = 1000;
+
+		game->mouseLocked = true;
+
+		game->playerSpawn = mat4::Identity;
+
+		InitPool(&game->entities);
+
+		//LoadModel(&game->mapModel, "res/maps/painted_world/painted_world.glb.bin", true, cmdBuffer);
+		LoadModel(&game->mapModel, "res/maps/testmap/testmap.glb.bin", false, cmdBuffer);
+
+		//Model* mapCollider = (Model*)BumpAllocatorMalloc(&memory->transientAllocator, sizeof(Model));
+		//LoadModel(mapCollider, "res/maps/testmap/testmap_collider.glb.bin", true, cmdBuffer);
+
+		//InitRigidBody(&game->mapCollider, RIGID_BODY_STATIC, vec3::Zero, quat::Identity, nullptr);
+		//AddModelCollider(&game->mapCollider, mapCollider, vec3::Zero, quat::Identity, vec3::One, 1, 1, false);
+
+		//Model* navmeshModel = (Model*)BumpAllocatorMalloc(&memory->transientAllocator, sizeof(Model));
+		//LoadModel(navmeshModel, "res/maps/testmap/testmap_navmesh.glb.bin", true, cmdBuffer);
+		//InitNavmesh(&game->mapNavmesh, navmeshModel);
+
+		/*
+		for (int i = 0; i < game->mapModel.numNodes; i++)
+		{
+			Node* node = &game->mapModel.nodes[i];
+			if (SDL_strncmp(node->name, "Spawn", 5) == 0)
 			{
-				mat4 transform = node->transform;
-				Entity* carpet = PoolAlloc(&game->entities);
-				InitRestingSpot(carpet, transform.translation(), transform.rotation());
+				// spawn
+				game->playerSpawn = node->transform;
+			}
+			else if (SDL_strncmp(node->name, "Entity", 6) == 0)
+			{
+				// entity
+				SDL_assert(SDL_strlen(node->name) == 6 || node->name[6] == ' ' && SDL_strlen(node->name) > 7);
+				char entityType[32] = "";
+				char* entityTypeStart = node->name + 7;
+				char* entityTypeEnd = SDL_strchr(entityTypeStart, '#');
+				SDL_memcpy(entityType, entityTypeStart, (int)(entityTypeEnd - entityTypeStart));
+
+				if (SDL_strcmp(entityType, "carpet") == 0)
+				{
+					mat4 transform = node->transform;
+					Entity* carpet = PoolAlloc(&game->entities);
+					InitRestingSpot(carpet, transform.translation(), transform.rotation());
+				}
 			}
 		}
-	}
+		*/
 
-	InitPlayer(&game->player, cmdBuffer, game->playerSpawn.translation(), game->playerSpawn.rotation().getAngle());
+		//InitPlayer(&game->player, cmdBuffer, game->playerSpawn.translation(), game->playerSpawn.rotation().getAngle());
 
-	InitKnight((Creature*)CreateEntity(), vec3(0, 0, -5), 0);
-	InitKnight((Creature*)CreateEntity(), vec3(-4, 0, -5), 0);
-	InitKnight((Creature*)CreateEntity(), vec3(4, 0, -5), 0);
+		//InitKnight((Creature*)CreateEntity(), vec3(0, 0, -5), 0);
+		//InitKnight((Creature*)CreateEntity(), vec3(-4, 0, -5), 0);
+		//InitKnight((Creature*)CreateEntity(), vec3(4, 0, -5), 0);
 
-	InitSconce((Sconce*)CreateEntity(), vec3(-7, -37, 40));
-	InitSconce((Sconce*)CreateEntity(), vec3(7, -37, 40));
-	InitSconce((Sconce*)CreateEntity(), vec3(-7, -37, 54));
-	InitSconce((Sconce*)CreateEntity(), vec3(7, -37, 54));
+		//InitSconce((Sconce*)CreateEntity(), vec3(-7, -37, 40));
+		//InitSconce((Sconce*)CreateEntity(), vec3(7, -37, 40));
+		//InitSconce((Sconce*)CreateEntity(), vec3(-7, -37, 54));
+		//InitSconce((Sconce*)CreateEntity(), vec3(7, -37, 54));
 
-	InitElevator((Elevator*)CreateEntity(), vec3(0, -37, 47), quat::Identity, 37);
+		//InitElevator((Elevator*)CreateEntity(), vec3(0, -37, 47), quat::Identity, 37);
 
-	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_KINGS_SWORD), vec3(-2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
-	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_LONGSWORD), vec3(0, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
-	InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_DARKWOOD_STAFF), vec3(2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
+		//InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_KINGS_SWORD), vec3(-2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
+		//InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_LONGSWORD), vec3(0, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
+		//InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_DARKWOOD_STAFF), vec3(2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
 
-	InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, 29, -58), vec3(9, 13, 9));
-	InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, -15.5f, 47), vec3(4, 14.5f, 4));
-	InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, -33.5f, 47), vec3(9, 3.5f, 9));
+		//InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, 29, -58), vec3(9, 13, 9));
+		//InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, -15.5f, 47), vec3(4, 14.5f, 4));
+		//InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, -33.5f, 47), vec3(9, 3.5f, 9));
+		//InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, -35, 73), vec3(3, 2, 16));
 
-	{
-		ParticleEffect* effect = (ParticleEffect*)CreateEntity();
-		LoadParticleEffect(effect, "effects/testeffect/testeffect.rfs", vec3(0, 2, 0), quat::Identity);
+		{
+			//ParticleEffect* effect = (ParticleEffect*)CreateEntity();
+			//LoadParticleEffect(effect, "effects/testeffect/testeffect.rfs", vec3(0, 2, 0), quat::Identity);
+		}
 	}
 }
 
@@ -135,20 +165,6 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	InitParticleSystem(&game->particles);
 
 	LoadModel(&game->cube, "res/models/cube.glb.bin", false, cmdBuffer);
-
-	//LoadModel(&game->mapModel, "res/maps/testmap/testmap.gltf.bin", true, cmdBuffer);
-	//LoadModel(&game->mapModel, "res/maps/painted_world/painted_world.glb.bin", true, cmdBuffer);
-	LoadModel(&game->mapModel, "res/maps/testmap/testmap.glb.bin", false, cmdBuffer);
-
-	Model mapCollider;
-	LoadModel(&mapCollider, "res/maps/testmap/testmap_collider.glb.bin", true, cmdBuffer);
-
-	InitRigidBody(&game->mapCollider, RIGID_BODY_STATIC, vec3::Zero, quat::Identity, nullptr);
-	AddModelCollider(&game->mapCollider, &mapCollider, vec3::Zero, quat::Identity, vec3::One, 1, 1, false);
-
-	Model* navmeshModel = (Model*)BumpAllocatorMalloc(&memory->transientAllocator, sizeof(Model));
-	LoadModel(navmeshModel, "res/maps/testmap/testmap_navmesh.glb.bin", true, cmdBuffer);
-	InitNavmesh(&game->mapNavmesh, navmeshModel);
 
 	LoadSound(&game->ambientSound, "res/sounds/ambience.ogg.bin");
 	LoadSounds(&game->stepSound, "sounds/step", 6);
@@ -221,12 +237,52 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 
 	InitItemDatabase(&game->items, cmdBuffer);
 
-	ResetGame(false);
+	ResetGame(false, true);
 }
 
 void GameDestroy()
 {
+	ResetGame(true, false);
+
 	DestroyRenderer(&game->renderer);
+	DestroyGUIRenderer(&game->guiRenderer);
+
+	DestroyParticleSystem(&game->particles);
+
+	DestroyModel(&game->cube);
+
+	DestroySound(&game->ambientSound);
+	DestroySound(&game->stepSound);
+	DestroySound(&game->landSound);
+	DestroySound(&game->exhaustedSound);
+	DestroySound(&game->swingSound);
+	DestroySound(&game->armorSound);
+	DestroySound(&game->hitSlashSound);
+	DestroySound(&game->hitSkeletonSound);
+	DestroySound(&game->hitArmorSound);
+	DestroySound(&game->hitArrowSound);
+	DestroySound(&game->hitBlockSound);
+	DestroySound(&game->hitParrySound);
+	DestroySound(&game->stepBareSound);
+	DestroySound(&game->jumpBareSound);
+	DestroySound(&game->landBareSound);
+	DestroySound(&game->fireSound);
+
+	DestroyTexture(game->crosshair);
+	DestroyTexture(game->crosshairInteract);
+	DestroyTexture(game->hitmarker);
+	DestroyTexture(game->blockmarker);
+	DestroyTexture(game->vignette);
+	DestroyTexture(game->roundCounter);
+	DestroyTexture(game->digits);
+
+	DestroyGraphicsPipeline(game->magicProjectileShader);
+	DestroyGraphicsPipeline(game->trailShader);
+	DestroyGraphicsPipeline(game->trailAdditiveShader);
+	DestroyGraphicsPipeline(game->particleShader);
+	DestroyGraphicsPipeline(game->particleAdditiveShader);
+
+	DestroyItemDatabase(&game->items);
 }
 
 void GameResize(int newWidth, int newHeight)
@@ -237,6 +293,9 @@ void GameResize(int newWidth, int newHeight)
 static bool cameraZoom = false;
 void GameUpdate()
 {
+	game->gameTime += deltaTime;
+	gameTime = game->gameTime;
+
 	UpdateHotReloadedResources();
 
 	if (app->keys[SDL_SCANCODE_ESCAPE] && !app->lastKeys[SDL_SCANCODE_ESCAPE])
@@ -244,7 +303,7 @@ void GameUpdate()
 
 	SDL_SetWindowRelativeMouseMode(window, game->mouseLocked);
 
-	UpdatePlayer(&game->player);
+	//UpdatePlayer(&game->player);
 
 	for (int i = 0; i < game->entities.capacity; i++)
 	{
@@ -272,11 +331,13 @@ void GameUpdate()
 
 	// discard fragments in front of reflection probe volume
 
-	if (GetKeyDown(SDL_SCANCODE_R))
+	if (GetKeyDown(SDL_SCANCODE_R) || game->player.position.y < -200)
 	{
-		TeleportPlayer(&game->player, game->playerSpawn.translation());
-		game->player.velocity = vec3::Zero;
-		game->player.rotation = game->playerSpawn.rotation().getAngle();
+		ResetGame(true, true);
+
+		//TeleportPlayer(&game->player, game->playerSpawn.translation());
+		//game->player.velocity = vec3::Zero;
+		//game->player.rotation = game->playerSpawn.rotation().getAngle();
 	}
 
 	if (GetKeyDown(SDL_SCANCODE_F9))
@@ -290,7 +351,7 @@ void GameRender()
 	mat4 guiPV = mat4::Orthographic(0, (float)app->width, 0, (float)app->height, -1, 1);
 	BeginGUIRenderer(&game->guiRenderer, guiPV);
 
-	RenderPlayer(&game->player);
+	//RenderPlayer(&game->player);
 
 	for (int i = 0; i < game->entities.capacity; i++)
 	{
@@ -302,10 +363,10 @@ void GameRender()
 
 	RenderParticleSystem(&game->particles);
 
-	RenderModel(&game->renderer, &game->mapModel, nullptr, mat4::Identity, true);
+	//RenderModel(&game->renderer, &game->mapModel, nullptr, mat4::Identity, true);
 
-	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 10);
-	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * 0.5f * PI * 0.7f) * vec3(-1, 2, 0), vec3(0.5f, 1, 0.5f) * 10);
+	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 10);
+	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * 0.5f * PI * 0.7f) * vec3(-1, 2, 0), vec3(0.5f, 1, 0.5f) * 10);
 
 	for (int i = 0; i < game->numReflectionProbes; i++)
 	{
@@ -357,7 +418,7 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -5 * 0.1f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), 10 * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 	//sunDirection = vec3(0.5f, -1, -1).normalized();

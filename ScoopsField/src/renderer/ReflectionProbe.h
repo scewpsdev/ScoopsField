@@ -22,3 +22,4 @@ struct ReflectionProbe
 
 
 void InitReflectionProbe(ReflectionProbe* probe, vec3 position, vec3 size);
+void DestroyReflectionProbe(ReflectionProbe* probe);

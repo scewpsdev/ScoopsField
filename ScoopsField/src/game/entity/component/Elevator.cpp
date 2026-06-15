@@ -29,6 +29,7 @@ void InitElevator(Elevator* elevator, vec3 position, quat rotation, float shaftH
 void DestroyElevator(Elevator* elevator)
 {
 	DestroyRigidBody(&elevator->body);
+	DestroyRigidBody(&elevator->buttonBody);
 }
 
 void UpdateElevator(Elevator* elevator)

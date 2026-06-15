@@ -257,6 +257,7 @@ static void ReadMaterial(Material* material, BinaryReader& reader, const char* s
 static void ReadSkeleton(Skeleton* skeleton, BinaryReader& reader)
 {
 	skeleton->numBones = reader.ReadInt32();
+	skeleton->bones = (Bone*)MeshMalloc(skeleton->numBones * sizeof(Bone));
 
 	for (int i = 0; i < skeleton->numBones; i++)
 	{
@@ -280,9 +281,9 @@ static void ReadAnimation(Animation* animation, BinaryReader& reader)
 	animation->numScalings = reader.ReadInt32();
 	animation->numChannels = reader.ReadInt32();
 
-	animation->positions = (PositionKeyframe*)SDL_malloc(animation->numPositions * sizeof(PositionKeyframe)); //BumpAllocatorMalloc(&resource->animationCache.positionAllocator, animation->numPositions * sizeof(PositionKeyframe));
-	animation->rotations = (RotationKeyframe*)SDL_malloc(animation->numRotations * sizeof(RotationKeyframe)); //BumpAllocatorMalloc(&resource->animationCache.rotationAllocator, animation->numRotations * sizeof(RotationKeyframe));
-	animation->scalings = (ScalingKeyframe*)SDL_malloc(animation->numScalings * sizeof(ScalingKeyframe)); //BumpAllocatorMalloc(&resource->animationCache.scalingAllocator, animation->numScalings * sizeof(ScalingKeyframe));
+	animation->positions = (PositionKeyframe*)MeshMalloc(animation->numPositions * sizeof(PositionKeyframe)); //BumpAllocatorMalloc(&resource->animationCache.positionAllocator, animation->numPositions * sizeof(PositionKeyframe));
+	animation->rotations = (RotationKeyframe*)MeshMalloc(animation->numRotations * sizeof(RotationKeyframe)); //BumpAllocatorMalloc(&resource->animationCache.rotationAllocator, animation->numRotations * sizeof(RotationKeyframe));
+	animation->scalings = (ScalingKeyframe*)MeshMalloc(animation->numScalings * sizeof(ScalingKeyframe)); //BumpAllocatorMalloc(&resource->animationCache.scalingAllocator, animation->numScalings * sizeof(ScalingKeyframe));
 
 	SDL_assert(animation->positions);
 	SDL_assert(animation->rotations);
@@ -293,6 +294,8 @@ static void ReadAnimation(Animation* animation, BinaryReader& reader)
 	reader.ReadBytes(animation->scalings, animation->numScalings * sizeof(ScalingKeyframe));
 
 	SDL_assert(animation->numChannels <= MAX_ANIMATION_CHANNELS);
+
+	animation->channels = (AnimationChannel*)MeshMalloc(animation->numChannels * sizeof(AnimationChannel));
 
 	for (int i = 0; i < animation->numChannels; i++)
 	{
@@ -452,17 +455,24 @@ static void DestroyMesh(Mesh* mesh)
 
 static void DestroyMaterial(Material* material)
 {
-	for (int i = 0; i < material->numTextures; i++)
+	for (int i = 0; i < MAX_MATERIAL_TEXTURES; i++)
 	{
-		DestroyTexture(material->textures[i]);
+		if (material->textures[i])
+			DestroyTexture(material->textures[i]);
 	}
+}
+
+static void DestroySkeleton(Skeleton* skeleton)
+{
+	MeshFree(skeleton->bones);
 }
 
 static void DestroyAnimation(Animation* animation)
 {
-	SDL_free(animation->positions);
-	SDL_free(animation->rotations);
-	SDL_free(animation->scalings);
+	MeshFree(animation->positions);
+	MeshFree(animation->rotations);
+	MeshFree(animation->scalings);
+	MeshFree(animation->channels);
 }
 
 void DestroyModel(Model* model)
@@ -472,6 +482,9 @@ void DestroyModel(Model* model)
 
 	for (int i = 0; i < model->numMaterials; i++)
 		DestroyMaterial(&model->materials[i]);
+
+	for (int i = 0; i < model->numSkeletons; i++)
+		DestroySkeleton(&model->skeletons[i]);
 
 	for (int i = 0; i < model->numAnimations; i++)
 		DestroyAnimation(&model->animations[i]);

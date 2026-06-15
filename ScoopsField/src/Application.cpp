@@ -3,6 +3,9 @@
 #include "utils/StringUtils.h"
 #include "math/Math.h"
 
+#include "graphics/Graphics.h"
+#include "graphics/GPUTiming.h"
+
 
 GameMemory* memory;
 AppState* app;
@@ -23,6 +26,64 @@ float gameTime;
 SDL_GPUTexture* swapchain = nullptr;
 SDL_GPUCommandBuffer* cmdBuffer = nullptr;
 
+
+void* PhysicsMalloc(size_t size)
+{
+	app->physicsMemoryUsage += size;
+	app->physicsAllocationCount++;
+	app->physicsAllocationsPerFrame++;
+	void* mem = SDL_malloc(size);
+	SDL_assert(HashMapHasSlot(&app->physicsAllocations));
+	HashMapAdd(&app->physicsAllocations, mem, size);
+	return mem;
+}
+
+void PhysicsFree(void* mem)
+{
+	uint64_t* memsize = HashMapRemove(&app->physicsAllocations, mem);
+	SDL_assert(memsize);
+	app->physicsMemoryUsage -= *memsize;
+	app->physicsAllocationCount--;
+	SDL_free(mem);
+}
+
+void* MeshMalloc(size_t size)
+{
+	app->meshMemoryUsage += size;
+	app->meshAllocationCount++;
+	void* mem = SDL_malloc(size);
+	SDL_assert(HashMapHasSlot(&app->meshAllocations));
+	HashMapAdd(&app->meshAllocations, mem, size);
+	return mem;
+}
+
+void MeshFree(void* mem)
+{
+	uint64_t* memsize = HashMapRemove(&app->meshAllocations, mem);
+	SDL_assert(memsize);
+	app->meshMemoryUsage -= *memsize;
+	app->meshAllocationCount--;
+	SDL_free(mem);
+}
+
+void* ParticleMalloc(size_t size)
+{
+	app->particleMemoryUsage += size;
+	app->particleAllocationCount++;
+	void* mem = SDL_malloc(size);
+	SDL_assert(HashMapHasSlot(&app->particleAllocations));
+	HashMapAdd(&app->particleAllocations, mem, size);
+	return mem;
+}
+
+void ParticleFree(void* mem)
+{
+	uint64_t* memsize = HashMapRemove(&app->particleAllocations, mem);
+	SDL_assert(memsize);
+	app->particleMemoryUsage -= *memsize;
+	app->particleAllocationCount--;
+	SDL_free(mem);
+}
 
 bool EveryInterval(float seconds, uint32_t h)
 {
@@ -143,7 +204,6 @@ void GUIPanel(int x, int y, Texture* texture)
 }
 
 
-#include "graphics/GPUTiming.cpp"
 #include "renderer/Renderer.cpp"
 #include "game/Game.cpp"
 
@@ -163,63 +223,65 @@ static void InitPlatformCallbacks(PlatformCallbacks* callbacks)
 
 void* SDLmalloc(size_t size)
 {
-	memory->platformMemoryUsage += size;
-	memory->platformAllocationCount++;
-	memory->platformAllocationsPerFrame++;
+	//memory->platformMemoryUsage += size;
+	app->platformAllocationCount++;
+	app->platformAllocationsPerFrame++;
 	void* mem = memory->defaultMalloc(size);
-	if (HashMapHasSlot(&memory->platformAllocations))
-		HashMapAdd(&memory->platformAllocations, mem, size);
+	//SOFT_ASSERT(HashMapHasSlot(&memory->platformAllocations));
+	//HashMapAdd(&memory->platformAllocations, mem, size);
 	return mem;
 }
 
 void* SDLcalloc(size_t nmemb, size_t size)
 {
-	memory->platformMemoryUsage += nmemb * size;
-	memory->platformAllocationCount++;
+	//memory->platformMemoryUsage += nmemb * size;
+	app->platformAllocationCount++;
+	app->platformAllocationsPerFrame++;
 	void* mem = memory->defaultCalloc(nmemb, size);
-	if (HashMapHasSlot(&memory->platformAllocations))
-		HashMapAdd(&memory->platformAllocations, mem, nmemb * size);
+	//SOFT_ASSERT(HashMapHasSlot(&memory->platformAllocations));
+	//HashMapAdd(&memory->platformAllocations, mem, nmemb * size);
 	return mem;
-}
-
-void* SDLrealloc(void* mem, size_t size)
-{
-	if (!mem)
-		return SDL_malloc(size);
-	else if (!size)
-	{
-		SDL_free(mem);
-		return nullptr;
-	}
-
-	void* newMem = memory->defaultRealloc(mem, size);
-	if (newMem == mem)
-	{
-		if (uint64_t* memsize = HashMapGet(&memory->platformAllocations, mem))
-		{
-			memory->platformMemoryUsage += size - *memsize;
-			*memsize = size;
-		}
-	}
-	else
-	{
-		if (uint64_t* memsize = HashMapRemove(&memory->platformAllocations, mem))
-		{
-			memory->platformMemoryUsage += size - *memsize;
-			HashMapAdd(&memory->platformAllocations, newMem, size);
-		}
-	}
-	return newMem;
 }
 
 void SDLfree(void* mem)
 {
 	memory->defaultFree(mem);
-	if (uint64_t* memsize = HashMapRemove(&memory->platformAllocations, mem))
+	//uint64_t* memsize = HashMapRemove(&memory->platformAllocations, mem);
+	//SOFT_ASSERT(memsize);
+	//memory->platformMemoryUsage -= *memsize;
+	app->platformAllocationCount--;
+}
+
+void* SDLrealloc(void* mem, size_t size)
+{
+	if (!mem)
+		return SDLmalloc(size);
+	else if (!size)
 	{
-		memory->platformMemoryUsage -= *memsize;
-		memory->platformAllocationCount--;
+		SDLfree(mem);
+		return nullptr;
 	}
+
+	void* newMem = memory->defaultRealloc(mem, size);
+
+	/*
+	if (newMem == mem)
+	{
+		uint64_t* memsize = HashMapGet(&memory->platformAllocations, mem);
+		SOFT_ASSERT(memsize);
+		memory->platformMemoryUsage += size - *memsize;
+		*memsize = size;
+	}
+	else
+	{
+		uint64_t* memsize = HashMapRemove(&memory->platformAllocations, mem);
+		SOFT_ASSERT(memsize);
+		memory->platformMemoryUsage += size - *memsize;
+		HashMapAdd(&memory->platformAllocations, newMem, size);
+	}
+	*/
+
+	return newMem;
 }
 
 void OnLogMessage(void* userdata, int category, SDL_LogPriority priority, const char* message)
@@ -231,10 +293,12 @@ void OnLogMessage(void* userdata, int category, SDL_LogPriority priority, const 
 		__debugbreak();
 }
 
-static AppState* InitAppState()
+static void InitAppState()
 {
 	AppState* appState = (AppState*)(BumpAllocatorMalloc(&memory->constantAllocator, sizeof(AppState)));
 	memory->appState = appState;
+	app = appState;
+
 	InitPlatformCallbacks(&appState->platformCallbacks);
 
 	SDL_GetOriginalMemoryFunctions(&memory->defaultMalloc, &memory->defaultCalloc, &memory->defaultRealloc, &memory->defaultFree);
@@ -247,7 +311,7 @@ static AppState* InitAppState()
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS))
 	{
 		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Failed to initialize SDL: %s", SDL_GetError());
-		return nullptr;
+		return;
 	}
 
 	SDL_Log("SDL %s", SDL_GetRevision());
@@ -259,7 +323,7 @@ static AppState* InitAppState()
 	if (!window)
 	{
 		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Failed to create window: %s", SDL_GetError());
-		return nullptr;
+		return;
 	}
 	SDL_Log("Display %dx%d", width, height);
 
@@ -274,12 +338,12 @@ static AppState* InitAppState()
 	if (!device)
 	{
 		SDL_LogCritical(SDL_LOG_CATEGORY_GPU, "Failed to create graphics device: %s", SDL_GetError());
-		return nullptr;
+		return;
 	}
 	if (!SDL_ClaimWindowForGPUDevice(device, window))
 	{
 		SDL_LogCritical(SDL_LOG_CATEGORY_GPU, "Failed to create swapchain: %s", SDL_GetError());
-		return nullptr;
+		return;
 	}
 
 	SDL_GPUSwapchainComposition swapchainComposition = SDL_GPU_SWAPCHAINCOMPOSITION_SDR;
@@ -293,8 +357,6 @@ static AppState* InitAppState()
 	appState->device = device;
 
 	InitGPUTimer(&appState->gpuTiming, device);
-
-	return appState;
 }
 
 extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, int argc, char** argv)
@@ -304,10 +366,7 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, int a
 	InitBumpAllocator(&memory->constantAllocator, memory->constantMemory, memory->constantMemorySize);
 	InitBumpAllocator(&memory->transientAllocator, memory->transientMemory, memory->transientMemorySize);
 
-	InitHashMap(&memory->platformAllocations);
-	InitHashMap(&memory->physicsAllocations);
-
-	memory->appState = InitAppState();
+	InitAppState();
 	if (!memory->appState)
 		return SDL_APP_FAILURE;
 
@@ -319,6 +378,10 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, int a
 	game = &app->game;
 	window = app->window;
 	device = app->device;
+
+	InitHashMap(&app->physicsAllocations);
+	InitHashMap(&app->meshAllocations);
+	InitHashMap(&app->particleAllocations);
 
 	SDL_GetWindowSizeInPixels(window, &app->width, &app->height);
 
@@ -358,6 +421,8 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, int a
 	app->lastFrame = SDL_GetTicksNS();
 	app->lastSecond = SDL_GetTicksNS();
 
+	app->debugStats = 1;
+
 	if (!SDL_ShowWindow(window))
 	{
 		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", SDL_GetError());
@@ -383,6 +448,8 @@ extern "C" __declspec(dllexport) void AppDestroy(SDL_AppResult result)
 	SDL_Log("Shutting down");
 
 	SDL_HideWindow(window);
+
+	EndPhysicsFrame(physics);
 
 	GameDestroy();
 
@@ -410,8 +477,6 @@ extern "C" __declspec(dllexport) void AppReload(GameMemory* memory)
 	game = &app->game;
 	window = app->window;
 	device = app->device;
-
-	gameTime = app->gameTime;
 }
 
 static SDL_AppResult OnEvent(SDL_Event* event)
@@ -437,23 +502,45 @@ static void RenderDebugStats()
 	char transientMemoryUsageStr[16];
 	MemoryString(transientMemoryUsageStr, 16, transientMemoryUsage);
 
-	char platformMemoryUsageStr[16];
-	MemoryString(platformMemoryUsageStr, 16, memory->platformMemoryUsage);
-
 	char physicsMemoryUsageStr[16];
-	MemoryString(physicsMemoryUsageStr, 16, memory->physicsMemoryUsage);
+	MemoryString(physicsMemoryUsageStr, 16, app->physicsMemoryUsage);
+
+	char meshMemoryUsageStr[16];
+	MemoryString(meshMemoryUsageStr, 16, app->meshMemoryUsage);
+
+	char particlesMemoryUsageStr[16];
+	MemoryString(particlesMemoryUsageStr, 16, app->particleMemoryUsage);
 
 	DebugText(0, 0, COLOR_WHITE, COLOR_BLACK, "%d fps, %.3f +- %.3f ms", app->fps, app->avgMs, app->avgMsVariance);
-	DebugText(0, 1, COLOR_WHITE, COLOR_BLACK, "platform %s, %d allocations, %d per frame", platformMemoryUsageStr, memory->platformAllocationCount, app->platformAllocationsPerFrame);
-	DebugText(0, 2, COLOR_WHITE, COLOR_BLACK, "physics %s, %d allocations, %d per frame", physicsMemoryUsageStr, memory->physicsAllocationCount, app->physicsAllocationsPerFrame);
-	DebugText(0, 3, COLOR_WHITE, COLOR_BLACK, "constant %s, %d allocations", memoryUsageStr, memory->constantAllocator.count);
-	DebugText(0, 4, COLOR_WHITE, COLOR_BLACK, "transient %s, %d allocations", transientMemoryUsageStr, memory->transientAllocator.count);
-	DebugText(0, 6, COLOR_WHITE, COLOR_BLACK, "update %.3f ms", app->updateTimeMs);
-	DebugText(0, 7, COLOR_WHITE, COLOR_BLACK, "cpu frame %.3f ms", app->cpuFrameMs);
-	DebugText(0, 8, COLOR_WHITE, COLOR_BLACK, "  scene fetch %.3f ms", app->swapchainWaitMs);
-	DebugText(0, 9, COLOR_WHITE, COLOR_BLACK, "  draw submit %.3f ms", app->gpuSubmitMs);
+	DebugText(0, 1, COLOR_WHITE, COLOR_BLACK, "constant %s, %d allocations", memoryUsageStr, memory->constantAllocator.count);
+	DebugText(0, 2, COLOR_WHITE, COLOR_BLACK, "transient %s, %d allocations", transientMemoryUsageStr, memory->transientAllocator.count);
+	DebugText(0, 3, COLOR_WHITE, COLOR_BLACK, "platform %d allocations, %d per frame", app->platformAllocationCount, app->platformAllocationsPerFrame);
+	DebugText(0, 4, COLOR_WHITE, COLOR_BLACK, "physics %s, %d allocations, %d per frame", physicsMemoryUsageStr, app->physicsAllocationCount, app->physicsAllocationsPerFrame);
+	DebugText(0, 5, COLOR_WHITE, COLOR_BLACK, "mesh %s, %d allocations", meshMemoryUsageStr, app->meshAllocationCount);
+	DebugText(0, 6, COLOR_WHITE, COLOR_BLACK, "particles %s, %d allocations", particlesMemoryUsageStr, app->particleAllocationCount);
+	DebugText(0, 7, COLOR_WHITE, COLOR_BLACK, "update %.3f ms", app->updateTimeMs);
+	DebugText(0, 8, COLOR_WHITE, COLOR_BLACK, "cpu frame %.3f ms", app->cpuFrameMs);
+	DebugText(0, 9, COLOR_WHITE, COLOR_BLACK, "  scene fetch %.3f ms", app->swapchainWaitMs);
+	DebugText(0, 10, COLOR_WHITE, COLOR_BLACK, "  draw submit %.3f ms", app->gpuSubmitMs);
 
-	PrintGPUTimers(&app->gpuTiming, 0, 11);
+	if (app->debugStats == 1)
+	{
+		DebugText(0, 12, COLOR_WHITE, COLOR_BLACK, "vertex buffers: %d/%d", graphics->vertexBuffers.size, MAX_VERTEX_BUFFERS);
+		DebugText(0, 13, COLOR_WHITE, COLOR_BLACK, "index buffers: %d/%d", graphics->indexBuffers.size, MAX_INDEX_BUFFERS);
+		DebugText(0, 14, COLOR_WHITE, COLOR_BLACK, "indirect buffers: %d/%d", graphics->indirectBuffers.size, MAX_INDIRECT_BUFFERS);
+		DebugText(0, 15, COLOR_WHITE, COLOR_BLACK, "storage buffers: %d/%d", graphics->storageBuffers.size, MAX_STORAGE_BUFFERS);
+		DebugText(0, 16, COLOR_WHITE, COLOR_BLACK, "transfer buffers: %d/%d", graphics->transferBuffers.size, MAX_TRANSFER_BUFFERS);
+		DebugText(0, 17, COLOR_WHITE, COLOR_BLACK, "shaders: %d/%d", graphics->shaders.size, MAX_SHADERS);
+		DebugText(0, 18, COLOR_WHITE, COLOR_BLACK, "textures: %d/%d", graphics->textures.size, MAX_TEXTURES);
+		DebugText(0, 19, COLOR_WHITE, COLOR_BLACK, "render targets: %d/%d", graphics->renderTargets.size, MAX_RENDER_TARGETS);
+		DebugText(0, 20, COLOR_WHITE, COLOR_BLACK, "graphics pipelines: %d/%d", graphics->graphicsPipelines.size, MAX_GRAPHICS_PIPELINES);
+
+		DebugText(0, 22, COLOR_WHITE, COLOR_BLACK, "rigid bodies: %d", (int)physics->scene->getNbActors(physx::PxActorTypeFlag::eRIGID_STATIC | physx::PxActorTypeFlag::eRIGID_DYNAMIC));
+	}
+	else if (app->debugStats == 2)
+	{
+		PrintGPUTimers(&app->gpuTiming, 0, 12);
+	}
 }
 
 extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
@@ -482,15 +569,6 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 		const float maxDelta = 0.05f;
 		deltaTime = min(deltaTime, maxDelta);
 	}
-
-	app->gameTime += deltaTime;
-	gameTime = app->gameTime;
-
-	app->platformAllocationsPerFrame = max(app->platformAllocationsPerFrame, memory->platformAllocationsPerFrame);
-	memory->platformAllocationsPerFrame = 0;
-
-	app->physicsAllocationsPerFrame = max(app->physicsAllocationsPerFrame, memory->physicsAllocationsPerFrame);
-	memory->physicsAllocationsPerFrame = 0;
 
 	if (app->now - app->lastSecond >= 1e9)
 	{
@@ -554,7 +632,7 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 	int64_t cpuFrameStart = SDL_GetTicksNS();
 
 	if (GetKeyDown(SDL_SCANCODE_F10))
-		app->debugStats = !app->debugStats;
+		app->debugStats = (app->debugStats + 1) % 3;
 	if (app->debugStats)
 		RenderDebugStats();
 	else

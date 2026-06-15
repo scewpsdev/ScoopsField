@@ -24,17 +24,18 @@ extern "C" void AppReload(GameMemory* memory);
 
 int main(int argc, char** argv)
 {
-	GameMemory memory = {};
+	GameMemory* memory = (GameMemory*)malloc(sizeof(GameMemory));
+	memset(memory, 0, sizeof(GameMemory));
 
-	memory.constantMemorySize = Megabytes(64);
-	memory.transientMemorySize = Megabytes(16);
+	memory->constantMemorySize = Megabytes(64);
+	memory->transientMemorySize = Megabytes(16);
 
 	void* baseAddress = (void*)Terabytes(2);
-	uint64_t totalSize = memory.constantMemorySize + memory.transientMemorySize;
-	memory.constantMemory = (uint8_t*)VirtualAlloc(baseAddress, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-	memory.transientMemory = memory.constantMemory + memory.constantMemorySize;
+	uint64_t totalSize = memory->constantMemorySize + memory->transientMemorySize;
+	memory->constantMemory = (uint8_t*)VirtualAlloc(baseAddress, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	memory->transientMemory = memory->constantMemory + memory->constantMemorySize;
 
-	SDL_AppResult result = AppInit(&memory, argc, argv);
+	SDL_AppResult result = AppInit(memory, argc, argv);
 	if (result == SDL_APP_FAILURE)
 	{
 		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Failed to initialize application");
@@ -59,7 +60,9 @@ int main(int argc, char** argv)
 
 	AppDestroy(result);
 
-	VirtualFree(memory.constantMemory, 0, MEM_RELEASE);
+	VirtualFree(memory->constantMemory, 0, MEM_RELEASE);
+
+	free(memory);
 
 	return 0;
 }

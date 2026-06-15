@@ -1,11 +1,18 @@
 #pragma once
 
-#ifdef GPU_TIMING
+#include <SDL3/SDL.h>
 
-#include "GPUVulkan.h"
+#if _DEBUG
+//#define GPU_TIMING
+#endif
+
+#ifdef GPU_TIMING
 
 #include "utils/HashMap.h"
 #include "utils/Defer.h"
+
+#include <SDL3/SDL_vulkan.h>
+#include <video/khronos/vulkan/vulkan.h>
 
 
 #define GPU_SCOPE(name) \
@@ -74,6 +81,11 @@ struct GpuTimerContext
 
 #endif
 
+
+void InitGPUTimer(GpuTimerContext* ctx, SDL_GPUDevice* device);
+void BeginGPUTimerFrame(GpuTimerContext* ctx, SDL_GPUDevice* device, SDL_GPUCommandBuffer* cmdBuffer);
+void ResolveGPUTimers(GpuTimerContext* ctx, SDL_GPUDevice* device);
+void PrintGPUTimers(GpuTimerContext* ctx, int x, int y);
 
 void BeginGPUTimer(SDL_GPUCommandBuffer* cmdBuffer, const char* label);
 void EndGPUTimer(SDL_GPUCommandBuffer* cmdBuffer);

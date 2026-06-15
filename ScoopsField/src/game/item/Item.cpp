@@ -251,6 +251,27 @@ void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer)
 	InitShields(items);
 }
 
+void DestroyItemDatabase(ItemDatabase* items)
+{
+	for (int i = ITEM_NONE + 1; i < ITEM_LAST; i++)
+	{
+		Item* item = &items->items[i];
+		DestroyModel(&item->model);
+		DestroyModel(&item->moveset);
+	}
+
+	DestroySound(&items->equipLightSound);
+	DestroySound(&items->equipHeavySound);
+	DestroySound(&items->equipSwordSound);
+	DestroySound(&items->equipArmorSound);
+	DestroySound(&items->clothSound);
+	DestroySound(&items->bowDrawSound);
+	DestroySound(&items->bowDrawQuickSound);
+	DestroySound(&items->bowShootSound);
+	DestroySound(&items->bowSetArrowSound);
+	DestroySound(&items->spellCastSound);
+}
+
 Item* GetItem(ItemType type)
 {
 	SDL_assert(type < ITEM_LAST);

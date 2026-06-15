@@ -97,15 +97,16 @@ static SDL_SharedObject* LoadGameCode(AppInit_t* init, AppDestroy_t* destroy, Ap
 
 int main(int argc, char** argv)
 {
-	GameMemory memory = {};
+	GameMemory* memory = (GameMemory*)malloc(sizeof(GameMemory));
+	memset(memory, 0, sizeof(GameMemory));
 
-	memory.constantMemorySize = Megabytes(64);
-	memory.transientMemorySize = Megabytes(16);
+	memory->constantMemorySize = Megabytes(64);
+	memory->transientMemorySize = Megabytes(16);
 
 	void* baseAddress = (void*)Terabytes(2);
-	uint64_t totalSize = memory.constantMemorySize + memory.transientMemorySize;
-	memory.constantMemory = (uint8_t*)VirtualAlloc(baseAddress, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-	memory.transientMemory = memory.constantMemory + memory.constantMemorySize;
+	uint64_t totalSize = memory->constantMemorySize + memory->transientMemorySize;
+	memory->constantMemory = (uint8_t*)VirtualAlloc(baseAddress, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	memory->transientMemory = memory->constantMemory + memory->constantMemorySize;
 
 	AppInit_t appInit = nullptr;
 	AppDestroy_t appDestroy = nullptr;
@@ -118,7 +119,7 @@ int main(int argc, char** argv)
 
 	SDL_Time lastGameCodeWrite = GetWriteTime(GAME_CODE_DLL);
 
-	SDL_AppResult result = appInit(&memory, argc, argv);
+	SDL_AppResult result = appInit(memory, argc, argv);
 	if (result == SDL_APP_FAILURE)
 	{
 		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Failed to initialize application");
@@ -144,7 +145,7 @@ int main(int argc, char** argv)
 			if (SDL_SharedObject* newGameCode = LoadGameCode(&appInit, &appDestroy, &appIterate, &appReload))
 				gameCode = newGameCode;
 
-			appReload(&memory);
+			appReload(memory);
 
 			lastGameCodeWrite = gameCodeWriteTime;
 		}
@@ -159,7 +160,9 @@ int main(int argc, char** argv)
 
 	SDL_UnloadObject(gameCode);
 
-	VirtualFree(memory.constantMemory, 0, MEM_RELEASE);
+	VirtualFree(memory->constantMemory, 0, MEM_RELEASE);
+
+	free(memory);
 
 	system("del " GAME_NAME "-*.pdb");
 	system("del " GAME_NAME "-*.dll");

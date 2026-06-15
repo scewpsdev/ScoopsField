@@ -123,11 +123,14 @@ void main()
 		vec3 up = pos / height;
 		height -= planetRadius;
 
+		vec3 toLight = -lightDirection;
+		toLight.y = max(toLight.y, 0);
+
 		// sun
 		float sunIntensity = 25;
-		vec3 sunlight = sampleTransmittanceLUT(height, vec3(-lightDirection.x, max(-lightDirection.y, 0), -lightDirection.z), up) * sunIntensity * 10;
-		float sunSize = mix(0.0004, 0.0002, max(dot(-lightDirection, vec3(0, 1, 0)), 0));
-		float sunAlpha = smoothstep(1 - sunSize, 1.0, dot(dir, -lightDirection)) * smoothstep(-0.005, 0.002, dir.y);
+		vec3 sunlight = sampleTransmittanceLUT(height, toLight, up) * sunIntensity * 10;
+		float sunSize = mix(0.0004, 0.0002, max(dot(toLight, vec3(0, 1, 0)), 0));
+		float sunAlpha = smoothstep(1 - sunSize, 1.0, dot(dir, toLight)) * smoothstep(-0.005, 0.002, dir.y);
 		color = mix(color, sunlight, sunAlpha);
 
 		// clouds

@@ -94,8 +94,7 @@ struct Bone
 
 struct Skeleton
 {
-#define MAX_BONES 64
-	Bone bones[MAX_BONES];
+	Bone* bones;
 	int numBones;
 	mat4 inverseBindPose;
 };
@@ -135,6 +134,7 @@ struct Animation
 	char name[32];
 	float duration;
 
+	// TODO put these inside Model as big memory blocks
 	int numPositions;
 	int numRotations;
 	int numScalings;
@@ -143,10 +143,10 @@ struct Animation
 	RotationKeyframe* rotations;
 	ScalingKeyframe* scalings;
 
-#define MAX_ANIMATION_CHANNELS 128
-	AnimationChannel channels[MAX_ANIMATION_CHANNELS];
+	AnimationChannel* channels;
 	int numChannels;
 
+#define MAX_ANIMATION_CHANNELS 128
 	HashMap<uint32_t, int, MAX_ANIMATION_CHANNELS> channelNameMap;
 };
 

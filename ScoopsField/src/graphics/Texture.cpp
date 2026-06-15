@@ -194,4 +194,5 @@ Texture* LoadTextureFromData(const uint8_t* data, uint32_t size, const TextureIn
 void DestroyTexture(Texture* texture)
 {
 	SDL_ReleaseGPUTexture(device, texture->handle);
+	PoolRelease(&graphics->textures, texture);
 }

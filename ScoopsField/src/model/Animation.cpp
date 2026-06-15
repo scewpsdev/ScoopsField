@@ -1,5 +1,7 @@
 #include "Animation.h"
 
+#include "Application.h"
+
 #include "math/Math.h"
 
 
@@ -7,7 +9,7 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 {
 	animationState->model = model;
 
-	animationState->nodeTransforms = (mat4*)SDL_malloc(model->numNodes * sizeof(mat4));
+	animationState->nodeTransforms = (mat4*)MeshMalloc(model->numNodes * sizeof(mat4));
 	SDL_memset(animationState->nodeTransforms, 0, model->numNodes * sizeof(mat4));
 
 	for (int i = 0; i < model->numNodes; i++)
@@ -22,7 +24,7 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 			SkeletonState* skeletonState = &animationState->skeletons[model->meshes[i].skeletonID];
 			skeletonState->numBones = model->skeletons[model->meshes[i].skeletonID].numBones;
 
-			skeletonState->boneTransforms = (mat4*)SDL_malloc(skeletonState->numBones * sizeof(mat4));
+			skeletonState->boneTransforms = (mat4*)MeshMalloc(skeletonState->numBones * sizeof(mat4));
 			SDL_memset(skeletonState->boneTransforms, 0, skeletonState->numBones * sizeof(mat4));
 
 			for (int j = 0; j < skeletonState->numBones; j++)
@@ -82,15 +84,16 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 
 void DestroyAnimationState(AnimationState* animationState)
 {
-	SDL_free(animationState->nodeTransforms);
+	MeshFree(animationState->nodeTransforms);
 	for (int i = 0; i < animationState->model->numMeshes; i++)
 	{
 		if (animationState->model->meshes[i].skeletonID != -1)
 		{
 			SkeletonState* skeletonState = &animationState->skeletons[animationState->model->meshes[i].skeletonID];
-			SDL_free(skeletonState->boneTransforms);
+			MeshFree(skeletonState->boneTransforms);
 		}
 	}
+	animationState->model = nullptr;
 }
 
 int GetAnimationChannelWithName(Animation* animation, const char* name)
@@ -200,10 +203,12 @@ static vec3 AnimateScaling(ScalingKeyframe* scalings, int numScalings, float tim
 	}
 }
 
-mat4 AnimateNode(Node* node, AnimationChannel* channel, Animation* animation, float time, bool loop)
+mat4 AnimateNode(Node* node, int channelID, Animation* animation, float time, bool loop)
 {
 	if (loop)
 		time = mod(time, animation->duration);
+
+	AnimationChannel* channel = &animation->channels[channelID];
 
 	vec3 position = AnimatePosition(&animation->positions[channel->positionsOffset], channel->positionsCount, time, animation->duration, loop);
 	quat rotation = AnimateRotation(&animation->rotations[channel->rotationsOffset], channel->rotationsCount, time, animation->duration, loop);
@@ -249,7 +254,7 @@ void AnimateModel(Model* model, AnimationState* animationState, Animation* anima
 		{
 			Node* node = slot->key;
 			int channelID = slot->value;
-			animationState->nodeTransforms[node->id] = AnimateNode(node, &animation->channels[channelID], animation, time, loop);
+			animationState->nodeTransforms[node->id] = AnimateNode(node, channelID, animation, time, loop);
 		}
 	}
 }
@@ -279,7 +284,7 @@ void BlendAnimation(Model* model, AnimationState* animationState, Animation* ani
 			Node* node = slot->key;
 			int channelID = slot->value;
 			const mat4& a = animationState->nodeTransforms[node->id];
-			const mat4& b = AnimateNode(node, &animation->channels[channelID], animation, time, loop);
+			const mat4& b = AnimateNode(node, channelID, animation, time, loop);
 			animationState->nodeTransforms[node->id] = interpolate(a, b, blend);
 		}
 	}

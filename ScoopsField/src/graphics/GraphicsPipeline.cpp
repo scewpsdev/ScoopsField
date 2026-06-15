@@ -1,8 +1,10 @@
 #include "GraphicsPipeline.h"
 
 #include "Application.h"
+
 #include "VertexBuffer.h"
 #include "Shader.h"
+#include "RenderTarget.h"
 
 
 extern SDL_Window* window;
@@ -22,6 +24,8 @@ GraphicsPipeline* CreateGraphicsPipeline(const GraphicsPipelineInfo* pipelineInf
 
 void DestroyGraphicsPipeline(GraphicsPipeline* pipeline)
 {
+	DestroyShader(pipeline->pipelineInfo.shader);
+
 	SDL_ReleaseGPUGraphicsPipeline(device, pipeline->pipeline);
 	pipeline->pipeline = nullptr;
 	PoolRelease(&graphics->graphicsPipelines, pipeline);

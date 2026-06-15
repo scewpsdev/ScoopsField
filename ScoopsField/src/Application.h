@@ -1,9 +1,5 @@
 #pragma once
 
-#if _DEBUG
-#define GPU_TIMING
-#endif
-
 #include <SDL3/SDL.h>
 
 #include <stdlib.h>
@@ -44,6 +40,22 @@ struct AppState
 {
 	PlatformCallbacks platformCallbacks;
 
+	int platformAllocationCount;
+	int platformAllocationsPerFrame;
+
+	HashMap<void*, uint64_t, 1000> physicsAllocations;
+	uint64_t physicsMemoryUsage;
+	int physicsAllocationCount;
+	int physicsAllocationsPerFrame;
+
+	HashMap<void*, uint64_t, 1000> meshAllocations;
+	uint64_t meshMemoryUsage;
+	int meshAllocationCount;
+
+	HashMap<void*, uint64_t, 1000> particleAllocations;
+	uint64_t particleMemoryUsage;
+	int particleAllocationCount;
+
 	SDL_Window* window;
 	SDL_GPUDevice* device;
 
@@ -53,7 +65,7 @@ struct AppState
 	GpuTimerContext gpuTiming;
 
 	int width, height;
-	bool debugStats;
+	int debugStats;
 	int frameIdx;
 	int lastSecondFrame;
 
@@ -74,11 +86,7 @@ struct AppState
 	float swapchainWaitMs;
 	float gpuSubmitMs;
 
-	int platformAllocationsPerFrame;
-	int physicsAllocationsPerFrame;
-
 	float deltaTime;
-	float gameTime;
 
 	int numKeys;
 	const bool* keys;
@@ -102,6 +110,16 @@ struct AppState
 };
 
 
+extern AppState* app;
+extern SDL_GPUDevice* device;
+
+
+void* PhysicsMalloc(size_t size);
+void PhysicsFree(void* mem);
+void* MeshMalloc(size_t size);
+void MeshFree(void* mem);
+void* ParticleMalloc(size_t size);
+void ParticleFree(void* mem);
 
 bool EveryInterval(float seconds, uint32_t h);
 bool GetKey(SDL_Scancode key);

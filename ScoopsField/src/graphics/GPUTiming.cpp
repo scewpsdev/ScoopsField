@@ -1,7 +1,10 @@
 #include "GPUTiming.h"
 
-
 #ifdef GPU_TIMING
+
+#include "GPUVulkan.h"
+
+#include "Application.h"
 
 #define GPU_TIMER_RESET 5000
 
