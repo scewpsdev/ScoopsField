@@ -20,7 +20,7 @@ void DestroyEntity(Entity* entity)
 		DestroyCreature(&entity->creature);
 		break;
 	case ENTITY_TYPE_ITEM:
-		DestroyItemEntity(&entity->item, entity);
+		DestroyItemEntity(&entity->item);
 		break;
 	case ENTITY_TYPE_RESTING_SPOT:
 		DestroyRestingSpot(&entity->restingSpot, entity);
@@ -73,7 +73,7 @@ bool InteractEntity(Entity* entity, Entity* by)
 	switch (entity->type)
 	{
 	case ENTITY_TYPE_ITEM:
-		return InteractItemEntity(&entity->item, entity, by);
+		return InteractItemEntity(&entity->item, by);
 	case ENTITY_TYPE_RESTING_SPOT:
 		return InteractRestingSpot(&entity->restingSpot, entity, by);
 	case ENTITY_TYPE_SCONCE:
@@ -102,7 +102,7 @@ void UpdateEntity(Entity* entity)
 		UpdateCreature(&entity->creature);
 		break;
 	case ENTITY_TYPE_ITEM:
-		UpdateItemEntity(&entity->item, entity);
+		UpdateItemEntity(&entity->item);
 		break;
 	case ENTITY_TYPE_RESTING_SPOT:
 		UpdateRestingSpot(&entity->restingSpot, entity);
@@ -135,7 +135,7 @@ void RenderEntity(Entity* entity)
 		RenderCreature(&entity->creature);
 		break;
 	case ENTITY_TYPE_ITEM:
-		RenderItemEntity(&entity->item, entity);
+		RenderItemEntity(&entity->item);
 		break;
 	case ENTITY_TYPE_RESTING_SPOT:
 		RenderRestingSpot(&entity->restingSpot, entity);

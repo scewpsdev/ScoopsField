@@ -686,12 +686,14 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	linearSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	linearSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
 	linearSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
+	linearSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
 	renderer->samplers[TEXTURE_SAMPLER_LINEAR] = SDL_CreateGPUSampler(device, &linearSamplerInfo);
 
 	SDL_GPUSamplerCreateInfo linearClampedSamplerInfo = {};
 	linearClampedSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	linearClampedSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
 	linearClampedSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
+	linearSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
 	linearClampedSamplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	linearClampedSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	linearClampedSamplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
@@ -701,6 +703,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	linearClampedVSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	linearClampedVSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
 	linearClampedVSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
+	linearSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
 	linearClampedVSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED_VERTICAL] = SDL_CreateGPUSampler(device, &linearClampedVSamplerInfo);
 
@@ -708,6 +711,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	shadowSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	shadowSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
 	shadowSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
+	linearSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
 	shadowSamplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	shadowSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	shadowSamplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;

@@ -388,7 +388,7 @@ bool DropItem(Player* player, Item* item)
 	{
 		if (player->rightWeapons[i] == item)
 		{
-			Entity* itemEntity = PoolAlloc(&game->entities);
+			ItemEntity* itemEntity = (ItemEntity*)CreateEntity();
 			mat4 weaponTransform = GetRightWeaponTransform(player);
 			vec3 position = weaponTransform.translation(); // game->cameraPosition + GetCameraRotation().forward();
 			quat rotation = weaponTransform.rotation();
@@ -396,7 +396,7 @@ bool DropItem(Player* player, Item* item)
 
 			vec3 velocity = GetCameraRotation(player).forward() * 5;
 			vec3 angularVelocity = game->random.nextVector3(-2, 2);
-			SetRigidBodyVelocity(&itemEntity->item.body, velocity, angularVelocity);
+			SetRigidBodyVelocity(&itemEntity->body, velocity, angularVelocity);
 
 			SetRightWeapon(player, i, nullptr);
 

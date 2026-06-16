@@ -3,7 +3,7 @@
 #include <SDL3/SDL.h>
 
 #if _DEBUG
-//#define GPU_TIMING
+#define GPU_TIMING
 #endif
 
 #ifdef GPU_TIMING

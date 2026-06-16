@@ -28,6 +28,7 @@ enum RigidBodyType
 };
 
 struct Articulation;
+struct Mesh;
 
 struct RigidBody
 {
@@ -64,5 +65,3 @@ void GetRigidBodyAABB(RigidBody* body, vec3* center, vec3* size);
 void SetJointRotation(RigidBody* body, vec3 eulers);
 void SetJointVelocity(RigidBody* body, vec3 eulers);
 mat4 GetJointParentPose(RigidBody* body);
-
-physx::PxTriangleMesh* CookTriangleMeshCollider(struct Mesh* mesh);

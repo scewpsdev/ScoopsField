@@ -137,9 +137,6 @@ vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, float noise)
 	if (!atmosphereIntersect(origin, dir, tmin, tmax))
 		return vec3(0); // space color
 
-	lightDir *= smoothstep(dot(lightDir, vec3(0, 1, 0)), -0.1, 0);
-	lightDir.y = min(lightDir.y, 0);
-
 	int numSamples = 16;
 	float l = tmax - tmin;
 	float ldt = 1.0 / numSamples;
@@ -208,8 +205,6 @@ vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, float noise)
 		vec3 albedo = groundColor;
 		scattering += viewTransmittance * albedo * sunToGround * sunIntensity * (1 / (4 * pi));
 	}
-
-	scattering *= pow(min(dot(lightDir, vec3(0, 1, 0)) + 1, 1), 3);
 
 	return scattering;
 }

@@ -124,7 +124,6 @@ void main()
 		height -= planetRadius;
 
 		vec3 toLight = -lightDirection;
-		toLight.y = max(toLight.y, 0);
 
 		// sun
 		float sunIntensity = 25;

@@ -43,7 +43,7 @@ static void ResetGame(bool destroy, bool init)
 			game->ambientSource = 0;
 		}
 
-		//DestroyPlayer(&game->player);
+		DestroyPlayer(&game->player);
 
 		for (int i = 0; i < game->entities.capacity; i++)
 		{
@@ -62,7 +62,7 @@ static void ResetGame(bool destroy, bool init)
 		game->numReflectionProbes = 0;
 
 		DestroyModel(&game->mapModel);
-		//DestroyRigidBody(&game->mapCollider);
+		DestroyRigidBody(&game->mapCollider);
 	}
 
 
@@ -87,17 +87,18 @@ static void ResetGame(bool destroy, bool init)
 		//LoadModel(&game->mapModel, "res/maps/painted_world/painted_world.glb.bin", true, cmdBuffer);
 		LoadModel(&game->mapModel, "res/maps/testmap/testmap.glb.bin", false, cmdBuffer);
 
-		//Model* mapCollider = (Model*)BumpAllocatorMalloc(&memory->transientAllocator, sizeof(Model));
-		//LoadModel(mapCollider, "res/maps/testmap/testmap_collider.glb.bin", true, cmdBuffer);
+		Model* mapCollider = (Model*)BumpAllocatorMalloc(&memory->transientAllocator, sizeof(Model));
+		LoadModel(mapCollider, "res/maps/testmap/testmap_collider.glb.bin", true, cmdBuffer);
 
-		//InitRigidBody(&game->mapCollider, RIGID_BODY_STATIC, vec3::Zero, quat::Identity, nullptr);
-		//AddModelCollider(&game->mapCollider, mapCollider, vec3::Zero, quat::Identity, vec3::One, 1, 1, false);
+		InitRigidBody(&game->mapCollider, RIGID_BODY_STATIC, vec3::Zero, quat::Identity, nullptr);
+		AddModelCollider(&game->mapCollider, mapCollider, vec3::Zero, quat::Identity, vec3::One, 1, 1, false);
+
+		DestroyModel(mapCollider);
 
 		//Model* navmeshModel = (Model*)BumpAllocatorMalloc(&memory->transientAllocator, sizeof(Model));
 		//LoadModel(navmeshModel, "res/maps/testmap/testmap_navmesh.glb.bin", true, cmdBuffer);
 		//InitNavmesh(&game->mapNavmesh, navmeshModel);
 
-		/*
 		for (int i = 0; i < game->mapModel.numNodes; i++)
 		{
 			Node* node = &game->mapModel.nodes[i];
@@ -123,33 +124,32 @@ static void ResetGame(bool destroy, bool init)
 				}
 			}
 		}
-		*/
 
-		//InitPlayer(&game->player, cmdBuffer, game->playerSpawn.translation(), game->playerSpawn.rotation().getAngle());
+		InitPlayer(&game->player, cmdBuffer, game->playerSpawn.translation(), game->playerSpawn.rotation().getAngle());
 
-		//InitKnight((Creature*)CreateEntity(), vec3(0, 0, -5), 0);
-		//InitKnight((Creature*)CreateEntity(), vec3(-4, 0, -5), 0);
-		//InitKnight((Creature*)CreateEntity(), vec3(4, 0, -5), 0);
+		InitKnight((Creature*)CreateEntity(), vec3(0, 0, -5), 0);
+		InitKnight((Creature*)CreateEntity(), vec3(-4, 0, -5), 0);
+		InitKnight((Creature*)CreateEntity(), vec3(4, 0, -5), 0);
 
-		//InitSconce((Sconce*)CreateEntity(), vec3(-7, -37, 40));
-		//InitSconce((Sconce*)CreateEntity(), vec3(7, -37, 40));
-		//InitSconce((Sconce*)CreateEntity(), vec3(-7, -37, 54));
-		//InitSconce((Sconce*)CreateEntity(), vec3(7, -37, 54));
+		InitSconce((Sconce*)CreateEntity(), vec3(-7, -37, 40));
+		InitSconce((Sconce*)CreateEntity(), vec3(7, -37, 40));
+		InitSconce((Sconce*)CreateEntity(), vec3(-7, -37, 54));
+		InitSconce((Sconce*)CreateEntity(), vec3(7, -37, 54));
 
-		//InitElevator((Elevator*)CreateEntity(), vec3(0, -37, 47), quat::Identity, 37);
+		InitElevator((Elevator*)CreateEntity(), vec3(0, -37, 47), quat::Identity, 37);
 
-		//InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_KINGS_SWORD), vec3(-2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
-		//InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_LONGSWORD), vec3(0, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
-		//InitItemEntity(PoolAlloc(&game->entities), GetItem(ITEM_DARKWOOD_STAFF), vec3(2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
+		InitItemEntity((ItemEntity*)CreateEntity(), GetItem(ITEM_KINGS_SWORD), vec3(-2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
+		InitItemEntity((ItemEntity*)CreateEntity(), GetItem(ITEM_LONGSWORD), vec3(0, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
+		InitItemEntity((ItemEntity*)CreateEntity(), GetItem(ITEM_DARKWOOD_STAFF), vec3(2, 2, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
 
-		//InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, 29, -58), vec3(9, 13, 9));
-		//InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, -15.5f, 47), vec3(4, 14.5f, 4));
-		//InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, -33.5f, 47), vec3(9, 3.5f, 9));
-		//InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, -35, 73), vec3(3, 2, 16));
+		InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, 29, -58), vec3(9, 13, 9));
+		InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, -15.5f, 47), vec3(4, 14.5f, 4));
+		InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, -33.5f, 47), vec3(9, 3.5f, 9));
+		InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], vec3(0, -35, 73), vec3(3, 2, 16));
 
 		{
-			//ParticleEffect* effect = (ParticleEffect*)CreateEntity();
-			//LoadParticleEffect(effect, "effects/testeffect/testeffect.rfs", vec3(0, 2, 0), quat::Identity);
+			ParticleEffect* effect = (ParticleEffect*)CreateEntity();
+			LoadParticleEffect(effect, "effects/testeffect/testeffect.rfs", vec3(0, 2, 0), quat::Identity);
 		}
 	}
 }
@@ -303,7 +303,7 @@ void GameUpdate()
 
 	SDL_SetWindowRelativeMouseMode(window, game->mouseLocked);
 
-	//UpdatePlayer(&game->player);
+	UpdatePlayer(&game->player);
 
 	for (int i = 0; i < game->entities.capacity; i++)
 	{
@@ -329,15 +329,12 @@ void GameUpdate()
 	game->pv = game->projection * game->view;
 	GetFrustumPlanes(game->pv, game->frustumPlanes);
 
-	// discard fragments in front of reflection probe volume
+	// TODO discard fragments in front of reflection probe volume
 
 	if (GetKeyDown(SDL_SCANCODE_R) || game->player.position.y < -200)
 	{
 		ResetGame(true, true);
 
-		//TeleportPlayer(&game->player, game->playerSpawn.translation());
-		//game->player.velocity = vec3::Zero;
-		//game->player.rotation = game->playerSpawn.rotation().getAngle();
 	}
 
 	if (GetKeyDown(SDL_SCANCODE_F9))
@@ -351,7 +348,7 @@ void GameRender()
 	mat4 guiPV = mat4::Orthographic(0, (float)app->width, 0, (float)app->height, -1, 1);
 	BeginGUIRenderer(&game->guiRenderer, guiPV);
 
-	//RenderPlayer(&game->player);
+	RenderPlayer(&game->player);
 
 	for (int i = 0; i < game->entities.capacity; i++)
 	{
@@ -363,10 +360,10 @@ void GameRender()
 
 	RenderParticleSystem(&game->particles);
 
-	//RenderModel(&game->renderer, &game->mapModel, nullptr, mat4::Identity, true);
+	RenderModel(&game->renderer, &game->mapModel, nullptr, mat4::Identity, true);
 
-	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 10);
-	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * 0.5f * PI * 0.7f) * vec3(-1, 2, 0), vec3(0.5f, 1, 0.5f) * 10);
+	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 10);
+	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * 0.5f * PI * 0.7f) * vec3(-1, 2, 0), vec3(0.5f, 1, 0.5f) * 10);
 
 	for (int i = 0; i < game->numReflectionProbes; i++)
 	{
@@ -418,7 +415,7 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), 10 * 0.1f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 	//sunDirection = vec3(0.5f, -1, -1).normalized();

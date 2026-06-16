@@ -55,6 +55,7 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 // [X] elevator collider
 // [X] turn ik
 // [X] swing trail
+// [ ] fix point light flicker
 // [ ] elevator sound effects
 // [ ] player leg ik
 // [ ] second block animation

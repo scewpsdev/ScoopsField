@@ -35,6 +35,7 @@ inline uint8_t* BumpAllocatorMalloc(BumpAllocator* allocator, size_t size)
 	if (allocator->offset + size <= allocator->capacity)
 	{
 		uint8_t* ptr = &allocator->buffer[allocator->offset];
+		SDL_memset(ptr, 0, size);
 		allocator->offset += (size * 4 + 3) / 4;
 		allocator->count++;
 		return ptr;

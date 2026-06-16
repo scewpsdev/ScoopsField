@@ -15,10 +15,10 @@ struct ItemEntity : EntityBase
 };
 
 
-void InitItemEntity(Entity* entity, Item* actualItem, vec3 position, quat rotation);
-void DestroyItemEntity(ItemEntity* item, Entity* entity);
+void InitItemEntity(ItemEntity* item, Item* actualItem, vec3 position, quat rotation);
+void DestroyItemEntity(ItemEntity* item);
 
-bool InteractItemEntity(ItemEntity* item, Entity* entity, Entity* by);
+bool InteractItemEntity(ItemEntity* item, Entity* by);
 
-void UpdateItemEntity(ItemEntity* item, Entity* entity);
-void RenderItemEntity(ItemEntity* item, Entity* entity);
+void UpdateItemEntity(ItemEntity* item);
+void RenderItemEntity(ItemEntity* item);

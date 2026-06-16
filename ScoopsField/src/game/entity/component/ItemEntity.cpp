@@ -7,17 +7,16 @@
 #include "renderer/Renderer.h"
 
 
-void InitItemEntity(Entity* entity, Item* actualItem, vec3 position, quat rotation)
+void InitItemEntity(ItemEntity* item, Item* actualItem, vec3 position, quat rotation)
 {
-	InitEntity(entity, ENTITY_TYPE_ITEM);
+	InitEntity((Entity*)item, ENTITY_TYPE_ITEM);
 
-	entity->position = position;
-	entity->rotation = rotation;
+	item->position = position;
+	item->rotation = rotation;
 
-	ItemEntity* item = &entity->item;
 	item->item = actualItem;
 
-	InitRigidBody(&item->body, RIGID_BODY_DYNAMIC, entity->position, rotation, entity);
+	InitRigidBody(&item->body, RIGID_BODY_DYNAMIC, item->position, rotation, item);
 
 	AABB boundingBox = item->item->model.boundingBox;
 	vec3 size = boundingBox.max - boundingBox.min;
@@ -27,12 +26,12 @@ void InitItemEntity(Entity* entity, Item* actualItem, vec3 position, quat rotati
 	//AddBoxCollider(&item->body, vec3(0.3f), vec3(0), quat::Identity, ENTITY_FILTER_ITEM | ENTITY_FILTER_INTERACTABLE, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ITEM, false);
 }
 
-void DestroyItemEntity(ItemEntity* item, Entity* entity)
+void DestroyItemEntity(ItemEntity* item)
 {
 	DestroyRigidBody(&item->body);
 }
 
-bool InteractItemEntity(ItemEntity* item, Entity* entity, Entity* by)
+bool InteractItemEntity(ItemEntity* item, Entity* by)
 {
 	if (by->type == ENTITY_TYPE_PLAYER)
 	{
@@ -46,19 +45,19 @@ bool InteractItemEntity(ItemEntity* item, Entity* entity, Entity* by)
 
 		if (GiveItem(player, item->item))
 		{
-			entity->removed = true;
+			item->removed = true;
 			return true;
 		}
 	}
 	return false;
 }
 
-void UpdateItemEntity(ItemEntity* item, Entity* entity)
+void UpdateItemEntity(ItemEntity* item)
 {
-	GetRigidBodyTransform(&item->body, &entity->position, &entity->rotation);
+	GetRigidBodyTransform(&item->body, &item->position, &item->rotation);
 }
 
-void RenderItemEntity(ItemEntity* item, Entity* entity)
+void RenderItemEntity(ItemEntity* item)
 {
-	RenderModel(&game->renderer, &item->item->model, nullptr, ModelMatrix(entity));
+	RenderModel(&game->renderer, &item->item->model, nullptr, ModelMatrix((Entity*)item));
 }

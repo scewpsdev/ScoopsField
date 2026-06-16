@@ -40,19 +40,22 @@ struct AppState
 {
 	PlatformCallbacks platformCallbacks;
 
+	uint64_t transientMemoryUsage;
+	int transientMemoryCount;
+
+	uint64_t platformMemoryUsage;
 	int platformAllocationCount;
+	int platformAllocationCounter;
 	int platformAllocationsPerFrame;
 
-	HashMap<void*, uint64_t, 1000> physicsAllocations;
 	uint64_t physicsMemoryUsage;
 	int physicsAllocationCount;
+	int physicsAllocationCounter;
 	int physicsAllocationsPerFrame;
 
-	HashMap<void*, uint64_t, 1000> meshAllocations;
 	uint64_t meshMemoryUsage;
 	int meshAllocationCount;
 
-	HashMap<void*, uint64_t, 1000> particleAllocations;
 	uint64_t particleMemoryUsage;
 	int particleAllocationCount;
 

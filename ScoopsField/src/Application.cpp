@@ -31,18 +31,16 @@ void* PhysicsMalloc(size_t size)
 {
 	app->physicsMemoryUsage += size;
 	app->physicsAllocationCount++;
-	app->physicsAllocationsPerFrame++;
+	app->physicsAllocationCounter++;
 	void* mem = SDL_malloc(size);
-	SDL_assert(HashMapHasSlot(&app->physicsAllocations));
-	HashMapAdd(&app->physicsAllocations, mem, size);
+	SDL_memset(mem, 0, size);
 	return mem;
 }
 
 void PhysicsFree(void* mem)
 {
-	uint64_t* memsize = HashMapRemove(&app->physicsAllocations, mem);
-	SDL_assert(memsize);
-	app->physicsMemoryUsage -= *memsize;
+	size_t memsize = _msize(mem);
+	app->physicsMemoryUsage -= memsize;
 	app->physicsAllocationCount--;
 	SDL_free(mem);
 }
@@ -52,16 +50,14 @@ void* MeshMalloc(size_t size)
 	app->meshMemoryUsage += size;
 	app->meshAllocationCount++;
 	void* mem = SDL_malloc(size);
-	SDL_assert(HashMapHasSlot(&app->meshAllocations));
-	HashMapAdd(&app->meshAllocations, mem, size);
+	SDL_memset(mem, 0, size);
 	return mem;
 }
 
 void MeshFree(void* mem)
 {
-	uint64_t* memsize = HashMapRemove(&app->meshAllocations, mem);
-	SDL_assert(memsize);
-	app->meshMemoryUsage -= *memsize;
+	size_t memsize = _msize(mem);
+	app->meshMemoryUsage -= memsize;
 	app->meshAllocationCount--;
 	SDL_free(mem);
 }
@@ -71,16 +67,14 @@ void* ParticleMalloc(size_t size)
 	app->particleMemoryUsage += size;
 	app->particleAllocationCount++;
 	void* mem = SDL_malloc(size);
-	SDL_assert(HashMapHasSlot(&app->particleAllocations));
-	HashMapAdd(&app->particleAllocations, mem, size);
+	SDL_memset(mem, 0, size);
 	return mem;
 }
 
 void ParticleFree(void* mem)
 {
-	uint64_t* memsize = HashMapRemove(&app->particleAllocations, mem);
-	SDL_assert(memsize);
-	app->particleMemoryUsage -= *memsize;
+	size_t memsize = _msize(mem);
+	app->particleMemoryUsage -= memsize;
 	app->particleAllocationCount--;
 	SDL_free(mem);
 }
@@ -223,32 +217,27 @@ static void InitPlatformCallbacks(PlatformCallbacks* callbacks)
 
 void* SDLmalloc(size_t size)
 {
-	//memory->platformMemoryUsage += size;
+	app->platformMemoryUsage += size;
 	app->platformAllocationCount++;
-	app->platformAllocationsPerFrame++;
+	app->platformAllocationCounter++;
 	void* mem = memory->defaultMalloc(size);
-	//SOFT_ASSERT(HashMapHasSlot(&memory->platformAllocations));
-	//HashMapAdd(&memory->platformAllocations, mem, size);
 	return mem;
 }
 
 void* SDLcalloc(size_t nmemb, size_t size)
 {
-	//memory->platformMemoryUsage += nmemb * size;
+	app->platformMemoryUsage += nmemb * size;
 	app->platformAllocationCount++;
-	app->platformAllocationsPerFrame++;
+	app->platformAllocationCounter++;
 	void* mem = memory->defaultCalloc(nmemb, size);
-	//SOFT_ASSERT(HashMapHasSlot(&memory->platformAllocations));
-	//HashMapAdd(&memory->platformAllocations, mem, nmemb * size);
 	return mem;
 }
 
 void SDLfree(void* mem)
 {
+	size_t memsize = _msize(mem);
 	memory->defaultFree(mem);
-	//uint64_t* memsize = HashMapRemove(&memory->platformAllocations, mem);
-	//SOFT_ASSERT(memsize);
-	//memory->platformMemoryUsage -= *memsize;
+	app->platformMemoryUsage -= memsize;
 	app->platformAllocationCount--;
 }
 
@@ -379,10 +368,6 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, int a
 	window = app->window;
 	device = app->device;
 
-	InitHashMap(&app->physicsAllocations);
-	InitHashMap(&app->meshAllocations);
-	InitHashMap(&app->particleAllocations);
-
 	SDL_GetWindowSizeInPixels(window, &app->width, &app->height);
 
 	if (app->platformCallbacks.compileResources)
@@ -493,14 +478,20 @@ static SDL_AppResult OnEvent(SDL_Event* event)
 
 static void RenderDebugStats()
 {
-	uint64_t memoryUsage = memory->constantAllocator.offset;
-	uint64_t transientMemoryUsage = memory->transientAllocator.offset;
-
 	char memoryUsageStr[16];
-	MemoryString(memoryUsageStr, 16, memoryUsage);
+	MemoryString(memoryUsageStr, 16, memory->constantAllocator.offset);
+
+	char maxMemoryUsageStr[16];
+	MemoryString(maxMemoryUsageStr, 16, memory->constantAllocator.capacity);
 
 	char transientMemoryUsageStr[16];
-	MemoryString(transientMemoryUsageStr, 16, transientMemoryUsage);
+	MemoryString(transientMemoryUsageStr, 16, app->transientMemoryUsage);
+
+	char maxTransientMemoryUsageStr[16];
+	MemoryString(maxTransientMemoryUsageStr, 16, memory->transientAllocator.capacity);
+
+	char platformMemoryUsageStr[16];
+	MemoryString(platformMemoryUsageStr, 16, app->platformMemoryUsage);
 
 	char physicsMemoryUsageStr[16];
 	MemoryString(physicsMemoryUsageStr, 16, app->physicsMemoryUsage);
@@ -512,9 +503,9 @@ static void RenderDebugStats()
 	MemoryString(particlesMemoryUsageStr, 16, app->particleMemoryUsage);
 
 	DebugText(0, 0, COLOR_WHITE, COLOR_BLACK, "%d fps, %.3f +- %.3f ms", app->fps, app->avgMs, app->avgMsVariance);
-	DebugText(0, 1, COLOR_WHITE, COLOR_BLACK, "constant %s, %d allocations", memoryUsageStr, memory->constantAllocator.count);
-	DebugText(0, 2, COLOR_WHITE, COLOR_BLACK, "transient %s, %d allocations", transientMemoryUsageStr, memory->transientAllocator.count);
-	DebugText(0, 3, COLOR_WHITE, COLOR_BLACK, "platform %d allocations, %d per frame", app->platformAllocationCount, app->platformAllocationsPerFrame);
+	DebugText(0, 1, COLOR_WHITE, COLOR_BLACK, "constant %s/%s, %d allocations", memoryUsageStr, maxMemoryUsageStr, memory->constantAllocator.count);
+	DebugText(0, 2, COLOR_WHITE, COLOR_BLACK, "transient %s/%s, %d allocations", transientMemoryUsageStr, maxTransientMemoryUsageStr, app->transientMemoryCount);
+	DebugText(0, 3, COLOR_WHITE, COLOR_BLACK, "platform %s, %d allocations, %d per frame", platformMemoryUsageStr, app->platformAllocationCount, app->platformAllocationsPerFrame);
 	DebugText(0, 4, COLOR_WHITE, COLOR_BLACK, "physics %s, %d allocations, %d per frame", physicsMemoryUsageStr, app->physicsAllocationCount, app->physicsAllocationsPerFrame);
 	DebugText(0, 5, COLOR_WHITE, COLOR_BLACK, "mesh %s, %d allocations", meshMemoryUsageStr, app->meshAllocationCount);
 	DebugText(0, 6, COLOR_WHITE, COLOR_BLACK, "particles %s, %d allocations", particlesMemoryUsageStr, app->particleAllocationCount);
@@ -594,7 +585,16 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 
 		app->platformAllocationsPerFrame = 0;
 		app->physicsAllocationsPerFrame = 0;
+
+		app->transientMemoryUsage = 0;
+		app->transientMemoryCount = 0;
 	}
+
+	app->platformAllocationsPerFrame = max(app->platformAllocationsPerFrame, app->platformAllocationCounter);
+	app->physicsAllocationsPerFrame = max(app->physicsAllocationsPerFrame, app->physicsAllocationCounter);
+
+	app->platformAllocationCounter = 0;
+	app->physicsAllocationCounter = 0;
 
 	uint64_t updateStart = SDL_GetTicksNS();
 
@@ -673,6 +673,8 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 
 	ResolveGPUTimers(&app->gpuTiming, device);
 
+	app->transientMemoryUsage = max(app->transientMemoryUsage, memory->transientAllocator.offset);
+	app->transientMemoryCount = max(app->transientMemoryCount, memory->transientAllocator.count);
 	ResetBumpAllocator(&memory->transientAllocator);
 
 	app->frameIdx++;

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "RigidBody.h"
-
 #include "math/Vector.h"
 
 #include <PxPhysics.h>
@@ -21,6 +19,9 @@ struct PhysicsErrorCallback : physx::PxErrorCallback
 {
 	void reportError(physx::PxErrorCode::Enum code, const char* message, const char* file, int line) override;
 };
+
+struct RigidBody;
+struct Mesh;
 
 struct PhysicsState
 {

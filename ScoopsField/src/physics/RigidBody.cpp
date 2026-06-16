@@ -83,36 +83,6 @@ static PxRigidActor* CreateActor(RigidBodyType type, const vec3& position, const
 	return nullptr;
 }
 
-static void AddShape(PxRigidActor* actor, const PxGeometry& geometry, uint32_t filterGroup, uint32_t filterMask, const vec3& position, const quat& rotation, bool dynamic, bool trigger)
-{
-	SDL_assert(!(dynamic && trigger));
-
-	PxShape* shape = physics->physics->createShape(geometry, *physics->material, true);
-	shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, !trigger);
-	shape->setFlag(PxShapeFlag::eTRIGGER_SHAPE, trigger);
-	shape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
-
-	PxFilterData filterData = {};
-	filterData.word0 = filterGroup;
-	filterData.word1 = filterMask;
-	shape->setSimulationFilterData(filterData);
-	shape->setQueryFilterData(filterData);
-
-	PxTransform relativeTransform(PxVector(position), PxQuaternion(rotation));
-	if (geometry.getType() == PxGeometryType::eCAPSULE)
-		relativeTransform.q = relativeTransform.q * PxQuat(PxHalfPi, PxVec3(0, 0, 1));
-	shape->setLocalPose(relativeTransform);
-
-	actor->attachShape(*shape);
-
-	if (dynamic)
-	{
-		float density = 1;
-		bool result = PxRigidBodyExt::updateMassAndInertia(*(PxRigidBody*)actor, density);
-		SDL_assert(result);
-	}
-}
-
 void InitRigidBody(RigidBody* body, RigidBodyType type, const vec3& position, const quat& rotation, void* userPtr)
 {
 	body->type = type;
@@ -179,6 +149,38 @@ void DestroyRigidBody(RigidBody* body)
 	}
 }
 
+static void AddShape(PxRigidActor* actor, const PxGeometry& geometry, uint32_t filterGroup, uint32_t filterMask, const vec3& position, const quat& rotation, bool dynamic, bool trigger)
+{
+	SDL_assert(!(dynamic && trigger));
+
+	PxShape* shape = physics->physics->createShape(geometry, *physics->material, true);
+	shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, !trigger);
+	shape->setFlag(PxShapeFlag::eTRIGGER_SHAPE, trigger);
+	shape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
+
+	PxFilterData filterData = {};
+	filterData.word0 = filterGroup;
+	filterData.word1 = filterMask;
+	shape->setSimulationFilterData(filterData);
+	shape->setQueryFilterData(filterData);
+
+	PxTransform relativeTransform(PxVector(position), PxQuaternion(rotation));
+	if (geometry.getType() == PxGeometryType::eCAPSULE)
+		relativeTransform.q = relativeTransform.q * PxQuat(PxHalfPi, PxVec3(0, 0, 1));
+	shape->setLocalPose(relativeTransform);
+
+	actor->attachShape(*shape);
+
+	shape->release(); // decrease ref count since attaching the shape increases it
+
+	if (dynamic)
+	{
+		float density = 1;
+		bool result = PxRigidBodyExt::updateMassAndInertia(*(PxRigidBody*)actor, density);
+		SDL_assert(result);
+	}
+}
+
 void AddBoxCollider(RigidBody* body, const vec3& size, const vec3& position, const quat& rotation, uint32_t filterGroup, uint32_t filterMask, bool trigger)
 {
 	AddShape(body->actor, PxBoxGeometry(PxVector(size * 0.5f)), filterGroup, filterMask, position, rotation, body->type == RIGID_BODY_DYNAMIC, trigger);
@@ -199,6 +201,43 @@ void AddMeshCollider(RigidBody* body, PxTriangleMesh* mesh, const vec3& position
 	AddShape(body->actor, PxTriangleMeshGeometry(mesh, PxMeshScale(PxVector(scale))), filterGroup, filterMask, position, rotation, body->type == RIGID_BODY_DYNAMIC, trigger);
 }
 
+static PxTriangleMesh* CookTriangleMeshCollider(Mesh* mesh)
+{
+	int numVertices = mesh->vertexCount;
+	int vertexStride = sizeof(vec3);
+	void* vertices = mesh->cachedPositions;
+
+	int numIndices = mesh->indexCount;
+	int indexStride = GetIndexFormatSize(mesh->indexBuffer->elementSize);
+	void* indices = mesh->cachedIndices;
+
+	PxTriangleMeshDesc meshDesc = {};
+	meshDesc.points.count = numVertices;
+	meshDesc.points.stride = vertexStride;
+	meshDesc.points.data = vertices;
+
+	meshDesc.triangles.count = numIndices / 3;
+	meshDesc.triangles.stride = 3 * indexStride;
+	meshDesc.triangles.data = indices;
+	meshDesc.flags = PxMeshFlags(mesh->indexBuffer->elementSize == SDL_GPU_INDEXELEMENTSIZE_16BIT ? PxMeshFlag::e16_BIT_INDICES : 0);
+
+	meshDesc.isValid();
+
+	PxDefaultMemoryOutputStream writeBuffer;
+	PxTriangleMeshCookingResult::Enum result;
+	bool status = PxCookTriangleMesh(physics->cookingParams, meshDesc, writeBuffer, &result);
+	if (!status)
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_CUSTOM, "Failed to cook triangle mesh");
+		return nullptr;
+	}
+
+	PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
+	PxTriangleMesh* meshCollider = physics->physics->createTriangleMesh(readBuffer);
+
+	return meshCollider;
+}
+
 static void AddModelColliderNode(RigidBody* body, Model* model, Node* node, mat4 parentTransform, uint32_t filterGroup, uint32_t filterMask, bool trigger)
 {
 	mat4 nodeGlobalTransform = parentTransform * node->transform;
@@ -207,7 +246,12 @@ static void AddModelColliderNode(RigidBody* body, Model* model, Node* node, mat4
 	{
 		int meshID = node->meshes[i];
 		Mesh* mesh = &model->meshes[meshID];
-		AddMeshCollider(body, CookTriangleMeshCollider(mesh), nodeGlobalTransform.translation(), nodeGlobalTransform.rotation(), nodeGlobalTransform.scale(), filterGroup, filterMask, trigger);
+
+		PxTriangleMesh* collider = CookTriangleMeshCollider(mesh);
+
+		AddMeshCollider(body, collider, nodeGlobalTransform.translation(), nodeGlobalTransform.rotation(), nodeGlobalTransform.scale(), filterGroup, filterMask, trigger);
+
+		collider->release(); // decrease ref count since the shape is still attached
 	}
 
 	for (int i = 0; i < node->numChildren; i++)
@@ -411,39 +455,3 @@ mat4 GetJointParentPose(RigidBody* body)
 	return FromPxTransform(transform);
 }
 
-PxTriangleMesh* CookTriangleMeshCollider(Mesh* mesh)
-{
-	int numVertices = mesh->vertexCount;
-	int vertexStride = sizeof(vec3);
-	void* vertices = mesh->cachedPositions;
-
-	int numIndices = mesh->indexCount;
-	int indexStride = GetIndexFormatSize(mesh->indexBuffer->elementSize);
-	void* indices = mesh->cachedIndices;
-
-	PxTriangleMeshDesc meshDesc = {};
-	meshDesc.points.count = numVertices;
-	meshDesc.points.stride = vertexStride;
-	meshDesc.points.data = vertices;
-
-	meshDesc.triangles.count = numIndices / 3;
-	meshDesc.triangles.stride = 3 * indexStride;
-	meshDesc.triangles.data = indices;
-	meshDesc.flags = PxMeshFlags(mesh->indexBuffer->elementSize == SDL_GPU_INDEXELEMENTSIZE_16BIT ? PxMeshFlag::e16_BIT_INDICES : 0);
-
-	meshDesc.isValid();
-
-	PxDefaultMemoryOutputStream writeBuffer;
-	PxTriangleMeshCookingResult::Enum result;
-	bool status = PxCookTriangleMesh(physics->cookingParams, meshDesc, writeBuffer, &result);
-	if (!status)
-	{
-		printf("Failed to cook triangle mesh\n");
-		return nullptr;
-	}
-
-	PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
-	PxTriangleMesh* meshCollider = physics->physics->createTriangleMesh(readBuffer);
-
-	return meshCollider;
-}
