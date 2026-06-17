@@ -1,60 +1,80 @@
 
 
-
-static void Downsample(Renderer* renderer, SDL_GPUTexture* input, RenderTarget* target, SDL_GPUCommandBuffer* cmdBuffer)
+static void Bloom(Renderer* renderer, SDL_GPUTexture* input)
 {
-	SDL_GPURenderPass* renderPass = BindRenderTarget(target, 0, cmdBuffer);
-
-	SDL_BindGPUGraphicsPipeline(renderPass, renderer->bloomDownsamplePipeline->pipeline);
-
-	RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, &input, &renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED], cmdBuffer);
-
-	SDL_EndGPURenderPass(renderPass);
-}
-
-static void Upsample(Renderer* renderer, SDL_GPUTexture* input0, SDL_GPUTexture* input1, RenderTarget* target, SDL_GPUCommandBuffer* cmdBuffer)
-{
-	SDL_GPURenderPass* renderPass = BindRenderTarget(target, 0, cmdBuffer);
-
-	SDL_BindGPUGraphicsPipeline(renderPass, renderer->bloomUpsamplePipeline->pipeline);
-
-	SDL_GPUTexture* textures[2];
-	textures[0] = input0;
-	textures[1] = input1;
-
-	SDL_GPUSampler* samplers[2];
-	samplers[0] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
-	samplers[1] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
-
-	RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 2, textures, samplers, cmdBuffer);
-
-	SDL_EndGPURenderPass(renderPass);
-}
-
-static void Bloom(Renderer* renderer, SDL_GPUTexture* input, SDL_GPUCommandBuffer* cmdBuffer)
-{
-	GPU_SCOPE("Bloom");
-
 	{
-		GPU_SCOPE("Downsample");
+		GPU_SCOPE("Bloom Downsample");
+
+		int width = renderer->width / 2;
+		int height = renderer->height / 2;
 
 		for (int i = 0; i < renderer->bloomStepCount; i++)
 		{
-			RenderTarget* target = renderer->bloomDownsampleTargets[i];
-			Downsample(renderer, input, target, cmdBuffer);
-			input = target->colorAttachments[0];
+			SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
+			bufferBinding.texture = renderer->bloomDownsampleBuffer;
+			bufferBinding.mip_level = i;
+			bufferBinding.layer = 0;
+			bufferBinding.cycle = false;
+
+			SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, &bufferBinding, 1, nullptr, 0);
+
+			SDL_BindGPUComputePipeline(computePass, renderer->bloomDownsampleShader->compute);
+
+			vec4 params = vec4((float)i, 0, 0, 0);
+			SDL_PushGPUComputeUniformData(cmdBuffer, 0, &params, sizeof(params));
+
+			SDL_GPUTextureSamplerBinding bindings[2];
+			bindings[0].texture = input;
+			bindings[0].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
+			bindings[1].texture = renderer->exposureBuffer;
+			bindings[1].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+			SDL_BindGPUComputeSamplers(computePass, 0, bindings, 2);
+
+			SDL_DispatchGPUCompute(computePass, (width + 31) / 32, (height + 31) / 32, 1);
+
+			SDL_EndGPUComputePass(computePass);
+
+			input = renderer->bloomDownsampleBuffer;
+
+			width = max(width >> 1, 1);
+			height = max(height >> 1, 1);
 		}
 	}
 
 	{
-		GPU_SCOPE("Upsample");
+		GPU_SCOPE("Bloom Upsample");
 
 		for (int i = renderer->bloomStepCount - 2; i >= 0; i--)
 		{
-			SDL_GPUTexture* input1 = renderer->bloomDownsampleTargets[i]->colorAttachments[0];
-			RenderTarget* target = renderer->bloomUpsampleTargets[i];
-			Upsample(renderer, input, input1, target, cmdBuffer);
-			input = target->colorAttachments[0];
+			SDL_GPUTexture* input1 = renderer->bloomDownsampleBuffer;
+
+			SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
+			bufferBinding.texture = renderer->bloomUpsampleBuffer;
+			bufferBinding.mip_level = i;
+			bufferBinding.layer = 0;
+			bufferBinding.cycle = false;
+
+			SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, &bufferBinding, 1, nullptr, 0);
+
+			SDL_BindGPUComputePipeline(computePass, renderer->bloomUpsampleShader->compute);
+
+			vec4 params = vec4((float)i, 0, 0, 0);
+			SDL_PushGPUComputeUniformData(cmdBuffer, 0, &params, sizeof(params));
+
+			SDL_GPUTextureSamplerBinding bindings[2];
+			bindings[0].texture = input;
+			bindings[0].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
+			bindings[1].texture = input1;
+			bindings[1].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
+			SDL_BindGPUComputeSamplers(computePass, 0, bindings, 2);
+
+			ivec2 size = GetMipSize(renderer->width / 2, renderer->height / 2, i);
+
+			SDL_DispatchGPUCompute(computePass, (size.x + 31) / 32, (size.y + 31) / 32, 1);
+
+			SDL_EndGPUComputePass(computePass);
+
+			input = renderer->bloomUpsampleBuffer;
 		}
 	}
 }

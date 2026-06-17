@@ -123,7 +123,7 @@ vec3 sampleMultiScatter(float height, vec3 toLight, vec3 up)
 
 	vec3 multi = texture(s_multiScatterLUT, uv).rgb;
 
-	float scatterMultiplier = remap(max(dot(toLight, vec3(0, 1, 0)), 0), 0, 1, 1, 10);
+	float scatterMultiplier = remap(max(dot(toLight, vec3(0, 1, 0)), 0), 0, 1, 1, 20);
 	multi *= scatterMultiplier;
 
 	return multi;

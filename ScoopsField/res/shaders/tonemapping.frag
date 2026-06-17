@@ -8,12 +8,7 @@ layout (location = 0) out vec4 out_color;
 
 layout(set = 2, binding = 0) uniform sampler2D s_hdrFrame;
 layout(set = 2, binding = 1) uniform sampler2D s_bloom;
-
-layout(set = 3, binding = 0) uniform UniformBlock {
-	vec4 params;
-
-#define exposure params.x
-};
+layout(set = 2, binding = 2) uniform sampler2D s_exposureBuffer;
 
 
 // sRGB => XYZ => D65_2_D60 => AP1 => RRT_SAT
@@ -107,10 +102,14 @@ vec3 ToneMapFilmic_Hejl2015(vec3 hdr, float whitePt)
 	return vf.rgb / vf.www;
 }
 
-vec3 gammaCorrection(vec3 color)
-{
-	color = pow(color, vec3(1.0 / 2.2));
-	return color;
+// Filmic Tonemapping Operator (ACES Fitted Curve)
+vec3 ACESFilm(vec3 x) {
+    float a = 2.51f;
+    float b = 0.03f;
+    float c = 2.43f;
+    float d = 0.59f;
+    float e = 0.14f;
+    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0f, 1.0f);
 }
 
 vec3 bloom(vec3 color)
@@ -123,14 +122,23 @@ vec3 bloom(vec3 color)
 void main()
 {
 	vec3 color = texture(s_hdrFrame, v_texcoord).rgb;
-	color += bloom(texture(s_bloom, v_texcoord).rgb);
+	vec3 bloom = texture(s_bloom, v_texcoord).rgb;
+
+	float exposure = texture(s_exposureBuffer, vec2(0.5)).r;
 	color *= exposure;
+
+	color = mix(color, bloom, 0.04);
+
+	//color += bloom(texture(s_bloom, v_texcoord).rgb);
+	//color *= exposure;
+
 	//color = linearToSRGB(color);
 
-	color = acesFitted(color * 1.5);
+	//color = acesFitted(color * 2);
+	color = ACESFilm(color);
 	//color = color / (color + 1);
 	//color = ToneMapFilmic_Hejl2015(color, 10);
-	color = gammaCorrection(color);
+	color = pow(color, vec3(1.0 / 2.2));
 
 	out_color = vec4(color, 1);
 }

@@ -42,7 +42,7 @@ vec3 lighting(vec3 position, vec3 normal)
 		vec3 toLight = pointLightPositions[i].xyz - position;
 		float distanceSq = dot(toLight, toLight);
 		float ndotwi = max(dot(toLight, normal), 0.0);
-		radiance += L(pointLightColors[i].rgb, distanceSq * distanceSq, 0.1) * ndotwi;
+		radiance += L(pointLightColors[i].rgb, distanceSq, 0.1) * ndotwi;
 	}
 
 	radiance += textureLod(s_environment, normal, 12).rgb;

@@ -362,8 +362,8 @@ void GameRender()
 
 	RenderModel(&game->renderer, &game->mapModel, nullptr, mat4::Identity, true);
 
-	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 10);
-	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * 0.5f * PI * 0.7f) * vec3(-1, 2, 0), vec3(0.5f, 1, 0.5f) * 10);
+	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 1);
+	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * 0.5f * PI * 0.7f) * vec3(-1, 2, 0), vec3(0.5f, 1, 0.5f) * 1);
 
 	for (int i = 0; i < game->numReflectionProbes; i++)
 	{

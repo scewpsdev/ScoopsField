@@ -130,27 +130,25 @@ static RenderTarget* CreateShadowBuffer(int width, int height)
 	return CreateRenderTarget(width, height, SDL_GPU_TEXTURETYPE_2D, 1, &targetInfo, nullptr);
 }
 
-static int CreateBloomTargets(int width, int height, RenderTarget* downsampleTargets[], RenderTarget* upsampleTargets[])
+static void CreateBloomTargets(Renderer* renderer, int width, int height)
 {
 	int stepCount = GetNumMipsForTexture(width, height);
 	SDL_assert(stepCount <= BLOOM_STEPS);
 
-	for (int i = 0; i < stepCount; i++)
-	{
-		ColorAttachmentInfo colorAttachment = {};
-		colorAttachment.format = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
-		colorAttachment.loadOp = SDL_GPU_LOADOP_LOAD;
-		colorAttachment.storeOp = SDL_GPU_STOREOP_STORE;
+	SDL_GPUTextureCreateInfo targetInfo = {};
+	targetInfo.type = SDL_GPU_TEXTURETYPE_2D;
+	targetInfo.format = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
+	targetInfo.usage = SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE | SDL_GPU_TEXTUREUSAGE_SAMPLER;
+	targetInfo.width = width;
+	targetInfo.height = height;
+	targetInfo.layer_count_or_depth = 1;
+	targetInfo.num_levels = stepCount;
+	targetInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
 
-		downsampleTargets[i] = CreateRenderTarget(width, height, SDL_GPU_TEXTURETYPE_2D, 1, &colorAttachment, nullptr);
-		if (i < stepCount - 1)
-			upsampleTargets[i] = CreateRenderTarget(width, height, SDL_GPU_TEXTURETYPE_2D, 1, &colorAttachment, nullptr);
+	renderer->bloomDownsampleBuffer = SDL_CreateGPUTexture(device, &targetInfo);
+	renderer->bloomUpsampleBuffer = SDL_CreateGPUTexture(device, &targetInfo);
 
-		width = max(width / 2, 1);
-		height = max(height / 2, 1);
-	}
-
-	return stepCount;
+	renderer->bloomStepCount = stepCount;
 }
 
 static GraphicsPipeline* CreateGeometryPipeline(Renderer* renderer)
@@ -333,18 +331,6 @@ static GraphicsPipeline* CreateSkyCubePipeline(Renderer* renderer)
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
-static GraphicsPipeline* CreateBloomDownsamplePipeline(Renderer* renderer)
-{
-	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_NONE, renderer->bloomDownsampleShader, renderer->bloomDownsampleTargets[0], 1, &renderer->screenQuad.vertexBuffer->layout);
-	return CreateGraphicsPipeline(&pipelineInfo);
-}
-
-static GraphicsPipeline* CreateBloomUpsamplePipeline(Renderer* renderer)
-{
-	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->bloomUpsampleShader, renderer->bloomUpsampleTargets[0], 1, &renderer->screenQuad.vertexBuffer->layout);
-	return CreateGraphicsPipeline(&pipelineInfo);
-}
-
 static GraphicsPipeline* CreateTonemappingPipeline(Renderer* renderer)
 {
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->tonemappingShader, nullptr, 1, &renderer->screenQuad.vertexBuffer->layout);
@@ -521,10 +507,10 @@ static void SubmitMesh(Renderer* renderer,
 #define SHADOW_MAP_RESOLUTION 1024
 
 #include "Sky.cpp"
-#include "AutoExposure.cpp"
 #include "Lighting.cpp"
 #include "ShadowMapping.cpp"
 #include "ReflectionProbeUpdate.cpp"
+#include "AutoExposure.cpp"
 #include "Bloom.cpp"
 
 void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffer* cmdBuffer)
@@ -562,7 +548,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 		renderer->skyCubemap = CreateRenderTarget(32, 32, SDL_GPU_TEXTURETYPE_CUBE, 1, &hdrTargetInfo, nullptr);
 	}
 
-	renderer->bloomStepCount = CreateBloomTargets(width / 2, height / 2, renderer->bloomDownsampleTargets, renderer->bloomUpsampleTargets);
+	CreateBloomTargets(renderer, width / 2, height / 2);
 
 	// mesh layouts
 	{
@@ -648,8 +634,11 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->cloudNoiseShader = LoadComputeShader("res/shaders/sky/cloud_noise.comp.bin");
 	renderer->cloudNoiseDetailShader = LoadComputeShader("res/shaders/sky/cloud_noise_detail.comp.bin");
 	renderer->sunColorShader = LoadComputeShader("res/shaders/sky/sun_color.comp.bin");
-	renderer->bloomDownsampleShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/postprocessing/bloom_downsample.frag.bin");
-	renderer->bloomUpsampleShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/postprocessing/bloom_upsample.frag.bin");
+	renderer->bloomDownsampleShader = LoadComputeShader("res/shaders/postprocessing/bloom_downsample.comp.bin");
+	renderer->bloomUpsampleShader = LoadComputeShader("res/shaders/postprocessing/bloom_upsample.comp.bin");
+	renderer->hdrToLuminanceShader = LoadComputeShader("res/shaders/postprocessing/hdr2luminance64.comp.bin");
+	renderer->luminanceDownsampleShader = LoadComputeShader("res/shaders/postprocessing/luminance_downsample.comp.bin");
+	renderer->autoExposureShader = LoadComputeShader("res/shaders/postprocessing/autoexposure.comp.bin");
 	renderer->tonemappingShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/tonemapping.frag.bin");
 
 	renderer->geometryPipeline = CreateGeometryPipeline(renderer);
@@ -669,17 +658,17 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->skyPipeline = CreateSkyPipeline(renderer);
 	renderer->skyUpsamplePipeline = CreateSkyUpsamplePipeline(renderer);
 	renderer->skyCubePipeline = CreateSkyCubePipeline(renderer);
-	renderer->bloomDownsamplePipeline = CreateBloomDownsamplePipeline(renderer);
-	renderer->bloomUpsamplePipeline = CreateBloomUpsamplePipeline(renderer);
 	renderer->tonemappingPipeline = CreateTonemappingPipeline(renderer);
 
 	SDL_GPUSamplerCreateInfo samplerInfo = {};
+	samplerInfo.max_lod = VK_LOD_CLAMP_NONE;
 	renderer->samplers[TEXTURE_SAMPLER_DEFAULT] = SDL_CreateGPUSampler(device, &samplerInfo);
 
 	SDL_GPUSamplerCreateInfo clampedSamplerInfo = {};
 	clampedSamplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	clampedSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	clampedSamplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+	clampedSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
 	renderer->samplers[TEXTURE_SAMPLER_CLAMPED] = SDL_CreateGPUSampler(device, &clampedSamplerInfo);
 
 	SDL_GPUSamplerCreateInfo linearSamplerInfo = {};
@@ -693,7 +682,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	linearClampedSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	linearClampedSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
 	linearClampedSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
-	linearSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
+	linearClampedSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
 	linearClampedSamplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	linearClampedSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	linearClampedSamplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
@@ -703,7 +692,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	linearClampedVSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	linearClampedVSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
 	linearClampedVSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
-	linearSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
+	linearClampedVSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
 	linearClampedVSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED_VERTICAL] = SDL_CreateGPUSampler(device, &linearClampedVSamplerInfo);
 
@@ -711,7 +700,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	shadowSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	shadowSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
 	shadowSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
-	linearSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
+	shadowSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
 	shadowSamplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	shadowSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	shadowSamplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
@@ -735,13 +724,6 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	emptyTextureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
 	renderer->emptyTexture = SDL_CreateGPUTexture(device, &emptyTextureInfo);
 
-	SDL_GPUTransferBufferCreateInfo luminanceReadbackBufferInfo = {};
-	luminanceReadbackBufferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD;
-	luminanceReadbackBufferInfo.size = 4 * 4;
-	renderer->luminanceReadbackBuffer = SDL_CreateGPUTransferBuffer(device, &luminanceReadbackBufferInfo);
-	renderer->currentExposure = 1.0f;
-	renderer->targetExposure = 1.0f;
-
 	renderer->blueNoise = LoadTexture("res/textures/bluenoise.png.bin", cmdBuffer);
 
 	//renderer->noiseTexture = LoadTexture("res/textures/noise.png.bin", cmdBuffer);
@@ -754,12 +736,34 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->cloudNoise = CreateCloudNoiseTexture(renderer, cmdBuffer);
 	renderer->cloudNoiseDetail = CreateCloudNoiseDetailTexture(renderer, cmdBuffer);
 
+	SDL_GPUTextureCreateInfo luminanceDownsampleInfo = {};
+	luminanceDownsampleInfo.type = SDL_GPU_TEXTURETYPE_2D;
+	luminanceDownsampleInfo.format = SDL_GPU_TEXTUREFORMAT_R16_FLOAT;
+	luminanceDownsampleInfo.usage = SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE | SDL_GPU_TEXTUREUSAGE_SAMPLER;
+	luminanceDownsampleInfo.width = 64;
+	luminanceDownsampleInfo.height = 64;
+	luminanceDownsampleInfo.layer_count_or_depth = 1;
+	luminanceDownsampleInfo.num_levels = GetNumMipsForTexture(64, 64);
+	luminanceDownsampleInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
+	renderer->luminanceDownsampleBuffer = SDL_CreateGPUTexture(device, &luminanceDownsampleInfo);
+
+	SDL_GPUTextureCreateInfo exposureInfo = {};
+	exposureInfo.type = SDL_GPU_TEXTURETYPE_2D;
+	exposureInfo.format = SDL_GPU_TEXTUREFORMAT_R16_FLOAT;
+	exposureInfo.usage = SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_SIMULTANEOUS_READ_WRITE | SDL_GPU_TEXTUREUSAGE_SAMPLER;
+	exposureInfo.width = 1;
+	exposureInfo.height = 1;
+	exposureInfo.layer_count_or_depth = 1;
+	exposureInfo.num_levels = 1;
+	exposureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
+	renderer->exposureBuffer = SDL_CreateGPUTexture(device, &exposureInfo);
+
 	SDL_GPUTextureCreateInfo sunColorInfo = {};
 	sunColorInfo.type = SDL_GPU_TEXTURETYPE_2D;
-	sunColorInfo.format = SDL_GPU_TEXTUREFORMAT_R32G32B32A32_FLOAT;
+	sunColorInfo.format = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
 	sunColorInfo.usage = SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_SIMULTANEOUS_READ_WRITE | SDL_GPU_TEXTUREUSAGE_SAMPLER;
-	sunColorInfo.width = 4;
-	sunColorInfo.height = 4;
+	sunColorInfo.width = 1;
+	sunColorInfo.height = 1;
 	sunColorInfo.layer_count_or_depth = 1;
 	sunColorInfo.num_levels = 1;
 	sunColorInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
@@ -831,13 +835,9 @@ void ResizeRenderer(Renderer* renderer, int width, int height)
 		DestroyRenderTarget(renderer->shadowBuffer1);
 	renderer->shadowBuffer1 = CreateShadowBuffer(width / 2, height / 2);
 
-	for (int i = 0; i < renderer->bloomStepCount; i++)
-	{
-		DestroyRenderTarget(renderer->bloomDownsampleTargets[i]);
-		if (i < renderer->bloomStepCount - 1)
-			DestroyRenderTarget(renderer->bloomUpsampleTargets[i]);
-	}
-	renderer->bloomStepCount = CreateBloomTargets(width / 2, height / 2, renderer->bloomDownsampleTargets, renderer->bloomUpsampleTargets);
+	SDL_ReleaseGPUTexture(device, renderer->bloomDownsampleBuffer);
+	SDL_ReleaseGPUTexture(device, renderer->bloomUpsampleBuffer);
+	CreateBloomTargets(renderer, width / 2, height / 2);
 }
 
 void RenderMesh(Renderer* renderer,
@@ -1271,9 +1271,8 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		SDL_EndGPURenderPass(renderPass);
 	}
 
-	Bloom(renderer, renderer->hdrTarget->colorAttachments[0], cmdBuffer);
-
-	AutoExposure(renderer, renderer->bloomDownsampleTargets[renderer->bloomStepCount - 1], cmdBuffer);
+	AutoExposure(renderer, renderer->hdrTarget->colorAttachments[0]);
+	Bloom(renderer, renderer->hdrTarget->colorAttachments[0]);
 
 	// tonemapping
 	{
@@ -1288,25 +1287,17 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->tonemappingPipeline->pipeline);
 
-		struct UniformData
-		{
-			vec4 params;
-		};
-
-		UniformData uniforms = {};
-		uniforms.params = vec4(renderer->currentExposure, 0, 0, 0);
-
-		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
-
-		SDL_GPUTexture* textures[2];
+		SDL_GPUTexture* textures[3];
 		textures[0] = renderer->hdrTarget->colorAttachments[0];
-		textures[1] = renderer->bloomUpsampleTargets[0]->colorAttachments[0];
+		textures[1] = renderer->bloomUpsampleBuffer;
+		textures[2] = renderer->exposureBuffer;
 
-		SDL_GPUSampler* samplers[2];
+		SDL_GPUSampler* samplers[3];
 		samplers[0] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
 		samplers[1] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
+		samplers[2] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
 
-		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 2, textures, samplers, cmdBuffer);
+		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 3, textures, samplers, cmdBuffer);
 
 		SDL_EndGPURenderPass(renderPass);
 	}

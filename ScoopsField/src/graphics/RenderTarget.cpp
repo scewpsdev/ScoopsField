@@ -14,7 +14,7 @@ int GetNumMipsForTexture(int width, int height)
 	while (size)
 	{
 		numMips++;
-		size /= 2;
+		size >>= 1;
 	}
 	return numMips;
 }
@@ -23,8 +23,8 @@ ivec2 GetMipSize(int width, int height, int mip)
 {
 	for (int i = 0; i < mip; i++)
 	{
-		width = max(width / 2, 1);
-		height = max(height / 2, 1);
+		width = max(width >> 1, 1);
+		height = max(height >> 1, 1);
 	}
 	return ivec2(width, height);
 }

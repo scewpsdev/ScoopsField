@@ -39,14 +39,22 @@ vec3 fresnel2(float hdotv, vec3 f0, float roughness)
 	return f0 + (max(vec3(1.0 - roughness), f0) - f0) * pow(1.0 - hdotv, 5.0);
 }
 
+float calculateLightRadius(vec3 color)
+{
+	float maxChannel = max(color.r, max(color.g, color.b));
+	float threshold = 0.001;
+	float radiusSquared = maxChannel / threshold;
+	return radiusSquared;
+}
+
 // Radiance calculation for radial flux over the angle w
 vec3 L(vec3 color, float distanceSquared, float areaRadiusSquared)
 {
 	float attenuation = 1.0 / (distanceSquared + areaRadiusSquared);
-	float radius = 20;
-	float d2 = distanceSquared / (radius * radius);
+	float radiusSquared = calculateLightRadius(color);
+	float d2 = distanceSquared / radiusSquared;
 	float windowing = max(0, 1 - d2 * d2);
-	//attenuation *= windowing * windowing;
+	attenuation *= windowing * windowing;
 
 	vec3 radiance = color * attenuation;
 

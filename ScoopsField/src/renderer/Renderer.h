@@ -131,10 +131,19 @@ struct Renderer
 	RenderTarget* cubemapGbuffers[6];
 	RenderTarget* reflectionProbeShadowMap;
 
+	SDL_GPUTexture* luminanceDownsampleBuffer;
+	Shader* hdrToLuminanceShader;
+	Shader* luminanceDownsampleShader;
+	Shader* autoExposureShader;
+
 #define BLOOM_STEPS 16
-	RenderTarget* bloomDownsampleTargets[BLOOM_STEPS];
-	RenderTarget* bloomUpsampleTargets[BLOOM_STEPS - 1];
 	int bloomStepCount;
+	SDL_GPUTexture* bloomDownsampleBuffer;
+	SDL_GPUTexture* bloomUpsampleBuffer;
+	Shader* bloomDownsampleShader;
+	Shader* bloomUpsampleShader;
+
+	SDL_GPUTexture* exposureBuffer;
 
 	Shader* defaultShader;
 	Shader* animatedShader;
@@ -145,8 +154,6 @@ struct Renderer
 	Shader* reflectionProbeShader;
 	Shader* deferredDiffuseShader;
 	Shader* shConvoluteShader;
-	Shader* bloomDownsampleShader;
-	Shader* bloomUpsampleShader;
 	Shader* tonemappingShader;
 
 	GraphicsPipeline* geometryPipeline;
@@ -158,8 +165,6 @@ struct Renderer
 	GraphicsPipeline* environmentLightPipeline;
 	GraphicsPipeline* reflectionProbePipeline;
 	GraphicsPipeline* deferredDiffusePipeline;
-	GraphicsPipeline* bloomDownsamplePipeline;
-	GraphicsPipeline* bloomUpsamplePipeline;
 	GraphicsPipeline* tonemappingPipeline;
 
 	RenderTarget* skyTarget;
@@ -187,11 +192,6 @@ struct Renderer
 	SDL_GPUSampler* samplers[TEXTURE_SAMPLER_COUNT];
 	SDL_GPUBuffer* emptyBuffer;
 	SDL_GPUTexture* emptyTexture;
-
-	SDL_GPUFence* luminanceReadbackFence;
-	SDL_GPUTransferBuffer* luminanceReadbackBuffer;
-	float targetExposure;
-	float currentExposure;
 
 #define MAX_MESH_DRAWS 1024
 	List<MeshDrawData, MAX_MESH_DRAWS> meshes;

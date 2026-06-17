@@ -1,0 +1,38 @@
+#version 460
+
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout (set = 0, binding = 0) uniform sampler2D s_luminanceBuffer;
+
+layout (set = 1, binding = 0, r16f) uniform image2D s_exposureBuffer;
+
+layout (set = 2, binding = 0) uniform UniformBlock {
+	vec4 params;
+
+#define deltaTime params.x
+};
+
+
+float calculateTargetExposure()
+{
+	float logLuminance = textureLod(s_luminanceBuffer, vec2(0.5), 6).r;
+
+	float luminance = exp(logLuminance);
+	float targetExposure = pow(0.18 / luminance, 0.5);
+
+	float minExposure = 0.1;
+	float maxExposure = 100;
+	return clamp(targetExposure, minExposure, maxExposure);
+}
+
+void main()
+{
+	float lastExposure = imageLoad(s_exposureBuffer, ivec2(0)).r;
+
+	float targetExposure = calculateTargetExposure();
+
+	float adaptionSpeed = targetExposure > lastExposure ? 0.5 : 1;
+	float blendedExposure = mix(lastExposure, targetExposure, 1 - exp(-adaptionSpeed * deltaTime));
+
+	imageStore(s_exposureBuffer, ivec2(0), vec4(blendedExposure, 0, 0, 0));
+}

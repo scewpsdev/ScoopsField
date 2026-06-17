@@ -224,6 +224,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="src\renderer\AutoExposure.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\graphics\GPUTiming.cpp" />
     <ClCompile Include="src\graphics\Graphics.cpp" />
     <ClCompile Include="src\graphics\GraphicsPipeline.cpp" />
@@ -247,10 +251,6 @@
     <ClCompile Include="src\physics\CharacterController.cpp" />
     <ClCompile Include="src\physics\Physics.cpp" />
     <ClCompile Include="src\physics\RigidBody.cpp" />
-    <ClCompile Include="src\renderer\AutoExposure.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="src\renderer\Bloom.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -419,8 +419,11 @@
     <None Include="res\shaders\lighting\sh_reconstruct.glsl" />
     <None Include="res\shaders\mesh_animated.vert" />
     <None Include="res\shaders\mesh_depth.frag" />
-    <None Include="res\shaders\postprocessing\bloom_downsample.frag" />
-    <None Include="res\shaders\postprocessing\bloom_upsample.frag" />
+    <None Include="res\shaders\postprocessing\autoexposure.comp" />
+    <None Include="res\shaders\postprocessing\bloom_downsample.comp" />
+    <None Include="res\shaders\postprocessing\bloom_upsample.comp" />
+    <None Include="res\shaders\postprocessing\hdr2luminance64.comp" />
+    <None Include="res\shaders\postprocessing\luminance_downsample.comp" />
     <None Include="res\shaders\screenquad.frag" />
     <None Include="res\shaders\sky\clouds.glsl" />
     <None Include="res\shaders\sky\cloud_noise.comp" />

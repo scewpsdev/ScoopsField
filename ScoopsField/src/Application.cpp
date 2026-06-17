@@ -406,8 +406,6 @@ extern "C" __declspec(dllexport) SDL_AppResult AppInit(GameMemory* memory, int a
 	app->lastFrame = SDL_GetTicksNS();
 	app->lastSecond = SDL_GetTicksNS();
 
-	app->debugStats = 1;
-
 	if (!SDL_ShowWindow(window))
 	{
 		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "%s", SDL_GetError());

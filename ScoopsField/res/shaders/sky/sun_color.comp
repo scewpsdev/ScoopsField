@@ -7,7 +7,7 @@ layout(set = 0, binding = 1) uniform sampler2D s_multiScatterLUT;
 layout(set = 0, binding = 2) uniform sampler3D s_cloudNoise;
 layout(set = 0, binding = 3) uniform sampler3D s_cloudNoiseDetail;
 
-layout(set = 1, binding = 0, rgba32f) uniform image2D s_sunColor;
+layout(set = 1, binding = 0, r11f_g11f_b10f) uniform image2D s_output;
 
 layout(set = 2, binding = 0) uniform UniformBlock {
 	vec4 params;
@@ -43,8 +43,8 @@ void main()
 	sunlight = sunlight * cloudColor.a;
 	//vec3 sunlight = attenuateSun(cameraPosition, sunDirection);
 
-	vec3 color = imageLoad(s_sunColor, ivec2(0)).rgb;
+	vec3 color = imageLoad(s_output, ivec2(0)).rgb;
 	color = mix(color, sunlight, 0.01);
 
-	imageStore(s_sunColor, ivec2(0), vec4(color, 0));
+	imageStore(s_output, ivec2(0), vec4(color, 0));
 }
