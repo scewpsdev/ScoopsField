@@ -501,34 +501,35 @@ static void RenderDebugStats()
 	MemoryString(particlesMemoryUsageStr, 16, app->particleMemoryUsage);
 
 	DebugText(0, 0, COLOR_WHITE, COLOR_BLACK, "%d fps, %.3f +- %.3f ms", app->fps, app->avgMs, app->avgMsVariance);
-	DebugText(0, 1, COLOR_WHITE, COLOR_BLACK, "constant %s/%s, %d allocations", memoryUsageStr, maxMemoryUsageStr, memory->constantAllocator.count);
-	DebugText(0, 2, COLOR_WHITE, COLOR_BLACK, "transient %s/%s, %d allocations", transientMemoryUsageStr, maxTransientMemoryUsageStr, app->transientMemoryCount);
-	DebugText(0, 3, COLOR_WHITE, COLOR_BLACK, "platform %s, %d allocations, %d per frame", platformMemoryUsageStr, app->platformAllocationCount, app->platformAllocationsPerFrame);
-	DebugText(0, 4, COLOR_WHITE, COLOR_BLACK, "physics %s, %d allocations, %d per frame", physicsMemoryUsageStr, app->physicsAllocationCount, app->physicsAllocationsPerFrame);
-	DebugText(0, 5, COLOR_WHITE, COLOR_BLACK, "mesh %s, %d allocations", meshMemoryUsageStr, app->meshAllocationCount);
-	DebugText(0, 6, COLOR_WHITE, COLOR_BLACK, "particles %s, %d allocations", particlesMemoryUsageStr, app->particleAllocationCount);
-	DebugText(0, 7, COLOR_WHITE, COLOR_BLACK, "update %.3f ms", app->updateTimeMs);
-	DebugText(0, 8, COLOR_WHITE, COLOR_BLACK, "cpu frame %.3f ms", app->cpuFrameMs);
-	DebugText(0, 9, COLOR_WHITE, COLOR_BLACK, "  scene fetch %.3f ms", app->swapchainWaitMs);
-	DebugText(0, 10, COLOR_WHITE, COLOR_BLACK, "  draw submit %.3f ms", app->gpuSubmitMs);
 
 	if (app->debugStats == 1)
 	{
-		DebugText(0, 12, COLOR_WHITE, COLOR_BLACK, "vertex buffers: %d/%d", graphics->vertexBuffers.size, MAX_VERTEX_BUFFERS);
-		DebugText(0, 13, COLOR_WHITE, COLOR_BLACK, "index buffers: %d/%d", graphics->indexBuffers.size, MAX_INDEX_BUFFERS);
-		DebugText(0, 14, COLOR_WHITE, COLOR_BLACK, "indirect buffers: %d/%d", graphics->indirectBuffers.size, MAX_INDIRECT_BUFFERS);
-		DebugText(0, 15, COLOR_WHITE, COLOR_BLACK, "storage buffers: %d/%d", graphics->storageBuffers.size, MAX_STORAGE_BUFFERS);
-		DebugText(0, 16, COLOR_WHITE, COLOR_BLACK, "transfer buffers: %d/%d", graphics->transferBuffers.size, MAX_TRANSFER_BUFFERS);
-		DebugText(0, 17, COLOR_WHITE, COLOR_BLACK, "shaders: %d/%d", graphics->shaders.size, MAX_SHADERS);
-		DebugText(0, 18, COLOR_WHITE, COLOR_BLACK, "textures: %d/%d", graphics->textures.size, MAX_TEXTURES);
-		DebugText(0, 19, COLOR_WHITE, COLOR_BLACK, "render targets: %d/%d", graphics->renderTargets.size, MAX_RENDER_TARGETS);
-		DebugText(0, 20, COLOR_WHITE, COLOR_BLACK, "graphics pipelines: %d/%d", graphics->graphicsPipelines.size, MAX_GRAPHICS_PIPELINES);
+		DebugText(0, 2, COLOR_WHITE, COLOR_BLACK, "constant %s/%s, %d allocations", memoryUsageStr, maxMemoryUsageStr, memory->constantAllocator.count);
+		DebugText(0, 3, COLOR_WHITE, COLOR_BLACK, "transient %s/%s, %d allocations", transientMemoryUsageStr, maxTransientMemoryUsageStr, app->transientMemoryCount);
+		DebugText(0, 4, COLOR_WHITE, COLOR_BLACK, "platform %s, %d allocations, %d per frame", platformMemoryUsageStr, app->platformAllocationCount, app->platformAllocationsPerFrame);
+		DebugText(0, 5, COLOR_WHITE, COLOR_BLACK, "physics %s, %d allocations, %d per frame", physicsMemoryUsageStr, app->physicsAllocationCount, app->physicsAllocationsPerFrame);
+		DebugText(0, 6, COLOR_WHITE, COLOR_BLACK, "mesh %s, %d allocations", meshMemoryUsageStr, app->meshAllocationCount);
+		DebugText(0, 7, COLOR_WHITE, COLOR_BLACK, "particles %s, %d allocations", particlesMemoryUsageStr, app->particleAllocationCount);
+		DebugText(0, 8, COLOR_WHITE, COLOR_BLACK, "update %.3f ms", app->updateTimeMs);
+		DebugText(0, 9, COLOR_WHITE, COLOR_BLACK, "cpu frame %.3f ms", app->cpuFrameMs);
+		DebugText(0, 10, COLOR_WHITE, COLOR_BLACK, "  scene fetch %.3f ms", app->swapchainWaitMs);
+		DebugText(0, 11, COLOR_WHITE, COLOR_BLACK, "  draw submit %.3f ms", app->gpuSubmitMs);
 
-		DebugText(0, 22, COLOR_WHITE, COLOR_BLACK, "rigid bodies: %d", (int)physics->scene->getNbActors(physx::PxActorTypeFlag::eRIGID_STATIC | physx::PxActorTypeFlag::eRIGID_DYNAMIC));
+		DebugText(0, 13, COLOR_WHITE, COLOR_BLACK, "vertex buffers: %d/%d", graphics->vertexBuffers.size, MAX_VERTEX_BUFFERS);
+		DebugText(0, 14, COLOR_WHITE, COLOR_BLACK, "index buffers: %d/%d", graphics->indexBuffers.size, MAX_INDEX_BUFFERS);
+		DebugText(0, 15, COLOR_WHITE, COLOR_BLACK, "indirect buffers: %d/%d", graphics->indirectBuffers.size, MAX_INDIRECT_BUFFERS);
+		DebugText(0, 16, COLOR_WHITE, COLOR_BLACK, "storage buffers: %d/%d", graphics->storageBuffers.size, MAX_STORAGE_BUFFERS);
+		DebugText(0, 17, COLOR_WHITE, COLOR_BLACK, "transfer buffers: %d/%d", graphics->transferBuffers.size, MAX_TRANSFER_BUFFERS);
+		DebugText(0, 18, COLOR_WHITE, COLOR_BLACK, "shaders: %d/%d", graphics->shaders.size, MAX_SHADERS);
+		DebugText(0, 19, COLOR_WHITE, COLOR_BLACK, "textures: %d/%d", graphics->textures.size, MAX_TEXTURES);
+		DebugText(0, 20, COLOR_WHITE, COLOR_BLACK, "render targets: %d/%d", graphics->renderTargets.size, MAX_RENDER_TARGETS);
+		DebugText(0, 21, COLOR_WHITE, COLOR_BLACK, "graphics pipelines: %d/%d", graphics->graphicsPipelines.size, MAX_GRAPHICS_PIPELINES);
+
+		DebugText(0, 23, COLOR_WHITE, COLOR_BLACK, "rigid bodies: %d", (int)physics->scene->getNbActors(physx::PxActorTypeFlag::eRIGID_STATIC | physx::PxActorTypeFlag::eRIGID_DYNAMIC));
 	}
 	else if (app->debugStats == 2)
 	{
-		PrintGPUTimers(&app->gpuTiming, 0, 12);
+		PrintGPUTimers(&app->gpuTiming, 0, 2);
 	}
 }
 

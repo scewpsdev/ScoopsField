@@ -40,7 +40,7 @@ bool raymarch(vec3 origin, vec3 dir, vec3 toLight, out vec3 singleScatter, out v
 	if (sphereIntersect(origin, dir, planetRadius, tgmin, tgmax) && tgmin > 0)
 		tmax = min(tmax, tgmin);
 
-	int numSamples = 16;
+	int numSamples = 8;
 	float segmentLength = (tmax - tmin) / numSamples;
 
 	float phaseMS = 1 / (4 * pi);

@@ -1141,11 +1141,12 @@ static void SubmitMesh(Renderer* renderer,
 }
 
 // TODO
-// [ ] reflection probes
+// [X] atmospheric scattering
+// [X] reflection probes
+// [X] particles
+// [X] bloom
 // [ ] point light shadows
 // [ ] sunrays
-// [ ] particles
-// [ ] bloom
 // [ ] ambient occlusion
 // [ ] TAA
 // [ ] render meshes front to back
@@ -1158,7 +1159,6 @@ static void SubmitMesh(Renderer* renderer,
 // [ ] light occlusion culling
 // [ ] mesh instancing
 // [ ] better pbr (convolution, specular cubemaps)
-// [X] atmospheric scattering
 
 void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, float near, float fov, float aspect, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], vec3 sunDirection, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {

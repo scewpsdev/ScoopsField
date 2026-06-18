@@ -15,18 +15,7 @@ void main()
 		return;
 
 	vec2 uv = (gid + 0.5) / vec2(size);
-	vec3 color = vec3(0);
-
-	for (int y = -1; y <= 1; y++)
-	{
-		for (int x = -1; x <= 1; x++)
-		{
-			vec2 offset = vec2(x, y) * 0.333 / vec2(size);
-			color += texture(s_input, uv + offset).rgb;
-		}
-	}
-
-	color /= 9;
+	vec3 color = texture(s_input, uv).rgb;
 
 	float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
 	luminance = max(luminance, 0.0001);
