@@ -56,23 +56,30 @@ struct Player : EntityBase
 	AnimationState rightWeaponAnim;
 	AnimationPlayback rightWeaponAnimation;
 
+	AnimationState leftWeaponAnim;
+	AnimationPlayback leftWeaponAnimation;
+
 	Animation* lastRightAnim;
 	float lastRightAnimTimer;
 	bool lastRightAnimLoop;
+	bool lastRightAnimMirror;
 
 	Animation* rightBlendAnim;
 	float rightBlendAnimTimer;
 	bool rightBlendAnimLoop;
+	bool rightBlendAnimMirror;
 	float rightBlendDuration;
 	float rightBlendStart;
 
 	Animation* lastLeftAnim;
 	float lastLeftAnimTimer;
 	bool lastLeftAnimLoop;
+	bool lastLeftAnimMirror;
 
 	Animation* leftBlendAnim;
 	float leftBlendAnimTimer;
 	bool leftBlendAnimLoop;
+	bool leftBlendAnimMirror;
 	float leftBlendDuration;
 	float leftBlendStart;
 

@@ -439,7 +439,7 @@ static void UpdateAnimationBlending(Creature* creature, Animation* currentAnimat
 		}
 		else
 		{
-			BlendAnimation(creature->model, &creature->anim, creature->blendAnim, creature->blendAnimTimer, creature->blendAnimLoop, 1 - blendProgress, (AnimationChannelFilterCallback_t)ExcludeRootAnimFilter, nullptr);
+			BlendAnimation(creature->model, &creature->anim, creature->blendAnim, creature->blendAnimTimer, creature->blendAnimLoop, false, 1 - blendProgress, (AnimationChannelFilterCallback_t)ExcludeRootAnimFilter, nullptr);
 		}
 	}
 
@@ -515,7 +515,7 @@ void UpdateCreature(Creature* creature)
 
 	currentAnimation->timer += deltaTime * currentAnimation->speed;
 
-	AnimateModel(creature->model, &creature->anim, currentAnimation->animation, currentAnimation->timer, currentAnimation->loop, nullptr, nullptr);
+	AnimateModel(creature->model, &creature->anim, currentAnimation, nullptr, nullptr);
 
 	/*
 	if (EntityAction* currentAction = GetCurrentAction(creature))

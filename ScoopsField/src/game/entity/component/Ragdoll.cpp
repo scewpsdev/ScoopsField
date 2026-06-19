@@ -96,6 +96,7 @@ void DestroyRagdoll(Ragdoll* ragdoll)
 {
 	DestroyArticulation(&ragdoll->articulation);
 
+	/*
 	for (int i = 0; i < ragdoll->bones.capacity; i++)
 	{
 		if (ragdoll->bones.slots[i].state == SLOT_USED)
@@ -104,6 +105,7 @@ void DestroyRagdoll(Ragdoll* ragdoll)
 			DestroyRigidBody(bone);
 		}
 	}
+	*/
 }
 
 RigidBody* GetRagdollBodyWithName(Ragdoll* ragdoll, const char* name)

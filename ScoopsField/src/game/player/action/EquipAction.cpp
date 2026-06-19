@@ -9,40 +9,54 @@
 #include "game/entity/Entity.h"
 
 
-void InitEquipAction(Action* action, Item* weapon, int dstLoadout)
+void InitEquipAction(Action* action, Item* rightWeapon, Item* leftWeapon, int dstLoadout)
 {
 	InitAction(action, ACTION_TYPE_EQUIP);
 
-	if (weapon)
+	if (rightWeapon)
 	{
 		action->rightAnimName = "equip";
-		action->rightAnimMoveset = &weapon->moveset;
+		action->rightAnimMoveset = &rightWeapon->moveset;
 		action->rightAnimBlendDuration = 0.0f;
 
-		if (weapon->twoHanded)
+		if (rightWeapon->twoHanded)
 		{
 			action->leftAnimName = "equip";
-			action->leftAnimMoveset = &weapon->moveset;
+			action->leftAnimMoveset = &rightWeapon->moveset;
 			action->leftAnimBlendDuration = 0.0f;
+
+			SDL_assert(!leftWeapon);
 		}
 
 		action->animationSpeed = 1.0f;
 		//action->moveSpeed = 0.5f;
 
-		if (weapon->equipSound)
-			AddActionSound(action, weapon->equipSound, 0, 1, 1, 0);
+		if (rightWeapon->equipSound)
+			AddActionSound(action, rightWeapon->equipSound, 0, 1, 1, 0);
 	}
-	else
+
+	if (leftWeapon)
 	{
-		action->rightAnimName = "equip";
-		action->rightAnimMoveset = game->player.model;
-		action->rightAnimBlendDuration = 0.0f;
-
 		action->leftAnimName = "equip";
-		action->leftAnimMoveset = game->player.model;
+		action->leftAnimMoveset = &leftWeapon->moveset;
 		action->leftAnimBlendDuration = 0.0f;
+		action->leftAnimMirror = true;
 
-		AddActionSound(action, &game->items.equipLightSound, 0, 1, 1, 0);
+		if (leftWeapon->twoHanded)
+		{
+			action->rightAnimName = "equip";
+			action->rightAnimMoveset = &leftWeapon->moveset;
+			action->rightAnimBlendDuration = 0.0f;
+			action->rightAnimMirror = true;
+
+			SDL_assert(!rightWeapon);
+		}
+
+		action->animationSpeed = 1.0f;
+		//action->moveSpeed = 0.5f;
+
+		if (leftWeapon->equipSound)
+			AddActionSound(action, leftWeapon->equipSound, 0, 1, 1, 0);
 	}
 
 	action->equip.dstLoadout = dstLoadout;

@@ -204,7 +204,7 @@ static vec3 AnimateScaling(ScalingKeyframe* scalings, int numScalings, float tim
 	}
 }
 
-mat4 AnimateNode(Node* node, int channelID, Animation* animation, float time, bool loop)
+mat4 AnimateNode(int channelID, Animation* animation, float time, bool loop, bool mirror)
 {
 	if (loop)
 		time = mod(time, animation->duration);
@@ -215,7 +215,23 @@ mat4 AnimateNode(Node* node, int channelID, Animation* animation, float time, bo
 	quat rotation = AnimateRotation(&animation->rotations[channel->rotationsOffset], channel->rotationsCount, time, animation->duration, loop);
 	vec3 scaling = AnimateScaling(&animation->scalings[channel->scalingsOffset], channel->scalingsCount, time, animation->duration, loop);
 
-	return mat4::Transform(position, rotation, scaling);
+	mat4 transform = mat4::Transform(position, rotation, scaling);
+
+	if (mirror)
+	{
+		transform.m30 *= -1.0f;
+		transform.m01 *= -1.0f;
+		transform.m02 *= -1.0f;
+		transform.m10 *= -1.0f;
+		transform.m20 *= -1.0f;
+	}
+
+	return transform;
+}
+
+mat4 AnimateNode(int channelID, AnimationPlayback* animation)
+{
+	return AnimateNode(channelID, animation->animation, animation->timer, animation->loop, animation->mirror);
 }
 
 static int GetNodeForMesh(int meshID, Model* model)
@@ -231,7 +247,7 @@ static int GetNodeForMesh(int meshID, Model* model)
 	return -1;
 }
 
-void AnimateModel(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr)
+void AnimateModel(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, bool mirror, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr)
 {
 	SDL_assert(model->numNodes > 0);
 
@@ -241,7 +257,27 @@ void AnimateModel(Model* model, AnimationState* animationState, Animation* anima
 		Node* node = &model->nodes[i];
 		if (channelFilter && !channelFilter(node, filterUserPtr))
 			continue;
-		int channelID = GetAnimationChannelWithName(animation, node->name);
+
+		int channelID = -1;
+
+		int nameLen = (int)SDL_strlen(node->name);
+		bool mirroredNode = nameLen >= 3
+			&& (node->name[nameLen - 1] == 'l' || node->name[nameLen - 1] == 'L' || node->name[nameLen - 1] == 'r' || node->name[nameLen - 1] == 'R')
+			&& (node->name[nameLen - 2] == '_' || node->name[nameLen - 2] == '.');
+
+		if (mirror && mirroredNode)
+		{
+			char mirroredName[64];
+			SDL_memcpy(mirroredName, node->name, sizeof(node->name));
+			mirroredName[nameLen - 1] += SDL_tolower(mirroredName[nameLen - 1]) == 'l' ? 'r' - 'l' : 'l' - 'r';
+			Node* mirroredNode = GetNodeByName(model, mirroredName);
+			channelID = GetAnimationChannelWithName(animation, mirroredName);
+		}
+		else
+		{
+			channelID = GetAnimationChannelWithName(animation, node->name);
+		}
+
 		if (channelID != -1)
 		{
 			HashMapAdd(&animationState->channelMap, node, channelID);
@@ -255,12 +291,18 @@ void AnimateModel(Model* model, AnimationState* animationState, Animation* anima
 		{
 			Node* node = slot->key;
 			int channelID = slot->value;
-			animationState->nodeTransforms[node->id] = AnimateNode(node, channelID, animation, time, loop);
+
+			animationState->nodeTransforms[node->id] = AnimateNode(channelID, animation, time, loop, mirror);
 		}
 	}
 }
 
-void BlendAnimation(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, float blend, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr)
+void AnimateModel(Model* model, AnimationState* animationState, AnimationPlayback* animation, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr)
+{
+	AnimateModel(model, animationState, animation->animation, animation->timer, animation->loop, animation->mirror, channelFilter, filterUserPtr);
+}
+
+void BlendAnimation(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, bool mirror, float blend, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr)
 {
 	SDL_assert(model->numNodes > 0);
 
@@ -270,7 +312,27 @@ void BlendAnimation(Model* model, AnimationState* animationState, Animation* ani
 		Node* node = &model->nodes[i];
 		if (channelFilter && !channelFilter(node, filterUserPtr))
 			continue;
-		int channelID = GetAnimationChannelWithName(animation, node->name);
+
+		int channelID = -1;
+
+		int nameLen = (int)SDL_strlen(node->name);
+		bool mirroredNode = nameLen >= 3
+			&& (node->name[nameLen - 1] == 'l' || node->name[nameLen - 1] == 'L' || node->name[nameLen - 1] == 'r' || node->name[nameLen - 1] == 'R')
+			&& (node->name[nameLen - 2] == '_' || node->name[nameLen - 2] == '.');
+
+		if (mirror && mirroredNode)
+		{
+			char mirroredName[64];
+			SDL_memcpy(mirroredName, node->name, sizeof(node->name));
+			mirroredName[nameLen - 1] += SDL_tolower(mirroredName[nameLen - 1]) == 'l' ? 'r' - 'l' : 'l' - 'r';
+			Node* mirroredNode = GetNodeByName(model, mirroredName);
+			channelID = GetAnimationChannelWithName(animation, mirroredName);
+		}
+		else
+		{
+			channelID = GetAnimationChannelWithName(animation, node->name);
+		}
+
 		if (channelID != -1)
 		{
 			HashMapAdd(&animationState->channelMap, node, channelID);
@@ -285,10 +347,15 @@ void BlendAnimation(Model* model, AnimationState* animationState, Animation* ani
 			Node* node = slot->key;
 			int channelID = slot->value;
 			const mat4& a = animationState->nodeTransforms[node->id];
-			const mat4& b = AnimateNode(node, channelID, animation, time, loop);
+			const mat4& b = AnimateNode(channelID, animation, time, loop, mirror);
 			animationState->nodeTransforms[node->id] = interpolate(a, b, blend);
 		}
 	}
+}
+
+void BlendAnimation(Model* model, AnimationState* animationState, AnimationPlayback* animation, float blend, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr)
+{
+	BlendAnimation(model, animationState, animation->animation, animation->timer, animation->loop, animation->mirror, blend, channelFilter, filterUserPtr);
 }
 
 static void CalculateWorldTransform(int id, const mat4& parentTransform, Model* model, AnimationState* animationState)

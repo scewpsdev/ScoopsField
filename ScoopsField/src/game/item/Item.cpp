@@ -209,13 +209,17 @@ static void InitShield(ItemDatabase* items, Item* item, const char* name, bool t
 
 	char modelPath[256];
 	SDL_snprintf(modelPath, 256, "res/items/%s/%s.glb.bin", name, name);
-	LoadModel(&item->model, modelPath, false, cmdBuffer);
+	if (!LoadModel(&item->model, modelPath, false, cmdBuffer))
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to read item model %s", modelPath);
+	}
 
 	char movesetPath[256];
 	SDL_snprintf(movesetPath, 256, "res/items/%s/%s_moveset.glb.bin", name, name);
-	LoadModel(&item->moveset, movesetPath, false, cmdBuffer);
-
-	item->equipSound = &items->equipLightSound;
+	if (!LoadModel(&item->moveset, movesetPath, false, cmdBuffer))
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to read item moveset %s", movesetPath);
+	}
 
 	item->weapon.damage = 0;
 	item->weapon.damageRange = vec2(0);
@@ -228,7 +232,11 @@ static void InitShields(ItemDatabase* items)
 	// wooden shield
 	{
 		Item* item = &items->items[ITEM_WOODEN_SHIELD];
-		InitShield(items, item, "wooden_shield", false);
+		InitShield(items, item, "wooden_round_shield", false);
+
+		item->equipSound = &items->equipLightSound;
+
+		AddBlock(item, "block", "block", 1, 6);
 	}
 }
 

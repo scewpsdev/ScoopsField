@@ -474,7 +474,7 @@ static void GetClosestPointLightData(Renderer* renderer, vec3 position, vec4* li
 	for (int i = 0; i < renderer->pointLights.size; i++)
 	{
 		vec3 toLight = renderer->pointLights[i].position - position;
-		float effectiveDistance = toLight.length(); // - CalculateLightRadius(renderer->pointLights[i].color);
+		float effectiveDistance = toLight.length() - CalculateLightRadius(renderer->pointLights[i].color);
 		if (effectiveDistance < distances[furthestLight])
 		{
 			distances[furthestLight] = effectiveDistance;
@@ -661,28 +661,28 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->tonemappingPipeline = CreateTonemappingPipeline(renderer);
 
 	SDL_GPUSamplerCreateInfo samplerInfo = {};
-	samplerInfo.max_lod = VK_LOD_CLAMP_NONE;
+	samplerInfo.max_lod = 1000;
 	renderer->samplers[TEXTURE_SAMPLER_DEFAULT] = SDL_CreateGPUSampler(device, &samplerInfo);
 
 	SDL_GPUSamplerCreateInfo clampedSamplerInfo = {};
 	clampedSamplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	clampedSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	clampedSamplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-	clampedSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
+	clampedSamplerInfo.max_lod = 1000;
 	renderer->samplers[TEXTURE_SAMPLER_CLAMPED] = SDL_CreateGPUSampler(device, &clampedSamplerInfo);
 
 	SDL_GPUSamplerCreateInfo linearSamplerInfo = {};
 	linearSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	linearSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
 	linearSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
-	linearSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
+	linearSamplerInfo.max_lod = 1000;
 	renderer->samplers[TEXTURE_SAMPLER_LINEAR] = SDL_CreateGPUSampler(device, &linearSamplerInfo);
 
 	SDL_GPUSamplerCreateInfo linearClampedSamplerInfo = {};
 	linearClampedSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	linearClampedSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
 	linearClampedSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
-	linearClampedSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
+	linearClampedSamplerInfo.max_lod = 1000;
 	linearClampedSamplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	linearClampedSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	linearClampedSamplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
@@ -692,7 +692,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	linearClampedVSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	linearClampedVSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
 	linearClampedVSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
-	linearClampedVSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
+	linearClampedVSamplerInfo.max_lod = 1000;
 	linearClampedVSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED_VERTICAL] = SDL_CreateGPUSampler(device, &linearClampedVSamplerInfo);
 
@@ -700,7 +700,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	shadowSamplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
 	shadowSamplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
 	shadowSamplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
-	shadowSamplerInfo.max_lod = VK_LOD_CLAMP_NONE;
+	shadowSamplerInfo.max_lod = 1000;
 	shadowSamplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	shadowSamplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	shadowSamplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;

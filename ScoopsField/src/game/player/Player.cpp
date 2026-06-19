@@ -38,7 +38,7 @@ static void SetRightWeapon(Player* player, int loadout, Item* weapon)
 					InitAnimationState(&player->rightWeaponAnim, &weapon->model);
 
 				Action action;
-				InitEquipAction(&action, weapon);
+				InitEquipAction(&action, weapon, nullptr);
 				QueueAction(player->actions, action, *player);
 			}
 			else if (lastWeapon)
@@ -57,8 +57,8 @@ static void SetLeftWeapon(Player* player, int loadout, Item* weapon)
 	{
 		Item* lastWeapon = player->leftWeapons[loadout];
 
-		//if (lastWeapon && lastWeapon->model.numAnimations)
-		//	DestroyAnimationState(&player->leftWeaponAnim);
+		if (lastWeapon && lastWeapon->model.numAnimations)
+			DestroyAnimationState(&player->leftWeaponAnim);
 
 		player->leftWeapons[loadout] = weapon;
 
@@ -68,18 +68,18 @@ static void SetLeftWeapon(Player* player, int loadout, Item* weapon)
 			{
 				//if (lastWeapon->model.numAnimations)
 				//	DestroyAnimationState(&player->leftWeaponAnim);
-				//if (weapon->model.numAnimations)
-				//	InitAnimationState(&player->leftWeaponAnim, &weapon->model);
+				if (weapon->model.numAnimations)
+					InitAnimationState(&player->leftWeaponAnim, &weapon->model);
 
 				Action action;
-				InitEquipAction(&action, weapon);
+				InitEquipAction(&action, nullptr, weapon);
 				QueueAction(player->actions, action, *player);
 			}
 			else if (lastWeapon)
 			{
-				Action action;
-				InitUnequipAction(&action, lastWeapon);
-				QueueAction(player->actions, action, *player);
+				//Action action;
+				//InitUnequipAction(&action, lastWeapon);
+				//QueueAction(player->actions, action, *player);
 			}
 		}
 	}
@@ -127,8 +127,6 @@ Item* GetLeftApparentWeapon(Player* player)
 
 quat GetCameraRotation(Player* player)
 {
-	if (GetKey(SDL_SCANCODE_O))
-		return quat::Identity;
 	return quat::FromAxisAngle(vec3::Up, player->yaw) * quat::FromAxisAngle(vec3::Right, player->pitch);
 }
 
@@ -161,9 +159,19 @@ void SwitchLoadout(Player* player, int loadout)
 				DestroyAnimationState(&player->rightWeaponAnim);
 			if (player->rightWeapons[loadout]->model.numAnimations)
 				InitAnimationState(&player->rightWeaponAnim, &player->rightWeapons[loadout]->model);
+		}
+		if (player->leftWeapons[loadout])
+		{
+			if (player->leftWeapons[player->currentLoadout] && player->leftWeapons[player->currentLoadout]->model.numAnimations)
+				DestroyAnimationState(&player->leftWeaponAnim);
+			if (player->leftWeapons[loadout]->model.numAnimations)
+				InitAnimationState(&player->leftWeaponAnim, &player->leftWeapons[loadout]->model);
+		}
 
+		if (player->rightWeapons[loadout] || player->leftWeapons[loadout])
+		{
 			Action action;
-			InitEquipAction(&action, player->rightWeapons[loadout], loadout);
+			InitEquipAction(&action, player->rightWeapons[loadout], player->leftWeapons[loadout], loadout);
 			QueueAction(player->actions, action, *player);
 		}
 		else if (player->rightWeapons[player->currentLoadout])
@@ -233,10 +241,10 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 	player->stamina = 1.0f;
 	player->exhausted = false;
 
-	SetRightWeapon(player, 0, GetItem(ITEM_DARKWOOD_STAFF));
-	SetRightWeapon(player, 1, GetItem(ITEM_KINGS_SWORD));
+	SetLeftWeapon(player, 0, GetItem(ITEM_KINGS_SWORD));
+	//SetLeftWeapon(player, 0, GetItem(ITEM_WOODEN_SHIELD));
+	SetRightWeapon(player, 1, GetItem(ITEM_DARKWOOD_STAFF));
 	SetRightWeapon(player, 2, GetItem(ITEM_SHORTBOW));
-	//SetLeftWeapon(player, 1, GetItem(ITEM_WOODEN_SHIELD));
 }
 
 void DestroyPlayer(Player* player)
@@ -249,6 +257,8 @@ void DestroyPlayer(Player* player)
 
 	if (player->rightWeapons[player->currentLoadout] && player->rightWeapons[player->currentLoadout]->model.numAnimations)
 		DestroyAnimationState(&player->rightWeaponAnim);
+	if (player->leftWeapons[player->currentLoadout] && player->leftWeapons[player->currentLoadout]->model.numAnimations)
+		DestroyAnimationState(&player->leftWeaponAnim);
 
 	//DestroyModel(player->model);
 	//DestroyAnimationState(&player->anim);
@@ -280,8 +290,10 @@ bool HitPlayer(Player* player, HitParams* hit, Entity* by)
 
 	SDL_assert(hit->damageType != DAMAGE_TYPE_NONE);
 
+	vec3 hitDirection = (player->position - by->position).normalized();
+
 	float damage = hit->damage;
-	if (player->blockItem)
+	if (player->blockItem && dot(-hitDirection, GetCameraRotation(player).forward()) > 0.5f)
 	{
 		const float blockStaminaCost = 0.2f;
 
@@ -497,59 +509,6 @@ static mat4 CalculateViewBobbing(Player* player, int side)
 
 static void AnimateAxisBlendSpace(Model* model, AnimationState* animationState, Player* player, AnimationPlayback* idleAnim, AnimationPlayback* forwardAnim, AnimationPlayback* sideAnim, float blend)
 {
-	/*
-	if (player->ducked || player->duckTimer != -1)
-	{
-		if (player->moving)
-		{
-			vec3 fsu = quat::FromAxisAngle(vec3::Up, player->rotation).conjugated() * player->velocity;
-
-			if (SDL_fabsf(fsu.z) > SDL_fabsf(fsu.x))
-			{
-				bodyMoveAnimation = &player->bodySneakAnim;
-				bodyMoveAnimation->speed = fsu.z < 0 ? 1.0f : -1.0f;
-			}
-			else
-			{
-				bodyMoveAnimation = &player->bodySneakStrafeAnim;
-				bodyMoveAnimation->speed = fsu.x > 0 ? 1.0f : -1.0f;
-			}
-
-			bodyMoveAnimation->speed *= fsu.length() / 3.0f * (49.0f / 24) * 1.5f;
-		}
-		else
-		{
-			bodyMoveAnimation = &player->bodyDuckAnim;
-		}
-	}
-	else
-	{
-		if (player->moving)
-		{
-			vec3 fsu = quat::FromAxisAngle(vec3::Up, player->rotation).conjugated() * player->velocity;
-
-			if (SDL_fabsf(fsu.z) > SDL_fabsf(fsu.x))
-			{
-				bodyMoveAnimation = &player->bodyRunAnim;
-				bodyMoveAnimation->speed = fsu.z < 0 ? 1.0f : -1.0f;
-			}
-			else
-			{
-				bodyMoveAnimation = &player->bodyStrafeAnim;
-				bodyMoveAnimation->speed = fsu.x > 0 ? 1.0f : -1.0f;
-			}
-
-			bodyMoveAnimation->speed *= fsu.length() / 3.0f;
-		}
-		else
-		{
-			bodyMoveAnimation = &player->bodyIdleAnim;
-		}
-	}
-	*/
-
-
-
 	SDL_assert(model->numNodes > 0);
 
 	ClearHashMap(&animationState->channelMap);
@@ -576,9 +535,9 @@ static void AnimateAxisBlendSpace(Model* model, AnimationState* animationState, 
 			const mat4& a = animationState->nodeTransforms[node->id];
 			mat4 b;
 
-			mat4 idle = AnimateNode(node, channelID, idleAnim->animation, idleAnim->timer, idleAnim->loop);
-			mat4 forward = AnimateNode(node, channelID, forwardAnim->animation, forwardAnim->timer, forwardAnim->loop);
-			mat4 side = AnimateNode(node, channelID, sideAnim->animation, sideAnim->timer, sideAnim->loop);
+			mat4 idle = AnimateNode(channelID, idleAnim);
+			mat4 forward = AnimateNode(channelID, forwardAnim);
+			mat4 side = AnimateNode(channelID, sideAnim);
 
 			float moveAmount = clamp(speed * 0.5f, 0, 1);
 
@@ -833,7 +792,7 @@ void UpdatePlayer(Player* player)
 	AnimationPlayback* moveAnimation = &player->idleAnim;
 	moveAnimation->timer += deltaTime * moveAnimation->speed;
 
-	AnimateModel(player->model, &player->anim, moveAnimation->animation, moveAnimation->timer, moveAnimation->loop, nullptr, nullptr);
+	AnimateModel(player->model, &player->anim, moveAnimation, nullptr, nullptr);
 
 	AnimationPlayback* bodyMoveAnimation = nullptr;
 
@@ -875,11 +834,13 @@ void UpdatePlayer(Player* player)
 	Animation* rightAnimation = moveAnimation->animation;
 	float rightAnimationTimer = moveAnimation->timer;
 	bool rightAnimationLoop = moveAnimation->loop;
+	bool rightAnimationMirror = false;
 	float rightAnimationBlendDuration = 0.2f;
 
 	Animation* leftAnimation = moveAnimation->animation;
 	float leftAnimationTimer = moveAnimation->timer;
 	bool leftAnimationLoop = moveAnimation->loop;
+	bool leftAnimationMirror = false;
 	float leftAnimationBlendDuration = 0.2f;
 
 	Animation* bodyAnimation = bodyMoveAnimation->animation;
@@ -899,6 +860,7 @@ void UpdatePlayer(Player* player)
 	if (left)
 	{
 		leftAnimation = GetAnimationByName(&left->moveset, "idle");
+		leftAnimationMirror = left != right;
 		SDL_assert(leftAnimation);
 	}
 
@@ -910,6 +872,7 @@ void UpdatePlayer(Player* player)
 			rightAnimation = currentAction->rightAnim.animation;
 			rightAnimationTimer = currentAction->elapsedTime;
 			rightAnimationLoop = false;
+			rightAnimationMirror = currentAction->rightAnimMirror;
 			rightAnimationBlendDuration = currentAction->rightAnimBlendDuration;
 		}
 		if (currentAction->leftAnim.animation)
@@ -917,6 +880,7 @@ void UpdatePlayer(Player* player)
 			leftAnimation = currentAction->leftAnim.animation;
 			leftAnimationTimer = currentAction->elapsedTime;
 			leftAnimationLoop = false;
+			leftAnimationMirror = currentAction->leftAnimMirror;
 			leftAnimationBlendDuration = currentAction->leftAnimBlendDuration;
 		}
 		if (currentAction->bodyAnim.animation)
@@ -951,7 +915,7 @@ void UpdatePlayer(Player* player)
 		else if (bodyAnimation == player->bodyDuckAnim.animation)
 			AnimateAxisBlendSpace(player->bodyModel, &player->bodyAnim, player, &player->bodyDuckAnim, &player->bodySneakAnim, &player->bodySneakStrafeAnim, 1);
 		else
-			AnimateModel(player->bodyModel, &player->bodyAnim, bodyAnimation, bodyAnimationTimer, bodyAnimationLoop, nullptr, nullptr);
+			AnimateModel(player->bodyModel, &player->bodyAnim, bodyAnimation, bodyAnimationTimer, bodyAnimationLoop, false, nullptr, nullptr);
 
 		//AnimateModel(player->bodyModel, &player->bodyAnim, moveAnimation->animation, moveAnimation->timer, moveAnimation->loop, nullptr, nullptr);
 
@@ -985,7 +949,7 @@ void UpdatePlayer(Player* player)
 				else if (player->bodyBlendAnim == player->bodyDuckAnim.animation)
 					AnimateAxisBlendSpace(player->bodyModel, &player->bodyAnim, player, &player->bodyDuckAnim, &player->bodySneakAnim, &player->bodySneakStrafeAnim, 1 - blendProgress);
 				else
-					BlendAnimation(player->bodyModel, &player->bodyAnim, player->bodyBlendAnim, player->bodyBlendAnimTimer, player->bodyBlendAnimLoop, 1 - blendProgress, nullptr, nullptr);
+					BlendAnimation(player->bodyModel, &player->bodyAnim, player->bodyBlendAnim, player->bodyBlendAnimTimer, player->bodyBlendAnimLoop, false, 1 - blendProgress, nullptr, nullptr);
 			}
 		}
 
@@ -998,7 +962,7 @@ void UpdatePlayer(Player* player)
 		bool right = true;
 		//AnimateModel(player->model, &player->anim, rightAnimation, rightAnimationTimer, rightAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 
-		AnimateModel(player->bodyModel, &player->bodyAnim, rightAnimation, rightAnimationTimer, rightAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+		AnimateModel(player->bodyModel, &player->bodyAnim, rightAnimation, rightAnimationTimer, rightAnimationLoop, rightAnimationMirror, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 
 		if (rightAnimation != player->lastRightAnim && player->lastRightAnim)
 		{
@@ -1006,6 +970,7 @@ void UpdatePlayer(Player* player)
 			player->rightBlendAnim = player->lastRightAnim;
 			player->rightBlendAnimTimer = player->lastRightAnimTimer;
 			player->rightBlendAnimLoop = player->lastRightAnimLoop;
+			player->rightBlendAnimMirror = player->lastRightAnimMirror;
 			player->rightBlendDuration = rightAnimationBlendDuration;
 		}
 
@@ -1020,20 +985,21 @@ void UpdatePlayer(Player* player)
 			{
 				//BlendAnimation(player->model, &player->anim, player->rightBlendAnim, player->rightBlendAnimTimer, player->rightBlendAnimLoop, 1 - blendProgress, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 
-				BlendAnimation(player->bodyModel, &player->bodyAnim, player->rightBlendAnim, player->rightBlendAnimTimer, player->rightBlendAnimLoop, 1 - blendProgress, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+				BlendAnimation(player->bodyModel, &player->bodyAnim, player->rightBlendAnim, player->rightBlendAnimTimer, player->rightBlendAnimLoop, player->rightBlendAnimMirror, 1 - blendProgress, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 			}
 		}
 
 		player->lastRightAnim = rightAnimation;
 		player->lastRightAnimTimer = rightAnimationTimer;
 		player->lastRightAnimLoop = rightAnimationLoop;
+		player->lastRightAnimMirror = rightAnimationMirror;
 	}
 	if (leftAnimation)
 	{
 		bool right = false;
 		//AnimateModel(player->model, &player->anim, leftAnimation, leftAnimationTimer, leftAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 
-		AnimateModel(player->bodyModel, &player->bodyAnim, leftAnimation, leftAnimationTimer, leftAnimationLoop, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+		AnimateModel(player->bodyModel, &player->bodyAnim, leftAnimation, leftAnimationTimer, leftAnimationLoop, leftAnimationMirror, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 
 		if (leftAnimation != player->lastLeftAnim && player->lastLeftAnim)
 		{
@@ -1041,6 +1007,7 @@ void UpdatePlayer(Player* player)
 			player->leftBlendAnim = player->lastLeftAnim;
 			player->leftBlendAnimTimer = player->lastLeftAnimTimer;
 			player->leftBlendAnimLoop = player->lastLeftAnimLoop;
+			player->leftBlendAnimMirror = player->lastLeftAnimMirror;
 			player->leftBlendDuration = leftAnimationBlendDuration;
 		}
 
@@ -1055,13 +1022,14 @@ void UpdatePlayer(Player* player)
 			{
 				//BlendAnimation(player->model, &player->anim, player->leftBlendAnim, player->leftBlendAnimTimer, player->leftBlendAnimLoop, 1 - blendProgress, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 
-				BlendAnimation(player->bodyModel, &player->bodyAnim, player->leftBlendAnim, player->leftBlendAnimTimer, player->leftBlendAnimLoop, 1 - blendProgress, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
+				BlendAnimation(player->bodyModel, &player->bodyAnim, player->leftBlendAnim, player->leftBlendAnimTimer, player->leftBlendAnimLoop, player->leftBlendAnimMirror, 1 - blendProgress, (AnimationChannelFilterCallback_t)ArmAnimChannelFilter, &right);
 			}
 		}
 
 		player->lastLeftAnim = leftAnimation;
 		player->lastLeftAnimTimer = leftAnimationTimer;
 		player->lastLeftAnimLoop = leftAnimationLoop;
+		player->lastLeftAnimMirror = leftAnimationMirror;
 	}
 
 	bool proceduralViewmodelAnim = !(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim);
@@ -1158,14 +1126,31 @@ void UpdatePlayer(Player* player)
 		if (currentAction && currentAction->rightItemAnimName)
 		{
 			currentAction->rightWeaponAnim.timer += deltaTime;
-			AnimateModel(&rightWeapon->model, &player->rightWeaponAnim, currentAction->rightWeaponAnim.animation, currentAction->rightWeaponAnim.timer, currentAction->rightWeaponAnim.loop, nullptr, nullptr);
+			AnimateModel(&rightWeapon->model, &player->rightWeaponAnim, &currentAction->rightWeaponAnim, nullptr, nullptr);
 		}
 		else if (Animation* defaultAnim = GetAnimationByName(&rightWeapon->model, "item_default"))
 		{
-			AnimateModel(&rightWeapon->model, &player->rightWeaponAnim, defaultAnim, gameTime, true, nullptr, nullptr);
+			AnimateModel(&rightWeapon->model, &player->rightWeaponAnim, defaultAnim, gameTime, true, false, nullptr, nullptr);
 		}
 
 		ApplyAnimationToSkeleton(&rightWeapon->model, &player->rightWeaponAnim);
+	}
+
+	Item* leftWeapon = GetLeftWeapon(player);
+	if (leftWeapon && leftWeapon->model.numAnimations)
+	{
+		Action* currentAction = GetCurrentAction(player);
+		if (currentAction && currentAction->leftItemAnimName)
+		{
+			currentAction->leftWeaponAnim.timer += deltaTime;
+			AnimateModel(&leftWeapon->model, &player->leftWeaponAnim, &currentAction->leftWeaponAnim, nullptr, nullptr);
+		}
+		else if (Animation* defaultAnim = GetAnimationByName(&leftWeapon->model, "item_default"))
+		{
+			AnimateModel(&leftWeapon->model, &player->leftWeaponAnim, defaultAnim, gameTime, true, false, nullptr, nullptr);
+		}
+
+		ApplyAnimationToSkeleton(&leftWeapon->model, &player->leftWeaponAnim);
 	}
 
 	ApplyAnimationToSkeleton(player->model, &player->anim);
@@ -1178,7 +1163,8 @@ void UpdatePlayer(Player* player)
 	{
 		if (!(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim))
 		{
-			game->cameraPosition = player->position + vec3::Up * player->cameraHeight;
+			//game->cameraPosition = player->position + vec3::Up * player->cameraHeight;
+			game->cameraPosition = player->position + quat::FromAxisAngle(vec3::Up, player->rotation + PI) * (GetNodeTransform(&player->bodyAnim, player->neckNode).translation() + vec3(0, 0, 0.03f));
 
 			float landBob = 0.0f;
 			if (player->lastLandedTime)
@@ -1189,14 +1175,6 @@ void UpdatePlayer(Player* player)
 			game->cameraPosition.y -= landBob;
 
 			game->cameraRotation = quat::FromAxisAngle(vec3::Up, player->yaw) * quat::FromAxisAngle(vec3::Right, player->pitch);
-
-			//if (GetKey(SDL_SCANCODE_O))
-			{
-				game->cameraPosition = player->position + quat::FromAxisAngle(vec3::Up, player->rotation + PI) * (GetNodeTransform(&player->bodyAnim, player->neckNode).translation() + vec3(0, 0, 0.03f));
-				game->cameraRotation = GetNodeTransform(&player->bodyAnim, player->neckNode).rotation();
-				game->cameraRotation = quat::Identity;
-				game->cameraRotation = quat::FromAxisAngle(vec3::Up, player->yaw) * quat::FromAxisAngle(vec3::Right, player->pitch);
-			}
 		}
 		else
 		{
@@ -1204,6 +1182,7 @@ void UpdatePlayer(Player* player)
 			game->cameraPosition = player->position + quat::FromAxisAngle(vec3::Up, player->rotation) * cameraNodeTransform.translation();
 			//game->cameraRotation = quat::FromAxisAngle(vec3::Up, PI) * cameraNodeTransform.rotation();
 			game->cameraRotation = quat::FromAxisAngle(vec3::Up, player->rotation) * quat::FromAxisAngle(vec3::Right, player->pitch) * quat::FromAxisAngle(vec3::Up, player->yaw - player->rotation);
+			//game->cameraRotation = GetNodeTransform(&player->bodyAnim, player->neckNode).rotation();
 		}
 
 		SetAudioListener(game->cameraPosition, game->cameraRotation);
@@ -1269,7 +1248,7 @@ void RenderPlayer(Player* player)
 	bodyTransform = scaleToCamera * bodyTransform;
 	RenderModel(&game->renderer, player->bodyModel, &player->bodyAnim, bodyTransform);
 
-	//RenderModel(&game->renderer, player->bodyModel, &player->bodyAnim, mat4::Translate(-1, 0, -1) * mat4::Rotate(vec3::Up, player->rotation));
+	RenderModel(&game->renderer, player->bodyModel, &player->bodyAnim, mat4::Translate(-1, 0, -1) * mat4::Rotate(vec3::Up, player->rotation));
 
 	//mat4 cameraTransform = GetCameraTransform(player);
 

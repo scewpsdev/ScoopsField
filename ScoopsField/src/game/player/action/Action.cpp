@@ -99,6 +99,8 @@ static void StartActionInternal(ActionManager& actions, Action* action, Player* 
 		InitAnimation(&action->bodyAnim, action->bodyAnimName, action->bodyAnimMoveset ? action->bodyAnimMoveset : actions.bodyMoveset, action->animationSpeed, false, false);
 	if (action->rightItemAnimName)
 		InitAnimation(&action->rightWeaponAnim, action->rightItemAnimName, action->rightItemAnimMoveset, 1.0f, false, false);
+	if (action->leftItemAnimName)
+		InitAnimation(&action->leftWeaponAnim, action->leftItemAnimName, action->leftItemAnimMoveset, 1.0f, false, false);
 
 	if (!action->duration)
 	{
@@ -147,24 +149,25 @@ void UpdateActionManager(ActionManager& actions, Player& player)
 {
 	if (actions.actions.size > 0)
 	{
-		Action* currentAction = QueuePeek(actions.actions);
-		if (currentAction->startTime > 0)
+		Action* action = QueuePeek(actions.actions);
+
+		if (action->startTime > 0)
 		{
-			bool shouldFinish = currentAction->elapsedTime >= currentAction->duration ||
-				currentAction->followUpCancelTime && currentAction->elapsedTime >= currentAction->followUpCancelTime && actions.actions.size > 1 /*&& currentAction->type == QueuePeekAt(actions.actions, 1)->type*/;
+			bool shouldFinish = action->elapsedTime >= action->duration ||
+				action->followUpCancelTime && action->elapsedTime >= action->followUpCancelTime && actions.actions.size > 1 /*&& action->type == QueuePeekAt(actions.actions, 1)->type*/;
 			if (shouldFinish)
 			{
-				StopActionInternal(actions, currentAction, &player);
+				StopActionInternal(actions, action, &player);
 				QueuePop(actions.actions);
-				currentAction = QueuePeek(actions.actions);
+				action = QueuePeek(actions.actions);
 			}
 		}
 
-		if (currentAction)
+		if (action)
 		{
-			if (!currentAction->startTime)
-				StartActionInternal(actions, currentAction, &player);
-			UpdateAction(currentAction, &player, deltaTime);
+			if (!action->startTime)
+				StartActionInternal(actions, action, &player);
+			UpdateAction(action, &player, deltaTime);
 		}
 	}
 }

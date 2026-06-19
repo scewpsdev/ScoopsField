@@ -277,9 +277,6 @@ void OnLogMessage(void* userdata, int category, SDL_LogPriority priority, const 
 {
 	SDL_LogOutputFunction logOutputFunction = SDL_GetDefaultLogOutputFunction();
 	logOutputFunction(userdata, category, priority, message);
-
-	if (priority >= SDL_LOG_PRIORITY_WARN)
-		__debugbreak();
 }
 
 static void InitAppState()

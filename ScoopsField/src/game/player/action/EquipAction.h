@@ -13,8 +13,11 @@ struct EquipAction
 	int dstLoadout;
 };
 
+struct Action;
+struct Player;
 
-void InitEquipAction(struct Action* action, Item* weapon, int dstLoadout = -1);
-void StartEquipAction(struct Action* action, struct Player* player);
-void StopEquipAction(struct Action* action, struct Player* player);
-void UpdateEquipAction(struct Action* action, struct Player* player);
+
+void InitEquipAction(Action* action, Item* rightWeapon, Item* leftWeapon, int dstLoadout = -1);
+void StartEquipAction(Action* action, Player* player);
+void StopEquipAction(Action* action, Player* player);
+void UpdateEquipAction(Action* action, Player* player);

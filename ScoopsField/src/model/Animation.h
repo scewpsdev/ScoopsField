@@ -38,9 +38,12 @@ typedef bool(*AnimationChannelFilterCallback_t)(Node* node, void* userPtr);
 void InitAnimationState(AnimationState* animationState, Model* model);
 void DestroyAnimationState(AnimationState* animationState);
 
-mat4 AnimateNode(Node* node, int channelID, Animation* animation, float time, bool loop);
-void AnimateModel(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr);
-void BlendAnimation(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, float blend, AnimationChannelFilterCallback_t channelFilter = nullptr, void* filterUserPtr = nullptr);
+mat4 AnimateNode(int channelID, Animation* animation, float time, bool loop, bool mirror);
+mat4 AnimateNode(int channelID, AnimationPlayback* animation);
+void AnimateModel(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, bool mirror, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr);
+void AnimateModel(Model* model, AnimationState* animationState, AnimationPlayback* animation, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr);
+void BlendAnimation(Model* model, AnimationState* animationState, Animation* animation, float time, bool loop, bool mirror, float blend, AnimationChannelFilterCallback_t channelFilter = nullptr, void* filterUserPtr = nullptr);
+void BlendAnimation(Model* model, AnimationState* animationState, AnimationPlayback* animation, float blend, AnimationChannelFilterCallback_t channelFilter, void* filterUserPtr);
 void ApplyAnimationToSkeleton(Model* model, AnimationState* animationState, bool calculateWorldTransforms = true);
 
 int GetAnimationChannelWithName(Animation* animation, const char* name);

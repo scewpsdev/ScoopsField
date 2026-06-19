@@ -456,7 +456,7 @@ static void RenderParticleEmitter(ParticleSystem* particles, ParticleEmitter* em
 			float brightness = emitter->numParticles * 0.5f * (emitter->size + emitter->endSize);
 			vec4 color = 0.5f * ((emitter->color) + (emitter->endColor));
 			color.rgb *= emitter->emissive;
-			vec3 light = 0.05f * color.rgb * color.a * brightness;
+			vec3 light = 0.02f * color.rgb * color.a * brightness;
 			vec3 position = 0.5f * (emitter->boundingBox.min + emitter->boundingBox.max);
 			if (emitter->follow)
 				position = transform * position;

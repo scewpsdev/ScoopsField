@@ -60,10 +60,12 @@ struct Action
 	const char* rightAnimName;
 	Model* rightAnimMoveset;
 	float rightAnimBlendDuration;
+	bool rightAnimMirror;
 
 	const char* leftAnimName;
 	Model* leftAnimMoveset;
 	float leftAnimBlendDuration;
+	bool leftAnimMirror;
 
 	const char* bodyAnimName;
 	Model* bodyAnimMoveset;
@@ -73,10 +75,15 @@ struct Action
 	Model* rightItemAnimMoveset;
 	float rightItemAnimBlendDuration;
 
+	const char* leftItemAnimName;
+	Model* leftItemAnimMoveset;
+	float leftItemAnimBlendDuration;
+
 	AnimationPlayback rightAnim;
 	AnimationPlayback leftAnim;
 	AnimationPlayback bodyAnim;
 	AnimationPlayback rightWeaponAnim;
+	AnimationPlayback leftWeaponAnim;
 
 	bool overrideRightWeapon;
 	Item* rightWeapon;

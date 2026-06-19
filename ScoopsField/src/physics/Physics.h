@@ -6,7 +6,8 @@
 #include <PxScene.h>
 #include <cooking/PxCooking.h>
 #include <characterkinematic/PxControllerManager.h>
-#include <physx/pvd/PxPvd.h>
+#include <cudamanager/PxCudaContextManager.h>
+#include <pvd/PxPvd.h>
 
 
 struct PhysicsAllocator : physx::PxAllocatorCallback
