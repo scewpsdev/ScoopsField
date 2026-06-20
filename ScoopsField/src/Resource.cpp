@@ -28,21 +28,20 @@ FileWatcher* AddFileWatcher(const char* path)
 {
 	SDL_assert(resource->numFileWatchers < MAX_FILE_WATCHERS);
 
-	FileWatcher* watcher = &resource->fileWatchers[resource->numFileWatchers];
-
 	SDL_PathInfo pathInfo = {};
 	if (SDL_GetPathInfo(path, &pathInfo))
 	{
+		FileWatcher* watcher = &resource->fileWatchers[resource->numFileWatchers];
 		SDL_strlcpy(watcher->path, path, sizeof(watcher->path));
 		watcher->lastWriteTime = pathInfo.modify_time;
 		resource->numFileWatchers++;
+		return watcher;
 	}
 	else
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "%s", SDL_GetError());
+		return nullptr;
 	}
-
-	return watcher;
 }
 
 FileWatcher* GetFileWatcherFromPath(const char* path)
@@ -79,6 +78,22 @@ bool FileHasChanged(FileWatcher* file)
 	return false;
 }
 
+static void ResetFileChange(FileWatcher* file)
+{
+	SDL_PathInfo pathInfo = {};
+	if (SDL_GetPathInfo(file->path, &pathInfo))
+	{
+		if (pathInfo.modify_time > file->lastWriteTime)
+		{
+			file->lastWriteTime = pathInfo.modify_time;
+		}
+	}
+	else
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "%s", SDL_GetError());
+	}
+}
+
 static void AddHotReloadedResource(ResourceType type, const char* path, const char* path1, void* handle, void* handle1)
 {
 	SDL_assert(resource->numResourceWatchers < MAX_RESOURCE_WATCHERS);
@@ -101,8 +116,12 @@ static void AddHotReloadedResource(ResourceType type, const char* path, const ch
 		SDL_strlcat(fullPath1, path1, 256);
 	}
 
-	watcher->file = AddFileWatcher(fullPath);
-	watcher->file1 = path1 ? AddFileWatcher(fullPath1) : nullptr;
+	watcher->file = GetFileWatcherFromPath(fullPath);
+	if (!watcher->file) watcher->file = AddFileWatcher(fullPath);
+
+	watcher->file1 = path1 ? GetFileWatcherFromPath(fullPath1) : nullptr;
+	if (!watcher->file1 && path1) watcher->file1 = AddFileWatcher(fullPath1);
+
 	watcher->handle = handle;
 	watcher->handle1 = handle1;
 }
@@ -112,9 +131,9 @@ void AddHotReloadedShader(const char* vertex, const char* fragment, Shader* shad
 	AddHotReloadedResource(RESOURCE_TYPE_GRAPHICS_SHADER, vertex, fragment, shader, pipeline);
 }
 
-void AddHotReloadedComputeShader(const char* path, Shader* shader)
+void AddHotReloadedComputeShader(const char* path, const char* path1, Shader* shader)
 {
-	AddHotReloadedResource(RESOURCE_TYPE_COMPUTE_SHADER, path, nullptr, shader, nullptr);
+	AddHotReloadedResource(RESOURCE_TYPE_COMPUTE_SHADER, path, path1, shader, nullptr);
 }
 
 void UpdateHotReloadedResources()
@@ -154,7 +173,7 @@ void UpdateHotReloadedResources()
 			else if (watcher->type == RESOURCE_TYPE_COMPUTE_SHADER)
 			{
 				SDL_assert(watcher->file && watcher->handle);
-				if (FileHasChanged(watcher->file))
+				if (FileHasChanged(watcher->file) || watcher->file1 && FileHasChanged(watcher->file1))
 				{
 					Shader* shader = (Shader*)watcher->handle;
 
@@ -172,6 +191,12 @@ void UpdateHotReloadedResources()
 			{
 				SDL_assert(false);
 			}
+		}
+
+		for (int i = 0; i < resource->numFileWatchers; i++)
+		{
+			FileWatcher* watcher = &resource->fileWatchers[i];
+			ResetFileChange(watcher);
 		}
 	}
 }

@@ -6,9 +6,9 @@
 #define mieHeightScale 1200
 #define mieAnisotropy 0.76 // 0.76
 #define ozoneAbsorption vec3(0.65e-6, 1.88e-6, 0.085e-6)
-#define groundColor vec3(0.05)
+#define groundColor vec3(0.18)
 
-#define haziness weatherData.x
+#define haziness 0 //weatherData.x
 #define cloudCoverage weatherData.y
 #define cloudDensity weatherData.z
 #define windSpeed weatherData.w
@@ -123,8 +123,8 @@ vec3 sampleMultiScatter(float height, vec3 toLight, vec3 up)
 
 	vec3 multi = texture(s_multiScatterLUT, uv).rgb;
 
-	float scatterMultiplier = 20; //remap(max(dot(toLight, vec3(0, 1, 0)), 0), 0, 1, 1, 20);
-	multi *= scatterMultiplier;
+	//float scatterMultiplier = 10; //remap(max(dot(toLight, vec3(0, 1, 0)), 0), 0, 1, 1, 20);
+	//multi *= scatterMultiplier;
 
 	return multi;
 }
@@ -142,8 +142,7 @@ vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, float noise)
 	float ldt = 1.0 / numSamples;
 	float segmentLength = l * ldt;
 
-	vec3 rayleigh = vec3(0), mie = vec3(0), cloud = vec3(0);
-	vec3 opticalDepth = vec3(0);
+	vec3 rayleigh = vec3(0), mie = vec3(0);
 	vec3 viewTransmittance = vec3(1);
 
 	vec3 toLight = -lightDir;
@@ -171,6 +170,7 @@ vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, float noise)
 		float distanceFromPlanet = length(pos);
 		float height = distanceFromPlanet - planetRadius;
 		vec3 up = pos / distanceFromPlanet;
+
 		if (height < 0)
 			break;
 
@@ -181,21 +181,19 @@ vec3 atmosphere(vec3 origin, vec3 dir, vec3 lightDir, float noise)
 
 		vec3 stepTransmittance = exp(-sigmaT * dt);
 
-		opticalDepth += density * dt;
-		viewTransmittance = exp(-(rayleighScatter * opticalDepth.x + mieScatter * opticalDepth.y + ozoneAbsorption * opticalDepth.z));
-
 		vec3 lightTransmittance = sampleTransmittanceLUT(height, toLight, up);
 		vec3 multiScatter = sampleMultiScatter(height, toLight, up);
-		vec3 inscatter = lightTransmittance + multiScatter;
 
-		vec3 transmittance = viewTransmittance * inscatter;
+		vec3 integral = viewTransmittance * sigmaS * (1 - stepTransmittance) / max(sigmaT, vec3(1e-6)) / max(sigmaS, vec3(1e-6));
 
-		rayleigh += transmittance * density.x * dt;
-		mie += transmittance * density.y * dt;
+		rayleigh += integral * (lightTransmittance * phaseR + multiScatter) * rayleighScatter * density.x;
+		mie += integral * (lightTransmittance * phaseM + multiScatter) * mieScatter * density.y;
+
+		viewTransmittance *= stepTransmittance;
 	}
 
 	float sunIntensity = 25;
-	vec3 scattering = (rayleigh * rayleighScatter * phaseR + mie * mieScatter * phaseM) * sunIntensity;
+	vec3 scattering = (rayleigh + mie) * sunIntensity;
 
 	float tgmin, tgmax;
 	if (sphereIntersect(origin, dir, planetRadius, tgmin, tgmax))

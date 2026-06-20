@@ -69,7 +69,7 @@ bool FileHasChanged(FileWatcher* file);
 FileWatcher* GetFileWatcherFromPath(const char* path);
 
 void AddHotReloadedShader(const char* vertex, const char* fragment, Shader* shader, GraphicsPipeline* pipeline);
-void AddHotReloadedComputeShader(const char* path, Shader* shader);
+void AddHotReloadedComputeShader(const char* path, const char* path1, Shader* shader);
 void UpdateHotReloadedResources();
 
 StringView GetDirectory(const char* path);

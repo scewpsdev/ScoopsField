@@ -15,6 +15,7 @@ layout(set = 2, binding = 0) uniform UniformBlock {
 #include "sky.glsl"
 
 
+/*
 vec3 sampleSphere(int i, int n)
 {
     float fi = float(i);
@@ -26,6 +27,19 @@ vec3 sampleSphere(int i, int n)
     float sinTheta = sqrt(1 - cosTheta * cosTheta);
 
     return vec3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+}
+*/
+
+// fibonacci sphere
+vec3 sampleSphere(int i, int n)
+{
+    float fi = float(i);
+	float goldenRatio = 1.618033988749895;
+	float longitude = 2 * pi * fi * goldenRatio;
+	float cosTheta = 1 - (2 * fi + 1) / n;
+	float sinTheta = sqrt(max(1 - cosTheta * cosTheta, 0));
+
+    return vec3(cos(longitude) * sinTheta, sin(longitude) * sinTheta, cosTheta);
 }
 
 bool raymarch(vec3 origin, vec3 dir, vec3 toLight, out vec3 singleScatter, out vec3 energyTransfer)
@@ -47,17 +61,13 @@ bool raymarch(vec3 origin, vec3 dir, vec3 toLight, out vec3 singleScatter, out v
 
 	singleScatter = vec3(0);
 	energyTransfer = vec3(0);
-
 	vec3 throughput = vec3(1);
 
 	for (int i = 0; i < numSamples; i++)
 	{
 		float t = tmin + (i + 0.5) * segmentLength;
 		vec3 pos = origin + t * dir;
-		float height = length(pos) - planetRadius;
-
-		if (height < 0)
-			break;
+		float height = max(length(pos) - planetRadius, 0);
 
 		vec3 density = getDensities(height);
 
@@ -65,24 +75,27 @@ bool raymarch(vec3 origin, vec3 dir, vec3 toLight, out vec3 singleScatter, out v
 		vec3 sigmaT = sigmaS + ozoneAbsorption * density.z;
 
 		vec3 stepTransmittance = exp(-sigmaT * segmentLength);
-
 		vec3 lightTransmittance = sampleTransmittanceLUT(height, toLight, normalize(pos));
-		singleScatter += throughput * sigmaS * segmentLength * lightTransmittance;
 
-		energyTransfer += throughput * sigmaS * segmentLength;
+		vec3 integratedScattering = lightTransmittance * sigmaS * (1 - stepTransmittance) / max(sigmaT, vec3(1e-6));
+		singleScatter += throughput * integratedScattering;
+
+		energyTransfer += throughput * sigmaS * (1 - stepTransmittance) / max(sigmaT, vec3(1e-6));
 
 		throughput *= stepTransmittance;
 	}
 
+	/*
 	if (tgmin > 0)
 	{
-		vec3 ground = origin + tgmax * dir;
+		vec3 ground = origin + tgmin * dir;
 		vec3 groundUp = normalize(ground);
-		vec3 sunToGround = sampleTransmittanceLUT(0, toLight, groundUp) * max(dot(groundUp, toLight), 0) / (4 * pi);
-		vec3 albedo = groundColor;
-		singleScatter += throughput * albedo * sunToGround;
-		singleScatter = vec3(0);
+		vec3 sunToGround = sampleTransmittanceLUT(0, toLight, groundUp);
+
+		vec3 albedo = groundColor / pi;
+		singleScatter += throughput * albedo * sunToGround * max(dot(groundUp, toLight), 0);
 	}
+	*/
 
 	return true;
 }

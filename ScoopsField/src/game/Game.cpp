@@ -223,12 +223,12 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/sky/sky.frag", game->renderer.skyShader, game->renderer.skyPipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/sky/sky_upsample.frag", game->renderer.skyUpsampleShader, game->renderer.skyUpsamplePipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/sky/sky_cube.frag", game->renderer.skyCubeShader, game->renderer.skyCubePipeline);
-	AddHotReloadedComputeShader("shaders/sky/transmittance_lut.comp", game->renderer.skyTransmittanceLUTShader);
-	AddHotReloadedComputeShader("shaders/sky/multiscatter_lut.comp", game->renderer.skyMultiScatterLUTShader);
-	AddHotReloadedComputeShader("shaders/sky/skyview_lut.comp", game->renderer.skyViewLUTShader);
-	AddHotReloadedComputeShader("shaders/sky/sun_color.comp", game->renderer.sunColorShader);
-	AddHotReloadedComputeShader("shaders/sky/cloud_noise.comp", game->renderer.cloudNoiseShader);
-	AddHotReloadedComputeShader("shaders/sky/cloud_noise_detail.comp", game->renderer.cloudNoiseDetailShader);
+	AddHotReloadedComputeShader("shaders/sky/transmittance_lut.comp", nullptr, game->renderer.skyTransmittanceLUTShader);
+	AddHotReloadedComputeShader("shaders/sky/multiscatter_lut.comp", nullptr, game->renderer.skyMultiScatterLUTShader);
+	AddHotReloadedComputeShader("shaders/sky/skyview_lut.comp", "shaders/sky/sky.glsl", game->renderer.skyViewLUTShader);
+	AddHotReloadedComputeShader("shaders/sky/sun_color.comp", nullptr, game->renderer.sunColorShader);
+	AddHotReloadedComputeShader("shaders/sky/cloud_noise.comp", nullptr, game->renderer.cloudNoiseShader);
+	AddHotReloadedComputeShader("shaders/sky/cloud_noise_detail.comp", nullptr, game->renderer.cloudNoiseDetailShader);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/tonemapping.frag", game->renderer.tonemappingShader, game->renderer.tonemappingPipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/deferred_diffuse.frag", game->renderer.deferredDiffuseShader, game->renderer.deferredDiffusePipeline);
 	AddHotReloadedShader("shaders/entity/magic_projectile.vert", "shaders/entity/magic_projectile.frag", game->magicProjectileShader->pipelineInfo.shader, game->magicProjectileShader);

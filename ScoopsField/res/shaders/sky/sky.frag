@@ -133,9 +133,9 @@ void main()
 		color = mix(color, sunlight, sunAlpha);
 
 		// clouds
-		float noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
-		vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, noise);
-		color = mix(cloudColor.rgb, color, cloudColor.a);
+		//float noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
+		//vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, noise);
+		//color = mix(cloudColor.rgb, color, cloudColor.a);
 
 		// temporal accumulation
 		vec2 lastUV = reconstructUV(dir, lastProjection, lastView);

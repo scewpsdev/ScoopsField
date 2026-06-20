@@ -359,6 +359,8 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod, int numS
 		float density = getCloudDensity(pos, height, lod);
 		density *= segmentLength;
 
+		vec3 localUp = normalize(pos);
+
 		if (density > 0)
 		{
 			float densityToLight = lightRay(pos, toLight, mu, noise, lod);
@@ -369,12 +371,12 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod, int numS
 			beer += 0.4 * fakeScatter * exp(-0.02 * densityToLight);
 			//beer *= mix(0.05 + 1.5 * pow(min(1, density / segmentLength * 8.5), 0.3 + 5.5 * clamp(remap(height, minCloudHeight, maxCloudHeight, 0, 1), 0, 1)), 1, clamp(densityToLight * 0.4, 0, 1));
 
-			vec3 sunlight = sampleTransmittanceLUT(height, toLight, normalize(pos));
-			vec3 multiScatter = sampleMultiScatter(height, toLight, normalize(pos));
+			vec3 sunlight = sampleTransmittanceLUT(height, toLight, localUp);
+			vec3 multiScatter = sampleMultiScatter(height, toLight, localUp);
 
 			float ambient = 0.006;
 			float powder = 1 - exp(-density);
-			vec3 lighting = ambient * sunlight + beer * (sunlight + multiScatter) * powder;
+			vec3 lighting = sunlight * (ambient + beer * powder);
 
 			energy += transmittance * lighting;
 
@@ -388,7 +390,7 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod, int numS
 		}
 		else
 		{
-			vec3 sunlight = sampleTransmittanceLUT(height, toLight, normalize(pos));
+			vec3 sunlight = sampleTransmittanceLUT(height, toLight, localUp);
 
 			float ambient = 0.006;
 			energy += transmittance * ambient * sunlight;
