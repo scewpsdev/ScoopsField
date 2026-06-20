@@ -134,8 +134,8 @@ void main()
 
 	//color = linearToSRGB(color);
 
-	//color = acesFitted(color * 2);
-	color = ACESFilm(color);
+	color = acesFitted(color * 2);
+	//color = ACESFilm(color);
 	//color = color / (color + 1);
 	//color = ToneMapFilmic_Hejl2015(color, 10);
 	color = pow(color, vec3(1.0 / 2.2));

@@ -125,7 +125,7 @@ float clouds2(vec3 p, float height, float t)
 
 
 #define minCloudHeight 1.5e3
-#define maxCloudHeight 5e3
+#define maxCloudHeight 12e3
 //#define cloudCoverage 0.25
 //#define cloudScatter 0.0625
 
@@ -206,7 +206,7 @@ float getCloudDensity(vec3 p, float height, int lod)
 
 	p += vec3(5e2 * t, 0, 6e2 * t) * windSpeed;
 
-	p *= 2e-4 * 0.5;
+	p *= 2e-4 * 0.25;
 
 	float heightGradient = remap(height, minCloudHeight, maxCloudHeight, 0, 1);
 
@@ -219,10 +219,9 @@ float getCloudDensity(vec3 p, float height, int lod)
 		return 0;
 
 	if (lod <= 1)
-	//if (false)
 	{
 		vec3 worley = perlinWorley.yzw; //texture(s_cloudNoise, p * 0.25 + t * 0.005).yzw;
-		float wfbm = worley.x * 0.625 + worley.y * 0.125 + worley.z * 0.25;
+		float wfbm = worley.x * 0.625 + worley.y * 0.25 + worley.z * 0.125;
 		cloud = remap(cloud, 0, 1, wfbm - 1, 1);
 
 		if (cloud < threshold)
@@ -249,8 +248,8 @@ float getCloudDensity(vec3 p, float height, int lod)
 	cloud *= 1 - max(abs(heightGradient * 2 - 1) - 0.5, 0) * 2;
 	//cloud *= 1 - max(abs(heightGradient * 2 - 1) - 0.5, 0) * 2;
 	//cloud *= sin(heightGradient * pi);
-	cloud *= heightGradient * heightGradient;
-	cloud *= heightGradient * heightGradient;
+	//cloud *= heightGradient * heightGradient;
+	//cloud *= heightGradient * heightGradient;
 
 	cloud = clamp(cloud, 0, 1);
 
@@ -310,7 +309,7 @@ float lightRay(vec3 origin, vec3 dir, float mu, float noise, int lod)
 		float height = length(pos) - planetRadius;
 		float density = getCloudDensity(pos, height, lod);
 
-		totalDensity += density * dt * 3;
+		totalDensity += density * dt;
 	}
 
 	return totalDensity;
@@ -376,7 +375,11 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod, int numS
 
 			float ambient = 0.006;
 			float powder = 1 - exp(-density);
-			vec3 lighting = sunlight * (ambient + beer * powder);
+			float shadow = beer * powder;
+
+			vec3 lighting = (sunlight * phaseC) * shadow + ambient * sunlight + multiScatter / (4 * pi);
+
+			//vec3 lighting = sunlight * (ambient + beer * powder) * phaseC;
 
 			energy += transmittance * lighting;
 
@@ -393,11 +396,9 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod, int numS
 			vec3 sunlight = sampleTransmittanceLUT(height, toLight, localUp);
 
 			float ambient = 0.006;
-			energy += transmittance * ambient * sunlight;
+			//energy += transmittance * ambient * sunlight * phaseC;
 		}
 	}
-
-	energy *= phaseC;
 
 	float sunIntensity = 25;
 	vec3 color = energy * sunIntensity;
