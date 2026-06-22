@@ -1076,8 +1076,15 @@ void UpdatePlayer(Player* player)
 	}
 
 	{
+		float landBob = 0.0f;
+		if (player->lastLandedTime)
+		{
+			float timeSinceLanding = gameTime - player->lastLandedTime;
+			landBob = (1.0f - SDL_powf(0.5f, timeSinceLanding * 4.0f)) * SDL_powf(0.1f, timeSinceLanding * 4.0f) * 1.0f;
+		}
+
 		mat4& spineTransform = GetNodeTransform(&player->bodyAnim, player->spineNode);
-		spineTransform = mat4::Transform(spineTransform.translation() + vec3(0, max(SDL_sinf(-player->pitch), 0.0f) * 0.2f, 0), quat::FromAxisAngle(vec3::AxisX, -player->pitch * 0.5f) * spineTransform.rotation());
+		spineTransform = mat4::Transform(spineTransform.translation() + vec3(0, max(SDL_sinf(-player->pitch), 0.0f) * 0.2f - landBob, 0), quat::FromAxisAngle(vec3::AxisX, -player->pitch * 0.5f) * spineTransform.rotation());
 
 		mat4& spine2Transform = GetNodeTransform(&player->bodyAnim, player->spine2Node);
 		spine2Transform = mat4::Transform(spine2Transform.translation(), quat::FromAxisAngle(vec3::AxisX, -player->pitch * 0.5f) * spine2Transform.rotation());
@@ -1165,14 +1172,6 @@ void UpdatePlayer(Player* player)
 		{
 			//game->cameraPosition = player->position + vec3::Up * player->cameraHeight;
 			game->cameraPosition = player->position + quat::FromAxisAngle(vec3::Up, player->rotation + PI) * (GetNodeTransform(&player->bodyAnim, player->neckNode).translation() + vec3(0, 0, 0.03f));
-
-			float landBob = 0.0f;
-			if (player->lastLandedTime)
-			{
-				float timeSinceLanding = gameTime - player->lastLandedTime;
-				landBob = (1.0f - SDL_powf(0.5f, timeSinceLanding * 4.0f)) * SDL_powf(0.1f, timeSinceLanding * 4.0f) * 5.5f;
-			}
-			game->cameraPosition.y -= landBob;
 
 			game->cameraRotation = quat::FromAxisAngle(vec3::Up, player->yaw) * quat::FromAxisAngle(vec3::Right, player->pitch);
 		}

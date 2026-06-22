@@ -541,7 +541,7 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 	if (framesSinceSecond > 0)
 		app->frameTimeVariance += llabs(delta - (app->frameTime / framesSinceSecond));
 
-	int fpsCap = 60;
+	int fpsCap = 0;
 	if (fpsCap)
 	{
 		uint64_t remaining = 1000000000 / fpsCap - (app->now - app->lastFrame);

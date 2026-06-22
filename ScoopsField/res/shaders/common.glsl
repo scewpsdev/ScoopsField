@@ -9,6 +9,16 @@ float remap(float f, float min, float max, float newMin, float newMax)
 	return (f - min) / (max - min) * (newMax - newMin) + newMin;
 }
 
+float remap(float f, float a, float b)
+{
+	return (f - a) / (b - a);
+}
+
+float linearstep(float edge0, float edge1, float x)
+{
+	return clamp((x - edge0) / (edge1 - edge0), 0, 1);
+}
+
 float depthToDistance(float depth, float near, float far)
 {
 	depth = depth * 2 - 1;

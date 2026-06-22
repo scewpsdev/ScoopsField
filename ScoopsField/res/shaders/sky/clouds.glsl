@@ -125,7 +125,7 @@ float clouds2(vec3 p, float height, float t)
 
 
 #define minCloudHeight 1.5e3
-#define maxCloudHeight 12e3
+#define maxCloudHeight 4e3
 //#define cloudCoverage 0.25
 //#define cloudScatter 0.0625
 
@@ -200,8 +200,102 @@ float noise(vec3 pos)
 }
 */
 
+float getCloudDensity2(vec3 p, float height, int lod)
+{
+	vec3 windOffset = vec3(5e2, 0, 6e2) * gameTime * windSpeed;
+	float baseNoiseScale = 0.00005 * 1.51;
+	float detailNoiseScale = 0.0016 * 1.51;
+
+	vec3 baseCoord = (p + windOffset) * baseNoiseScale;
+	vec3 detailCoord = (p + windOffset * 1.5) * detailNoiseScale;
+
+	vec4 baseNoise = texture(s_cloudNoise, vec3(baseCoord.xz, 0));
+
+	float heightFraction = remap(height, minCloudHeight, maxCloudHeight);
+	float n = heightFraction * heightFraction;
+	n *= baseNoise.b;
+	n += pow(1 - heightFraction, 16);
+
+	float cloud = remap(baseNoise.r - n, baseNoise.g, 1);
+
+	float heightMask = linearstep(0, 0.05, heightFraction) - linearstep(0.8, 1.2, heightFraction);
+	cloud *= heightMask;
+
+	float detailStrength = smoothstep(1, 0.5, cloud) * 0.1;
+	if (cloud > 0 && detailStrength > 0)
+	{
+		vec3 detailNoise = texture(s_cloudNoiseDetail, detailCoord).rgb;
+		float detailErosion = detailNoise.r * 0.625 + detailNoise.g * 0.25 + detailNoise.b * 0.125;
+		cloud = remap(cloud, detailErosion * detailStrength, 1);
+		cloud = max(cloud, 0);
+		//cloud -= detailErosion * detailStrength;
+		//detailErosion = mix(detailErosion, 1 - detailErosion, 0.35);
+		//cloud = remap(cloud, detailErosion * 0.2, 1, 0, 1);
+	}
+
+	cloud = smoothstep(0, 0.1, cloud + (0.7 - 1));
+	cloud *= linearstep(0, 0.25, heightFraction);
+
+	//float threshold = 0.92; //1 - cloudCoverage;
+	//cloud = remap(cloud, threshold, 1, 0, 1);
+	//cloud = max(cloud, 0);
+
+	if (false)
+	//if (cloud > 0)
+	{
+		vec3 detailNoise = texture(s_cloudNoiseDetail, detailCoord).rgb;
+		float detailErosion = detailNoise.r * 0.625 + detailNoise.g * 0.25 + detailNoise.b * 0.125;
+		detailErosion = mix(detailErosion, 1 - detailErosion, 0.35);
+		cloud = remap(cloud, detailErosion * 0.2, 1, 0, 1);
+		cloud = max(cloud, 0);
+	}
+
+	//cloud *= 10;
+
+	return cloud * 1;
+}
+
 float getCloudDensity(vec3 p, float height, int lod)
 {
+	vec3 windOffset = vec3(5e2, 0, 6e2) * gameTime * windSpeed;
+	float baseNoiseScale = 0.00005;
+	float detailNoiseScale = 0.00066;
+
+	vec3 baseCoord = (p + windOffset) * baseNoiseScale;
+	vec3 detailCoord = (p + windOffset * 1.5) * detailNoiseScale;
+
+	vec4 baseNoise = texture(s_cloudNoise, baseCoord);
+
+	float pw = baseNoise.r;
+	vec3 worley = baseNoise.gba;
+
+	float heightFraction = remap(height, minCloudHeight, maxCloudHeight, 0, 1);
+	float baseErosion = mix(worley.r, worley.g, heightFraction);
+	float cloud = remap(pw, baseErosion * 0.5, 1, 0, 1);
+
+	float cumulusHeight = 4e3;
+	float localHeightFraction = min(remap(height, 0, cumulusHeight, 0, 1), 1);
+	float heightMask = smoothstep(0, 0.1, localHeightFraction) * smoothstep(1, 0.7, localHeightFraction);
+	cloud *= heightMask;
+
+	float threshold = 0.2; //1 - cloudCoverage;
+	cloud = remap(cloud, threshold, 1, 0, 1);
+	cloud = max(cloud, 0);
+
+	if (cloud > 0)
+	{
+		vec3 detailNoise = texture(s_cloudNoiseDetail, detailCoord).rgb;
+		float detailErosion = detailNoise.r * 0.625 + detailNoise.g * 0.25 + detailNoise.b * 0.125;
+		detailErosion = mix(detailErosion, 1 - detailErosion, 0.35);
+		cloud = remap(cloud, detailErosion * 0.2, 1, 0, 1);
+		cloud = max(cloud, 0);
+	}
+
+	cloud *= 10;
+
+	return cloud;
+
+	/*
 	float t = gameTime;
 
 	p += vec3(5e2 * t, 0, 6e2 * t) * windSpeed;
@@ -218,7 +312,8 @@ float getCloudDensity(vec3 p, float height, int lod)
 	if (cloud < threshold)
 		return 0;
 
-	if (lod <= 1)
+	if (false)
+	//if (lod <= 1)
 	{
 		vec3 worley = perlinWorley.yzw; //texture(s_cloudNoise, p * 0.25 + t * 0.005).yzw;
 		float wfbm = worley.x * 0.625 + worley.y * 0.25 + worley.z * 0.125;
@@ -307,7 +402,7 @@ float lightRay(vec3 origin, vec3 dir, float mu, float noise, int lod)
 		vec3 pos = origin + t * dir;
 
 		float height = length(pos) - planetRadius;
-		float density = getCloudDensity(pos, height, lod);
+		float density = getCloudDensity2(pos, height, lod);
 
 		totalDensity += density * dt;
 	}
@@ -355,7 +450,7 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod, int numS
 		vec3 pos = origin + t * dir;
 
 		float height = length(pos) - planetRadius;
-		float density = getCloudDensity(pos, height, lod);
+		float density = getCloudDensity2(pos, height, lod);
 		density *= segmentLength;
 
 		vec3 localUp = normalize(pos);

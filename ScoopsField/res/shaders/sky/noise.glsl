@@ -80,35 +80,114 @@ float worleyNoise(vec3 uv, vec3 freq)
     return 1. - minDist;
 }
 
+
+
+// A standard pseudo-random 3D hashing function
+vec3 hash3(vec3 p) {
+    p = vec3(dot(p, vec3(127.1, 311.7, 74.7)),
+             dot(p, vec3(269.5, 183.3, 246.1)),
+             dot(p, vec3(113.5, 271.9, 124.6)));
+    return fract(sin(p) * 43758.5453123) * 2.0 - 1.0;
+}
+
+// Seamless 3D Perlin Gradient Noise
+float seamlessPerlin(vec3 p, float tileSize) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    vec3 u = f * f * (3.0 - 2.0 * f);
+
+    // Force grid vertices to wrap smoothly at the texture boundaries
+    vec3 i0 = mod(i, vec3(tileSize));
+    vec3 i1 = mod(i + vec3(1.0), vec3(tileSize));
+
+    return mix(mix(mix(dot(hash3(i0), f - vec3(0,0,0)), dot(hash3(vec3(i1.x, i0.y, i0.z)), f - vec3(1,0,0)), u.x),
+                   mix(dot(hash3(vec3(i0.x, i1.y, i0.z)), f - vec3(0,1,0)), dot(hash3(vec3(i1.x, i1.y, i0.z)), f - vec3(1,1,0)), u.x), u.y),
+               mix(mix(dot(hash3(vec3(i0.x, i0.y, i1.z)), f - vec3(0,0,1)), dot(hash3(vec3(i1.x, i0.y, i1.z)), f - vec3(1,0,1)), u.x),
+                   mix(dot(hash3(vec3(i0.x, i1.y, i1.z)), f - vec3(0,1,1)), dot(hash3(i1), f - vec3(1,1,1)), u.x), u.y), u.z) * 0.5 + 0.5;
+}
+
+// Seamless 3D Worley Cellular Noise
+float seamlessWorley(vec3 p, float tileSize) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    float minDist = 1.0;
+
+    for (int z = -1; z <= 1; z++) {
+        for (int y = -1; y <= 1; y++) {
+            for (int x = -1; x <= 1; x++) {
+                vec3 neighbor = vec3(float(x), float(y), float(z));
+                // Wrap lattice grid coordinates cleanly
+                vec3 wrappedVertex = mod(i + neighbor, vec3(tileSize));
+                
+                // Extract a predictable cell center point position
+                vec3 cellPosition = hash3(wrappedVertex) * 0.5 + 0.5; 
+                vec3 diff = neighbor + cellPosition - f;
+                
+                minDist = min(minDist, length(diff));
+            }
+        }
+    }
+    return clamp(minDist, 0.0, 1.0);
+}
+
+
+
 // Fbm for Perlin noise based on iq's blog
-float perlinFbm(vec3 p, vec3 freq, int octaves)
+float perlinFbm(vec3 p, float freq, int octaves)
 {
+    float amplitude = 1;
+    float frequency = freq;
+    float noise = 0;
+    float sum = 0;
+
+    for (int i = 0; i < octaves; i++)
+    {
+        noise += amplitude * seamlessPerlin(p * frequency, frequency);
+        sum += amplitude;
+        frequency *= 2;
+        amplitude *= 0.5;
+        p += 12345.6789;
+    }
+
+    return noise / sum;
+
+    /*
     float G = exp2(-.85);
     float amp = 1.;
     float noise = 0.;
     for (int i = 0; i < octaves; ++i)
     {
-        noise += amp * gradientNoise(p * freq, freq);
+        noise += amp * (gradientNoise(p * freq, freq) * 0.5 + 0.5);
         freq *= 2.;
         amp *= G;
         p += 12345.6789;
     }
     
     return noise;
+    */
 }
 
 // Tileable Worley fbm inspired by Andrew Schneider's Real-Time Volumetric Cloudscapes
 // chapter in GPU Pro 7.
-float worleyFbm(vec3 p, vec3 freq)
+float worleyFbm(vec3 p, float freq, int octaves)
 {
-    return worleyNoise(p*freq, freq) * .625 +
-        	 worleyNoise(p*freq*2., freq*2.) * .25 +
-        	 worleyNoise(p*freq*4., freq*4.) * .125;
-}
+    float amplitude = 1;
+    float frequency = freq;
+    float noise = 0;
+    float sum = 0;
 
-float perlinWorley(vec3 p, vec3 freq)
-{
-    float pfbm = mix(1, perlinFbm(p, freq, 7), 0.5);
-	pfbm = abs(pfbm * 2 - 1);
-    return remap(pfbm, 0, 1, worleyFbm(p, freq * vec3(0.5, 1, 0.5)), 1);
+    for (int i = 0; i < octaves; i++)
+    {
+        noise += amplitude * seamlessWorley(p * frequency, frequency);
+        sum += amplitude;
+        frequency *= 2;
+        amplitude *= 0.5;
+        p += 12345.6789;
+    }
+
+    return noise / sum;
+
+    //return worleyNoise(p*freq, freq) * .625 +
+    //    	 worleyNoise(p*freq*2., freq*2.) * .25 +
+    //    	 worleyNoise(p*freq*4., freq*4.) * .125;
 }
