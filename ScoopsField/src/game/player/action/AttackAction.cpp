@@ -14,35 +14,69 @@
 #define HIT_FREEZE_DURATION 0.1f
 
 
-void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackIdx, uint32_t button, uint32_t cancelButton)
+void InitAttackAction(Action* action, Item* weapon, bool right, Attack* attack, int attackIdx, uint32_t button, uint32_t cancelButton)
 {
 	InitAction(action, ACTION_TYPE_ATTACK);
 
-	action->rightAnimName = attack->animation;
-	action->rightAnimMoveset = &weapon->moveset;
-
-	if (attack->bowDraw)
+	if (right)
 	{
-		action->overrideLeftWeapon = true;
-		action->leftWeapon = &game->items.items[ITEM_ARROW];
+		action->rightAnimName = attack->animation;
+		action->rightAnimMoveset = &weapon->moveset;
 
-		action->rightAnimBlendDuration = 0.0f;
+		if (attack->bowDraw)
+		{
+			action->overrideLeftWeapon = true;
+			action->leftWeapon = &game->items.items[ITEM_ARROW];
+
+			action->rightAnimBlendDuration = 0.0f;
+
+			if (attack->twoHanded)
+				action->leftAnimBlendDuration = 0.0f;
+		}
 
 		if (attack->twoHanded)
-			action->leftAnimBlendDuration = 0.0f;
-	}
+		{
+			action->leftAnimName = attack->animation;
+			action->leftAnimMoveset = &weapon->moveset;
+		}
 
-	if (attack->twoHanded)
+		if (attack->itemAnimation)
+		{
+			action->rightItemAnimName = attack->itemAnimation;
+			action->rightItemAnimMoveset = &weapon->model;
+			action->rightItemAnimBlendDuration = 0.0f;
+		}
+	}
+	else
 	{
 		action->leftAnimName = attack->animation;
 		action->leftAnimMoveset = &weapon->moveset;
-	}
+		action->leftAnimMirror = true;
 
-	if (attack->itemAnimation)
-	{
-		action->rightItemAnimName = attack->itemAnimation;
-		action->rightItemAnimMoveset = &weapon->model;
-		action->rightItemAnimBlendDuration = 0.0f;
+		if (attack->bowDraw)
+		{
+			action->overrideRightWeapon = true;
+			action->rightWeapon = &game->items.items[ITEM_ARROW];
+
+			action->leftAnimBlendDuration = 0.0f;
+
+			if (attack->twoHanded)
+				action->rightAnimBlendDuration = 0.0f;
+		}
+
+		if (attack->twoHanded)
+		{
+			action->rightAnimName = attack->animation;
+			action->rightAnimMoveset = &weapon->moveset;
+			action->rightAnimMirror = true;
+		}
+
+		if (attack->itemAnimation)
+		{
+			action->leftItemAnimName = attack->itemAnimation;
+			action->leftItemAnimMoveset = &weapon->model;
+			action->leftItemAnimBlendDuration = 0.0f;
+		}
 	}
 
 	action->animationSpeed = attack->animationSpeed;

@@ -14,6 +14,7 @@ static void InitWeapon(ItemDatabase* items, Item* item, const char* name, bool t
 	LoadModel(&item->moveset, movesetPath, false, cmdBuffer);
 
 	item->equipSound = &items->equipLightSound;
+	item->flipLeftHand = false;
 
 	item->weapon.damage = damage;
 	item->weapon.damageRange = damageRange;
@@ -128,12 +129,12 @@ static int AddCast(Item* item, const char* name, const char* animation, float an
 	return attackID;
 }
 
-static int AddBlock(Item* item, const char* name, const char* animation, float animationSpeed, int parryEndFrame)
+static int AddBlock(Item* item, const char* name, const char* animation, float animationSpeed, int parryEndFrame, bool secondary)
 {
 	int attackID = item->weapon.numAttacks++;
 	Attack* attack = &item->weapon.attacks[attackID];
 	attack->name = name;
-	attack->secondary = true;
+	attack->secondary = secondary;
 	attack->stance = true;
 	attack->animation = animation;
 	attack->animationSpeed = animationSpeed;
@@ -157,7 +158,7 @@ static void InitWeapons(ItemDatabase* items)
 		AddAttack(item, "attack1", "attack1", 1.0f, 10, 18, 24, 1, "attack2");
 		AddAttack(item, "attack2", "attack2", 1.0f, 10, 18, 24, 1, "attack1");
 		item->weapon.riposteAttack = AddAttack(item, "riposte", "attack_riposte", 1.0f, 13, 17, 20, 1, "attack1");
-		AddBlock(item, "block", "block", 1, 6);
+		AddBlock(item, "block", "block", 1, 6, true);
 		item->weapon.runningAttack = AddAttack(item, "attack_running", "attack_running", 1.0f, 15, 22, 28, 1, "attack1");
 	}
 	// longsword
@@ -169,12 +170,13 @@ static void InitWeapons(ItemDatabase* items)
 
 		AddAttack(item, "attack1", "attack1", 1, 15, 24, 32, 1.0f, "attack2");
 		AddAttack(item, "attack2", "attack2", 1, 15, 24, 32, 1.0f, "attack1");
-		AddBlock(item, "block", "block", 1, 6);
+		AddBlock(item, "block", "block", 1, 6, true);
 	}
 	// shortbow
 	{
 		Item* item = &items->items[ITEM_SHORTBOW];
 		InitWeapon(items, item, "shortbow", true, 50, vec2(), DAMAGE_TYPE_BLUNT);
+		//item->flipLeftHand = true;
 
 		item->equipSound = &items->equipLightSound;
 
@@ -236,7 +238,7 @@ static void InitShields(ItemDatabase* items)
 
 		item->equipSound = &items->equipLightSound;
 
-		AddBlock(item, "block", "block", 1, 6);
+		AddBlock(item, "block", "block", 1, 6, false);
 	}
 }
 

@@ -107,6 +107,7 @@ struct Item
 	Model model;
 	Model moveset;
 	bool twoHanded;
+	bool flipLeftHand;
 	Sound* equipSound;
 
 	union {

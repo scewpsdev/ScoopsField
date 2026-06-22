@@ -33,7 +33,7 @@ struct AttackAction
 };
 
 
-void InitAttackAction(Action* action, Item* weapon, Attack* attack, int attackIdx, uint32_t button, uint32_t cancelButton);
+void InitAttackAction(Action* action, Item* weapon, bool right, Attack* attack, int attackIdx, uint32_t button, uint32_t cancelButton);
 void StartAttackAction(Action* action, Player* player);
 void StopAttackAction(Action* action, Player* player);
 void UpdateAttackAction(Action* action, Player* player);
