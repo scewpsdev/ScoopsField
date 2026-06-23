@@ -385,12 +385,12 @@ static SDL_GPUTexture* CreateSkyViewLUT()
 static SDL_GPUTexture* CreateCloudNoiseTexture(Renderer* renderer, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	SDL_GPUTextureCreateInfo textureInfo = {};
-	textureInfo.type = SDL_GPU_TEXTURETYPE_3D;
+	textureInfo.type = SDL_GPU_TEXTURETYPE_2D;
 	textureInfo.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 	textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE;
 	textureInfo.width = 128;
 	textureInfo.height = 128;
-	textureInfo.layer_count_or_depth = 128;
+	textureInfo.layer_count_or_depth = 1;
 	textureInfo.num_levels = 1;
 	textureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
 
@@ -406,7 +406,7 @@ static SDL_GPUTexture* CreateCloudNoiseTexture(Renderer* renderer, SDL_GPUComman
 
 	SDL_BindGPUComputePipeline(computePass, renderer->cloudNoiseShader->compute);
 
-	SDL_DispatchGPUCompute(computePass, 128 / 8, 128 / 8, 128 / 8);
+	SDL_DispatchGPUCompute(computePass, 128 / 8, 128 / 8, 1);
 
 	SDL_EndGPUComputePass(computePass);
 
@@ -770,9 +770,9 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->sunColorBuffer = SDL_CreateGPUTexture(device, &sunColorInfo);
 
 	renderer->weather.haziness = 0.01f;
-	renderer->weather.cloudCoverage = 0.25f;
+	renderer->weather.cloudCoverage = 0.4f;
 	renderer->weather.cloudDensity = 0.1f;
-	renderer->weather.windSpeed = 0.05f;
+	renderer->weather.windSpeed = 0.1f;
 }
 
 void DestroyRenderer(Renderer* renderer)
@@ -1162,11 +1162,6 @@ static void SubmitMesh(Renderer* renderer,
 
 void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, float near, float fov, float aspect, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], vec3 sunDirection, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
-	renderer->weather.haziness = 0.01f;
-	renderer->weather.cloudCoverage = 0.2f;
-	renderer->weather.cloudDensity = 0.1f;
-	renderer->weather.windSpeed = 0.1f;
-
 	GPU_SCOPE("Scene");
 
 	mat4 pvInv = pv.inverted();

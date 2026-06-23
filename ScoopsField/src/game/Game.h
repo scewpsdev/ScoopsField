@@ -72,6 +72,8 @@ struct GameState
 	Sound hitArrowSound;
 	Sound hitBlockSound;
 	Sound hitParrySound;
+	Sound hitShieldSound;
+	Sound hitShieldParrySound;
 	Sound stepBareSound, jumpBareSound, landBareSound;
 	Sound fireSound;
 

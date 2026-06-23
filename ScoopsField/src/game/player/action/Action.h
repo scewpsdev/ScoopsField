@@ -13,8 +13,9 @@
 #include "UnequipAction.h"
 #include "PickUpAction.h"
 #include "DropAction.h"
-#include "SitAction.h"
 #include "StaggerAction.h"
+#include "ParryAction.h"
+#include "SitAction.h"
 #include "TurnAction.h"
 
 
@@ -28,8 +29,9 @@ enum ActionType
 	ACTION_TYPE_UNEQUIP,
 	ACTION_TYPE_PICKUP,
 	ACTION_TYPE_DROP,
-	ACTION_TYPE_SIT,
 	ACTION_TYPE_STAGGER,
+	ACTION_TYPE_PARRY,
+	ACTION_TYPE_SIT,
 	ACTION_TYPE_TURN,
 
 	ACTION_TYPE_LAST
@@ -116,8 +118,9 @@ struct Action
 		UnequipAction unequip;
 		PickUpAction pickup;
 		DropAction drop;
-		SitAction sit;
 		StaggerAction stagger;
+		ParryAction parry;
+		SitAction sit;
 		TurnAction turn;
 	};
 };
@@ -140,8 +143,9 @@ ActionCase(func, Equip, EQUIP) \
 ActionCase(func, Unequip, UNEQUIP) \
 ActionCase(func, PickUp, PICKUP) \
 ActionCase(func, Drop, DROP) \
-ActionCase(func, Sit, SIT) \
 ActionCase(func, Stagger, STAGGER) \
+ActionCase(func, Parry, PARRY) \
+ActionCase(func, Sit, SIT) \
 ActionCase(func, Turn, TURN) \
 default: SDL_assert(false); break; \
 }

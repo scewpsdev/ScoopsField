@@ -234,6 +234,9 @@
     <ClCompile Include="src\renderer\AutoExposure.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\game\player\action\ParryAction.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\spirv_cross\spirv.h">
@@ -540,6 +543,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\game\player\action\TurnAction.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\player\action\ParryAction.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

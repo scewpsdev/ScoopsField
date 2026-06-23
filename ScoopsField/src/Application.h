@@ -98,6 +98,9 @@ struct AppState
 	vec2 mousePosition;
 	vec2 lastMousePosition;
 	vec2 mouseDelta;
+	ivec2 mouseWheel;
+	ivec2 lastMouseWheel;
+	ivec2 mouseWheelDelta;
 	SDL_MouseButtonFlags mouseButtons;
 	SDL_MouseButtonFlags lastMouseButtons;
 
@@ -131,6 +134,7 @@ bool GetKeyUp(SDL_Scancode key);
 bool GetMouseButton(uint32_t button);
 bool GetMouseButtonDown(uint32_t button);
 bool GetMouseButtonUp(uint32_t button);
+int GetMouseScroll();
 
 void DebugTextEx(int x, int y, const char* txt, int len, uint32_t color, uint32_t bgcolor);
 void DebugText(int x, int y, uint32_t color, uint32_t bgcolor, const char* fmt, ...);

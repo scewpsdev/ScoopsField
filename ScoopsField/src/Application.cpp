@@ -117,6 +117,11 @@ bool GetMouseButtonUp(uint32_t button)
 	return !(app->mouseButtons & SDL_BUTTON_MASK(button)) && (app->lastMouseButtons & SDL_BUTTON_MASK(button));
 }
 
+int GetMouseScroll()
+{
+	return app->mouseWheelDelta.y;
+}
+
 void DebugTextEx(int x, int y, const char* txt, int len, uint32_t color, uint32_t bgcolor)
 {
 	//#ifdef _DEBUG
@@ -468,6 +473,12 @@ static SDL_AppResult OnEvent(SDL_Event* event)
 	if (event->type == SDL_EVENT_WINDOW_RESIZED)
 		AppResize(event->window.data1, event->window.data2);
 
+	if (event->type == SDL_EVENT_MOUSE_WHEEL)
+	{
+		app->mouseWheel.x += event->wheel.integer_x;
+		app->mouseWheel.y += event->wheel.integer_y;
+	}
+
 	return SDL_APP_CONTINUE;
 }
 
@@ -605,6 +616,7 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 	app->keys = SDL_GetKeyboardState(&app->numKeys);
 	app->mouseButtons = SDL_GetMouseState(&app->mousePosition.x, &app->mousePosition.y);
 	SDL_GetRelativeMouseState(&app->mouseDelta.x, &app->mouseDelta.y);
+	app->mouseWheelDelta = app->mouseWheel - app->lastMouseWheel;
 
 	UpdateAudio(&app->audio);
 
@@ -679,6 +691,7 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 
 	SDL_memcpy(app->lastKeys, app->keys, app->numKeys * sizeof(bool));
 	app->lastMousePosition = app->mousePosition;
+	app->lastMouseWheel = app->mouseWheel;
 	app->lastMouseButtons = app->mouseButtons;
 
 	return SDL_APP_CONTINUE;

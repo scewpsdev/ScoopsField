@@ -126,6 +126,7 @@ struct Player : EntityBase
 	float lastProjectileHit;
 	bool lastProjectileHitHeadshot;
 	float lastBlockTime;
+	int lastBlockSide;
 	bool lastBlockParry;
 	bool lastBlockStagger;
 

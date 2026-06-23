@@ -35,6 +35,14 @@ enum DamageType
 	//DAMAGE_TYPE_POISON,
 };
 
+enum AttackType
+{
+	ATTACK_PRIMARY,
+	ATTACK_SECONDARY,
+	ATTACK_OFFHAND_PRIMARY,
+	ATTACK_OFFHAND_SECONDARY,
+};
+
 struct AttackSound
 {
 	Sound* sound;
@@ -57,7 +65,7 @@ struct Attack
 	const char* animation;
 	float animationSpeed;
 
-	bool secondary;
+	AttackType type;
 	bool twoHanded;
 	bool stance;
 	bool bowDraw;
@@ -100,6 +108,10 @@ struct Weapon
 	int numAttacks;
 	int runningAttack;
 	int riposteAttack;
+
+	float blockStaminaCost;
+
+	Sound* parrySound, * blockSound;
 };
 
 struct Item
@@ -135,4 +147,4 @@ void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer);
 
 Item* GetItem(ItemType type);
 
-Attack* GetFirstAttack(Item* item, bool secondary);
+Attack* GetFirstAttack(Item* item, AttackType type);

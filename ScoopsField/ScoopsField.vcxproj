@@ -207,6 +207,7 @@
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\audio\Audio.cpp" />
     <ClCompile Include="src\game\player\action\AttackAction.cpp" />
+    <ClCompile Include="src\game\player\action\ParryAction.cpp" />
     <ClCompile Include="src\game\player\action\StaggerAction.cpp" />
     <ClCompile Include="src\game\player\action\DropAction.cpp" />
     <ClCompile Include="src\game\player\action\EquipAction.cpp" />
@@ -307,6 +308,7 @@
     <ClInclude Include="src\game\entity\action\EntityStaggerAction.h" />
     <ClInclude Include="src\game\entity\Entity.h" />
     <ClInclude Include="src\game\player\action\AttackAction.h" />
+    <ClInclude Include="src\game\player\action\ParryAction.h" />
     <ClInclude Include="src\game\player\action\StaggerAction.h" />
     <ClInclude Include="src\game\player\action\DropAction.h" />
     <ClInclude Include="src\game\player\action\EquipAction.h" />

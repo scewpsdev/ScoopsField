@@ -21,6 +21,11 @@ static void InitWeapon(ItemDatabase* items, Item* item, const char* name, bool t
 	item->weapon.damageType = damageType;
 
 	item->weapon.runningAttack = -1;
+
+	item->weapon.blockStaminaCost = 0.25f;
+
+	item->weapon.parrySound = &game->hitParrySound;
+	item->weapon.blockSound = &game->hitBlockSound;
 }
 
 static void InitStaff(ItemDatabase* items, Item* item, const char* name, bool twoHanded, vec3 castOffset, DamageType damageType)
@@ -42,6 +47,9 @@ static void InitStaff(ItemDatabase* items, Item* item, const char* name, bool tw
 
 	item->weapon.runningAttack = -1;
 	item->weapon.riposteAttack = -1;
+
+	item->weapon.parrySound = &game->hitParrySound;
+	item->weapon.blockSound = &game->hitBlockSound;
 }
 
 static void AddAttackSound(Attack* attack, Sound* sound, float time, float volume, float speed, float pan)
@@ -64,12 +72,13 @@ static void AddAttackEffect(Attack* attack, const char* path, float time, vec3 l
 	attackEffect->localPosition = localPosition;
 }
 
-static int AddAttack(Item* item, const char* name, const char* animation, float animationSpeed, int damageStartFrame, int damageEndFrame, int cancelFrame, float damageMultiplier, const char* followUp = nullptr)
+static int AddAttack(Item* item, const char* name, const char* animation, AttackType attackType, float animationSpeed, int damageStartFrame, int damageEndFrame, int cancelFrame, float damageMultiplier, const char* followUp = nullptr)
 {
 	int attackID = item->weapon.numAttacks++;
 	Attack* attack = &item->weapon.attacks[attackID];
 	attack->name = name;
 	attack->animation = animation;
+	attack->type = attackType;
 	attack->animationSpeed = animationSpeed;
 	attack->damageWindow = vec2((float)damageStartFrame, (float)damageEndFrame) / 24.0f / animationSpeed;
 	attack->followUpCancelTime = cancelFrame / 24.0f / animationSpeed;
@@ -90,6 +99,7 @@ static int AddBowDraw(Item* item, const char* name, const char* animation, float
 	Attack* attack = &item->weapon.attacks[attackID];
 	attack->name = name;
 	attack->animation = animation;
+	attack->type = ATTACK_PRIMARY;
 	attack->animationSpeed = animationSpeed;
 	attack->itemAnimation = "bow_draw";
 	attack->damageWindow = vec2(0);
@@ -113,6 +123,7 @@ static int AddCast(Item* item, const char* name, const char* animation, float an
 	Attack* attack = &item->weapon.attacks[attackID];
 	attack->name = name;
 	attack->animation = animation;
+	attack->type = ATTACK_PRIMARY;
 	attack->animationSpeed = animationSpeed;
 	attack->itemAnimation = "cast";
 	attack->damageWindow = vec2(0);
@@ -129,12 +140,12 @@ static int AddCast(Item* item, const char* name, const char* animation, float an
 	return attackID;
 }
 
-static int AddBlock(Item* item, const char* name, const char* animation, float animationSpeed, int parryEndFrame, bool secondary)
+static int AddBlock(Item* item, const char* name, const char* animation, AttackType attackType, float animationSpeed, int parryEndFrame)
 {
 	int attackID = item->weapon.numAttacks++;
 	Attack* attack = &item->weapon.attacks[attackID];
 	attack->name = name;
-	attack->secondary = secondary;
+	attack->type = attackType;
 	attack->stance = true;
 	attack->animation = animation;
 	attack->animationSpeed = animationSpeed;
@@ -155,11 +166,14 @@ static void InitWeapons(ItemDatabase* items)
 
 		item->equipSound = &items->equipSwordSound;
 
-		AddAttack(item, "attack1", "attack1", 1.0f, 10, 18, 24, 1, "attack2");
-		AddAttack(item, "attack2", "attack2", 1.0f, 10, 18, 24, 1, "attack1");
-		item->weapon.riposteAttack = AddAttack(item, "riposte", "attack_riposte", 1.0f, 13, 17, 20, 1, "attack1");
-		AddBlock(item, "block", "block", 1, 6, true);
-		item->weapon.runningAttack = AddAttack(item, "attack_running", "attack_running", 1.0f, 15, 22, 28, 1, "attack1");
+		AddAttack(item, "attack_primary_1", "attack1", ATTACK_PRIMARY, 1.0f, 10, 18, 24, 1, "attack_primary_2");
+		AddAttack(item, "attack_primary_2", "attack2", ATTACK_PRIMARY, 1.0f, 10, 18, 24, 1, "attack_primary_1");
+		AddAttack(item, "attack_secondary_1", "attack3", ATTACK_SECONDARY, 1.0f, 10, 18, 24, 1);
+
+		item->weapon.riposteAttack = AddAttack(item, "riposte", "attack_riposte", ATTACK_PRIMARY, 1.0f, 13, 17, 20, 1, "attack_primary_1");
+		item->weapon.runningAttack = AddAttack(item, "attack_running", "attack_running", ATTACK_PRIMARY, 1.0f, 15, 22, 28, 1, "attack_primary_1");
+
+		AddBlock(item, "block", "block", ATTACK_OFFHAND_PRIMARY, 1, 6);
 	}
 	// longsword
 	{
@@ -168,9 +182,9 @@ static void InitWeapons(ItemDatabase* items)
 
 		item->equipSound = &items->equipHeavySound;
 
-		AddAttack(item, "attack1", "attack1", 1, 15, 24, 32, 1.0f, "attack2");
-		AddAttack(item, "attack2", "attack2", 1, 15, 24, 32, 1.0f, "attack1");
-		AddBlock(item, "block", "block", 1, 6, true);
+		AddAttack(item, "attack1", "attack1", ATTACK_PRIMARY, 1, 15, 24, 32, 1.0f, "attack2");
+		AddAttack(item, "attack2", "attack2", ATTACK_PRIMARY, 1, 15, 24, 32, 1.0f, "attack1");
+		AddBlock(item, "block", "block", ATTACK_OFFHAND_PRIMARY, 1, 6);
 	}
 	// shortbow
 	{
@@ -227,6 +241,11 @@ static void InitShield(ItemDatabase* items, Item* item, const char* name, bool t
 	item->weapon.damageRange = vec2(0);
 
 	item->weapon.runningAttack = -1;
+
+	item->weapon.blockStaminaCost = 0.15f;
+
+	item->weapon.parrySound = &game->hitShieldParrySound;
+	item->weapon.blockSound = &game->hitShieldSound;
 }
 
 static void InitShields(ItemDatabase* items)
@@ -238,7 +257,7 @@ static void InitShields(ItemDatabase* items)
 
 		item->equipSound = &items->equipLightSound;
 
-		AddBlock(item, "block", "block", 1, 6, false);
+		AddBlock(item, "block", "block", ATTACK_PRIMARY, 1, 6);
 	}
 }
 
@@ -298,11 +317,11 @@ Attack* GetAttackByName(Item* item, const char* name)
 	return nullptr;
 }
 
-Attack* GetFirstAttack(Item* item, bool secondary)
+Attack* GetFirstAttack(Item* item, AttackType type)
 {
 	for (int i = 0; i < item->weapon.numAttacks; i++)
 	{
-		if (item->weapon.attacks[i].secondary == secondary)
+		if (item->weapon.attacks[i].type == type)
 			return &item->weapon.attacks[i];
 	}
 	return nullptr;

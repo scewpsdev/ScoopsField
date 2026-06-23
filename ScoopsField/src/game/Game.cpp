@@ -178,6 +178,8 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	LoadSound(&game->hitArrowSound, "res/sounds/hit/hit_arrow.ogg.bin");
 	LoadSounds(&game->hitBlockSound, "sounds/hit/hit_block", 2);
 	LoadSound(&game->hitParrySound, "res/sounds/hit/hit_parry.ogg.bin");
+	LoadSound(&game->hitShieldSound, "res/sounds/hit/hit_shield.ogg.bin");
+	LoadSound(&game->hitShieldParrySound, "res/sounds/hit/hit_shield_parry.ogg.bin");
 	LoadSounds(&game->stepBareSound, "sounds/step/step_bare", 3);
 	LoadSound(&game->jumpBareSound, "res/sounds/step/jump_bare.ogg.bin");
 	LoadSounds(&game->landBareSound, "sounds/step/land_bare", 3);
@@ -415,7 +417,7 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.01f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -100 * 0.01f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 	//sunDirection = vec3(0.5f, -1, -1).normalized();

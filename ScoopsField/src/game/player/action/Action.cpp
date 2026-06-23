@@ -104,7 +104,7 @@ static void StartActionInternal(ActionManager& actions, Action* action, Player* 
 
 	if (!action->duration)
 	{
-		action->duration = max(max(action->rightAnimName ? action->rightAnim.animation->duration : 0, action->leftAnimName ? action->leftAnim.animation->duration : 0), action->bodyAnimName ? action->bodyAnim.animation->duration : 0);
+		action->duration = max(max(action->rightAnimName && action->rightAnim.animation ? action->rightAnim.animation->duration : 0, action->leftAnimName && action->leftAnim.animation ? action->leftAnim.animation->duration : 0), action->bodyAnimName && action->bodyAnim.animation ? action->bodyAnim.animation->duration : 0);
 	}
 	//action->speed = action->speed;
 
