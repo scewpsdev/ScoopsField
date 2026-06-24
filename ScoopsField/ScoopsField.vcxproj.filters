@@ -600,5 +600,6 @@
     <None Include="res\shaders\postprocessing\autoexposure.comp" />
     <None Include="res\shaders\postprocessing\luminance_downsample.comp" />
     <None Include="res\shaders\postprocessing\hdr2luminance64.comp" />
+    <None Include="res\shaders\sky\weather_map.comp" />
   </ItemGroup>
 </Project>

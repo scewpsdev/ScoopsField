@@ -382,7 +382,7 @@ static SDL_GPUTexture* CreateSkyViewLUT()
 	return SDL_CreateGPUTexture(device, &textureInfo);
 }
 
-static SDL_GPUTexture* CreateCloudNoiseTexture(Renderer* renderer, SDL_GPUCommandBuffer* cmdBuffer)
+static SDL_GPUTexture* CreateWeatherMapTexture(Renderer* renderer, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	SDL_GPUTextureCreateInfo textureInfo = {};
 	textureInfo.type = SDL_GPU_TEXTURETYPE_2D;
@@ -404,9 +404,40 @@ static SDL_GPUTexture* CreateCloudNoiseTexture(Renderer* renderer, SDL_GPUComman
 
 	SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, &bufferBinding, 1, nullptr, 0);
 
-	SDL_BindGPUComputePipeline(computePass, renderer->cloudNoiseShader->compute);
+	SDL_BindGPUComputePipeline(computePass, renderer->weatherMapShader->compute);
 
 	SDL_DispatchGPUCompute(computePass, 128 / 8, 128 / 8, 1);
+
+	SDL_EndGPUComputePass(computePass);
+
+	return texture;
+}
+
+static SDL_GPUTexture* CreateCloudNoiseTexture(Renderer* renderer, SDL_GPUCommandBuffer* cmdBuffer)
+{
+	SDL_GPUTextureCreateInfo textureInfo = {};
+	textureInfo.type = SDL_GPU_TEXTURETYPE_3D;
+	textureInfo.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+	textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE;
+	textureInfo.width = 128;
+	textureInfo.height = 128;
+	textureInfo.layer_count_or_depth = 128;
+	textureInfo.num_levels = 1;
+	textureInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
+
+	SDL_GPUTexture* texture = SDL_CreateGPUTexture(device, &textureInfo);
+
+	SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
+	bufferBinding.texture = texture;
+	bufferBinding.mip_level = 0;
+	bufferBinding.layer = 0;
+	bufferBinding.cycle = false;
+
+	SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, &bufferBinding, 1, nullptr, 0);
+
+	SDL_BindGPUComputePipeline(computePass, renderer->cloudNoiseShader->compute);
+
+	SDL_DispatchGPUCompute(computePass, 128 / 8, 128 / 8, 128 / 8);
 
 	SDL_EndGPUComputePass(computePass);
 
@@ -631,6 +662,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->skyTransmittanceLUTShader = LoadComputeShader("res/shaders/sky/transmittance_lut.comp.bin");
 	renderer->skyMultiScatterLUTShader = LoadComputeShader("res/shaders/sky/multiscatter_lut.comp.bin");
 	renderer->skyViewLUTShader = LoadComputeShader("res/shaders/sky/skyview_lut.comp.bin");
+	renderer->weatherMapShader = LoadComputeShader("res/shaders/sky/weather_map.comp.bin");
 	renderer->cloudNoiseShader = LoadComputeShader("res/shaders/sky/cloud_noise.comp.bin");
 	renderer->cloudNoiseDetailShader = LoadComputeShader("res/shaders/sky/cloud_noise_detail.comp.bin");
 	renderer->sunColorShader = LoadComputeShader("res/shaders/sky/sun_color.comp.bin");
@@ -733,6 +765,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->skyMultiScatterLUT = CreateSkyMultiScatterLUT();
 	renderer->skyViewLUT = CreateSkyViewLUT();
 
+	renderer->weatherMap = CreateWeatherMapTexture(renderer, cmdBuffer);
 	renderer->cloudNoise = CreateCloudNoiseTexture(renderer, cmdBuffer);
 	renderer->cloudNoiseDetail = CreateCloudNoiseDetailTexture(renderer, cmdBuffer);
 

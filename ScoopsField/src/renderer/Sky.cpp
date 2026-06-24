@@ -171,16 +171,18 @@ static void UpdateSkyCubemap(Renderer* renderer, vec3 cameraPosition, vec3 sunDi
 
 		SDL_BindGPUComputePipeline(computePass, renderer->sunColorShader->compute);
 
-		SDL_GPUTextureSamplerBinding bindings[4];
+		SDL_GPUTextureSamplerBinding bindings[5];
 		bindings[0].texture = renderer->skyTransmittanceLUT;
 		bindings[0].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
 		bindings[1].texture = renderer->emptyTexture;
 		bindings[1].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
-		bindings[2].texture = renderer->cloudNoise;
+		bindings[2].texture = renderer->weatherMap;
 		bindings[2].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
-		bindings[3].texture = renderer->cloudNoiseDetail;
+		bindings[3].texture = renderer->cloudNoise;
 		bindings[3].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
-		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 4);
+		bindings[4].texture = renderer->cloudNoiseDetail;
+		bindings[4].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
+		SDL_BindGPUComputeSamplers(computePass, 0, bindings, 5);
 
 		struct UniformData
 		{
@@ -239,23 +241,25 @@ static void UpdateSkyCubemap(Renderer* renderer, vec3 cameraPosition, vec3 sunDi
 
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-			SDL_GPUTexture* gbufferTextures[6];
+			SDL_GPUTexture* gbufferTextures[7];
 			gbufferTextures[0] = renderer->blueNoise->handle;
 			gbufferTextures[1] = renderer->skyTransmittanceLUT;
 			gbufferTextures[2] = renderer->skyMultiScatterLUT;
 			gbufferTextures[3] = renderer->skyViewLUT;
-			gbufferTextures[4] = renderer->cloudNoise;
-			gbufferTextures[5] = renderer->cloudNoiseDetail;
+			gbufferTextures[4] = renderer->weatherMap;
+			gbufferTextures[5] = renderer->cloudNoise;
+			gbufferTextures[6] = renderer->cloudNoiseDetail;
 
-			SDL_GPUSampler* samplers[6];
+			SDL_GPUSampler* samplers[7];
 			samplers[0] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
 			samplers[1] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
 			samplers[2] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
 			samplers[3] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED_VERTICAL];
 			samplers[4] = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
 			samplers[5] = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
+			samplers[6] = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
 
-			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 6, gbufferTextures, samplers, cmdBuffer);
+			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 7, gbufferTextures, samplers, cmdBuffer);
 
 			SDL_EndGPURenderPass(renderPass);
 		}
@@ -299,17 +303,18 @@ static void RenderSky(Renderer* renderer, mat4 projectionInv, mat4 viewInv, vec3
 
 	SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-	SDL_GPUTexture* gbufferTextures[8];
+	SDL_GPUTexture* gbufferTextures[9];
 	gbufferTextures[0] = renderer->gbuffer->depthAttachment;
 	gbufferTextures[1] = renderer->blueNoise->handle;
 	gbufferTextures[2] = rt2->colorAttachments[0];
 	gbufferTextures[3] = renderer->skyTransmittanceLUT;
 	gbufferTextures[4] = renderer->skyMultiScatterLUT;
 	gbufferTextures[5] = renderer->skyViewLUT;
-	gbufferTextures[6] = renderer->cloudNoise;
-	gbufferTextures[7] = renderer->cloudNoiseDetail;
+	gbufferTextures[6] = renderer->weatherMap;
+	gbufferTextures[7] = renderer->cloudNoise;
+	gbufferTextures[8] = renderer->cloudNoiseDetail;
 
-	SDL_GPUSampler* samplers[8];
+	SDL_GPUSampler* samplers[9];
 	samplers[0] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
 	samplers[1] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
 	samplers[2] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
@@ -318,8 +323,9 @@ static void RenderSky(Renderer* renderer, mat4 projectionInv, mat4 viewInv, vec3
 	samplers[5] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED_VERTICAL];
 	samplers[6] = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
 	samplers[7] = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
+	samplers[8] = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
 
-	RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 8, gbufferTextures, samplers, cmdBuffer);
+	RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 9, gbufferTextures, samplers, cmdBuffer);
 
 	SDL_EndGPURenderPass(renderPass);
 }

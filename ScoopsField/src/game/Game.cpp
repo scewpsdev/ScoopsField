@@ -229,6 +229,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddHotReloadedComputeShader("shaders/sky/multiscatter_lut.comp", nullptr, game->renderer.skyMultiScatterLUTShader);
 	AddHotReloadedComputeShader("shaders/sky/skyview_lut.comp", "shaders/sky/sky.glsl", game->renderer.skyViewLUTShader);
 	AddHotReloadedComputeShader("shaders/sky/sun_color.comp", nullptr, game->renderer.sunColorShader);
+	AddHotReloadedComputeShader("shaders/sky/weather_map.comp", nullptr, game->renderer.cloudNoiseShader);
 	AddHotReloadedComputeShader("shaders/sky/cloud_noise.comp", nullptr, game->renderer.cloudNoiseShader);
 	AddHotReloadedComputeShader("shaders/sky/cloud_noise_detail.comp", nullptr, game->renderer.cloudNoiseDetailShader);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/tonemapping.frag", game->renderer.tonemappingShader, game->renderer.tonemappingPipeline);

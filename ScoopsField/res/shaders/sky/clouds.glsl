@@ -215,12 +215,14 @@ float getCloudDensity2(vec3 p, float height, int lod)
 {
 	vec3 windOffset = vec3(5e2, 0, 6e2) * gameTime * windSpeed;
 	float baseNoiseScale = 0.00005 * 1.51;
+	float structureNoiseScale = 0.00005 * 1.51;
 	float detailNoiseScale = 0.0016 * 1.51;
 
 	vec3 baseCoord = (p + windOffset) * baseNoiseScale;
+	vec3 structureCoord = (p + windOffset * 1.25) * structureNoiseScale;
 	vec3 detailCoord = (p + windOffset * 1.5) * detailNoiseScale;
 
-	vec4 baseNoise = texture(s_cloudNoise, baseCoord.xz);
+	vec4 baseNoise = texture(s_weatherMap, baseCoord.xz);
 
 	float cloudType = baseNoise.g;
 
@@ -238,38 +240,32 @@ float getCloudDensity2(vec3 p, float height, int lod)
 	float heightMask = linearstep(0, 0.05, heightFraction) - linearstep(0.8, 1.2, heightFraction);
 	cloud *= heightMask;
 
-	float detailStrength = smoothstep(1, 0.5, cloud) * detailStrengthMultiplier;
-	if (cloud > 0 && detailStrength > 0)
+	if (cloud > 0)
 	{
-		vec3 detailNoise = texture(s_cloudNoiseDetail, detailCoord).rgb;
-		float detailErosion = detailNoise.r * 0.625 + detailNoise.g * 0.25 + detailNoise.b * 0.125;
-		cloud = remap(cloud, (detailErosion - 0.5) * detailStrength, 1);
+		vec4 structureNoise = texture(s_cloudNoise, structureCoord);
+		float structureErosion = (structureNoise.r + 0.5 * structureNoise.g + 0.25 * structureNoise.b + 0.125 * structureNoise.a) / 1.875;
+		float structureStrength = 1.0;
+		cloud = remap(cloud, (structureErosion - 0.5) * structureStrength, 1);
 		cloud = max(cloud, 0);
-		//cloud -= detailErosion * detailStrength;
-		//detailErosion = mix(detailErosion, 1 - detailErosion, 0.35);
-		//cloud = remap(cloud, detailErosion * 0.2, 1, 0, 1);
+
+		float detailStrength = smoothstep(1, 0.5, cloud) * detailStrengthMultiplier;
+		if (cloud > 0 && detailStrength > 0)
+		{
+			vec3 detailNoise = texture(s_cloudNoiseDetail, detailCoord).rgb;
+			float detailErosion = detailNoise.r * 0.625 + detailNoise.g * 0.25 + detailNoise.b * 0.125;
+			cloud = remap(cloud, (detailErosion - 0.5) * detailStrength, 1);
+			cloud = max(cloud, 0);
+
+			//cloud -= detailErosion * detailStrength;
+			//detailErosion = mix(detailErosion, 1 - detailErosion, 0.35);
+			//cloud = remap(cloud, detailErosion * 0.2, 1, 0, 1);
+		}
 	}
 
-	cloud = smoothstep(0, 0.1, cloud + (mix(0.5, 1, cloudCoverage) - 1));
+	cloud = smoothstep(0, 0.1, cloud + (mix(0.5, 1, 0.3) - 1));
 	cloud *= linearstep(0, 0.25, heightFraction);
 
-	//float threshold = 0.92; //1 - cloudCoverage;
-	//cloud = remap(cloud, threshold, 1, 0, 1);
-	//cloud = max(cloud, 0);
-
-	if (false)
-	//if (cloud > 0)
-	{
-		vec3 detailNoise = texture(s_cloudNoiseDetail, detailCoord).rgb;
-		float detailErosion = detailNoise.r * 0.625 + detailNoise.g * 0.25 + detailNoise.b * 0.125;
-		detailErosion = mix(detailErosion, 1 - detailErosion, 0.35);
-		cloud = remap(cloud, detailErosion * 0.2, 1, 0, 1);
-		cloud = max(cloud, 0);
-	}
-
-	//cloud *= 10;
-
-	return cloud * 1;
+	return cloud;
 }
 
 float getCloudDensity(vec3 p, float height, int lod)
@@ -281,7 +277,7 @@ float getCloudDensity(vec3 p, float height, int lod)
 	vec3 baseCoord = (p + windOffset) * baseNoiseScale;
 	vec3 detailCoord = (p + windOffset * 1.5) * detailNoiseScale;
 
-	vec4 baseNoise = texture(s_cloudNoise, baseCoord.xz);
+	vec4 baseNoise = texture(s_weatherMap, baseCoord.xz);
 
 	float pw = baseNoise.r;
 	vec3 worley = baseNoise.gba;
