@@ -226,6 +226,12 @@ void UpdateAttackAction(Action* action, Player* player)
 		}
 	}
 
+	if (action->attack.attack->resetHitboxTime && action->elapsedTime >= action->attack.attack->resetHitboxTime && !action->attack.resetHitbox)
+	{
+		action->attack.hitEntities.clear();
+		action->attack.resetHitbox = true;
+	}
+
 	if (action->attack.attack->projectileCast && action->elapsedTime >= action->attack.attack->projectileCastTime && !action->attack.projectile)
 	{
 		Projectile* projectile = (Projectile*)PoolAlloc(&game->entities);

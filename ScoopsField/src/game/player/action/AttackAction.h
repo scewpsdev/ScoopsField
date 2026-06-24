@@ -22,6 +22,8 @@ struct AttackAction
 	uint32_t button;
 	uint32_t cancelButton;
 
+	bool resetHitbox;
+
 	List<Entity*, 16> hitEntities;
 
 	bool cancelled;

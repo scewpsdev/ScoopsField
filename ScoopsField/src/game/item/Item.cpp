@@ -47,6 +47,7 @@ static void InitStaff(ItemDatabase* items, Item* item, const char* name, bool tw
 
 	item->weapon.runningAttack = -1;
 	item->weapon.riposteAttack = -1;
+	item->weapon.riposteSecondaryAttack = -1;
 
 	item->weapon.parrySound = &game->hitParrySound;
 	item->weapon.blockSound = &game->hitBlockSound;
@@ -72,7 +73,7 @@ static void AddAttackEffect(Attack* attack, const char* path, float time, vec3 l
 	attackEffect->localPosition = localPosition;
 }
 
-static int AddAttack(Item* item, const char* name, const char* animation, AttackType attackType, float animationSpeed, int damageStartFrame, int damageEndFrame, int cancelFrame, float damageMultiplier, const char* followUp = nullptr)
+static int AddAttack(Item* item, const char* name, const char* animation, AttackType attackType, float animationSpeed, int damageStartFrame, int damageEndFrame, int cancelFrame, float damageMultiplier, const char* followUp = nullptr, const char* followUpSecondary = nullptr)
 {
 	int attackID = item->weapon.numAttacks++;
 	Attack* attack = &item->weapon.attacks[attackID];
@@ -86,6 +87,7 @@ static int AddAttack(Item* item, const char* name, const char* animation, Attack
 	attack->damageType = item->weapon.damageType;
 	attack->staminaCost = 0.1f;
 	attack->followUp = followUp;
+	attack->followUpSecondary = followUpSecondary;
 	attack->twoHanded = item->twoHanded;
 
 	AddAttackSound(attack, &game->swingSound, attack->damageWindow.x, 1, 1, (attackID % 2 * -2 + 1) * 0.2f);
@@ -166,12 +168,16 @@ static void InitWeapons(ItemDatabase* items)
 
 		item->equipSound = &items->equipSwordSound;
 
-		AddAttack(item, "attack_primary_1", "attack1", ATTACK_PRIMARY, 1.0f, 10, 18, 24, 1, "attack_primary_2");
+		AddAttack(item, "attack_primary_1", "attack1", ATTACK_PRIMARY, 1.0f, 10, 18, 24, 1, "attack_primary_2", "attack_secondary_2");
 		AddAttack(item, "attack_primary_2", "attack2", ATTACK_PRIMARY, 1.0f, 10, 18, 24, 1, "attack_primary_1");
-		AddAttack(item, "attack_secondary_1", "attack3", ATTACK_SECONDARY, 1.0f, 10, 18, 24, 1);
+		AddAttack(item, "attack_secondary_1", "attack3", ATTACK_SECONDARY, 1.0f, 12, 20, 25, 1, "attack_primary_2", "attack_secondary_2");
+		AddAttack(item, "attack_secondary_2", "attack4", ATTACK_SECONDARY, 1.0f, 10, 16, 26, 1, nullptr, "attack_secondary_1");
 
-		item->weapon.riposteAttack = AddAttack(item, "riposte", "attack_riposte", ATTACK_PRIMARY, 1.0f, 13, 17, 20, 1, "attack_primary_1");
-		item->weapon.runningAttack = AddAttack(item, "attack_running", "attack_running", ATTACK_PRIMARY, 1.0f, 15, 22, 28, 1, "attack_primary_1");
+		item->weapon.riposteAttack = AddAttack(item, "riposte", "attack_riposte2", ATTACK_PRIMARY, 1.0f, 13, 17, 25, 1);
+		item->weapon.riposteSecondaryAttack = AddAttack(item, "riposte2", "attack_riposte3", ATTACK_SECONDARY, 1.0f, 13, 27, 31, 0.6f, nullptr, "attack_secondary_1");
+		item->weapon.attacks[item->weapon.riposteSecondaryAttack].resetHitboxTime = 23 / 24.0f;
+
+		item->weapon.runningAttack = AddAttack(item, "attack_running", "attack_running", ATTACK_PRIMARY, 1.0f, 15, 22, 28, 1);
 
 		AddBlock(item, "block", "block", ATTACK_OFFHAND_PRIMARY, 1, 6);
 	}

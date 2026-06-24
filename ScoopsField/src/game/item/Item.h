@@ -84,7 +84,10 @@ struct Attack
 	DamageType damageType;
 	float staminaCost;
 
+	float resetHitboxTime;
+
 	const char* followUp;
+	const char* followUpSecondary;
 
 #define MAX_ATTACK_SOUNDS 8
 	AttackSound sounds[MAX_ATTACK_SOUNDS];
@@ -108,6 +111,7 @@ struct Weapon
 	int numAttacks;
 	int runningAttack;
 	int riposteAttack;
+	int riposteSecondaryAttack;
 
 	float blockStaminaCost;
 

@@ -767,18 +767,25 @@ void UpdatePlayer(Player* player)
 			Attack* nextAttack = nullptr;
 			int attackIdx = 0;
 
-			if (currentAction && currentAction->type == ACTION_TYPE_ATTACK && currentAction->attack.weapon == rightWeapon && currentAction->attack.attack->followUp)
+			AttackType type = GetMouseButtonDown(SDL_BUTTON_LEFT) ? ATTACK_PRIMARY : ATTACK_SECONDARY;
+
+			if (currentAction && currentAction->type == ACTION_TYPE_ATTACK && currentAction->attack.weapon == rightWeapon &&
+				(type == ATTACK_PRIMARY && currentAction->attack.attack->followUp || type == ATTACK_SECONDARY && currentAction->attack.attack->followUpSecondary))
 			{
 				if (inFollowUpWindow)
 				{
-					nextAttack = GetAttackByName(currentAction->attack.weapon, currentAction->attack.attack->followUp);
+					nextAttack = GetAttackByName(currentAction->attack.weapon, type == ATTACK_PRIMARY ? currentAction->attack.attack->followUp : currentAction->attack.attack->followUpSecondary);
 					attackIdx = currentAction->attack.attackIdx + 1;
 				}
 			}
 			else if (player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry && rightWeapon->weapon.riposteAttack != -1)
 			{
-				nextAttack = &rightWeapon->weapon.attacks[rightWeapon->weapon.riposteAttack];
-				CancelAction(player->actions, *player);
+				if (type == ATTACK_PRIMARY && rightWeapon->weapon.riposteAttack != -1)
+					nextAttack = &rightWeapon->weapon.attacks[rightWeapon->weapon.riposteAttack];
+				else if (type == ATTACK_SECONDARY && rightWeapon->weapon.riposteSecondaryAttack != -1)
+					nextAttack = &rightWeapon->weapon.attacks[rightWeapon->weapon.riposteSecondaryAttack];
+				if (nextAttack)
+					CancelAction(player->actions, *player);
 			}
 			else if (player->sprinting && rightWeapon->weapon.runningAttack != -1)
 			{
@@ -788,7 +795,6 @@ void UpdatePlayer(Player* player)
 			{
 				if (inFollowUpWindow)
 				{
-					AttackType type = GetMouseButtonDown(SDL_BUTTON_LEFT) ? ATTACK_PRIMARY : ATTACK_SECONDARY;
 					nextAttack = GetFirstAttack(rightWeapon, type);
 				}
 			}
@@ -817,6 +823,8 @@ void UpdatePlayer(Player* player)
 			Attack* nextAttack = nullptr;
 			int attackIdx = 0;
 
+			AttackType type = GetMouseButtonDown(SDL_BUTTON_RIGHT) ? ATTACK_PRIMARY : ATTACK_SECONDARY;
+
 			if (currentAction && currentAction->type == ACTION_TYPE_ATTACK && currentAction->attack.weapon == leftWeapon && currentAction->attack.attack->followUp)
 			{
 				if (inFollowUpWindow)
@@ -827,8 +835,12 @@ void UpdatePlayer(Player* player)
 			}
 			else if (player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry && leftWeapon->weapon.riposteAttack != -1)
 			{
-				nextAttack = &leftWeapon->weapon.attacks[leftWeapon->weapon.riposteAttack];
-				CancelAction(player->actions, *player);
+				if (type == ATTACK_PRIMARY && leftWeapon->weapon.riposteAttack != -1)
+					nextAttack = &leftWeapon->weapon.attacks[leftWeapon->weapon.riposteAttack];
+				else if (type == ATTACK_SECONDARY && leftWeapon->weapon.riposteSecondaryAttack != -1)
+					nextAttack = &leftWeapon->weapon.attacks[leftWeapon->weapon.riposteSecondaryAttack];
+				if (nextAttack)
+					CancelAction(player->actions, *player);
 			}
 			else if (player->sprinting && leftWeapon->weapon.runningAttack != -1)
 			{
@@ -838,7 +850,6 @@ void UpdatePlayer(Player* player)
 			{
 				if (inFollowUpWindow)
 				{
-					AttackType type = GetMouseButtonDown(SDL_BUTTON_RIGHT) ? ATTACK_PRIMARY : ATTACK_SECONDARY;
 					nextAttack = GetFirstAttack(leftWeapon, type);
 				}
 			}
