@@ -98,7 +98,6 @@ struct Renderer
 
 	mat4 lastProjection, lastView;
 
-	SDL_GPUTexture* depthTexture;
 	RenderTarget* gbuffer;
 	RenderTarget* hdrTarget;
 
@@ -135,6 +134,13 @@ struct Renderer
 	Shader* hdrToLuminanceShader;
 	Shader* luminanceDownsampleShader;
 	Shader* autoExposureShader;
+
+	SDL_GPUTexture* depthMips;
+	SDL_GPUTexture* ssao;
+	SDL_GPUTexture* ssaoBlur;
+	Shader* depthDownsampleShader;
+	Shader* ssaoShader;
+	GraphicsPipeline* depthDownsamplePipeline;
 
 #define BLOOM_STEPS 16
 	int bloomStepCount;

@@ -2,7 +2,7 @@
 
 #include "renderer/Renderer.h"
 #include "renderer/DebugTextRenderer.h"
-#include "renderer/GUIRenderer.h"
+#include "renderer/SpriteRenderer.h"
 
 #include "audio/Audio.h"
 
@@ -38,7 +38,13 @@ struct GameState
 	vec4 frustumPlanes[6];
 
 	Renderer renderer;
-	GUIRenderer guiRenderer;
+
+	Shader* guiShader;
+	GraphicsPipeline* guiPipeline;
+	Shader* textShader;
+	GraphicsPipeline* textPipeline;
+	SpriteRenderer guiRenderer;
+	SpriteRenderer textRenderer;
 
 	Random random;
 
@@ -90,6 +96,8 @@ struct GameState
 	GraphicsPipeline* trailAdditiveShader;
 	GraphicsPipeline* particleShader;
 	GraphicsPipeline* particleAdditiveShader;
+
+	Font* font;
 
 	ReflectionProbe reflectionProbes[8];
 	int numReflectionProbes;

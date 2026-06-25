@@ -158,7 +158,51 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 {
 	InitRenderer(&game->renderer, app->width, app->height, cmdBuffer);
 
-	InitGUIRenderer(&game->guiRenderer, 1000, cmdBuffer);
+	game->guiShader = LoadGraphicsShader("res/shaders/sprite.vert.bin", "res/shaders/sprite.frag.bin");
+
+	{
+		VertexBufferLayout spriteVertexLayout = {};
+		spriteVertexLayout.numAttributes = 1;
+		spriteVertexLayout.attributes[0].location = 0;
+		spriteVertexLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+
+		GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(
+			SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+			SDL_GPU_CULLMODE_BACK,
+			game->guiShader,
+			nullptr,
+			1, &spriteVertexLayout
+		);
+
+		CreateBlendStateAlphaPremultiplied(&pipelineInfo.colorTargets[0].blend_state);
+
+		game->guiPipeline = CreateGraphicsPipeline(&pipelineInfo);
+	}
+
+	InitSpriteRenderer(&game->guiRenderer, 1000, game->guiPipeline, cmdBuffer);
+
+	game->textShader = LoadGraphicsShader("res/shaders/sprite.vert.bin", "res/shaders/text.frag.bin");
+
+	{
+		VertexBufferLayout spriteVertexLayout = {};
+		spriteVertexLayout.numAttributes = 1;
+		spriteVertexLayout.attributes[0].location = 0;
+		spriteVertexLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+
+		GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(
+			SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+			SDL_GPU_CULLMODE_BACK,
+			game->textShader,
+			nullptr,
+			1, &spriteVertexLayout
+		);
+
+		CreateBlendStateAlphaPremultiplied(&pipelineInfo.colorTargets[0].blend_state);
+
+		game->textPipeline = CreateGraphicsPipeline(&pipelineInfo);
+	}
+
+	InitSpriteRenderer(&game->textRenderer, 1000, game->textPipeline, cmdBuffer);
 
 	InitRandom(&game->random, (uint32_t)SDL_GetTicks());
 
@@ -213,6 +257,9 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	game->particleShader = CreateForwardGraphicsPipeline(particleShader, particleLayouts, 6, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, false);
 	game->particleAdditiveShader = CreateForwardGraphicsPipeline(particleShader, particleLayouts, 6, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, true);
 
+	LoadFont("default", "fonts/libre-baskerville.regular.ttf");
+	game->font = GetFont("default", 20);
+
 #ifdef _DEBUG
 	AddHotReloadedShader("shaders/mesh.vert", "shaders/mesh.frag", game->renderer.defaultShader, game->renderer.geometryPipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/shadow.frag", game->renderer.shadowShader, game->renderer.shadowPipeline);
@@ -248,7 +295,12 @@ void GameDestroy()
 	ResetGame(true, false);
 
 	DestroyRenderer(&game->renderer);
-	DestroyGUIRenderer(&game->guiRenderer);
+	DestroySpriteRenderer(&game->guiRenderer);
+	DestroyShader(game->guiShader);
+	DestroyGraphicsPipeline(game->guiPipeline);
+	DestroySpriteRenderer(&game->textRenderer);
+	DestroyShader(game->textShader);
+	DestroyGraphicsPipeline(game->textPipeline);
 
 	DestroyParticleSystem(&game->particles);
 
@@ -349,7 +401,8 @@ void GameUpdate()
 void GameRender()
 {
 	mat4 guiPV = mat4::Orthographic(0, (float)app->width, 0, (float)app->height, -1, 1);
-	BeginGUIRenderer(&game->guiRenderer, guiPV);
+	BeginSpriteRenderer(&game->guiRenderer, guiPV);
+	BeginSpriteRenderer(&game->textRenderer, guiPV);
 
 	RenderPlayer(&game->player);
 
@@ -425,5 +478,8 @@ void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 
 	RendererShow(&game->renderer, game->cameraPosition, game->cameraRotation, game->cameraNear, game->cameraFov, app->width / (float)app->height, game->projection, game->view, game->pv, game->frustumPlanes, sunDirection, swapchain, cmdBuffer);
 
-	EndGUIRenderer(&game->guiRenderer, cmdBuffer);
+	//DrawText(&game->textRenderer, 100, 100, "abcdefABCDEF", 12, game->font, 0xFFFF77FF);
+
+	EndSpriteRenderer(&game->guiRenderer, cmdBuffer);
+	EndSpriteRenderer(&game->textRenderer, cmdBuffer);
 }

@@ -68,9 +68,10 @@ static void Bloom(Renderer* renderer, SDL_GPUTexture* input)
 			bindings[1].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
 			SDL_BindGPUComputeSamplers(computePass, 0, bindings, 2);
 
-			ivec2 size = GetMipSize(renderer->width / 2, renderer->height / 2, i);
+			int width, height;
+			GetMipSize(renderer->width / 2, renderer->height / 2, i, &width, &height);
 
-			SDL_DispatchGPUCompute(computePass, (size.x + 31) / 32, (size.y + 31) / 32, 1);
+			SDL_DispatchGPUCompute(computePass, (width + 31) / 32, (height + 31) / 32, 1);
 
 			SDL_EndGPUComputePass(computePass);
 

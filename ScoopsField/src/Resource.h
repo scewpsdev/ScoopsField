@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics/Shader.h"
+#include "graphics/Font.h"
 
 #include "model/Model.h"
 #include "model/AnimationCache.h"
@@ -46,6 +47,16 @@ struct ResourceState
 	HashMap<uint32_t, int, MAX_TEXTURE_RESOURCES> textureNameMap;
 	int numTextures;
 
+#define MAX_FONT_DATA_RESOURCES 8
+	FontData fontDatas[MAX_FONT_DATA_RESOURCES];
+	HashMap<uint32_t, int, MAX_FONT_DATA_RESOURCES> fontDataNameMap;
+	int numFontDatas;
+
+#define MAX_FONT_RESOURCES 16
+	Font fonts[MAX_FONT_RESOURCES];
+	HashMap<uint32_t, int, MAX_FONT_RESOURCES> fontNameMap;
+	int numFonts;
+
 	AnimationCache animationCache;
 
 #define MAX_FILE_WATCHERS 64
@@ -78,3 +89,6 @@ void GetRelativePath(char* str, int maxLen, const char* absolutePath, const char
 
 Model* GetModel(const char* path);
 Texture* GetTexture(const char* path);
+
+FontData* LoadFont(const char* name, const char* path);
+Font* GetFont(const char* name, float size);

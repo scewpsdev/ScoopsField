@@ -153,6 +153,26 @@ Texture* LoadTextureFromData(const uint8_t* data, uint32_t size, const TextureIn
 		return nullptr;
 	}
 
+	SetTextureData(handle, data, size, info->width, info->height, info->depth, cmdBuffer);
+
+	//if (info->numMips > 1)
+	//	SDL_GenerateMipmapsForGPUTexture(cmdBuffer, handle);
+
+	Texture* texture = PoolAlloc(&graphics->textures);
+	texture->handle = handle;
+	texture->info = *info;
+
+	return texture;
+}
+
+void DestroyTexture(Texture* texture)
+{
+	SDL_ReleaseGPUTexture(device, texture->handle);
+	PoolRelease(&graphics->textures, texture);
+}
+
+void SetTextureData(SDL_GPUTexture* texture, const uint8_t* data, uint32_t size, int width, int height, int depth, SDL_GPUCommandBuffer* cmdBuffer)
+{
 	SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
 
 	SDL_GPUTransferBufferCreateInfo transferBufferInfo = {};
@@ -170,29 +190,14 @@ Texture* LoadTextureFromData(const uint8_t* data, uint32_t size, const TextureIn
 	location.offset = 0;
 
 	SDL_GPUTextureRegion region = {};
-	region.texture = handle;
-	region.w = info->width;
-	region.h = info->height;
-	region.d = info->depth;
+	region.texture = texture;
+	region.w = width;
+	region.h = height;
+	region.d = depth;
 
 	SDL_UploadToGPUTexture(copyPass, &location, &region, false);
 
 	SDL_ReleaseGPUTransferBuffer(device, transferBuffer);
 
 	SDL_EndGPUCopyPass(copyPass);
-
-	//if (info->numMips > 1)
-	//	SDL_GenerateMipmapsForGPUTexture(cmdBuffer, handle);
-
-	Texture* texture = PoolAlloc(&graphics->textures);
-	texture->handle = handle;
-	texture->info = *info;
-
-	return texture;
-}
-
-void DestroyTexture(Texture* texture)
-{
-	SDL_ReleaseGPUTexture(device, texture->handle);
-	PoolRelease(&graphics->textures, texture);
 }

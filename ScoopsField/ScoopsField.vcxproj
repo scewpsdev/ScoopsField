@@ -257,6 +257,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="src\renderer\DebugTextRenderer.cpp" />
+    <ClCompile Include="src\graphics\Font.cpp" />
     <ClCompile Include="src\renderer\Lighting.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -270,7 +271,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="src\renderer\GUIRenderer.cpp" />
+    <ClCompile Include="src\renderer\SpriteRenderer.cpp" />
     <ClCompile Include="src\renderer\ScreenQuad.cpp" />
     <ClCompile Include="src\renderer\ShadowMapping.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -348,9 +349,10 @@
     <ClInclude Include="src\physics\Articulation.h" />
     <ClInclude Include="src\physics\RigidBody.h" />
     <ClInclude Include="src\renderer\DebugTextRenderer.h" />
+    <ClInclude Include="src\graphics\Font.h" />
     <ClInclude Include="src\renderer\ReflectionProbe.h" />
     <ClInclude Include="src\renderer\Renderer.h" />
-    <ClInclude Include="src\renderer\GUIRenderer.h" />
+    <ClInclude Include="src\renderer\SpriteRenderer.h" />
     <ClInclude Include="src\renderer\ScreenQuad.h" />
     <ClInclude Include="src\Resource.h" />
     <ClInclude Include="src\soloud\audiosource\ay\chipplayer.h" />
@@ -411,6 +413,7 @@
     <None Include="res\shaders\entity\particle.vert" />
     <None Include="res\shaders\entity\trail.frag" />
     <None Include="res\shaders\entity\trail.vert" />
+    <None Include="res\shaders\depth_downsample.frag" />
     <None Include="res\shaders\lighting\deferred_diffuse.frag" />
     <None Include="res\shaders\lighting\environment_light.frag" />
     <None Include="res\shaders\lighting\lighting.glsl" />
@@ -440,6 +443,8 @@
     <None Include="res\shaders\sky\sun_color.comp" />
     <None Include="res\shaders\sky\transmittance_lut.comp" />
     <None Include="res\shaders\sky\weather_map.comp" />
+    <None Include="res\shaders\postprocessing\ssao.comp" />
+    <None Include="res\shaders\text.frag" />
     <None Include="res\shaders\tonemapping.frag" />
     <None Include="res\shaders\glyph.frag" />
     <None Include="res\shaders\glyph.vert" />

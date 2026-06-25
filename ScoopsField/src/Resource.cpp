@@ -19,6 +19,8 @@ void InitResourceState(ResourceState* resource)
 {
 	InitHashMap(&resource->modelNameMap);
 	InitHashMap(&resource->textureNameMap);
+	InitHashMap(&resource->fontDataNameMap);
+	InitHashMap(&resource->fontNameMap);
 	InitAnimationCache(&resource->animationCache);
 
 	resource->directoryChangedHandle = FindFirstChangeNotificationA(PROJECT_PATH "/" RESOURCE_FOLDER, true, FILE_NOTIFY_CHANGE_LAST_WRITE);
@@ -263,4 +265,48 @@ Texture* GetTexture(const char* path)
 
 		return nullptr;
 	}
+}
+
+FontData* LoadFont(const char* name, const char* path)
+{
+	uint32_t nameHash = hash(name);
+	if (int* fontDataID = HashMapGet(&resource->fontNameMap, nameHash))
+		return &resource->fontDatas[*fontDataID];
+	else
+	{
+		char fullPath[256];
+		SDL_snprintf(fullPath, 256, "res/%s.bin", path);
+
+		{
+			int fontDataID = resource->numFontDatas++;
+			FontData* fontData = &resource->fontDatas[fontDataID];
+
+			if (LoadFontData(fontData, fullPath))
+			{
+				HashMapAdd(&resource->fontDataNameMap, nameHash, fontDataID);
+				return fontData;
+			}
+		}
+
+		return nullptr;
+	}
+}
+
+Font* GetFont(const char* name, float size)
+{
+	uint32_t nameHash = hash(name);
+	if (int* fontDataID = HashMapGet(&resource->fontDataNameMap, nameHash))
+	{
+		FontData* fontData = &resource->fontDatas[*fontDataID];
+
+		int fontID = resource->numFonts++;
+		Font* font = &resource->fonts[fontID];
+
+		InitFont(font, fontData, size);
+
+		HashMapAdd(&resource->fontNameMap, nameHash, fontID);
+		return font;
+	}
+
+	return nullptr;
 }

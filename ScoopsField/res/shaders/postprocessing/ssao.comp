@@ -1,0 +1,97 @@
+#version 460
+
+layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+
+layout (set = 0, binding = 0) uniform sampler2D s_input;
+
+layout (set = 1, binding = 0, r16f) uniform writeonly image2D i_output;
+
+layout (set = 2, binding = 0) uniform UniformBlock {
+	mat4 projection;
+	vec4 params;
+
+#define outputSize params.xy
+#define mip int(params.z + 0.5)
+#define tanHalfFov params.w
+};
+
+
+vec3 reconstructPosition(vec2 uv, float depth)
+{
+	vec2 ndc = vec2(uv.x * 2 - 1, 1 - uv.y * 2);
+	float near = projection[3][2];
+	float x = projection[0][0];
+	float y = projection[1][1];
+
+	vec3 view;
+	view.z = near / depth;
+	view.x = ndc.x * view.z / x;
+	view.y = ndc.y * view.z / y;
+	view.z *= -1; // right handed coordinate system
+	return view;
+}
+
+vec3 getPosition(vec2 uv)
+{
+	float depth = textureLod(s_input, uv, mip).r;
+	return reconstructPosition(uv, depth);
+}
+
+vec3 getNormal(vec2 uv)
+{
+	return vec3(0, 1, 0);
+}
+
+float computeAO(vec2 uv, vec3 position, vec3 normal)
+{
+	float maxDistance = 2;
+	int maxKernelSize = mip == 0 ? 2 : 5;
+
+	int kernelSize = int((outputSize.y * maxDistance) / (2 * -position.z * 1.0 /*tan(PI * 0.25)*/));
+	kernelSize = min(kernelSize, maxKernelSize);
+
+	if (kernelSize == 0)
+		return 0;
+
+	float sum = 0;
+	float ao = 0;
+	for (int y = -kernelSize; y <= kernelSize; y += 2)
+	{
+		for (int x = -kernelSize; x <= kernelSize; x += 2)
+		{
+			if (x == 0 && y == 0)
+				continue;
+
+			vec2 offset = vec2(x, y) / outputSize;
+			vec3 samplePosition = getPosition(uv + offset);
+			vec3 toSample = samplePosition - position;
+			float dist = length(toSample);
+			float d = max(dot(normal, toSample / dist), 0);
+			float falloff = 1 - min(1, dist * dist / (maxDistance * maxDistance));
+
+			ao += falloff * d;
+			sum += 1;
+		}
+	}
+
+	ao /= sum;
+
+	return ao;
+}
+
+void main()
+{
+	ivec2 gid = ivec2(gl_GlobalInvocationID.xy);
+	ivec2 size = imageSize(i_output);
+	if (gid.x >= size.x || gid.y >= size.y)
+		return;
+
+	vec2 uv = (gid + 0.5) / vec2(size);
+
+	vec3 position = getPosition(uv);
+	vec3 normal = getNormal(uv);
+
+	float result = computeAO(uv, position, normal);
+
+	imageStore(i_output, gid, vec4(result, 0, 0, 0));
+}

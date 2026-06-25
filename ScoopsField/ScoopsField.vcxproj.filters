@@ -102,7 +102,7 @@
     <ClCompile Include="src\physics\CharacterController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\renderer\GUIRenderer.cpp">
+    <ClCompile Include="src\renderer\SpriteRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\game\player\Player.cpp">
@@ -235,6 +235,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\game\player\action\ParryAction.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\graphics\Font.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -425,7 +428,7 @@
     <ClInclude Include="src\physics\CharacterController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\renderer\GUIRenderer.h">
+    <ClInclude Include="src\renderer\SpriteRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\game\player\Player.h">
@@ -548,6 +551,9 @@
     <ClInclude Include="src\game\player\action\ParryAction.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\graphics\Font.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\clear_buffer.comp" />
@@ -601,5 +607,8 @@
     <None Include="res\shaders\postprocessing\luminance_downsample.comp" />
     <None Include="res\shaders\postprocessing\hdr2luminance64.comp" />
     <None Include="res\shaders\sky\weather_map.comp" />
+    <None Include="res\shaders\text.frag" />
+    <None Include="res\shaders\depth_downsample.frag" />
+    <None Include="res\shaders\postprocessing\ssao.comp" />
   </ItemGroup>
 </Project>

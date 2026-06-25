@@ -105,6 +105,8 @@ void DebugTextRendererEnd(DebugTextRenderer* renderer, int width, int height, SD
 	if (renderer->numGlyphs == 0)
 		return;
 
+	if (!swapchain)
+		return;
 
 	SDL_UnmapGPUTransferBuffer(device, renderer->transferBuffer);
 	renderer->glyphDataPtr = nullptr;

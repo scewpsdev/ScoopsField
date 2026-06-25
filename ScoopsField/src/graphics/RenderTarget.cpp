@@ -19,14 +19,15 @@ int GetNumMipsForTexture(int width, int height)
 	return numMips;
 }
 
-ivec2 GetMipSize(int width, int height, int mip)
+void GetMipSize(int width, int height, int mip, int* outWidth, int* outHeight)
 {
 	for (int i = 0; i < mip; i++)
 	{
 		width = max(width >> 1, 1);
 		height = max(height >> 1, 1);
 	}
-	return ivec2(width, height);
+	*outWidth = width;
+	*outHeight = height;
 }
 
 static SDL_GPUTexture* CreateColorAttachment(int width, int height, SDL_GPUTextureType textureType, const ColorAttachmentInfo* attachmentInfo)

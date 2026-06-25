@@ -7,6 +7,9 @@
 //#include "CloudNoise.cpp"
 
 
+#define SSAO_STEPS 5
+
+
 struct LightInstanceData
 {
 	vec4 positionRadius;
@@ -33,19 +36,6 @@ extern GameMemory* memory;
 extern SDL_Window* window;
 extern SDL_GPUDevice* device;
 
-
-static SDL_GPUTexture* CreateDepthTarget(int width, int height)
-{
-	SDL_GPUTextureCreateInfo depthTextureInfo = {};
-	depthTextureInfo.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
-	depthTextureInfo.width = width;
-	depthTextureInfo.height = height;
-	depthTextureInfo.layer_count_or_depth = 1;
-	depthTextureInfo.num_levels = 1;
-	depthTextureInfo.type = SDL_GPU_TEXTURETYPE_2D;
-	depthTextureInfo.usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
-	return SDL_CreateGPUTexture(device, &depthTextureInfo);
-}
 
 static RenderTarget* CreateGBuffer(int width, int height)
 {
@@ -130,6 +120,36 @@ static RenderTarget* CreateShadowBuffer(int width, int height)
 	return CreateRenderTarget(width, height, SDL_GPU_TEXTURETYPE_2D, 1, &targetInfo, nullptr);
 }
 
+static SDL_GPUTexture* CreateDepthMips(int width, int height)
+{
+	SDL_GPUTextureCreateInfo targetInfo = {};
+	targetInfo.type = SDL_GPU_TEXTURETYPE_2D;
+	targetInfo.format = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
+	targetInfo.usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
+	targetInfo.width = width;
+	targetInfo.height = height;
+	targetInfo.layer_count_or_depth = 1;
+	targetInfo.num_levels = SSAO_STEPS;
+	targetInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
+
+	return SDL_CreateGPUTexture(device, &targetInfo);
+}
+
+static SDL_GPUTexture* CreateSSAOTarget(int width, int height)
+{
+	SDL_GPUTextureCreateInfo targetInfo = {};
+	targetInfo.type = SDL_GPU_TEXTURETYPE_2D;
+	targetInfo.format = SDL_GPU_TEXTUREFORMAT_R16_FLOAT;
+	targetInfo.usage = SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE | SDL_GPU_TEXTUREUSAGE_SAMPLER;
+	targetInfo.width = width;
+	targetInfo.height = height;
+	targetInfo.layer_count_or_depth = 1;
+	targetInfo.num_levels = SSAO_STEPS;
+	targetInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
+
+	return SDL_CreateGPUTexture(device, &targetInfo);
+}
+
 static void CreateBloomTargets(Renderer* renderer, int width, int height)
 {
 	int stepCount = GetNumMipsForTexture(width, height);
@@ -212,7 +232,15 @@ static GraphicsPipeline* CreateCopyDepthPipeline(Renderer* renderer, RenderTarge
 {
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->copyDepthShader, target, 1, &renderer->screenQuad.vertexBuffer->layout);
 
-	//pipelineInfo.depthTest = false;
+	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_ALWAYS;
+
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
+static GraphicsPipeline* CreateDepthDownsamplePipeline(Renderer* renderer)
+{
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->depthDownsampleShader, 0, nullptr, true, SDL_GPU_TEXTUREFORMAT_D24_UNORM, 1, &renderer->screenQuad.vertexBuffer->layout);
+
 	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_ALWAYS;
 
 	return CreateGraphicsPipeline(&pipelineInfo);
@@ -554,7 +582,6 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	InitList(&renderer->forwardMeshes);
 	InitList(&renderer->pointLights);
 
-	renderer->depthTexture = CreateDepthTarget(width, height);
 	renderer->gbuffer = CreateGBuffer(width, height);
 	renderer->hdrTarget = CreateHDRTarget(width, height);
 	renderer->skyTarget = CreateSkyTarget(width / 2, height / 2);
@@ -578,6 +605,10 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 
 		renderer->skyCubemap = CreateRenderTarget(32, 32, SDL_GPU_TEXTURETYPE_CUBE, 1, &hdrTargetInfo, nullptr);
 	}
+
+	renderer->depthMips = CreateDepthMips(width, height);
+	renderer->ssao = CreateSSAOTarget(width, height);
+	renderer->ssaoBlur = CreateSSAOTarget(width, height);
 
 	CreateBloomTargets(renderer, width / 2, height / 2);
 
@@ -650,6 +681,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->blurHShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/blurh.frag.bin");
 	renderer->blurVShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/blurv.frag.bin");
 	renderer->copyDepthShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/copy_depth.frag.bin");
+	renderer->depthDownsampleShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/depth_downsample.frag.bin");
 	renderer->directionalLightShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
 	renderer->pointLightShader = LoadGraphicsShader("res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
 	renderer->environmentLightShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/lighting/environment_light.frag.bin");
@@ -666,6 +698,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->cloudNoiseShader = LoadComputeShader("res/shaders/sky/cloud_noise.comp.bin");
 	renderer->cloudNoiseDetailShader = LoadComputeShader("res/shaders/sky/cloud_noise_detail.comp.bin");
 	renderer->sunColorShader = LoadComputeShader("res/shaders/sky/sun_color.comp.bin");
+	renderer->ssaoShader = LoadComputeShader("res/shaders/postprocessing/ssao.comp.bin");
 	renderer->bloomDownsampleShader = LoadComputeShader("res/shaders/postprocessing/bloom_downsample.comp.bin");
 	renderer->bloomUpsampleShader = LoadComputeShader("res/shaders/postprocessing/bloom_upsample.comp.bin");
 	renderer->hdrToLuminanceShader = LoadComputeShader("res/shaders/postprocessing/hdr2luminance64.comp.bin");
@@ -682,6 +715,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->blurVPipeline = CreateBlurVPipeline(renderer);
 	renderer->copyDepthPipeline = CreateCopyDepthPipeline(renderer, renderer->hdrTarget);
 	renderer->copyDepthPipeline2 = CreateCopyDepthPipeline(renderer, renderer->gbuffer);
+	renderer->depthDownsamplePipeline = CreateDepthDownsamplePipeline(renderer);
 	renderer->directionalLightPipeline = CreateDirectionalLightPipeline(renderer);
 	renderer->pointLightPipeline = CreatePointLightPipeline(renderer);
 	renderer->environmentLightPipeline = CreateEnvironmentLightPipeline(renderer);
@@ -830,19 +864,12 @@ void DestroyRenderer(Renderer* renderer)
 	DestroyShader(renderer->environmentLightShader);
 
 	DestroyRenderTarget(renderer->gbuffer);
-	SDL_ReleaseGPUTexture(device, renderer->depthTexture);
-
-	//DestroyTexture(renderer->environmentMap);
 }
 
 void ResizeRenderer(Renderer* renderer, int width, int height)
 {
 	renderer->width = width;
 	renderer->height = height;
-
-	if (renderer->depthTexture)
-		SDL_ReleaseGPUTexture(device, renderer->depthTexture);
-	renderer->depthTexture = CreateDepthTarget(width, height);
 
 	if (renderer->gbuffer)
 		DestroyRenderTarget(renderer->gbuffer);
@@ -867,6 +894,18 @@ void ResizeRenderer(Renderer* renderer, int width, int height)
 	if (renderer->shadowBuffer1)
 		DestroyRenderTarget(renderer->shadowBuffer1);
 	renderer->shadowBuffer1 = CreateShadowBuffer(width / 2, height / 2);
+
+	if (renderer->depthMips)
+		SDL_ReleaseGPUTexture(device, renderer->depthMips);
+	renderer->depthMips = CreateDepthMips(width, height);
+
+	if (renderer->ssao)
+		SDL_ReleaseGPUTexture(device, renderer->ssao);
+	renderer->ssao = CreateSSAOTarget(width, height);
+
+	if (renderer->ssaoBlur)
+		SDL_ReleaseGPUTexture(device, renderer->ssaoBlur);
+	renderer->ssaoBlur = CreateSSAOTarget(width, height);
 
 	SDL_ReleaseGPUTexture(device, renderer->bloomDownsampleBuffer);
 	SDL_ReleaseGPUTexture(device, renderer->bloomUpsampleBuffer);
@@ -1173,6 +1212,100 @@ static void SubmitMesh(Renderer* renderer,
 		SDL_DrawGPUPrimitives(renderPass, mesh->vertexCount, mesh->instanceCount, 0, 0);
 }
 
+static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov)
+{
+	GPU_SCOPE("Ambient Occlusion");
+
+	// copy depth
+	{
+		SDL_GPUDepthStencilTargetInfo depthTarget = {};
+		depthTarget.texture = renderer->depthMips;
+		depthTarget.clear_depth = 0;
+		depthTarget.load_op = SDL_GPU_LOADOP_DONT_CARE;
+		depthTarget.store_op = SDL_GPU_STOREOP_STORE;
+		depthTarget.mip_level = 0;
+
+		SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(cmdBuffer, nullptr, 0, &depthTarget);
+
+		SDL_BindGPUGraphicsPipeline(renderPass, renderer->copyDepthPipeline->pipeline);
+
+		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, &renderer->hdrTarget->depthAttachment, &renderer->samplers[TEXTURE_SAMPLER_DEFAULT], cmdBuffer);
+
+		SDL_EndGPURenderPass(renderPass);
+	}
+
+	// downsample depth
+	{
+		int width = renderer->width / 2;
+		int height = renderer->height / 2;
+
+		for (int i = 1; i < SSAO_STEPS; i++)
+		{
+			SDL_GPUDepthStencilTargetInfo depthTarget = {};
+			depthTarget.texture = renderer->depthMips;
+			depthTarget.load_op = SDL_GPU_LOADOP_DONT_CARE;
+			depthTarget.store_op = SDL_GPU_STOREOP_STORE;
+			depthTarget.mip_level = i;
+
+			SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(cmdBuffer, nullptr, 0, &depthTarget);
+
+			SDL_BindGPUGraphicsPipeline(renderPass, renderer->depthDownsamplePipeline->pipeline);
+
+			vec4 params = vec4((float)width, (float)height, (float)i, 0);
+			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &params, sizeof(params));
+
+			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, &renderer->depthMips, &renderer->samplers[TEXTURE_SAMPLER_DEFAULT], cmdBuffer);
+
+			SDL_EndGPURenderPass(renderPass);
+
+			width = max(width / 2, 1);
+			height = max(height / 2, 1);
+		}
+	}
+
+	// ssao
+	{
+
+
+		for (int i = SSAO_STEPS - 1; i >= 0; i--)
+		{
+			SDL_GPUStorageTextureReadWriteBinding targetBinding = {};
+			targetBinding.texture = renderer->ssao;
+			targetBinding.mip_level = i;
+			targetBinding.layer = 0;
+			targetBinding.cycle = false;
+
+			SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, &targetBinding, 1, nullptr, 0);
+
+			SDL_BindGPUComputePipeline(computePass, renderer->ssaoShader->compute);
+
+			SDL_GPUTextureSamplerBinding textureBinding = {};
+			textureBinding.texture = renderer->depthMips;
+			textureBinding.sampler = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
+
+			SDL_BindGPUComputeSamplers(computePass, 0, &textureBinding, 1);
+
+			struct UniformData
+			{
+				mat4 projection;
+				vec4 params;
+			};
+
+			int width, height;
+			GetMipSize(renderer->width, renderer->height, i, &width, &height);
+
+			UniformData uniforms = {};
+			uniforms.projection = projection;
+			uniforms.params = vec4((float)width, (float)height, (float)i, SDL_tanf(0.5f * fov));
+			SDL_PushGPUComputeUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+
+			SDL_DispatchGPUCompute(computePass, (width + 31) / 32, (height + 31) / 32, 1);
+
+			SDL_EndGPUComputePass(computePass);
+		}
+	}
+}
+
 // TODO
 // [X] atmospheric scattering
 // [X] reflection probes
@@ -1299,10 +1432,13 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		SDL_EndGPURenderPass(renderPass);
 	}
 
+	AmbientOcclusion(renderer, projection, fov);
+
 	AutoExposure(renderer, renderer->hdrTarget->colorAttachments[0]);
 	Bloom(renderer, renderer->hdrTarget->colorAttachments[0]);
 
 	// tonemapping
+	if (swapchain)
 	{
 		GPU_TIMER("tonemap");
 

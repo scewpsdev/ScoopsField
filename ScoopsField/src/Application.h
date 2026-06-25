@@ -116,8 +116,11 @@ struct AppState
 };
 
 
+extern GameMemory* memory;
 extern AppState* app;
 extern SDL_GPUDevice* device;
+
+extern SDL_GPUCommandBuffer* cmdBuffer;
 
 
 void* PhysicsMalloc(size_t size);
@@ -126,6 +129,8 @@ void* MeshMalloc(size_t size);
 void MeshFree(void* mem);
 void* ParticleMalloc(size_t size);
 void ParticleFree(void* mem);
+void* GraphicsMalloc(size_t size);
+void GraphicsFree(void* mem);
 
 bool EveryInterval(float seconds, uint32_t h);
 bool GetKey(SDL_Scancode key);

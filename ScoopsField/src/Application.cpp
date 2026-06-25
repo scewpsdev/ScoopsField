@@ -79,6 +79,23 @@ void ParticleFree(void* mem)
 	SDL_free(mem);
 }
 
+void* GraphicsMalloc(size_t size)
+{
+	//app->graphicsMemoryUsage += size;
+	//app->graphicsAllocationCount++;
+	void* mem = SDL_malloc(size);
+	SDL_memset(mem, 0, size);
+	return mem;
+}
+
+void GraphicsFree(void* mem)
+{
+	//size_t memsize = _msize(mem);
+	//app->graphicsMemoryUsage -= memsize;
+	//app->graphicsAllocationCount--;
+	SDL_free(mem);
+}
+
 bool EveryInterval(float seconds, uint32_t h)
 {
 	float time = gameTime + (h / (float)UINT32_MAX) * seconds;
@@ -639,38 +656,49 @@ extern "C" __declspec(dllexport) SDL_AppResult AppIterate()
 
 	int64_t cpuFrameStart = SDL_GetTicksNS();
 
-	if (GetKeyDown(SDL_SCANCODE_F10))
-		app->debugStats = (app->debugStats + 1) % 3;
-	if (app->debugStats)
-		RenderDebugStats();
-	else
-		DebugText(0, 0, COLOR_WHITE, COLOR_BLACK, "%d fps", app->fps);
-
-	GameRender();
-
-	uint64_t submitStart = SDL_GetTicksNS();
-
 	Uint32 swapchainWidth, swapchainHeight;
 	SDL_WaitAndAcquireGPUSwapchainTexture(cmdBuffer, app->window, &swapchain, &swapchainWidth, &swapchainHeight);
+
+	if (swapchain)
+	{
+		if (GetKeyDown(SDL_SCANCODE_F10))
+			app->debugStats = (app->debugStats + 1) % 3;
+		if (app->debugStats)
+			RenderDebugStats();
+		else
+			DebugText(0, 0, COLOR_WHITE, COLOR_BLACK, "%d fps", app->fps);
+
+		GameRender();
+	}
+
+	uint64_t submitStart = SDL_GetTicksNS();
 
 	GameShowFrame(cmdBuffer);
 	DebugTextRendererEnd(&app->debugTextRenderer, app->width, app->height, cmdBuffer);
 
 	EndGPUTimer(cmdBuffer); // frame
 
-	if (app->acquireFence)
+	if (swapchain)
 	{
-		*app->fenceTarget = SDL_SubmitGPUCommandBufferAndAcquireFence(cmdBuffer);
-		app->acquireFence = false;
-		app->fenceTarget = nullptr;
-		cmdBuffer = nullptr;
+		if (app->acquireFence)
+		{
+			*app->fenceTarget = SDL_SubmitGPUCommandBufferAndAcquireFence(cmdBuffer);
+			app->acquireFence = false;
+			app->fenceTarget = nullptr;
+			cmdBuffer = nullptr;
+		}
+		else
+		{
+			SDL_SubmitGPUCommandBuffer(cmdBuffer);
+			cmdBuffer = nullptr;
+		}
+		swapchain = nullptr;
 	}
 	else
 	{
-		SDL_SubmitGPUCommandBuffer(cmdBuffer);
+		SDL_CancelGPUCommandBuffer(cmdBuffer);
 		cmdBuffer = nullptr;
 	}
-	swapchain = nullptr;
 
 	uint64_t cpuFrameEnd = SDL_GetTicksNS();
 
