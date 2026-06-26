@@ -97,3 +97,16 @@ inline void CreateBlendStateAddPremultiplied(SDL_GPUColorTargetBlendState* blend
 	blendState->dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
 	blendState->alpha_blend_op = SDL_GPU_BLENDOP_ADD;
 }
+
+inline void CreateBlendStateMultiply(SDL_GPUColorTargetBlendState* blendState)
+{
+	blendState->enable_blend = true;
+
+	blendState->src_color_blendfactor = SDL_GPU_BLENDFACTOR_DST_COLOR;
+	blendState->dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ZERO;
+	blendState->color_blend_op = SDL_GPU_BLENDOP_ADD;
+
+	blendState->src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_DST_ALPHA;
+	blendState->dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ZERO;
+	blendState->alpha_blend_op = SDL_GPU_BLENDOP_ADD;
+}

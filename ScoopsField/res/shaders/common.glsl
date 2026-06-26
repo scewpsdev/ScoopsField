@@ -25,6 +25,11 @@ float depthToDistance(float depth, float near, float far)
 	return 2.0 * near * far / (far + near - depth * (far - near));
 }
 
+float depthToDistance(float depth, float near)
+{
+	return near / depth;
+}
+
 float distanceToDepth(float distance, float near, float far)
 {
 	float a = -(far + near) / (far - near);

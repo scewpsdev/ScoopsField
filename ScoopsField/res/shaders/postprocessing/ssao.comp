@@ -1,8 +1,11 @@
 #version 460
 
+#include "../common.glsl"
+
 layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-layout (set = 0, binding = 0) uniform sampler2D s_input;
+layout (set = 0, binding = 0) uniform sampler2D s_depth;
+layout (set = 0, binding = 1) uniform sampler2D s_ssao;
 
 layout (set = 1, binding = 0, r16f) uniform writeonly image2D i_output;
 
@@ -10,9 +13,10 @@ layout (set = 2, binding = 0) uniform UniformBlock {
 	mat4 projection;
 	vec4 params;
 
-#define outputSize params.xy
-#define mip int(params.z + 0.5)
-#define tanHalfFov params.w
+#define outputSize imageSize(i_output).xy
+#define mip int(params.x + 0.5)
+#define tanHalfFov params.y
+#define ssaoLod params.z
 };
 
 
@@ -24,28 +28,46 @@ vec3 reconstructPosition(vec2 uv, float depth)
 	float y = projection[1][1];
 
 	vec3 view;
-	view.z = near / depth;
+	view.z = depth > 0 ? near / depth : 1000000;
 	view.x = ndc.x * view.z / x;
 	view.y = ndc.y * view.z / y;
 	view.z *= -1; // right handed coordinate system
 	return view;
 }
 
-vec3 getPosition(vec2 uv)
+vec3 getPosition(vec2 uv, float lod)
 {
-	float depth = textureLod(s_input, uv, mip).r;
+	float depth = textureLod(s_depth, uv, lod).r;
 	return reconstructPosition(uv, depth);
 }
 
-vec3 getNormal(vec2 uv)
+vec3 getNormal(vec2 uv, vec3 position, float lod)
 {
-	return vec3(0, 1, 0);
+	vec2 size = floor(outputSize / pow(2, lod - mip));
+	vec2 texel = 1.0 / size;
+
+	vec3 right = getPosition(uv + vec2(texel.x, 0), lod);
+	vec3 left = getPosition(uv - vec2(texel.x, 0), lod);
+	vec3 top = getPosition(uv - vec2(0, texel.y), lod);
+	vec3 bottom = getPosition(uv + vec2(0, texel.y), lod);
+
+	vec3 dx0 = right - position;
+	vec3 dx1 = position - left;
+
+	vec3 tangent = abs(dx0.z) < abs(dx1.z) ? dx0 : dx1;
+
+	vec3 dy0 = top - position;
+	vec3 dy1 = position - bottom;
+
+	vec3 bitangent = abs(dy0.z) < abs(dy1.z) ? dy0 : dy1;
+
+	return normalize(cross(tangent, bitangent));
 }
 
 float computeAO(vec2 uv, vec3 position, vec3 normal)
 {
 	float maxDistance = 2;
-	int maxKernelSize = mip == 0 ? 2 : 5;
+	int maxKernelSize = mip == 0 ? 2 : 4;
 
 	int kernelSize = int((outputSize.y * maxDistance) / (2 * -position.z * 1.0 /*tan(PI * 0.25)*/));
 	kernelSize = min(kernelSize, maxKernelSize);
@@ -63,7 +85,7 @@ float computeAO(vec2 uv, vec3 position, vec3 normal)
 				continue;
 
 			vec2 offset = vec2(x, y) / outputSize;
-			vec3 samplePosition = getPosition(uv + offset);
+			vec3 samplePosition = getPosition(uv + offset, mip);
 			vec3 toSample = samplePosition - position;
 			float dist = length(toSample);
 			float d = max(dot(normal, toSample / dist), 0);
@@ -79,6 +101,73 @@ float computeAO(vec2 uv, vec3 position, vec3 normal)
 	return ao;
 }
 
+void getCoarseSample(vec2 uv, int idx, out float dist, out vec3 normal, out float ao, out float bilinearWeight)
+{
+    vec2 lastBufferSize = floor(outputSize / 2);
+
+	vec2 corner = vec2(idx % 2, idx / 2);
+
+	vec2 pixelCoord = uv * lastBufferSize;
+	vec2 topLeft = floor(pixelCoord - 0.5) + 0.5;
+    vec2 sampleUV = (topLeft + corner) / lastBufferSize;
+
+	float depth = textureLod(s_depth, sampleUV, mip + 1).r;
+	if (depth == 0)
+	{
+		dist = 1000000;
+		normal = vec3(0);
+		ao = 0;
+		bilinearWeight = 0;
+		return;
+	}
+
+	float near = projection[3][2];
+    dist = depthToDistance(depth, near);
+	vec3 position = reconstructPosition(sampleUV, depth);
+    normal = getNormal(sampleUV, position, mip + 1);
+
+    ao = textureLod(s_ssao, sampleUV, mip + 1).r;
+
+    vec2 subpixel = pixelCoord - topLeft;
+
+    float bilinearX = 1 - abs(subpixel.x - corner.x);
+    float bilinearY = 1 - abs(subpixel.y - corner.y);
+    bilinearWeight = bilinearX * bilinearY;
+}
+
+float upsample(vec2 uv, float depth, vec3 normal)
+{
+	float near = projection[3][2];
+	float dist = depthToDistance(depth, near);
+
+    float ao = 0.0;
+    float sum = 0.0;
+    for (int i = 0; i < 4; i++)
+    {
+        float sampleDist;
+        vec3 sampleNormal;
+        float sampleAO;
+        float bilinearWeight;
+        getCoarseSample(uv, i, sampleDist, sampleNormal, sampleAO, bilinearWeight);
+
+        float tz = 16;
+		float depthDelta = abs(sampleDist - dist);
+        float depthWeight = pow(1.0 / (1 + depthDelta), tz);
+
+        float tn = 8;
+		float normalDelta = (dot(normal, sampleNormal) + 1) / 2;
+        float normalWeight = pow(normalDelta, tn);
+
+        float weight = bilinearWeight * depthWeight * normalWeight;
+        ao += weight * sampleAO;
+        sum += weight;
+    }
+
+    ao /= sum;
+
+    return ao;
+}
+
 void main()
 {
 	ivec2 gid = ivec2(gl_GlobalInvocationID.xy);
@@ -88,10 +177,35 @@ void main()
 
 	vec2 uv = (gid + 0.5) / vec2(size);
 
-	vec3 position = getPosition(uv);
-	vec3 normal = getNormal(uv);
+	float depth = textureLod(s_depth, uv, mip).r;
+	vec3 position = reconstructPosition(uv, depth);
+	vec3 normal = getNormal(uv, position, mip);
 
-	float result = computeAO(uv, position, normal);
+	float ao;
+	if (depth != 0)
+	{
+		if (mip == 4)
+		{
+		    ao = computeAO(uv, position, normal);
+		}
+		else if (mip >= ssaoLod)
+		{
+			float ao1 = computeAO(uv, position, normal);
+			float ao2 = upsample(uv, depth, normal);
+			ao = max(ao1, ao2);
+		}
+		else
+		{
+		    ao = upsample(uv, depth, normal);
+		}
+	}
+	else
+	{
+		ao = 0;
+	}
 
-	imageStore(i_output, gid, vec4(result, 0, 0, 0));
+	if (mip == 0)
+		ao = 1 - ao;
+
+	imageStore(i_output, gid, vec4(ao, 0, 0, 0));
 }

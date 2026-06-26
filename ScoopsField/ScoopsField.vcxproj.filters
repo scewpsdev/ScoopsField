@@ -610,5 +610,7 @@
     <None Include="res\shaders\text.frag" />
     <None Include="res\shaders\depth_downsample.frag" />
     <None Include="res\shaders\postprocessing\ssao.comp" />
+    <None Include="res\shaders\postprocessing\ssao_blur.comp" />
+    <None Include="res\shaders\postprocessing\ssao_composite.frag" />
   </ItemGroup>
 </Project>

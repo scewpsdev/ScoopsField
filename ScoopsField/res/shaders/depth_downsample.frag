@@ -26,7 +26,7 @@ void main()
 	float depth2 = textureLod(s_input, coord2, mip - 1).r;
 	float depth3 = textureLod(s_input, coord3, mip - 1).r;
 
-	float result = max(max(depth0, depth1), max(depth2, depth2));
+	float result = max(max(depth0, depth1), max(depth2, depth3));
 
 	gl_FragDepth = result;
 }

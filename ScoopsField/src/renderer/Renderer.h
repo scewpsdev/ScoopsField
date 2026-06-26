@@ -136,11 +136,15 @@ struct Renderer
 	Shader* autoExposureShader;
 
 	SDL_GPUTexture* depthMips;
+	SDL_GPUTexture* normalMips;
 	SDL_GPUTexture* ssao;
 	SDL_GPUTexture* ssaoBlur;
 	Shader* depthDownsampleShader;
 	Shader* ssaoShader;
+	Shader* ssaoBlurShader;
+	Shader* ssaoCompositeShader;
 	GraphicsPipeline* depthDownsamplePipeline;
+	GraphicsPipeline* ssaoCompositePipeline;
 
 #define BLOOM_STEPS 16
 	int bloomStepCount;

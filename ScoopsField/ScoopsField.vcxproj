@@ -429,6 +429,8 @@
     <None Include="res\shaders\postprocessing\bloom_upsample.comp" />
     <None Include="res\shaders\postprocessing\hdr2luminance64.comp" />
     <None Include="res\shaders\postprocessing\luminance_downsample.comp" />
+    <None Include="res\shaders\postprocessing\ssao_blur.comp" />
+    <None Include="res\shaders\postprocessing\ssao_composite.frag" />
     <None Include="res\shaders\screenquad.frag" />
     <None Include="res\shaders\sky\clouds.glsl" />
     <None Include="res\shaders\sky\cloud_noise.comp" />
