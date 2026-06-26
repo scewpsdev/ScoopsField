@@ -158,6 +158,7 @@ struct Renderer
 	Shader* defaultShader;
 	Shader* animatedShader;
 	Shader* copyDepthShader;
+	Shader* reconstructNormalsShader;
 	Shader* directionalLightShader;
 	Shader* pointLightShader;
 	Shader* environmentLightShader;

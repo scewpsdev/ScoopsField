@@ -612,5 +612,6 @@
     <None Include="res\shaders\postprocessing\ssao.comp" />
     <None Include="res\shaders\postprocessing\ssao_blur.comp" />
     <None Include="res\shaders\postprocessing\ssao_composite.frag" />
+    <None Include="res\shaders\postprocessing\reconstruct_normals.comp" />
   </ItemGroup>
 </Project>

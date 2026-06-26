@@ -5,7 +5,8 @@
 layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 layout (set = 0, binding = 0) uniform sampler2D s_depth;
-layout (set = 0, binding = 1) uniform sampler2D s_ssao;
+layout (set = 0, binding = 1) uniform sampler2D s_normal;
+layout (set = 0, binding = 2) uniform sampler2D s_ssao;
 
 layout (set = 1, binding = 0, r16f) uniform writeonly image2D i_output;
 
@@ -43,25 +44,7 @@ vec3 getPosition(vec2 uv, float lod)
 
 vec3 getNormal(vec2 uv, vec3 position, float lod)
 {
-	vec2 size = floor(outputSize / pow(2, lod - mip));
-	vec2 texel = 1.0 / size;
-
-	vec3 right = getPosition(uv + vec2(texel.x, 0), lod);
-	vec3 left = getPosition(uv - vec2(texel.x, 0), lod);
-	vec3 top = getPosition(uv - vec2(0, texel.y), lod);
-	vec3 bottom = getPosition(uv + vec2(0, texel.y), lod);
-
-	vec3 dx0 = right - position;
-	vec3 dx1 = position - left;
-
-	vec3 tangent = abs(dx0.z) < abs(dx1.z) ? dx0 : dx1;
-
-	vec3 dy0 = top - position;
-	vec3 dy1 = position - bottom;
-
-	vec3 bitangent = abs(dy0.z) < abs(dy1.z) ? dy0 : dy1;
-
-	return normalize(cross(tangent, bitangent));
+	return textureLod(s_normal, uv, lod).rgb * 2 - 1;
 }
 
 float computeAO(vec2 uv, vec3 position, vec3 normal)
@@ -69,7 +52,7 @@ float computeAO(vec2 uv, vec3 position, vec3 normal)
 	float maxDistance = 2;
 	int maxKernelSize = mip == 0 ? 2 : 4;
 
-	int kernelSize = int((outputSize.y * maxDistance) / (2 * -position.z * 1.0 /*tan(PI * 0.25)*/));
+	int kernelSize = int((outputSize.y * maxDistance) / (2 * -position.z * tanHalfFov));
 	kernelSize = min(kernelSize, maxKernelSize);
 
 	if (kernelSize == 0)

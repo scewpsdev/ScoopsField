@@ -140,7 +140,7 @@ static SDL_GPUTexture* CreateNormalMips(int width, int height)
 	SDL_GPUTextureCreateInfo targetInfo = {};
 	targetInfo.type = SDL_GPU_TEXTURETYPE_2D;
 	targetInfo.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-	targetInfo.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
+	targetInfo.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE | SDL_GPU_TEXTUREUSAGE_SAMPLER;
 	targetInfo.width = width;
 	targetInfo.height = height;
 	targetInfo.layer_count_or_depth = 1;
@@ -254,7 +254,8 @@ static GraphicsPipeline* CreateCopyDepthPipeline(Renderer* renderer, RenderTarge
 
 static GraphicsPipeline* CreateDepthDownsamplePipeline(Renderer* renderer)
 {
-	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->depthDownsampleShader, 0, nullptr, true, SDL_GPU_TEXTUREFORMAT_D24_UNORM, 1, &renderer->screenQuad.vertexBuffer->layout);
+	SDL_GPUTextureFormat colorFormat = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->depthDownsampleShader, 1, &colorFormat, true, SDL_GPU_TEXTUREFORMAT_D24_UNORM, 1, &renderer->screenQuad.vertexBuffer->layout);
 
 	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_ALWAYS;
 
@@ -707,6 +708,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->blurHShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/blurh.frag.bin");
 	renderer->blurVShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/blurv.frag.bin");
 	renderer->copyDepthShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/copy_depth.frag.bin");
+	renderer->reconstructNormalsShader = LoadComputeShader("res/shaders/postprocessing/reconstruct_normals.comp.bin");
 	renderer->depthDownsampleShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/depth_downsample.frag.bin");
 	renderer->directionalLightShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/lighting/directional_light.frag.bin");
 	renderer->pointLightShader = LoadGraphicsShader("res/shaders/lighting/point_light.vert.bin", "res/shaders/lighting/point_light.frag.bin");
@@ -1269,29 +1271,71 @@ static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov, flo
 		SDL_EndGPURenderPass(renderPass);
 	}
 
-	// downsample depth
+	// reconstruct normals
 	{
-		GPU_TIMER("Downsample Depth");
+		GPU_TIMER("Reconstruct normals");
+
+		SDL_GPUStorageTextureReadWriteBinding targetBinding = {};
+		targetBinding.texture = renderer->normalMips;
+		targetBinding.mip_level = 0;
+		targetBinding.layer = 0;
+		targetBinding.cycle = false;
+
+		SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, &targetBinding, 1, nullptr, 0);
+
+		SDL_BindGPUComputePipeline(computePass, renderer->reconstructNormalsShader->compute);
+
+		SDL_PushGPUComputeUniformData(cmdBuffer, 0, &projection, sizeof(projection));
+
+		SDL_GPUTextureSamplerBinding textureBinding = {};
+		textureBinding.texture = renderer->hdrTarget->depthAttachment;
+		textureBinding.sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+
+		SDL_BindGPUComputeSamplers(computePass, 0, &textureBinding, 1);
+
+		SDL_DispatchGPUCompute(computePass, (renderer->width + 31) / 32, (renderer->height + 31) / 32, 1);
+
+		SDL_EndGPUComputePass(computePass);
+	}
+
+	// downsample depth & normals
+	{
+		GPU_TIMER("Downsample Depth & Normals");
 
 		int width = renderer->width / 2;
 		int height = renderer->height / 2;
 
 		for (int i = 1; i < SSAO_STEPS; i++)
 		{
+			SDL_GPUColorTargetInfo colorTarget = {};
+			colorTarget.texture = renderer->normalMips;
+			colorTarget.mip_level = i;
+			colorTarget.layer_or_depth_plane = 0;
+			colorTarget.load_op = SDL_GPU_LOADOP_DONT_CARE;
+			colorTarget.store_op = SDL_GPU_STOREOP_STORE;
+
 			SDL_GPUDepthStencilTargetInfo depthTarget = {};
 			depthTarget.texture = renderer->depthMips;
 			depthTarget.load_op = SDL_GPU_LOADOP_DONT_CARE;
 			depthTarget.store_op = SDL_GPU_STOREOP_STORE;
 			depthTarget.mip_level = i;
 
-			SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(cmdBuffer, nullptr, 0, &depthTarget);
+			SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(cmdBuffer, &colorTarget, 1, &depthTarget);
 
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->depthDownsamplePipeline->pipeline);
 
 			vec4 params = vec4((float)width, (float)height, (float)i, 0);
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &params, sizeof(params));
 
-			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, &renderer->depthMips, &renderer->samplers[TEXTURE_SAMPLER_DEFAULT], cmdBuffer);
+			SDL_GPUTexture* textures[2];
+			textures[0] = renderer->depthMips;
+			textures[1] = renderer->normalMips;
+
+			SDL_GPUSampler* samplers[2];
+			samplers[0] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+			samplers[1] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+
+			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 2, textures, samplers, cmdBuffer);
 
 			SDL_EndGPURenderPass(renderPass);
 
@@ -1335,13 +1379,15 @@ static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov, flo
 
 				SDL_BindGPUComputePipeline(computePass, renderer->ssaoShader->compute);
 
-				SDL_GPUTextureSamplerBinding textureBindings[2];
+				SDL_GPUTextureSamplerBinding textureBindings[3];
 				textureBindings[0].texture = renderer->depthMips;
 				textureBindings[0].sampler = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
-				textureBindings[1].texture = renderer->ssao;
+				textureBindings[1].texture = renderer->normalMips;
 				textureBindings[1].sampler = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
+				textureBindings[2].texture = renderer->ssao;
+				textureBindings[2].sampler = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
 
-				SDL_BindGPUComputeSamplers(computePass, 0, textureBindings, 2);
+				SDL_BindGPUComputeSamplers(computePass, 0, textureBindings, 3);
 
 				struct UniformData
 				{
