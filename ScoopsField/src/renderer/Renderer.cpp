@@ -379,7 +379,7 @@ static GraphicsPipeline* CreateSSAOCompositePipeline(Renderer* renderer)
 {
 	SDL_GPUTextureFormat targetFormat = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->ssaoCompositeShader, 1, &targetFormat, false, SDL_GPU_TEXTUREFORMAT_INVALID, 1, &renderer->screenQuad.vertexBuffer->layout);
-	//CreateBlendStateMultiply(&pipelineInfo.colorTargets[0].blend_state);
+	CreateBlendStateMultiply(&pipelineInfo.colorTargets[0].blend_state);
 	pipelineInfo.depthTest = false;
 	pipelineInfo.depthWrite = false;
 	return CreateGraphicsPipeline(&pipelineInfo);
@@ -1324,7 +1324,7 @@ static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov, flo
 
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->depthDownsamplePipeline->pipeline);
 
-			vec4 params = vec4((float)width, (float)height, (float)i, 0);
+			vec4 params = vec4((float)width, (float)height, (float)i, near);
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &params, sizeof(params));
 
 			SDL_GPUTexture* textures[2];
@@ -1384,7 +1384,7 @@ static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov, flo
 				textureBindings[0].sampler = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
 				textureBindings[1].texture = renderer->normalMips;
 				textureBindings[1].sampler = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
-				textureBindings[2].texture = renderer->ssao;
+				textureBindings[2].texture = renderer->ssaoBlur;
 				textureBindings[2].sampler = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
 
 				SDL_BindGPUComputeSamplers(computePass, 0, textureBindings, 3);
@@ -1423,13 +1423,15 @@ static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov, flo
 
 				SDL_BindGPUComputePipeline(computePass, renderer->ssaoBlurShader->compute);
 
-				SDL_GPUTextureSamplerBinding textureBindings[2];
+				SDL_GPUTextureSamplerBinding textureBindings[3];
 				textureBindings[0].texture = renderer->ssao;
 				textureBindings[0].sampler = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
 				textureBindings[1].texture = renderer->depthMips;
 				textureBindings[1].sampler = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
+				textureBindings[2].texture = renderer->normalMips;
+				textureBindings[2].sampler = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
 
-				SDL_BindGPUComputeSamplers(computePass, 0, textureBindings, 2);
+				SDL_BindGPUComputeSamplers(computePass, 0, textureBindings, 3);
 
 				struct UniformData
 				{

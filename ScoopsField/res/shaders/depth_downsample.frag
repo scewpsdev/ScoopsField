@@ -1,5 +1,7 @@
 #version 460
 
+#include "common.glsl"
+
 layout (location = 0) in vec2 v_texcoord;
 
 layout (location = 0) out vec4 out_color;
@@ -12,6 +14,7 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 
 #define size params.xy
 #define mip int(params.z + 0.5)
+#define near params.w
 };
 
 
@@ -36,10 +39,10 @@ void main()
 	float depth2 = textureLod(s_depth, coord2, mip - 1).r;
 	float depth3 = textureLod(s_depth, coord3, mip - 1).r;
 
-	vec3 normal0 = textureLod(s_normal, coord0, mip - 1).rgb;
-	vec3 normal1 = textureLod(s_normal, coord1, mip - 1).rgb;
-	vec3 normal2 = textureLod(s_normal, coord2, mip - 1).rgb;
-	vec3 normal3 = textureLod(s_normal, coord3, mip - 1).rgb;
+	vec3 normal0 = normalize(textureLod(s_normal, coord0, mip - 1).rgb * 2 - 1);
+	vec3 normal1 = normalize(textureLod(s_normal, coord1, mip - 1).rgb * 2 - 1);
+	vec3 normal2 = normalize(textureLod(s_normal, coord2, mip - 1).rgb * 2 - 1);
+	vec3 normal3 = normalize(textureLod(s_normal, coord3, mip - 1).rgb * 2 - 1);
 
 	vec4 sample0 = vec4(normal0, depth0);
 	vec4 sample1 = vec4(normal1, depth1);
@@ -56,12 +59,12 @@ void main()
 			swap(sample2, sample3);
 	}
 
-	//float depthThreshhold = 0.1;
-	//float depthDiff = sample3.w - sample0.w;
-    //vec4 result = depthDiff <= depthThreshhold ? 0.5 * sample1 + 0.5 * sample2 : sample1;
+	float depthThreshhold = 0.1;
+	float depthDiff = depthToDistance(sample3.w, near) - depthToDistance(sample0.w, near);
+    vec4 result = depthDiff <= depthThreshhold ? 0.5 * sample1 + 0.5 * sample2 : sample1;
 
-	vec4 result = sample1; //depth1 != 0 && depth2 != 0 ? 0.5 * sample1 + 0.5 * sample2 : sample1;
+	result = depthDiff <= depthThreshhold ? 0.5 * sample0 + 0.5 * sample1 : sample0;
 
-	out_color = vec4(result.rgb, 0);
+	out_color = vec4(normalize(result.rgb) * 0.5 + 0.5, 0);
 	gl_FragDepth = result.w;
 }

@@ -525,7 +525,7 @@ static void RenderDebugStats()
 	char particlesMemoryUsageStr[16];
 	MemoryString(particlesMemoryUsageStr, 16, app->particleMemoryUsage);
 
-	DebugText(0, 0, COLOR_WHITE, COLOR_BLACK, "%d fps, %.3f +- %.3f ms", app->fps, app->avgMs, app->avgMsVariance);
+	DebugText(0, 0, COLOR_WHITE, COLOR_BLACK, "%dx%d, %d fps, %.3f +- %.3f ms", app->width, app->height, app->fps, app->avgMs, app->avgMsVariance);
 
 	if (app->debugStats == 1)
 	{

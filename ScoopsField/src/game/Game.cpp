@@ -284,6 +284,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddHotReloadedShader("shaders/entity/magic_projectile.vert", "shaders/entity/magic_projectile.frag", game->magicProjectileShader->pipelineInfo.shader, game->magicProjectileShader);
 	AddHotReloadedShader("shaders/entity/particle.vert", "shaders/entity/particle.frag", game->particleShader->pipelineInfo.shader, game->particleShader);
 	AddHotReloadedComputeShader("shaders/postprocessing/ssao.comp", nullptr, game->renderer.ssaoShader);
+	AddHotReloadedComputeShader("shaders/postprocessing/ssao_blur.comp", nullptr, game->renderer.ssaoBlurShader);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/depth_downsample.frag", game->renderer.depthDownsampleShader, game->renderer.depthDownsamplePipeline);
 #endif
 
