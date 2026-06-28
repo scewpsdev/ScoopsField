@@ -298,6 +298,12 @@ bool HitPlayer(Player* player, HitParams* hit, Entity* by)
 	float damage = hit->damage;
 	if (player->blockItem && dot(-hitDirection, GetCameraRotation(player).forward()) > 0.5f)
 	{
+		if (!player->parry)
+		{
+			vec3 impulse = quat::FromAxisAngle(vec3::Up, player->yaw) * vec3(0, 0, 1) * 5;
+			player->velocity += impulse;
+		}
+
 		bool wasBlocked = player->stamina >= player->blockItem->weapon.blockStaminaCost || player->parry;
 		int side = player->blockItem == GetRightWeapon(player) ? 0 : 1;
 
@@ -331,9 +337,6 @@ bool HitPlayer(Player* player, HitParams* hit, Entity* by)
 		player->lastBlockParry = player->parry;
 		player->lastBlockStagger = !wasBlocked;
 
-		vec3 impulse = quat::FromAxisAngle(vec3::Up, player->yaw) * vec3(0, 0, 1) * 5;
-		player->velocity += impulse;
-
 		Action* currentAction = GetCurrentAction(player);
 		SDL_assert(currentAction && currentAction->type == ACTION_TYPE_ATTACK);
 		/*
@@ -359,6 +362,9 @@ bool HitPlayer(Player* player, HitParams* hit, Entity* by)
 	}
 	else
 	{
+		vec3 impulse = quat::FromAxisAngle(vec3::Up, player->yaw) * vec3(0, 0, 1) * 10;
+		player->velocity += impulse;
+
 		CancelAction(player->actions, *player);
 		ClearQueuedAction(player->actions);
 

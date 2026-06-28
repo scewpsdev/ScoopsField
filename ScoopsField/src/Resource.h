@@ -31,8 +31,9 @@ struct ResourceWatcher
 	ResourceType type;
 	char path[256];
 	char path1[256];
-	FileWatcher* file, * file1;
-	void* handle, * handle1;
+	char path2[256];
+	FileWatcher* file, * file1, * file2;
+	void* handle, * handle1, * handle2;
 };
 
 struct ResourceState
@@ -79,8 +80,9 @@ FileWatcher* AddFileWatcher(const char* path);
 bool FileHasChanged(FileWatcher* file);
 FileWatcher* GetFileWatcherFromPath(const char* path);
 
+void AddHotReloadedShader(const char* vertex, const char* fragment, const char* additionalPath, Shader* shader, GraphicsPipeline* pipeline);
 void AddHotReloadedShader(const char* vertex, const char* fragment, Shader* shader, GraphicsPipeline* pipeline);
-void AddHotReloadedComputeShader(const char* path, const char* path1, Shader* shader);
+void AddHotReloadedComputeShader(const char* path, const char* additionalPath, Shader* shader);
 void UpdateHotReloadedResources();
 
 StringView GetDirectory(const char* path);

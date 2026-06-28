@@ -96,7 +96,7 @@ static void ResetFileChange(FileWatcher* file)
 	}
 }
 
-static void AddHotReloadedResource(ResourceType type, const char* path, const char* path1, void* handle, void* handle1)
+static void AddHotReloadedResource(ResourceType type, const char* path, const char* path1, const char* path2, void* handle, void* handle1)
 {
 	SDL_assert(resource->numResourceWatchers < MAX_RESOURCE_WATCHERS);
 
@@ -118,24 +118,41 @@ static void AddHotReloadedResource(ResourceType type, const char* path, const ch
 		SDL_strlcat(fullPath1, path1, 256);
 	}
 
+	char fullPath2[256] = "";
+	if (path2)
+	{
+		SDL_strlcpy(watcher->path2, path2, 256);
+
+		SDL_strlcpy(fullPath2, RESOURCE_PATH, 256);
+		SDL_strlcat(fullPath2, path2, 256);
+	}
+
 	watcher->file = GetFileWatcherFromPath(fullPath);
 	if (!watcher->file) watcher->file = AddFileWatcher(fullPath);
 
 	watcher->file1 = path1 ? GetFileWatcherFromPath(fullPath1) : nullptr;
 	if (!watcher->file1 && path1) watcher->file1 = AddFileWatcher(fullPath1);
 
+	watcher->file2 = path2 ? GetFileWatcherFromPath(fullPath2) : nullptr;
+	if (!watcher->file2 && path2) watcher->file2 = AddFileWatcher(fullPath2);
+
 	watcher->handle = handle;
 	watcher->handle1 = handle1;
 }
 
-void AddHotReloadedShader(const char* vertex, const char* fragment, Shader* shader, GraphicsPipeline* pipeline)
+void AddHotReloadedShader(const char* vertex, const char* fragment, const char* additionalPath, Shader* shader, GraphicsPipeline* pipeline)
 {
-	AddHotReloadedResource(RESOURCE_TYPE_GRAPHICS_SHADER, vertex, fragment, shader, pipeline);
+	AddHotReloadedResource(RESOURCE_TYPE_GRAPHICS_SHADER, vertex, fragment, additionalPath, shader, pipeline);
 }
 
-void AddHotReloadedComputeShader(const char* path, const char* path1, Shader* shader)
+void AddHotReloadedShader(const char* vertex, const char* fragment, Shader* shader, GraphicsPipeline* pipeline)
 {
-	AddHotReloadedResource(RESOURCE_TYPE_COMPUTE_SHADER, path, path1, shader, nullptr);
+	AddHotReloadedResource(RESOURCE_TYPE_GRAPHICS_SHADER, vertex, fragment, nullptr, shader, pipeline);
+}
+
+void AddHotReloadedComputeShader(const char* path, const char* additionalPath, Shader* shader)
+{
+	AddHotReloadedResource(RESOURCE_TYPE_COMPUTE_SHADER, path, additionalPath, nullptr, shader, nullptr);
 }
 
 void UpdateHotReloadedResources()
@@ -151,7 +168,7 @@ void UpdateHotReloadedResources()
 			if (watcher->type == RESOURCE_TYPE_GRAPHICS_SHADER)
 			{
 				SDL_assert(watcher->file && watcher->file1 && watcher->handle && watcher->handle1);
-				if (FileHasChanged(watcher->file) || FileHasChanged(watcher->file1))
+				if (FileHasChanged(watcher->file) || FileHasChanged(watcher->file1) || watcher->file2 && FileHasChanged(watcher->file2))
 				{
 					Shader* shader = (Shader*)watcher->handle;
 					GraphicsPipeline* pipeline = (GraphicsPipeline*)watcher->handle1;

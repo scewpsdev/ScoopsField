@@ -62,8 +62,8 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 // [ ] block/parry sound variation
 // [ ] knight parry stagger animation
 // [ ] entity attack parryable flag
-// [ ] kings sword secondary attacks
-// [ ] kings sword secondary follow ups
+// [X] kings sword secondary attacks
+// [X] kings sword secondary follow ups
 // [ ] kings sword backstab
 // [ ] longsword moveset
 // [ ] staff cast follow up

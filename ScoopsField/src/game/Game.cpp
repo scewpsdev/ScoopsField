@@ -269,7 +269,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/environment_light.frag", game->renderer.environmentLightShader, game->renderer.environmentLightPipeline);
 	AddHotReloadedShader("shaders/lighting/point_light.vert", "shaders/lighting/point_light.frag", game->renderer.pointLightShader, game->renderer.pointLightPipeline);
 	AddHotReloadedShader("shaders/lighting/reflection_probe.vert", "shaders/lighting/reflection_probe.frag", game->renderer.reflectionProbeShader, game->renderer.reflectionProbePipeline);
-	AddHotReloadedShader("shaders/screenquad.vert", "shaders/sky/sky.frag", game->renderer.skyShader, game->renderer.skyPipeline);
+	AddHotReloadedShader("shaders/screenquad.vert", "shaders/sky/sky.frag", "shaders/sky/clouds.glsl", game->renderer.skyShader, game->renderer.skyPipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/sky/sky_upsample.frag", game->renderer.skyUpsampleShader, game->renderer.skyUpsamplePipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/sky/sky_cube.frag", game->renderer.skyCubeShader, game->renderer.skyCubePipeline);
 	AddHotReloadedComputeShader("shaders/sky/transmittance_lut.comp", nullptr, game->renderer.skyTransmittanceLUTShader);
