@@ -202,9 +202,7 @@ float noise(vec3 pos)
 
 void getCloudParams(float cloudType, out float minHeight, out float maxHeight, out float densityMultiplier, out float structureNoiseStrength, out float detailStrengthMultiplier, out float heightGradientType)
 {
-	float tt = floor(cloudType);
-	float f = cloudType - tt;
-	float t = smoothstep(0, 1, f);
+	float f = fract(cloudType);
 
 	minHeight = 1.5e3;
 	maxHeight = 4e3;
@@ -212,36 +210,36 @@ void getCloudParams(float cloudType, out float minHeight, out float maxHeight, o
 	structureNoiseStrength = 1;
 	detailStrengthMultiplier = 0.1;
 
-	if (tt == 0) // stratus
+	if (cloudType < 1) // stratus
 	{
 		minHeight = mix(1.5e3, 2e3, f);
 		maxHeight = mix(2e3, 4e3, f);
-		densityMultiplier = mix(0.01, 0.1, t);
-		structureNoiseStrength = 0.0;
+		densityMultiplier = mix(0.01, 0.1, f);
+		structureNoiseStrength = 0.1;
 		detailStrengthMultiplier = 0.05;
 	}
-	else if (tt == 1) // cumulus
+	else if (cloudType < 2) // cumulus
 	{
-		minHeight = mix(2e3, 2.2e3, t); //1.5e3;
-		maxHeight = mix(4e3, 5e3, t);
-		densityMultiplier = mix(0.1, 1, t);
-		structureNoiseStrength = mix(0, 0.3, t);
-		detailStrengthMultiplier = 0.1;
+		minHeight = mix(2e3, 2.2e3, f); //1.5e3;
+		maxHeight = mix(4e3, 5e3, f);
+		densityMultiplier = mix(0.1, 1, f);
+		structureNoiseStrength = mix(0.1, 0.3, f);
+		detailStrengthMultiplier = mix(0.05, 0.1, f);
 	}
 	else // cumulonimbus
 	{
-		minHeight = mix(2.2e3, 1.5e3, t);
-		maxHeight = mix(5e3, 10e3, t);
-		maxHeight = 10e3;
-		structureNoiseStrength = mix(0.3, 0.7, t);
-		detailStrengthMultiplier = 0.04;
+		minHeight = mix(2.2e3, 1.5e3, f);
+		maxHeight = mix(5e3, 8e3, f);
+		structureNoiseStrength = mix(0.3, 0.7, f);
+		detailStrengthMultiplier = mix(0.1, 0.04, f);
 	}
 }
 
-float getCloud(float cloudType, float heightFraction, vec4 baseNoise)
+float getCloud(float cloudType, float height, float minHeight, float maxHeight, float heightFraction, vec4 baseNoise)
 {
-	//float cloud = mix(baseNoise.g, baseNoise.b, max(abs(cloudType - 1.5) - 0.5, 0));
-	float cloud = mix(baseNoise.g, baseNoise.b, abs(cloudType - 1.5) / 1.5);
+	float cloud = mix(baseNoise.g, baseNoise.b, min(abs(cloudType - 1.5), 1));
+
+	float f = cloudType - floor(cloudType);
 
 	if (cloudType < 1)
 	{
@@ -251,72 +249,42 @@ float getCloud(float cloudType, float heightFraction, vec4 baseNoise)
 
 		float gradient = linearstep(0, 0.2, heightFraction) - linearstep(0.7, 1.0, heightFraction);
 
-		return remap(cloud - erosion, 1 - gradient /*baseNoise.g*/, 1);
+		return remap(cloud - erosion, 1 - gradient, 1);
 	}
 	else if (cloudType < 2)
 	{
 		float topErosion = heightFraction * heightFraction * baseNoise.a;
-		float bottomErosion = pow(1 - heightFraction, 25);
+		float bottomErosion = pow(1 - heightFraction, 16);
 		float erosion = bottomErosion + topErosion;
 
-		float gradient = linearstep(0, 0.05, heightFraction) - linearstep(0.8, 1.2, heightFraction);
+		float gradient = linearstep(0, 0.2, heightFraction) - linearstep(0.8, 1.2, heightFraction);
 
-		return remap(cloud - erosion, 1 - gradient /*baseNoise.g*/, 1);
+		return remap(cloud - erosion, 1 - gradient, 1);
 	}
 	else
 	{
-		float topErosion = min(heightFraction * heightFraction * 3, 1) * baseNoise.a * 0.5;
+		float topErosion = heightFraction * heightFraction * baseNoise.a * 0.5;
 
-		//topErosion = min(topErosion, anvil);
+		float bottomErosion = pow(1 - heightFraction, 16) * 0.5;
+		float erosion = bottomErosion + topErosion;
 
-		float bottomErosion = pow(1 - heightFraction, 16);
-		float erosion = topErosion;
+		float lowerBound = mix(0.2, 0.05, f);
+		float gradient = linearstep(0, lowerBound, heightFraction) - linearstep(0.8, 1.2, heightFraction);
 
-		float gradient = linearstep(0, 0.05, heightFraction) - linearstep(0.8, 1.2, heightFraction);
+		cloud = remap(cloud - erosion, 1 - gradient, 1);
 
-		float anvil = cloud * linearstep(0.1, 1.0, heightFraction);
-		anvil *= max(cloudType - 2, 0); //fract(cloudType);
-		//anvil *= 2;
-
-		cloud = remap(cloud, 1 - gradient, 1);
-		cloud -= erosion;
-		cloud = max(cloud, 0);
-
-		//cloud = remap(cloud - erosion, 1 - gradient /*baseNoise.g*/, 1);
+		float anvilWeight = linearstep(0.9, 1, f * f);
+		float totalHeightFraction = remap(height, minHeight, maxCloudHeight);
+		float anvil = linearstep(0.7, 1, totalHeightFraction * totalHeightFraction) * f * 0.1 * anvilWeight;
+		float anvilErosion = (1 - totalHeightFraction * totalHeightFraction) * baseNoise.a * 2;
+		anvil -= anvilErosion;
+		//anvil = max(anvil, 0);
 
 		cloud = max(cloud, anvil);
-		//cloud = anvil;
+		cloud += anvilWeight * 0.1;
 
 		return cloud;
 	}
-	/*
-	else
-	{
-		float anvil = linearstep(0.1, 1.0, heightFraction);
-
-		float topErosion = heightFraction * heightFraction * baseNoise.b;
-		//topErosion -= anvil * 0.2;
-		//topErosion *= exp(-anvil * 10);
-
-		float bottomErosion = pow(1 - heightFraction, 16);
-		float erosion = topErosion + bottomErosion;
-
-		//gradient = linearstep(0, 0.05, heightFraction) - linearstep(0.8, 1.2, heightFraction);
-
-		float gradient = linearstep(0, 0.05, heightFraction) - linearstep(0.6, 0.9, heightFraction);
-
-		cloud = remap(cloud, 1 - gradient, 1);
-		cloud -= erosion;
-
-		float anvilGradient = linearstep(0.7, 1, heightFraction) * 1.5;
-		//cloud = max(cloud, anvilGradient);
-		
-		return cloud;
-	}
-	*/
-	
-	//erosion = 0;
-	//gradient = 1;
 }
 
 float getCloudDensity2(vec3 p, float height, int lod)
@@ -332,18 +300,17 @@ float getCloudDensity2(vec3 p, float height, int lod)
 
 	vec4 baseNoise = texture(s_weatherMap, baseCoord.xz);
 
-	float cloudType = clamp(baseNoise.r * 3, 0, 3);
+	float cloudType = clamp(baseNoise.r * 3, 0, 2.99999);
 
 	float minHeight, maxHeight, densityMultiplier, structureNoiseStrength, detailStrengthMultiplier, heightGradientType;
 	getCloudParams(cloudType, minHeight, maxHeight, densityMultiplier, structureNoiseStrength, detailStrengthMultiplier, heightGradientType);
 
-	if (height < minHeight || height > maxHeight)
+	if (height < minHeight || height > maxHeight && cloudType < 2)
 		return 0;
 
-	//float heightFraction = clamp(remap(height, minHeight, maxHeight), 0, 1);
-	float heightFraction = clamp(remap(height, minCloudHeight, 5e3), 0, 1);
+	float heightFraction = clamp(remap(height, minHeight, maxHeight), 0, 1);
 
-	float cloud = getCloud(cloudType, heightFraction, baseNoise);
+	float cloud = getCloud(cloudType, height, minHeight, maxHeight, heightFraction, baseNoise);
 	
 	//float cloud = remap(baseNoise.r - erosion, 1 - cloudGradient /*baseNoise.g*/, 1);
 	//cloud = max(cloud, 0);
@@ -630,5 +597,5 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod, int numS
 
 vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise)
 {
-	return clouds(origin, dir, lightDir, noise, 0, 64);
+	return clouds(origin, dir, lightDir, noise, 0, 32);
 }
