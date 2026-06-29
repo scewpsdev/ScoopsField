@@ -410,7 +410,7 @@ bool GiveItem(Player* player, Item* item)
 		}
 	}
 	SDL_assert(player->rightWeapons[player->currentLoadout]);
-	if (DropItem(player, player->rightWeapons[player->currentLoadout]))
+	if (DropItem(player, player->rightWeapons[player->currentLoadout]) && (!item->twoHanded || !player->leftWeapons[player->currentLoadout] || DropItem(player, player->leftWeapons[player->currentLoadout])))
 	{
 		SetRightWeapon(player, player->currentLoadout, item);
 		return true;
@@ -422,7 +422,7 @@ bool DropItem(Player* player, Item* item)
 {
 	for (int i = 0; i < NUM_LOADOUTS; i++)
 	{
-		if (player->rightWeapons[i] == item)
+		if (player->rightWeapons[i] == item || player->leftWeapons[i] == item)
 		{
 			ItemEntity* itemEntity = (ItemEntity*)CreateEntity();
 			mat4 weaponTransform = GetRightWeaponTransform(player);
@@ -434,7 +434,10 @@ bool DropItem(Player* player, Item* item)
 			vec3 angularVelocity = game->random.nextVector3(-2, 2);
 			SetRigidBodyVelocity(&itemEntity->body, velocity, angularVelocity);
 
-			SetRightWeapon(player, i, nullptr);
+			if (player->rightWeapons[i] == item)
+				SetRightWeapon(player, i, nullptr);
+			else if (player->leftWeapons[i] == item)
+				SetLeftWeapon(player, i, nullptr);
 
 			return true;
 		}
@@ -507,7 +510,7 @@ static mat4 CalculateViewBobbing(Player* player, int side)
 	if (player->lastBlockTime && player->lastBlockSide == side)
 	{
 		float timeSinceBlock = gameTime - player->lastBlockTime;
-		float strength = player->lastBlockStagger ? 6.0f : 3.0f;
+		float strength = player->lastBlockStagger ? 3.0f : 1.5f;
 		float speed = player->lastBlockStagger ? 0.3f : 1.0f;
 		float animation = (1.0f - SDL_powf(0.5f, timeSinceBlock * speed * 4.0f)) * SDL_powf(0.1f, timeSinceBlock * speed * 4.0f) * strength;
 		sway.z -= animation;

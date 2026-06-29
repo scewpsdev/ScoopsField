@@ -170,6 +170,7 @@ static void InitWeapons(ItemDatabase* items)
 
 		AddAttack(item, "attack_primary_1", "attack1", ATTACK_PRIMARY, 1.0f, 10, 18, 24, 1, "attack_primary_2", "attack_secondary_2");
 		AddAttack(item, "attack_primary_2", "attack2", ATTACK_PRIMARY, 1.0f, 10, 18, 24, 1, "attack_primary_1");
+
 		AddAttack(item, "attack_secondary_1", "attack3", ATTACK_SECONDARY, 1.0f, 12, 16, 25, 1, "attack_primary_2", "attack_secondary_2");
 		AddAttack(item, "attack_secondary_2", "attack4", ATTACK_SECONDARY, 1.0f, 10, 16, 26, 1, nullptr, "attack_secondary_1");
 
@@ -178,7 +179,7 @@ static void InitWeapons(ItemDatabase* items)
 		AddBlock(item, "block", "block", ATTACK_OFFHAND_PRIMARY, 1, 6);
 
 		item->weapon.riposteAttack = AddAttack(item, "riposte", "attack_riposte", ATTACK_PRIMARY, 1.0f, 13, 17, 25, 1);
-		item->weapon.riposteSecondaryAttack = AddAttack(item, "riposte2", "attack_riposte3", ATTACK_SECONDARY, 1.0f, 13, 27, 31, 0.6f, nullptr, "attack_secondary_1");
+		item->weapon.riposteSecondaryAttack = AddAttack(item, "riposte_secondary", "attack_riposte3", ATTACK_SECONDARY, 1.0f, 13, 27, 31, 0.6f, nullptr, "attack_secondary_1");
 		item->weapon.attacks[item->weapon.riposteSecondaryAttack].resetHitboxTime = 23 / 24.0f;
 	}
 	// longsword
@@ -188,12 +189,18 @@ static void InitWeapons(ItemDatabase* items)
 
 		item->equipSound = &items->equipHeavySound;
 
-		AddAttack(item, "attack1", "attack1", ATTACK_PRIMARY, 1, 15, 24, 32, 1.0f, "attack2");
-		AddAttack(item, "attack2", "attack2", ATTACK_PRIMARY, 1, 15, 24, 32, 1.0f, "attack1");
+		AddAttack(item, "attack_primary_1", "attack1", ATTACK_PRIMARY, 1, 15, 24, 32, 1.0f, "attack_primary_2", "attack_secondary_2");
+		AddAttack(item, "attack_primary_2", "attack2", ATTACK_PRIMARY, 1, 15, 24, 32, 1.0f, "attack_primary_1");
+
+		AddAttack(item, "attack_secondary_1", "attack3", ATTACK_SECONDARY, 1.0f, 16, 20, 32, 1, "attack_primary_1", "attack_secondary_2");
+		AddAttack(item, "attack_secondary_2", "attack4", ATTACK_SECONDARY, 1.0f, 14, 20, 29, 1, "attack_primary_2", "attack_secondary_1");
 
 		AddBlock(item, "block", "block", ATTACK_OFFHAND_PRIMARY, 1, 6);
 
-		item->weapon.riposteAttack = AddAttack(item, "riposte", "attack_riposte", ATTACK_PRIMARY, 1.0f, 14, 23, 37, 1);
+		item->weapon.riposteAttack = AddAttack(item, "riposte", "attack_riposte", ATTACK_PRIMARY, 1.0f, 14, 23, 28, 1, "riposte2");
+		AddAttack(item, "riposte2", "attack_riposte2", ATTACK_PRIMARY, 1, 12, 21, 34, 1.0f, "attack_primary_2", "attack_secondary_2");
+
+		item->weapon.riposteSecondaryAttack = AddAttack(item, "riposte_secondary", "attack4", ATTACK_PRIMARY, 1.0f, 14, 20, 29, 1);
 	}
 	// shortbow
 	{
