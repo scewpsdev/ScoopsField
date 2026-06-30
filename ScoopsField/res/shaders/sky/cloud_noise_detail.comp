@@ -17,9 +17,9 @@ void main()
 
 	vec4 result;
 
-	result.x = 1 - worleyFbm(uvw, 3, 16);
-	result.y = 1 - worleyFbm(uvw, 8, 4);
-	result.z = 1 - worleyFbm(uvw, 16, 4);
+	result.x = worleyFbm(uvw, 3, 16);
+	result.y = worleyFbm(uvw, 8, 4);
+	result.z = worleyFbm(uvw, 16, 4);
 
 	imageStore(s_output, gid, result);
 }

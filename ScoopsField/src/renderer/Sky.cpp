@@ -118,6 +118,25 @@ static void UpdateSkyCubemap(Renderer* renderer, vec3 cameraPosition, vec3 sunDi
 	}
 
 	/*
+	// weather map
+	{
+		GPU_TIMER("weather map");
+
+		SDL_GPUStorageTextureReadWriteBinding bufferBinding = {};
+		bufferBinding.texture = renderer->weatherMap;
+		bufferBinding.mip_level = 0;
+		bufferBinding.layer = 0;
+		bufferBinding.cycle = false;
+
+		SDL_GPUComputePass* computePass = SDL_BeginGPUComputePass(cmdBuffer, &bufferBinding, 1, nullptr, 0);
+
+		SDL_BindGPUComputePipeline(computePass, renderer->weatherMapShader->compute);
+
+		SDL_DispatchGPUCompute(computePass, 128 / 8, 128 / 8, 1);
+
+		SDL_EndGPUComputePass(computePass);
+	}
+
 	// cloud noise
 	{
 		GPU_TIMER("cloud noise");

@@ -19,6 +19,16 @@ float linearstep(float edge0, float edge1, float x)
 	return clamp((x - edge0) / (edge1 - edge0), 0, 1);
 }
 
+float smax(float a, float b, float amount)
+{
+	return 0.5 * (a + b + sqrt((a - b) * (a - b) + amount));
+}
+
+float smin(float a, float b, float amount)
+{
+	return 0.5 * (a + b - sqrt((a - b) * (a - b) + amount));
+}
+
 float depthToDistance(float depth, float near, float far)
 {
 	depth = depth * 2 - 1;

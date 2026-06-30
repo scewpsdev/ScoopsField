@@ -8,11 +8,12 @@ layout(set = 1, binding = 0, rgba8) uniform writeonly image3D s_output;
 #include "noise.glsl"
 
 
-float perlinWorley(vec3 p)
+float perlinWorley(vec3 p, float freq)
 {
-    float pfbm = perlinFbm(p, 2, 7);
-    float wfbm = worleyFbm(p, 9, 8);
-    return mix(1, pfbm, 0.9) * mix(1, wfbm, 0.7);
+    float pfbm = perlinFbm(p, freq, 7);
+    float wfbm = worleyFbm(p, freq * 2.5, 8);
+    return remap(pfbm, wfbm * 0.6, 1);
+    //return mix(1, pfbm, 0.9) * mix(1, wfbm, 0.7);
 
     //    + seamlessPerlin(p * freq * 2, freq * 2) * 0.25
     //    + seamlessPerlin(p * freq * 4, freq * 4) * 0.125;
@@ -35,7 +36,7 @@ void main()
 
 	vec4 result;
 
-	result.x = worleyFbm(uvw, 2, 3);
+	result.x = perlinWorley(uvw, 4); //worleyFbm(uvw, 2, 3);
     result.y = worleyFbm(uvw, 4, 3);
     result.z = worleyFbm(uvw, 8, 3);
     result.w = worleyFbm(uvw, 16, 3);

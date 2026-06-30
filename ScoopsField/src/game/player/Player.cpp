@@ -768,7 +768,7 @@ void UpdatePlayer(Player* player)
 	{
 		bool inFollowUpWindow = !currentAction ||
 			player->actions.actions.size < player->actions.actions.capacity && (
-				currentAction->type != ACTION_TYPE_ATTACK || currentAction->elapsedTime >= 0.5f * currentAction->duration || currentAction->followUpCancelTime && currentAction->elapsedTime >= 0.5f * currentAction->followUpCancelTime
+				currentAction->type != ACTION_TYPE_ATTACK || currentAction->elapsedTime >= 0.5f * currentAction->duration || currentAction->followUpCancelTime && currentAction->elapsedTime >= 0.4f * currentAction->followUpCancelTime
 				);
 
 		if ((GetMouseButtonDown(SDL_BUTTON_LEFT) || GetMouseScroll() > 0) && rightWeapon)
@@ -793,6 +793,7 @@ void UpdatePlayer(Player* player)
 					nextAttack = &rightWeapon->weapon.attacks[rightWeapon->weapon.riposteAttack];
 				else if (type == ATTACK_SECONDARY && rightWeapon->weapon.riposteSecondaryAttack != -1)
 					nextAttack = &rightWeapon->weapon.attacks[rightWeapon->weapon.riposteSecondaryAttack];
+
 				if (nextAttack)
 					CancelAction(player->actions, *player);
 			}
@@ -805,6 +806,10 @@ void UpdatePlayer(Player* player)
 				if (inFollowUpWindow)
 				{
 					nextAttack = GetFirstAttack(rightWeapon, type);
+
+					bool hasParried = player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry;
+					if (hasParried && nextAttack->parryWindow.lengthSquared())
+						CancelAction(player->actions, *player);
 				}
 			}
 
@@ -819,6 +824,10 @@ void UpdatePlayer(Player* player)
 		{
 			if (Attack* nextAttack = GetFirstAttack(rightWeapon, ATTACK_OFFHAND_PRIMARY))
 			{
+				bool hasParried = player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry;
+				if (hasParried && nextAttack->parryWindow.lengthSquared())
+					CancelAction(player->actions, *player);
+
 				int attackIdx = 0;
 
 				Action action;
@@ -848,6 +857,7 @@ void UpdatePlayer(Player* player)
 					nextAttack = &leftWeapon->weapon.attacks[leftWeapon->weapon.riposteAttack];
 				else if (type == ATTACK_SECONDARY && leftWeapon->weapon.riposteSecondaryAttack != -1)
 					nextAttack = &leftWeapon->weapon.attacks[leftWeapon->weapon.riposteSecondaryAttack];
+
 				if (nextAttack)
 					CancelAction(player->actions, *player);
 			}
@@ -860,6 +870,10 @@ void UpdatePlayer(Player* player)
 				if (inFollowUpWindow)
 				{
 					nextAttack = GetFirstAttack(leftWeapon, type);
+
+					bool hasParried = player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry;
+					if (hasParried && nextAttack->parryWindow.lengthSquared())
+						CancelAction(player->actions, *player);
 				}
 			}
 
@@ -874,6 +888,10 @@ void UpdatePlayer(Player* player)
 		{
 			if (Attack* nextAttack = GetFirstAttack(leftWeapon, ATTACK_OFFHAND_PRIMARY))
 			{
+				bool hasParried = player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry;
+				if (hasParried && nextAttack->parryWindow.lengthSquared())
+					CancelAction(player->actions, *player);
+
 				int attackIdx = 0;
 
 				Action action;

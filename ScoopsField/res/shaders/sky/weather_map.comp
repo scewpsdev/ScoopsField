@@ -28,10 +28,10 @@ float perlinWorley(vec3 p, float freq)
 
 float cloudType(vec3 p)
 {
-    float pfbm = 4.000 * (perlinFbm(p, 4, 3) - 0.5);
+    float pfbm = perlinFbm(p, 1, 5);
                //+ 0.500 * (perlinFbm(p, 8, 3) - 0.5)
                //+ 0.250 * (perlinFbm(p, 16, 3) - 0.5);
-    return clamp(pfbm + 0.5, 0, 1);
+    return clamp(pfbm * 11 - 5.2, 0, 1);
 }
 
 void main()
@@ -44,7 +44,7 @@ void main()
 	vec4 result;
 
     result.x = cloudType(uvw);
-	result.y = perlinWorley(uvw, 4);
+	result.y = perlinWorley(uvw, 2);
     result.z = perlinWorley(uvw, 1);
     //result.y = 0.625 * perlinFbm(uvw, 1, 3)
     //         + 0.250 * perlinFbm(uvw, 1, 3)
