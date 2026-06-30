@@ -229,7 +229,7 @@ float noise(vec3 pos)
 
 float interpolate3(float a, float b, float c, float t)
 {
-	t = smoothstep(0, 1, t);
+	t = t < 1 ? smoothstep(0, 1, t) : 1 + smoothstep(0, 1, t - 1);
 
 	float ta = max(1 - t, 0);
 	float tb = 1 - abs(t - 1);
@@ -239,16 +239,15 @@ float interpolate3(float a, float b, float c, float t)
 
 void getCloudParams(float cloudType, out float minHeight, out float maxHeight, out float densityMultiplier, out float structureErosionMultiplier, out float detailStrengthMultiplier, out float heightGradientType)
 {
-	float f = fract(cloudType);
-
-	minHeight = interpolate3(1.5e3, 2e3, 1.5e3, cloudType);
-	maxHeight = interpolate3(2e3, 4e3, 10e3, cloudType);
-	densityMultiplier = interpolate3(1, 1, 3, cloudType);
+	minHeight = interpolate3(1.5e3, 2e3, 1.2e3, cloudType);
+	maxHeight = interpolate3(2.2e3, 4.5e3, 8e3, cloudType);
+	densityMultiplier = interpolate3(0.8, 1.2, 4.0, cloudType);
 	structureErosionMultiplier = interpolate3(0.01, 0.01, 0.02, cloudType);
-	detailStrengthMultiplier = interpolate3(0.01, 0.07, 0.01, cloudType);
+	detailStrengthMultiplier = interpolate3(0.01, 0.07, 0.03, cloudType);
 
 	return;
 
+	float f = fract(cloudType);
 	if (cloudType < 1) // stratus
 	{
 		minHeight = mix(1.5e3, 2e3, f);
@@ -280,7 +279,8 @@ float getCloud(float cloudType, float height, float minHeight, float maxHeight, 
 	float lowFrequencyCoverage = baseNoise.b;
 	float coverage = interpolate3(baseNoise.b, baseNoise.g, baseNoise.b, cloudType);
 
-	coverage += mix(-0.45, -0.15, cloudCoverage);
+	//coverage += mix(-0.45, -0.15, cloudCoverage);
+	coverage += mix(-0.45, -0.15, sin(gameTime * 0.07) * 0.3 + 0.5);
 	coverage = max(coverage, 0);
 
 	float cloud = coverage; //baseNoise.b; //mix(baseNoise.g, baseNoise.b, min(abs(cloudType - 1.5), 1)); // coverage
@@ -290,10 +290,11 @@ float getCloud(float cloudType, float height, float minHeight, float maxHeight, 
 	float totalHeightFraction = remap(height, minCloudHeight, maxCloudHeight);
 
 	float anvilAmount = interpolate3(0, 0, 1, cloudType); //linearstep(2, 3, cloudType);
-	float anvilErosion = (1 - smax(totalHeightFraction * totalHeightFraction, 0.8 * 0.8, 0.02)) * (1 - baseNoise.a);
-	anvilErosion += 0.1;
-	anvilErosion = mix(1, anvilErosion, anvilAmount);
+	float anvilErosion = (1 - smax(totalHeightFraction * totalHeightFraction * totalHeightFraction, 0.0 * 0.7, 0.02)) * (1 - baseNoise.a) * 0.3;
+	//anvilErosion += 0.1;
+	anvilErosion = mix(0.5, anvilErosion, anvilAmount);
 	topErosion = min(topErosion, anvilErosion);
+	//topErosion = anvilErosion;
 
 	float bottomErosion = pow(1 - heightFraction, 16);
 	float erosion = bottomErosion + topErosion;
@@ -357,7 +358,7 @@ float getCloudDensity2(vec3 p, float height, int lod)
 {
 	vec3 windOffset = vec3(5e2, 0, 6e2) * gameTime * windSpeed;
 	float baseNoiseScale = 0.000005 * 1.51;
-	float structureNoiseScale = 0.0001 * 1.51;
+	float structureNoiseScale = 0.00001 * 1.51;
 	float detailNoiseScale = 0.0005 * 1.51;
 
 	vec3 leanOffset = 0.8 * vec3(5e3, 0, 6e3) * pow(remap(height, minCloudHeight, maxCloudHeight), 2);
@@ -373,7 +374,7 @@ float getCloudDensity2(vec3 p, float height, int lod)
 	float minHeight, maxHeight, densityMultiplier, structureErosionMultiplier, detailStrengthMultiplier, heightGradientType;
 	getCloudParams(cloudType, minHeight, maxHeight, densityMultiplier, structureErosionMultiplier, detailStrengthMultiplier, heightGradientType);
 
-	if (height < minHeight || height > maxHeight && cloudType < 2)
+	if (height < minHeight || height > maxHeight && cloudType < 1)
 		return 0;
 
 	float heightFraction = remap(height, minHeight, maxHeight);
@@ -388,14 +389,21 @@ float getCloudDensity2(vec3 p, float height, int lod)
 	{
 		vec4 structureNoise = texture(s_cloudNoise, structureCoord);
 		float structureErosion = 1 - structureNoise.r; //(structureNoise.r + 0.5 * structureNoise.g + 0.25 * structureNoise.b + 0.125 * structureNoise.a) / 1.875;
-		cloud = remap(cloud, structureErosion * structureErosionMultiplier, 1);
+		//cloud = remap(cloud, structureErosion * structureErosionMultiplier, 1);
 		cloud = max(cloud, 0);
 
-		float structureDetail = 1 - 0.625 * structureNoise.g + 0.25 * structureNoise.b + 0.125 * structureNoise.a;
-		//cloud = remap(cloud, (structureDetail - 0.9) * 0.05, 1);
+		float stratusMapping = 0.7 * structureNoise.g + 0.3 * structureNoise.b;
+		float cumulusMapping = 0.625 * structureNoise.g + 0.25 * structureNoise.b + 0.125 * structureNoise.a;
+		float cumulonimbusMapping = 0.5 * structureNoise.g + 0.3 * structureNoise.b + 0.2 * structureNoise.a;
+
+		float structureMapping = interpolate3(stratusMapping, cumulusMapping, cumulonimbusMapping, cloudType);
+
+		cloud = remap(cloud, (structureMapping - 0.5) * 0.05, 1);
 		cloud = max(cloud, 0);
 
 		float detailStrength = smoothstep(1, 0.5, cloud) * detailStrengthMultiplier;
+		if (cloudType > 1.5)
+			detailStrength *= mix(0.5, 1, heightFraction);
 		if (cloud > 0 && detailStrength > 0)
 		{
 			vec3 detailNoise = texture(s_cloudNoiseDetail, detailCoord).rgb;

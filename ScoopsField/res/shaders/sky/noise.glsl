@@ -133,7 +133,7 @@ float seamlessWorley(vec3 p, float tileSize) {
 
 
 // Fbm for Perlin noise based on iq's blog
-float perlinFbm(vec3 p, float freq, int octaves)
+float perlinFbm(vec3 p, float freq, int octaves, float lacunarity, float persistence)
 {
     float amplitude = 1;
     float frequency = freq;
@@ -144,8 +144,8 @@ float perlinFbm(vec3 p, float freq, int octaves)
     {
         noise += amplitude * seamlessPerlin(p * frequency, frequency);
         sum += amplitude;
-        frequency *= 2;
-        amplitude *= 0.5;
+        frequency *= lacunarity;
+        amplitude *= persistence;
         p += 12345.6789;
     }
 
@@ -167,9 +167,14 @@ float perlinFbm(vec3 p, float freq, int octaves)
     */
 }
 
+float perlinFbm(vec3 p, float freq, int octaves)
+{
+    return perlinFbm(p, freq, octaves, 2, 0.5);
+}
+
 // Tileable Worley fbm inspired by Andrew Schneider's Real-Time Volumetric Cloudscapes
 // chapter in GPU Pro 7.
-float worleyFbm(vec3 p, float freq, int octaves)
+float worleyFbm(vec3 p, float freq, int octaves, float lacunarity, float persistence)
 {
     float amplitude = 1;
     float frequency = freq;
@@ -180,8 +185,8 @@ float worleyFbm(vec3 p, float freq, int octaves)
     {
         noise += amplitude * seamlessWorley(p * frequency, frequency);
         sum += amplitude;
-        frequency *= 2;
-        amplitude *= 0.5;
+        frequency *= lacunarity;
+        amplitude *= persistence;
         p += 12345.6789;
     }
 
@@ -190,4 +195,9 @@ float worleyFbm(vec3 p, float freq, int octaves)
     //return worleyNoise(p*freq, freq) * .625 +
     //    	 worleyNoise(p*freq*2., freq*2.) * .25 +
     //    	 worleyNoise(p*freq*4., freq*4.) * .125;
+}
+
+float worleyFbm(vec3 p, float freq, int octaves)
+{
+    return worleyFbm(p, freq, octaves, 2, 0.5);
 }

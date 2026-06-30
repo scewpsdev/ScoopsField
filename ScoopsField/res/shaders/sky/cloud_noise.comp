@@ -13,18 +13,6 @@ float perlinWorley(vec3 p, float freq)
     float pfbm = perlinFbm(p * vec3(1, 2, 1), freq, 7);
     float wfbm = worleyFbm(p, freq * 2.5, 8);
     return remap(pfbm, wfbm * 0.6, 1);
-    //return mix(1, pfbm, 0.9) * mix(1, wfbm, 0.7);
-
-    //    + seamlessPerlin(p * freq * 2, freq * 2) * 0.25
-    //    + seamlessPerlin(p * freq * 4, freq * 4) * 0.125;
-    //float w = seamlessWorley(p * freq * 2, freq * 2);
-    //return remap(pfbm, w * 0.5, 1, 0, 1);
-
-    //float pfbm = perlinFbm(p, freq, 1);
-    //float w = worleyNoise(p * freq, freq);
-    //float n = remap(pfbm, 0, 1, w, 1);
-    //n = max(n, 0);
-    //return n;
 }
 
 void main()
@@ -33,13 +21,15 @@ void main()
 	vec3 uvw = (gid + 0.5) / vec3(imageSize(s_output));
 
 	float freq = 4;
+	float L = 2.17;
+	float P = 0.42;
 
 	vec4 result;
 
-	result.x = perlinWorley(uvw, 4); //worleyFbm(uvw, 2, 3);
-    result.y = worleyFbm(uvw, 4, 3);
-    result.z = worleyFbm(uvw, 8, 3);
-    result.w = worleyFbm(uvw, 16, 3);
+	result.x = perlinWorley(uvw, freq);
+    result.y = worleyFbm(uvw, freq, 3, L, P);
+    result.z = worleyFbm(uvw, freq * pow(L, 4), 3, L, P);
+    result.w = worleyFbm(uvw, freq * pow(L, 8), 3, L, P);
 
 	imageStore(s_output, gid, result);
 }
