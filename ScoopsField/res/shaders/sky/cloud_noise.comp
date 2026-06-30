@@ -10,7 +10,7 @@ layout(set = 1, binding = 0, rgba8) uniform writeonly image3D s_output;
 
 float perlinWorley(vec3 p, float freq)
 {
-    float pfbm = perlinFbm(p, freq, 7);
+    float pfbm = perlinFbm(p * vec3(1, 2, 1), freq, 7);
     float wfbm = worleyFbm(p, freq * 2.5, 8);
     return remap(pfbm, wfbm * 0.6, 1);
     //return mix(1, pfbm, 0.9) * mix(1, wfbm, 0.7);

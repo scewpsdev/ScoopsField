@@ -65,7 +65,7 @@ struct GpuTimerContext
 	GpuTimerFrame frames[GPU_TIMER_FRAMES];
 	uint32_t frameIndex;
 
-	HashMap<const char*, float, GPU_TIMER_MAX_LABELS> cumulativeGpuTimes;
+	HashMap<uint32_t, float, GPU_TIMER_MAX_LABELS> cumulativeGpuTimes;
 	int numCumulativeFrames;
 	int64_t lastTimerReset;
 };

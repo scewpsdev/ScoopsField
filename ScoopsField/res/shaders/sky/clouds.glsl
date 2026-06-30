@@ -229,6 +229,8 @@ float noise(vec3 pos)
 
 float interpolate3(float a, float b, float c, float t)
 {
+	t = smoothstep(0, 1, t);
+
 	float ta = max(1 - t, 0);
 	float tb = 1 - abs(t - 1);
 	float tc = max(t - 1, 0);
@@ -239,11 +241,11 @@ void getCloudParams(float cloudType, out float minHeight, out float maxHeight, o
 {
 	float f = fract(cloudType);
 
-	minHeight = 1.5e3;
+	minHeight = interpolate3(1.5e3, 2e3, 1.5e3, cloudType);
 	maxHeight = interpolate3(2e3, 4e3, 10e3, cloudType);
 	densityMultiplier = interpolate3(1, 1, 3, cloudType);
 	structureErosionMultiplier = interpolate3(0.01, 0.01, 0.02, cloudType);
-	detailStrengthMultiplier = interpolate3(0.01, 0.05, 0.01, cloudType);
+	detailStrengthMultiplier = interpolate3(0.01, 0.07, 0.01, cloudType);
 
 	return;
 
@@ -398,7 +400,7 @@ float getCloudDensity2(vec3 p, float height, int lod)
 		{
 			vec3 detailNoise = texture(s_cloudNoiseDetail, detailCoord).rgb;
 			float detailErosion = detailNoise.r * 0.625 + detailNoise.g * 0.25 + detailNoise.b * 0.125;
-			detailErosion = heightFraction > 0.5 ? 1 - detailErosion : detailErosion;
+			detailErosion = heightFraction < 0.5 || height > 0.5 * maxCloudHeight ? 1 - detailErosion : detailErosion;
 			cloud = remap(cloud, detailErosion * detailStrength, 1);
 			cloud = max(cloud, 0);
 
@@ -542,14 +544,14 @@ float lightRay(vec3 origin, vec3 dir, float mu, float noise, int lod)
 		return 0;
 	//sphereIntersect(origin, dir, planetRadius + maxCloudHeight, tmin, tmax);
 
-	int numSamples = 6;
+	int numSamples = 32;
 	float ldt = 1.0 / numSamples;
 
 	float totalDensity = 0;
 
 	for (int i = 0; i < numSamples; i++)
 	{
-		float xi = 0;
+		float xi = noise;
 		float u0 = (i + xi) * ldt;
 		float u1 = (i + 1 + xi) * ldt;
 		float u = (i + 0.5 + xi) * ldt;

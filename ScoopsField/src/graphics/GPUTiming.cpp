@@ -153,9 +153,13 @@ void ResolveGPUTimers(GpuTimerContext* ctx, SDL_GPUDevice* device)
 
 		n->timeMs = (end - start) * ctx->timestampPeriod / 1e6f;
 
-		float* cumulativeTime = HashMapGet(&ctx->cumulativeGpuTimes, n->label);
+		uint32_t h = hashCombine(hash(n->label), i);
+
+		float* cumulativeTime = HashMapGet(&ctx->cumulativeGpuTimes, h);
 		if (!cumulativeTime)
-			cumulativeTime = HashMapAdd(&ctx->cumulativeGpuTimes, n->label, n->timeMs * ctx->numCumulativeFrames);
+			cumulativeTime = HashMapAdd(&ctx->cumulativeGpuTimes, h, n->timeMs * ctx->numCumulativeFrames);
+
+		SDL_assert(cumulativeTime);
 
 		*cumulativeTime += n->timeMs;
 	}
@@ -167,7 +171,9 @@ static void PrintNode(GpuTimerContext* ctx, GpuTimerFrame* f, int x, int& y, uin
 {
 	GpuTimerNode* n = &f->nodes[index];
 
-	float* cumulativeTime = HashMapGet(&ctx->cumulativeGpuTimes, n->label);
+	uint32_t h = hashCombine(hash(n->label), index);
+
+	float* cumulativeTime = HashMapGet(&ctx->cumulativeGpuTimes, h);
 	SDL_assert(cumulativeTime);
 	float avgTime = cumulativeTime ? *cumulativeTime / ctx->numCumulativeFrames : n->timeMs;
 
