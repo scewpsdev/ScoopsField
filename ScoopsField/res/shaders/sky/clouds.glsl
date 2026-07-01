@@ -365,16 +365,11 @@ float getCloud(float cloudType, float height, float minHeight, float maxHeight, 
 float getCloudDensity2(vec3 p, float height, int lod)
 {
 	vec3 windOffset = vec3(5e2, 0, 6e2) * gameTime * windSpeed;
+
+	vec3 leanOffset = 1.0 * vec3(5e3, 0, 6e3) * pow(remap(height, minCloudHeight, maxCloudHeight), 2);
+
 	float baseNoiseScale = 0.000005 * 1.51;
-	float structureNoiseScale = 0.0001 * 1.51;
-	float detailNoiseScale = 0.0005 * 1.51;
-
-	vec3 leanOffset = 0.8 * vec3(5e3, 0, 6e3) * pow(remap(height, minCloudHeight, maxCloudHeight), 2);
-
 	vec3 baseCoord = (p + windOffset + leanOffset) * baseNoiseScale + 0.5;
-	vec3 structureCoord = (p + windOffset * 1.25) * structureNoiseScale + 0.5;
-	vec3 detailCoord = (p + windOffset * 1.5) * detailNoiseScale + 0.5;
-
 	vec4 baseNoise = texture(s_weatherMap, baseCoord.xz);
 
 	float cloudType = clamp(baseNoise.r * 2, 0, 1.99999);
@@ -398,6 +393,9 @@ float getCloudDensity2(vec3 p, float height, int lod)
 
 	if (cloud > 0)
 	{
+		float structureNoiseScale = 0.0001 * 1.51;
+		vec3 structureWarp = vec3(baseNoise.a, 0, baseNoise.r);
+		vec3 structureCoord = (p + windOffset * 1.25 + structureWarp * 1e3) * structureNoiseScale + 0.5;
 		vec4 structureNoise = texture(s_cloudNoise, structureCoord);
 		//float structureErosion = 1 - structureNoise.r; //(structureNoise.r + 0.5 * structureNoise.g + 0.25 * structureNoise.b + 0.125 * structureNoise.a) / 1.875;
 		//cloud = remap(cloud, structureErosion * structureErosionMultiplier, 1);
@@ -419,7 +417,10 @@ float getCloudDensity2(vec3 p, float height, int lod)
 			detailStrength *= mix(0.5, 1, heightFraction);
 		if (cloud > 0 && detailStrength > 0)
 		{
+			float detailNoiseScale = 0.0005 * 1.51;
+			vec3 detailCoord = (p + windOffset * 1.5) * detailNoiseScale + 0.5;
 			vec3 detailNoise = texture(s_cloudNoiseDetail, detailCoord).rgb;
+
 			float detailErosion = detailNoise.r * 0.625 + detailNoise.g * 0.25 + detailNoise.b * 0.125;
 			detailErosion = heightFraction < 0.3 || height > 0.5 * maxCloudHeight ? 1 - detailErosion : detailErosion;
 			cloud = remap(cloud, detailErosion * detailStrength, 1);
@@ -600,7 +601,7 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod, int numS
 
 	float tmin, tmax;
 	if (!cloudLayerIntersect(origin, dir, tmin, tmax))
-		return vec4(0, 0, 0, 1);
+		return vec4(0, 0, 0, 0);
 
 	float maxDistance = 200e3;
 	float lodDistance = 50e3;
