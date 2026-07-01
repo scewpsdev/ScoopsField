@@ -28,8 +28,8 @@ void main()
 
 	result.x = perlinWorley(uvw, freq);
     result.y = worleyFbm(uvw, freq, 3, L, P);
-    result.z = worleyFbm(uvw, freq * pow(L, 4), 3, L, P);
-    result.w = worleyFbm(uvw, freq * pow(L, 8), 3, L, P);
+    result.z = worleyFbm(uvw, freq * L, 3, L, P);
+    result.w = worleyFbm(uvw, freq * L * L, 3, L, P);
 
 	imageStore(s_output, gid, result);
 }

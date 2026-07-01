@@ -868,7 +868,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->sunColorBuffer = SDL_CreateGPUTexture(device, &sunColorInfo);
 
 	renderer->weather.haziness = 0.01f;
-	renderer->weather.cloudCoverage = 0.4f;
+	renderer->weather.cloudCoverage = 0.5f;
 	renderer->weather.cloudDensity = 1.0f;
 	renderer->weather.windSpeed = 0.1f;
 }

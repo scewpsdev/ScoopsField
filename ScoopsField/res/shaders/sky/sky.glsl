@@ -227,8 +227,8 @@ vec4 calculateAerial(vec3 origin, vec3 dir, float maxDistance, vec3 lightDir)
 
 	vec3 toLight = -lightDir;
 	float m = dot(dir, toLight);
-	float phaseR = 3 / (16 * pi) * (1 + m * m);
-	float phaseM = phase(m, mix(mieAnisotropy, 0.5, haziness));
+	float phaseR = 1 / (4 * pi); //3 / (16 * pi) * (1 + m * m);
+	float phaseM = 1 / (4 * pi); //phase(m, mix(mieAnisotropy, 0.5, haziness));
 
 	for (int i = 0; i < numSamples; i++)
 	{

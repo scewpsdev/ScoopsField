@@ -126,17 +126,28 @@ void main()
 
 		vec3 toLight = -lightDirection;
 
+		//float baseNightSky = 0.0001 * max(dot(dir, vec3(0, 1, 0)) * 0.5 + 0.5, 0);
+		//color = max(color, baseNightSky);
+
 		// sun
 		float sunIntensity = 25;
-		vec3 sunlight = sampleTransmittanceLUT(height, toLight, up) * sunIntensity * 10;
+		vec3 sunColor = sampleTransmittanceLUT(height, toLight, up) * sunIntensity * 10;
 		float sunSize = mix(0.0004, 0.0002, max(dot(toLight, vec3(0, 1, 0)), 0));
 		float sunAlpha = smoothstep(1 - sunSize, 1.0, dot(dir, toLight)) * smoothstep(-0.005, 0.002, dir.y);
-		color = mix(color, sunlight, sunAlpha);
+		color = mix(color, sunColor, sunAlpha);
+
+		// moon
+		//vec3 toMoon = normalize(vec3(1, 1, -1));
+		//float moonSize = 0.001;
+		//float moonBrightness = 0.05;
+		//vec3 moonColor = sampleTransmittanceLUT(height, toMoon, up) * moonBrightness;
+		//float moonAlpha = smoothstep(1 - moonSize, 1, dot(dir, toMoon));
+		//color = mix(color, moonColor, moonAlpha);
 
 		// clouds
 		float noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
 		vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, noise);
-		color = mix(cloudColor.rgb, color, cloudColor.a);
+		color = mix(color, cloudColor.rgb, cloudColor.a);
 
 		// temporal accumulation
 		vec2 lastUV = reconstructUV(dir, lastProjection, lastView);
