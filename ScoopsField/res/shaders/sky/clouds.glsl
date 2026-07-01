@@ -243,7 +243,7 @@ void getCloudParams(float cloudType, out float minHeight, out float maxHeight, o
 	maxHeight = interpolate3(2.2e3, 4.5e3, 8e3, cloudType);
 	densityMultiplier = interpolate3(0.8, 1.2, 4.0, cloudType);
 	structureErosionMultiplier = interpolate3(0.01, 0.01, 0.02, cloudType);
-	detailStrengthMultiplier = interpolate3(0.01, 0.07, 0.03, cloudType);
+	detailStrengthMultiplier = interpolate3(0.02, 0.07, 0.03, cloudType);
 
 	return;
 
@@ -286,8 +286,7 @@ float getCloud(float cloudType, float height, float minHeight, float maxHeight, 
 
 	float coverage = interpolate3(baseNoise.b, baseNoise.g, baseNoise.b, coverageType);
 
-	//coverage += mix(-0.45, -0.15, cloudCoverage);
-	coverage += mix(-0.45, -0.15, 0.7);
+	coverage += mix(-0.45, -0.15, cloudCoverage);
 	//coverage += mix(-0.45, -0.15, sin(gameTime * 0.07) * 0.3 + 0.5);
 	//coverage += mix(-0.45, -0.15, 0.5);
 	coverage = max(coverage, 0);
@@ -691,7 +690,7 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod, int numS
 
 	float alpha = 1 - exp(-totalDensity * 2);
 
-	return vec4(color * alpha, alpha);
+	return vec4(color, alpha);
 }
 
 vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise)

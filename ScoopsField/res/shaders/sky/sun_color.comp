@@ -41,7 +41,7 @@ void main()
 	vec3 sunlight = sampleTransmittanceLUT(height, -sunDirection, up) * sunIntensity;
 
 	vec4 cloudColor = clouds(cameraPosition, -sunDirection, sunDirection, 0, 0, 16);
-	sunlight = sunlight * cloudColor.a;
+	sunlight = sunlight * (1 - cloudColor.a);
 	//vec3 sunlight = attenuateSun(cameraPosition, sunDirection);
 
 	vec3 color = imageLoad(s_output, ivec2(0)).rgb;
