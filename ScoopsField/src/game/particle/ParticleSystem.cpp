@@ -423,11 +423,11 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 		SDL_memcpy(mapped, emitter->animations, emitter->numParticles * sizeof(float));
 		UnmapTransferBuffer(emitter->animationTransferBuffer);
 
-		UpdateVertexBuffer(emitter->positionBuffer, 0, emitter->numParticles * sizeof(vec3), emitter->positionTransferBuffer->buffer, copyPass);
-		UpdateVertexBuffer(emitter->sizeBuffer, 0, emitter->numParticles * sizeof(vec2), emitter->sizeTransferBuffer->buffer, copyPass);
-		UpdateVertexBuffer(emitter->rotationBuffer, 0, emitter->numParticles * sizeof(float), emitter->rotationTransferBuffer->buffer, copyPass);
-		UpdateVertexBuffer(emitter->colorBuffer, 0, emitter->numParticles * sizeof(vec4), emitter->colorTransferBuffer->buffer, copyPass);
-		UpdateVertexBuffer(emitter->animationBuffer, 0, emitter->numParticles * sizeof(float), emitter->animationTransferBuffer->buffer, copyPass);
+		UpdateVertexBuffer(emitter->positionBuffer, 0, emitter->numParticles * sizeof(vec3), emitter->positionTransferBuffer->buffer, true, copyPass);
+		UpdateVertexBuffer(emitter->sizeBuffer, 0, emitter->numParticles * sizeof(vec2), emitter->sizeTransferBuffer->buffer, true, copyPass);
+		UpdateVertexBuffer(emitter->rotationBuffer, 0, emitter->numParticles * sizeof(float), emitter->rotationTransferBuffer->buffer, true, copyPass);
+		UpdateVertexBuffer(emitter->colorBuffer, 0, emitter->numParticles * sizeof(vec4), emitter->colorTransferBuffer->buffer, true, copyPass);
+		UpdateVertexBuffer(emitter->animationBuffer, 0, emitter->numParticles * sizeof(float), emitter->animationTransferBuffer->buffer, true, copyPass);
 
 		SDL_EndGPUCopyPass(copyPass);
 	}
@@ -565,7 +565,7 @@ void InitParticleSystem(ParticleSystem* particles)
 	quadLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
 
 	particles->quad = CreateVertexBuffer(4, &quadLayout, SDL_GPU_BUFFERUSAGE_VERTEX);
-	UpdateVertexBuffer(particles->quad, 0, (const uint8_t*)quadVertices, sizeof(quadVertices), cmdBuffer);
+	UpdateVertexBuffer(particles->quad, 0, (const uint8_t*)quadVertices, sizeof(quadVertices), false, cmdBuffer);
 }
 
 void DestroyParticleSystem(ParticleSystem* particles)

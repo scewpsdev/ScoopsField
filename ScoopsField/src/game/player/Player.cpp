@@ -216,6 +216,7 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 	player->neckNode = GetNodeByName(player->bodyModel, "neck_01");
 	player->spineNode = GetNodeByName(player->bodyModel, "spine_03");
 	player->spine2Node = GetNodeByName(player->bodyModel, "spine_02");
+	player->spine1Node = GetNodeByName(player->bodyModel, "spine_01");
 	player->pelvisNode = GetNodeByName(player->bodyModel, "pelvis");
 
 	player->lastRootNodeTransform = mat4::Identity;
@@ -1206,9 +1207,12 @@ void UpdatePlayer(Player* player)
 		mat4& neckTransform = GetNodeTransform(&player->bodyAnim, player->neckNode);
 		neckTransform = mat4::Transform(neckTransform.translation(), neckTransform.rotation(), vec3(0.01f));
 
-		mat4& spine1Transform = GetNodeTransform(&player->bodyAnim, GetNodeByName(player->bodyModel, "spine_01"));
-		vec3 localUp = (CalculateNodeWorldTransform(&player->bodyAnim, player->pelvisNode).inverted() * vec4(0, 1, 0, 0)).xyz;
-		spine1Transform = mat4::Rotate(localUp, player->yaw - player->rotation) * spine1Transform;
+		mat4& spine1Transform = GetNodeTransform(&player->bodyAnim, player->spine1Node);
+		mat4 spine1GlobalTransform = CalculateNodeWorldTransform(&player->bodyAnim, player->spine1Node);
+		spine1GlobalTransform = mat4::Rotate(vec3::Up, player->yaw - player->rotation) * spine1GlobalTransform;
+		spine1Transform = CalculateNodeWorldTransform(&player->bodyAnim, player->pelvisNode).inverted() * spine1GlobalTransform;
+		//vec3 localUp = (CalculateNodeWorldTransform(&player->bodyAnim, player->pelvisNode).inverted() * vec4(0, 1, 0, 0)).xyz;
+		//spine1Transform = mat4::Transform(spine1Transform.translation(), quat::FromAxisAngle(localUp, player->yaw - player->rotation) * spine1Transform.rotation());
 
 		/*
 		mat4& neckTransform = GetNodeTransform(&player->bodyAnim, player->neckNode);
@@ -1285,7 +1289,7 @@ void UpdatePlayer(Player* player)
 		if (!(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim))
 		{
 			//game->cameraPosition = player->position + vec3::Up * player->cameraHeight;
-			game->cameraPosition = player->position + quat::FromAxisAngle(vec3::Up, player->rotation + PI) * (GetNodeTransform(&player->bodyAnim, player->neckNode).translation() + vec3(0, 0, 0.03f));
+			game->cameraPosition = player->position + quat::FromAxisAngle(vec3::Up, player->rotation + PI) * (GetNodeTransform(&player->bodyAnim, player->neckNode).translation());
 
 			game->cameraRotation = quat::FromAxisAngle(vec3::Up, player->yaw) * quat::FromAxisAngle(vec3::Right, player->pitch);
 		}

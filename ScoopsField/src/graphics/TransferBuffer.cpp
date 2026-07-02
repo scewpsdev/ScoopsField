@@ -9,7 +9,7 @@ extern SDL_GPUDevice* device;
 extern GraphicsState* graphics;
 
 
-TransferBuffer* CreateTransferBuffer(uint32_t size, SDL_GPUTransferBufferUsage usage, bool cycle)
+TransferBuffer* CreateTransferBuffer(uint32_t size, SDL_GPUTransferBufferUsage usage)
 {
 	SDL_GPUTransferBufferCreateInfo bufferInfo = {};
 	bufferInfo.size = size;
@@ -19,8 +19,6 @@ TransferBuffer* CreateTransferBuffer(uint32_t size, SDL_GPUTransferBufferUsage u
 
 	TransferBuffer* transferBuffer = PoolAlloc(&graphics->transferBuffers);
 	transferBuffer->buffer = buffer;
-	transferBuffer->cycle = cycle;
-	transferBuffer->mapped = nullptr;
 
 	return transferBuffer;
 }
@@ -31,13 +29,12 @@ void DestroyTransferBuffer(TransferBuffer* transferBuffer)
 	PoolRelease(&graphics->transferBuffers, transferBuffer);
 }
 
-void* MapTransferBuffer(TransferBuffer* transferBuffer)
+void* MapTransferBuffer(TransferBuffer* transferBuffer, bool cycle)
 {
-	return transferBuffer->mapped = SDL_MapGPUTransferBuffer(device, transferBuffer->buffer, transferBuffer->cycle);
+	return SDL_MapGPUTransferBuffer(device, transferBuffer->buffer, cycle);
 }
 
 void UnmapTransferBuffer(TransferBuffer* transferBuffer)
 {
 	SDL_UnmapGPUTransferBuffer(device, transferBuffer->buffer);
-	transferBuffer->mapped = nullptr;
 }

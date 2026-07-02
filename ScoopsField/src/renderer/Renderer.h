@@ -67,6 +67,7 @@ struct LightDrawData
 {
 	vec3 position;
 	vec3 color;
+	float radius;
 };
 
 struct ReflectionProbeDrawData

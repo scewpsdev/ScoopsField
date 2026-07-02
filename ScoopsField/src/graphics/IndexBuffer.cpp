@@ -30,7 +30,7 @@ void DestroyIndexBuffer(IndexBuffer* indexBuffer)
 	PoolRelease(&graphics->indexBuffers, indexBuffer);
 }
 
-void UpdateIndexBuffer(IndexBuffer* indexBuffer, uint32_t offset, const uint8_t* data, uint32_t size, SDL_GPUTransferBuffer* transferBuffer, SDL_GPUCopyPass* copyPass)
+void UpdateIndexBuffer(IndexBuffer* indexBuffer, uint32_t offset, const uint8_t* data, uint32_t size, SDL_GPUTransferBuffer* transferBuffer, bool cycle, SDL_GPUCopyPass* copyPass)
 {
 	SDL_assert(size <= indexBuffer->numIndices * GetIndexFormatSize(indexBuffer->elementSize));
 
@@ -43,10 +43,10 @@ void UpdateIndexBuffer(IndexBuffer* indexBuffer, uint32_t offset, const uint8_t*
 	region.size = size;
 	region.offset = offset;
 
-	SDL_UploadToGPUBuffer(copyPass, &location, &region, false);
+	SDL_UploadToGPUBuffer(copyPass, &location, &region, cycle);
 }
 
-void UpdateIndexBuffer(IndexBuffer* indexBuffer, uint32_t offset, const uint8_t* data, uint32_t size, SDL_GPUCopyPass* copyPass)
+void UpdateIndexBuffer(IndexBuffer* indexBuffer, uint32_t offset, const uint8_t* data, uint32_t size, bool cycle, SDL_GPUCopyPass* copyPass)
 {
 	SDL_GPUTransferBufferCreateInfo transferInfo = {};
 	transferInfo.size = size;
@@ -55,15 +55,15 @@ void UpdateIndexBuffer(IndexBuffer* indexBuffer, uint32_t offset, const uint8_t*
 	void* mapped = SDL_MapGPUTransferBuffer(device, transferBuffer, false);
 	SDL_memcpy(mapped, data, size);
 	SDL_UnmapGPUTransferBuffer(device, transferBuffer);
-	UpdateIndexBuffer(indexBuffer, offset, data, size, transferBuffer, copyPass);
+	UpdateIndexBuffer(indexBuffer, offset, data, size, transferBuffer, cycle, copyPass);
 	SDL_ReleaseGPUTransferBuffer(device, transferBuffer);
 }
 
-void UpdateIndexBuffer(IndexBuffer* indexBuffer, uint32_t offset, const uint8_t* data, uint32_t size, SDL_GPUCommandBuffer* cmdBuffer)
+void UpdateIndexBuffer(IndexBuffer* indexBuffer, uint32_t offset, const uint8_t* data, uint32_t size, bool cycle, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
 
-	UpdateIndexBuffer(indexBuffer, offset, data, size, copyPass);
+	UpdateIndexBuffer(indexBuffer, offset, data, size, cycle, copyPass);
 
 	SDL_EndGPUCopyPass(copyPass);
 }

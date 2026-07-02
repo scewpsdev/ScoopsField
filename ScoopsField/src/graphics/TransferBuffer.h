@@ -6,13 +6,11 @@
 struct TransferBuffer
 {
 	SDL_GPUTransferBuffer* buffer;
-	bool cycle;
-	void* mapped;
 };
 
 
-TransferBuffer* CreateTransferBuffer(uint32_t size, SDL_GPUTransferBufferUsage usage, bool cycle);
+TransferBuffer* CreateTransferBuffer(uint32_t size, SDL_GPUTransferBufferUsage usage);
 void DestroyTransferBuffer(TransferBuffer* transferBuffer);
 
-void* MapTransferBuffer(TransferBuffer* transferBuffer);
+void* MapTransferBuffer(TransferBuffer* transferBuffer, bool cycle);
 void UnmapTransferBuffer(TransferBuffer* transferBuffer);

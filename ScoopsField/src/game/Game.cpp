@@ -285,6 +285,8 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddHotReloadedShader("shaders/entity/particle.vert", "shaders/entity/particle.frag", game->particleShader->pipelineInfo.shader, game->particleShader);
 	AddHotReloadedComputeShader("shaders/postprocessing/ssao.comp", nullptr, game->renderer.ssaoShader);
 	AddHotReloadedComputeShader("shaders/postprocessing/ssao_blur.comp", nullptr, game->renderer.ssaoBlurShader);
+	AddHotReloadedComputeShader("shaders/postprocessing/bloom_downsample.comp", nullptr, game->renderer.bloomDownsampleShader);
+	AddHotReloadedComputeShader("shaders/postprocessing/bloom_upsample.comp", nullptr, game->renderer.bloomUpsampleShader);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/depth_downsample.frag", game->renderer.depthDownsampleShader, game->renderer.depthDownsamplePipeline);
 #endif
 
@@ -421,8 +423,11 @@ void GameRender()
 
 	RenderModel(&game->renderer, &game->mapModel, nullptr, mat4::Identity, true);
 
-	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 1);
-	RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, gameTime * 0.5f * PI * 0.7f) * vec3(-1, 2, 0), vec3(0.5f, 1, 0.5f) * 1);
+	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, 1 * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 1);
+	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, 1 * 0.5f * PI * 0.7f) * vec3(-1, 2, 0), vec3(0.5f, 1, 0.5f) * 1);
+
+	RenderLight(&game->renderer, vec3(-1, 1, -1), vec3(1, 0.5f, 1));
+	RenderLight(&game->renderer, vec3(1, 1, -1), vec3(0.5f, 1, 0.5f));
 
 	for (int i = 0; i < game->numReflectionProbes; i++)
 	{
@@ -474,7 +479,7 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -10 * 0.03f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), 10 * 0.03f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 	//sunDirection = vec3(0.5f, -1, -1).normalized();

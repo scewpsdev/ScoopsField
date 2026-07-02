@@ -95,7 +95,7 @@ struct Player : EntityBase
 
 	Node* rightWeaponNode, * leftWeaponNode;
 	Node* rightShoulderNode, * leftShoulderNode;
-	Node* neckNode, * spineNode, * spine2Node, * pelvisNode;
+	Node* neckNode, * spineNode, * spine1Node, * spine2Node, * pelvisNode;
 
 	Node* rootNode;
 	vec3 rootMotion;

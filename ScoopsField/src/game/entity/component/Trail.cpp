@@ -148,7 +148,7 @@ void UpdateTrail(Trail* trail)
 	SDL_memcpy(mapped, vertices, trail->numNodes * 2 * sizeof(TrailVertex));
 	UnmapTransferBuffer(trail->transferBuffer);
 
-	UpdateVertexBuffer(trail->vertexBuffer, 0, trail->numNodes * 2 * sizeof(TrailVertex), trail->transferBuffer->buffer, cmdBuffer);
+	UpdateVertexBuffer(trail->vertexBuffer, 0, trail->numNodes * 2 * sizeof(TrailVertex), trail->transferBuffer->buffer, true, cmdBuffer);
 }
 
 void BendTrailEnd(Trail* trail, vec3 position, float range)

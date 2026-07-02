@@ -65,7 +65,7 @@ void DestroyVertexBuffer(VertexBuffer* vertexBuffer)
 	PoolRelease(&graphics->vertexBuffers, vertexBuffer);
 }
 
-void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, uint32_t size, SDL_GPUTransferBuffer* transferBuffer, SDL_GPUCopyPass* copyPass)
+void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, uint32_t size, SDL_GPUTransferBuffer* transferBuffer, bool cycle, SDL_GPUCopyPass* copyPass)
 {
 	SDL_GPUTransferBufferLocation location = {};
 	location.transfer_buffer = transferBuffer;
@@ -78,10 +78,10 @@ void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, uint32_t si
 
 	SDL_assert(offset + size <= vertexBuffer->numVertices * GetVertexPitch(&vertexBuffer->layout));
 
-	SDL_UploadToGPUBuffer(copyPass, &location, &region, false);
+	SDL_UploadToGPUBuffer(copyPass, &location, &region, cycle);
 }
 
-void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, uint32_t size, SDL_GPUTransferBuffer* transferBuffer, SDL_GPUCommandBuffer* cmdBuffer)
+void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, uint32_t size, SDL_GPUTransferBuffer* transferBuffer, bool cycle, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
 
@@ -96,12 +96,12 @@ void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, uint32_t si
 
 	SDL_assert(offset + size <= vertexBuffer->numVertices * GetVertexPitch(&vertexBuffer->layout));
 
-	SDL_UploadToGPUBuffer(copyPass, &location, &region, false);
+	SDL_UploadToGPUBuffer(copyPass, &location, &region, cycle);
 
 	SDL_EndGPUCopyPass(copyPass);
 }
 
-void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, const uint8_t* data, uint32_t size, SDL_GPUCopyPass* copyPass)
+void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, const uint8_t* data, uint32_t size, bool cycle, SDL_GPUCopyPass* copyPass)
 {
 	SDL_GPUTransferBufferCreateInfo transferInfo = {};
 	transferInfo.size = size;
@@ -111,16 +111,16 @@ void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, const uint8
 	SDL_memcpy(mapped, data, size);
 	SDL_UnmapGPUTransferBuffer(device, transferBuffer);
 
-	UpdateVertexBuffer(vertexBuffer, offset, size, transferBuffer, copyPass);
+	UpdateVertexBuffer(vertexBuffer, offset, size, transferBuffer, cycle, copyPass);
 
 	SDL_ReleaseGPUTransferBuffer(device, transferBuffer);
 }
 
-void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, const uint8_t* data, uint32_t size, SDL_GPUCommandBuffer* cmdBuffer)
+void UpdateVertexBuffer(VertexBuffer* vertexBuffer, uint32_t offset, const uint8_t* data, uint32_t size, bool cycle, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
 
-	UpdateVertexBuffer(vertexBuffer, offset, data, size, copyPass);
+	UpdateVertexBuffer(vertexBuffer, offset, data, size, cycle, copyPass);
 
 	SDL_EndGPUCopyPass(copyPass);
 }

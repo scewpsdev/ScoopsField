@@ -21,7 +21,7 @@ void InitScreenQuad(ScreenQuad* quad, SDL_GPUCommandBuffer* cmdBuffer)
 	bufferLayout.attributes[0].location = 0;
 	bufferLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
 	quad->vertexBuffer = CreateVertexBuffer(3, &bufferLayout, 0);
-	UpdateVertexBuffer(quad->vertexBuffer, 0, (uint8_t*)vertices, sizeof(vertices), cmdBuffer);
+	UpdateVertexBuffer(quad->vertexBuffer, 0, (uint8_t*)vertices, sizeof(vertices), false, cmdBuffer);
 }
 
 void DestroyScreenQuad(ScreenQuad* quad)

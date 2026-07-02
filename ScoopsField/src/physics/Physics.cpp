@@ -91,7 +91,7 @@ bool InitPhysics(PhysicsState* physics)
 		return false;
 	}
 
-#if _DEBUG
+//#if _DEBUG
 	physics->pvd = PxCreatePvd(*physics->foundation);
 	if (physics->pvd)
 	{
@@ -105,7 +105,7 @@ bool InitPhysics(PhysicsState* physics)
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_CUSTOM, "Failed to initialize PVD instance");
 	}
-#endif
+//#endif
 
 	PxTolerancesScale scale;
 	bool trackAllocations = false;

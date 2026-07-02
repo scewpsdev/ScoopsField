@@ -559,7 +559,7 @@ static void GetClosestPointLightData(Renderer* renderer, vec3 position, vec4* li
 	for (int i = 0; i < renderer->pointLights.size; i++)
 	{
 		vec3 toLight = renderer->pointLights[i].position - position;
-		float effectiveDistance = toLight.length() - CalculateLightRadius(renderer->pointLights[i].color);
+		float effectiveDistance = toLight.length() - renderer->pointLights[i].radius;
 		if (effectiveDistance < distances[furthestLight])
 		{
 			distances[furthestLight] = effectiveDistance;
@@ -682,10 +682,10 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	cubeLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
 
 	renderer->cubeVertexBuffer = CreateVertexBuffer(8, &cubeLayout, 0);
-	UpdateVertexBuffer(renderer->cubeVertexBuffer, 0, (const uint8_t*)cubeVertices, sizeof(cubeVertices), cmdBuffer);
+	UpdateVertexBuffer(renderer->cubeVertexBuffer, 0, (const uint8_t*)cubeVertices, sizeof(cubeVertices), false, cmdBuffer);
 
 	renderer->cubeIndexBuffer = CreateIndexBuffer(36, SDL_GPU_INDEXELEMENTSIZE_16BIT);
-	UpdateIndexBuffer(renderer->cubeIndexBuffer, 0, (const uint8_t*)cubeIndices, sizeof(cubeIndices), cmdBuffer);
+	UpdateIndexBuffer(renderer->cubeIndexBuffer, 0, (const uint8_t*)cubeIndices, sizeof(cubeIndices), false, cmdBuffer);
 
 	VertexBufferLayout pointLightInstanceLayout = {};
 	pointLightInstanceLayout.numAttributes = 2;
@@ -697,8 +697,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 
 	renderer->pointLightInstanceBuffer = CreateVertexBuffer(MAX_POINT_LIGHT_DRAWS, &pointLightInstanceLayout, 0);
 
-	renderer->pointLightInstanceTransferBuffer = CreateTransferBuffer(MAX_POINT_LIGHT_DRAWS * sizeof(LightInstanceData), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
-	MapTransferBuffer(renderer->pointLightInstanceTransferBuffer);
+	renderer->pointLightInstanceTransferBuffer = CreateTransferBuffer(MAX_POINT_LIGHT_DRAWS * sizeof(LightInstanceData), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD);
 
 	renderer->defaultShader = LoadGraphicsShader("res/shaders/mesh.vert.bin", "res/shaders/mesh.frag.bin");
 	renderer->animatedShader = LoadGraphicsShader("res/shaders/mesh_animated.vert.bin", "res/shaders/mesh.frag.bin");
@@ -1107,6 +1106,7 @@ void RenderLight(Renderer* renderer, vec3 position, vec3 color)
 	LightDrawData data = {};
 	data.position = position;
 	data.color = color;
+	data.radius = CalculateLightRadius(color);
 	renderer->pointLights.add(data);
 }
 
@@ -1537,16 +1537,25 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		{
 			// update point light data
 			SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
-			LightInstanceData* instanceData = (LightInstanceData*)renderer->pointLightInstanceTransferBuffer->mapped;
+			LightInstanceData* instanceData = (LightInstanceData*)MapTransferBuffer(renderer->pointLightInstanceTransferBuffer, true);
 			for (int i = 0; i < renderer->pointLights.size; i++)
 			{
-				vec3 position = renderer->pointLights[i].position;
-				vec3 color = renderer->pointLights[i].color;
-				instanceData[i].positionRadius = vec4(position, CalculateLightRadius(color));
-				instanceData[i].color = vec4(color, 0);
+				instanceData[i].positionRadius = vec4(renderer->pointLights[i].position, renderer->pointLights[i].radius);
+				instanceData[i].color = vec4(renderer->pointLights[i].color, 0);
 			}
-			UpdateVertexBuffer(renderer->pointLightInstanceBuffer, 0, renderer->pointLights.size * sizeof(LightInstanceData), renderer->pointLightInstanceTransferBuffer->buffer, copyPass);
+			UpdateVertexBuffer(renderer->pointLightInstanceBuffer, 0, renderer->pointLights.size * sizeof(LightInstanceData), renderer->pointLightInstanceTransferBuffer->buffer, true, copyPass);
+			UnmapTransferBuffer(renderer->pointLightInstanceTransferBuffer);
 			SDL_EndGPUCopyPass(copyPass); copyPass = nullptr;
+
+			SDL_Log("%d, %.2f, %.2f, %.2f; %.2f, %.2f, %.2f\n",
+				renderer->pointLights.size,
+				renderer->pointLights[renderer->pointLights.size - 2].position.x,
+				renderer->pointLights[renderer->pointLights.size - 2].position.y,
+				renderer->pointLights[renderer->pointLights.size - 2].position.z,
+				renderer->pointLights[renderer->pointLights.size - 1].position.x,
+				renderer->pointLights[renderer->pointLights.size - 1].position.y,
+				renderer->pointLights[renderer->pointLights.size - 1].position.z
+			);
 		}
 
 		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->hdrTarget, 0, cmdBuffer);

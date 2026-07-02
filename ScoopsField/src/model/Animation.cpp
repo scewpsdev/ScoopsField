@@ -55,7 +55,12 @@ void InitAnimationState(AnimationState* animationState, Model* model)
 // [X] elevator collider
 // [X] turn ik
 // [X] swing trail
+// [ ] fix ragdolls
 // [ ] fix point light flicker
+// [X] fix bloom flicker
+// [ ] optimize clouds
+// [ ] better cloud light sampling
+// [ ] 2d cloud textures
 // [ ] elevator sound effects
 // [ ] player leg ik
 // [ ] second block animation

@@ -29,7 +29,7 @@ void InitMesh(Mesh* mesh, int vertexCount, const vec3* positions, const vec3* no
 		positionLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
 
 		mesh->positionBuffer = CreateVertexBuffer(vertexCount, &positionLayout, 0);
-		UpdateVertexBuffer(mesh->positionBuffer, 0, (const uint8_t*)positions, vertexCount * sizeof(vec3), copyPass);
+		UpdateVertexBuffer(mesh->positionBuffer, 0, (const uint8_t*)positions, vertexCount * sizeof(vec3), false, copyPass);
 	}
 
 	if (normals)
@@ -40,7 +40,7 @@ void InitMesh(Mesh* mesh, int vertexCount, const vec3* positions, const vec3* no
 		normalLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
 
 		mesh->normalBuffer = CreateVertexBuffer(vertexCount, &normalLayout, 0);
-		UpdateVertexBuffer(mesh->normalBuffer, 0, (const uint8_t*)normals, vertexCount * sizeof(vec3), copyPass);
+		UpdateVertexBuffer(mesh->normalBuffer, 0, (const uint8_t*)normals, vertexCount * sizeof(vec3), false, copyPass);
 	}
 
 	if (weights)
@@ -53,7 +53,7 @@ void InitMesh(Mesh* mesh, int vertexCount, const vec3* positions, const vec3* no
 		weightsLayout.attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
 
 		mesh->weightsBuffer = CreateVertexBuffer(vertexCount, &weightsLayout, 0);
-		UpdateVertexBuffer(mesh->weightsBuffer, 0, (const uint8_t*)weights, vertexCount * 2 * sizeof(vec4), copyPass);
+		UpdateVertexBuffer(mesh->weightsBuffer, 0, (const uint8_t*)weights, vertexCount * 2 * sizeof(vec4), false, copyPass);
 	}
 
 	if (texcoords)
@@ -64,13 +64,13 @@ void InitMesh(Mesh* mesh, int vertexCount, const vec3* positions, const vec3* no
 		texcoordLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
 
 		mesh->texcoordBuffer = CreateVertexBuffer(vertexCount, &texcoordLayout, 0);
-		UpdateVertexBuffer(mesh->texcoordBuffer, 0, (const uint8_t*)texcoords, vertexCount * sizeof(vec2), copyPass);
+		UpdateVertexBuffer(mesh->texcoordBuffer, 0, (const uint8_t*)texcoords, vertexCount * sizeof(vec2), false, copyPass);
 	}
 
 	if (indices)
 	{
 		mesh->indexBuffer = CreateIndexBuffer(indexCount, indexElementSize);
-		UpdateIndexBuffer(mesh->indexBuffer, 0, indices, indexCount * GetIndexFormatSize(indexElementSize), copyPass);
+		UpdateIndexBuffer(mesh->indexBuffer, 0, indices, indexCount * GetIndexFormatSize(indexElementSize), false, copyPass);
 	}
 
 	SDL_EndGPUCopyPass(copyPass);
