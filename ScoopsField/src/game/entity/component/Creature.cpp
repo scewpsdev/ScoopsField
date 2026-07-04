@@ -106,7 +106,14 @@ static void OnDeath(Creature* creature, HitParams* hit, Node* hitNode)
 	RigidBody* ragdollBody = hitNode ? HashMapGet(&ragdoll->bones, hash(hitNode->name)) : nullptr;
 	if (ragdollBody)
 	{
-		AddRigidBodyImpulse(ragdollBody, hit->impulse);
+		/*
+		AddRigidBodyForce(ragdollBody, hit->force);
+
+		vec3 velocity, angularVelocity;
+		GetRigidBodyVelocity(ragdollBody, &velocity, &angularVelocity);
+		SDL_Log("%s\n", hitNode->name);
+		SDL_Log("%.2f, %.2f, %.2f\n", velocity.x, velocity.y, velocity.z);
+		*/
 	}
 
 	creature->removed = true;
@@ -136,10 +143,10 @@ bool HitCreature(Creature* creature, HitParams* hit, Entity* by)
 
 	PlaySound(creature->hitSound, hit->position);
 
-	SDL_assert(hit->impulse.lengthSquared() != 0);
+	SDL_assert(hit->force.lengthSquared() != 0);
 
 	ParticleEffect* hitParticles = (ParticleEffect*)CreateEntity();
-	LoadParticleEffect(hitParticles, "effects/impact/spark.rfs", hit->position, quat::LookAt(hit->impulse, vec3::Up));
+	LoadParticleEffect(hitParticles, "effects/impact/spark.rfs", hit->position, quat::LookAt(hit->force, vec3::Up));
 	hitParticles->destroyOnFinish = true;
 
 	if (creature->health <= 0)

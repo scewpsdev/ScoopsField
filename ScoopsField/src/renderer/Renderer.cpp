@@ -1546,16 +1546,6 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 			UpdateVertexBuffer(renderer->pointLightInstanceBuffer, 0, renderer->pointLights.size * sizeof(LightInstanceData), renderer->pointLightInstanceTransferBuffer->buffer, true, copyPass);
 			UnmapTransferBuffer(renderer->pointLightInstanceTransferBuffer);
 			SDL_EndGPUCopyPass(copyPass); copyPass = nullptr;
-
-			SDL_Log("%d, %.2f, %.2f, %.2f; %.2f, %.2f, %.2f\n",
-				renderer->pointLights.size,
-				renderer->pointLights[renderer->pointLights.size - 2].position.x,
-				renderer->pointLights[renderer->pointLights.size - 2].position.y,
-				renderer->pointLights[renderer->pointLights.size - 2].position.z,
-				renderer->pointLights[renderer->pointLights.size - 1].position.x,
-				renderer->pointLights[renderer->pointLights.size - 1].position.y,
-				renderer->pointLights[renderer->pointLights.size - 1].position.z
-			);
 		}
 
 		SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->hdrTarget, 0, cmdBuffer);

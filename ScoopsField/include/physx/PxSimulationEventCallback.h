@@ -483,7 +483,7 @@ struct PxContactPairPoint
 	/**
 	\brief The impulse applied at the contact point, in world space. Divide by the simulation time step to get a force value.
 	*/
-	PxVec3	impulse;
+	PxVec3	force;
 
 	/**
 	\brief The surface index of shape 1 at the contact point.  This is used to identify the surface material.
@@ -659,11 +659,11 @@ PX_INLINE PxU32 PxContactPair::extractContacts(PxContactPairPoint* userBuffer, P
 
 				if(hasImpulses)
 				{
-					const PxReal impulse = impulses[nbContacts];
-					dst.impulse = dst.normal * impulse;
+					const PxReal force = impulses[nbContacts];
+					dst.force = dst.normal * force;
 				}
 				else
-					dst.impulse = PxVec3(0.0f);
+					dst.force = PxVec3(0.0f);
 				++nbContacts;
 				if(nbContacts == bufferSize)
 					return nbContacts;

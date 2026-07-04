@@ -52,14 +52,16 @@ static void AnimateRagdollNode(Ragdoll* ragdoll, Node* node, RigidBody* parentHi
 			quat rotation = localOffset.rotation();
 			vec3 eulers = rotation.eulers();
 
-			SetJointRotation(bone, eulers);
+			//SetJointRotation(bone, eulers);
 
-			SetJointVelocity(bone, hitboxAngularVelocity);
+			//SetJointVelocity(bone, hitboxAngularVelocity);
+			//SetJointVelocity(bone, vec3(0));
 		}
 		else
 		{
 			SetArticulationRootTransform(&ragdoll->articulation, hitboxPosition, hitboxRotation);
-			SetArticulationRootVelocity(&ragdoll->articulation, hitboxVelocity, hitboxAngularVelocity);
+			//SetArticulationRootVelocity(&ragdoll->articulation, hitboxVelocity, hitboxAngularVelocity);
+			//SetArticulationRootVelocity(&ragdoll->articulation, vec3(0), vec3(0));
 		}
 	}
 

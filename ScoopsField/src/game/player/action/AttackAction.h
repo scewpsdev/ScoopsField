@@ -25,6 +25,7 @@ struct AttackAction
 	bool resetHitbox;
 
 	List<Entity*, 16> hitEntities;
+	vec3 lastHitboxTip;
 
 	bool cancelled;
 	Projectile* projectile;

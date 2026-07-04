@@ -33,7 +33,7 @@ struct HitParams
 	DamageType damageType;
 	vec3 position;
 	RigidBody* body;
-	vec3 impulse;
+	vec3 force;
 
 	bool wasHeadshot;
 	bool wasBlocked;

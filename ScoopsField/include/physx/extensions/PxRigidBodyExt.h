@@ -341,7 +341,7 @@ public:
 	\param[out] deltaLinearVelocity The linear velocity change
 	\param[out] deltaAngularVelocity The angular velocity change
 	*/
-	static void					computeVelocityDeltaFromImpulse(const PxRigidBody& body, const PxTransform& globalPose, const PxVec3& point, const PxVec3& impulse, const PxReal invMassScale, 
+	static void					computeVelocityDeltaFromImpulse(const PxRigidBody& body, const PxTransform& globalPose, const PxVec3& point, const PxVec3& force, const PxReal invMassScale, 
 														const PxReal invInertiaScale, PxVec3& deltaLinearVelocity, PxVec3& deltaAngularVelocity);
 
 	/**
@@ -358,7 +358,7 @@ public:
 	\param[out] linearImpulse The linear impulse
 	\param[out] angularImpulse The angular impulse
 	*/
-	static void					computeLinearAngularImpulse(const PxRigidBody& body, const PxTransform& globalPose, const PxVec3& point, const PxVec3& impulse, const PxReal invMassScale, 
+	static void					computeLinearAngularImpulse(const PxRigidBody& body, const PxTransform& globalPose, const PxVec3& point, const PxVec3& force, const PxReal invMassScale, 
 														const PxReal invInertiaScale, PxVec3& linearImpulse, PxVec3& angularImpulse);
 
 	/**

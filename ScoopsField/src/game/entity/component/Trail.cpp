@@ -58,7 +58,7 @@ void InitTrail(Trail* trail, vec3 position, bool additive, int numNodes)
 
 	trail->vertexBuffer = CreateVertexBuffer(numNodes * 2, &layout, 0);
 
-	trail->transferBuffer = CreateTransferBuffer(numNodes * 2 * sizeof(TrailVertex), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
+	trail->transferBuffer = CreateTransferBuffer(numNodes * 2 * sizeof(TrailVertex), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD);
 
 	trail->lastNodeUpdate = 0;
 }
@@ -144,7 +144,7 @@ void UpdateTrail(Trail* trail)
 		vertex1->color = color;
 	}
 
-	void* mapped = MapTransferBuffer(trail->transferBuffer);
+	void* mapped = MapTransferBuffer(trail->transferBuffer, true);
 	SDL_memcpy(mapped, vertices, trail->numNodes * 2 * sizeof(TrailVertex));
 	UnmapTransferBuffer(trail->transferBuffer);
 

@@ -301,8 +301,8 @@ bool HitPlayer(Player* player, HitParams* hit, Entity* by)
 	{
 		if (!player->parry)
 		{
-			vec3 impulse = quat::FromAxisAngle(vec3::Up, player->yaw) * vec3(0, 0, 1) * 5;
-			player->velocity += impulse;
+			vec3 force = quat::FromAxisAngle(vec3::Up, player->yaw) * vec3(0, 0, 1) * 5;
+			player->velocity += force;
 		}
 
 		bool wasBlocked = player->stamina >= player->blockItem->weapon.blockStaminaCost || player->parry;
@@ -317,7 +317,7 @@ bool HitPlayer(Player* player, HitParams* hit, Entity* by)
 		Sound* sound = player->parry ? player->blockItem->weapon.parrySound : player->blockItem->weapon.blockSound;
 		PlaySound(sound, 0, 1);
 
-		SDL_assert(hit->impulse.lengthSquared() != 0);
+		SDL_assert(hit->force.lengthSquared() != 0);
 
 		mat4 weaponTransform = GetRightWeaponTransform(player);
 		vec3 direction = weaponTransform.rotation().up();
@@ -328,7 +328,7 @@ bool HitPlayer(Player* player, HitParams* hit, Entity* by)
 		vec3 projectedHitPosition = origin + direction * projectedHitDistance;
 
 		ParticleEffect* hitParticles = (ParticleEffect*)CreateEntity();
-		LoadParticleEffect(hitParticles, "effects/impact/spark.rfs", projectedHitPosition, quat::LookAt(hit->impulse, vec3::Up));
+		LoadParticleEffect(hitParticles, "effects/impact/spark.rfs", projectedHitPosition, quat::LookAt(hit->force, vec3::Up));
 		hitParticles->parent = (Entity*)player;
 		hitParticles->parentLocalTransform = ModelMatrix((Entity*)player).inverted() * ModelMatrix((Entity*)hitParticles);
 		hitParticles->destroyOnFinish = true;
@@ -363,8 +363,8 @@ bool HitPlayer(Player* player, HitParams* hit, Entity* by)
 	}
 	else
 	{
-		vec3 impulse = quat::FromAxisAngle(vec3::Up, player->yaw) * vec3(0, 0, 1) * 10;
-		player->velocity += impulse;
+		vec3 force = quat::FromAxisAngle(vec3::Up, player->yaw) * vec3(0, 0, 1) * 10;
+		player->velocity += force;
 
 		CancelAction(player->actions, *player);
 		ClearQueuedAction(player->actions);

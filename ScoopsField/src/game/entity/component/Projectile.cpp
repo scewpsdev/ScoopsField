@@ -95,7 +95,7 @@ void UpdateProjectile(Projectile* projectile)
 					hit.damageType = projectile->damageType;
 					hit.position = hits[i].position;
 					hit.body = body;
-					hit.impulse = projectile->velocity * 0.005f * 40.0f / 30.0f * projectile->damage / 200.0f;
+					hit.force = projectile->velocity * 0.005f * 40.0f / 30.0f * projectile->damage / 200.0f;
 
 					if (HitEntity(bodyEntity, &hit, (Entity*)projectile))
 					{

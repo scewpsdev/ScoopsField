@@ -69,7 +69,7 @@ void UpdateEntityAttackAction(EntityAction* action, Entity* entity)
 				params.damageType = action->attack.attack->damageType;
 				params.position = hit->position;
 				params.body = hit->body;
-				params.impulse = direction * 0.1f;
+				params.force = direction * 0.1f;
 
 				Player* player = (Player*)hitEntity;
 				if (HitPlayer(player, &params, entity))

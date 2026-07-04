@@ -143,6 +143,12 @@ void UpdateAttackAction(Action* action, Player* player)
 
 	player->parry = action->elapsedTime >= action->attack.attack->parryWindow.x && action->elapsedTime <= action->attack.attack->parryWindow.y;
 
+	mat4 weaponTransform = GetRightWeaponTransform(player);
+	vec3 direction = weaponTransform.rotation().up();
+	vec3 origin = weaponTransform.translation() + action->attack.weapon->weapon.damageRange.x * direction;
+	float range = action->attack.weapon->weapon.damageRange.y - action->attack.weapon->weapon.damageRange.x;
+	vec3 tip = origin + direction * range;
+
 	if (action->attack.attack->stance)
 	{
 		bool parry = action->elapsedTime <= action->attack.attack->parryWindow.y;
@@ -166,11 +172,6 @@ void UpdateAttackAction(Action* action, Player* player)
 
 		if (damage)
 		{
-			mat4 weaponTransform = GetRightWeaponTransform(player);
-			vec3 direction = weaponTransform.rotation().up();
-			vec3 origin = weaponTransform.translation() + action->attack.weapon->weapon.damageRange.x * direction;
-			float range = action->attack.weapon->weapon.damageRange.y - action->attack.weapon->weapon.damageRange.x;
-
 			PhysicsHit hits[16];
 			int numHits = Raycast(origin, direction, range, hits, 16, ENTITY_FILTER_ENEMY_HITBOX);
 			for (int i = 0; i < numHits; i++)
@@ -185,7 +186,7 @@ void UpdateAttackAction(Action* action, Player* player)
 					params.damageType = action->attack.attack->damageType;
 					params.position = hit->position;
 					params.body = hit->body;
-					params.impulse = direction * 0.1f;
+					params.force = (tip - action->attack.lastHitboxTip).normalized() * 0.1f;
 
 					if (HitEntity(hitEntity, &params, (Entity*)player))
 					{
@@ -225,6 +226,8 @@ void UpdateAttackAction(Action* action, Player* player)
 			}
 		}
 	}
+
+	action->attack.lastHitboxTip = tip;
 
 	if (action->attack.attack->resetHitboxTime && action->elapsedTime >= action->attack.attack->resetHitboxTime && !action->attack.resetHitbox)
 	{

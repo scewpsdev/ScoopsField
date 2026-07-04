@@ -94,11 +94,11 @@ void InitParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitter, bool 
 	emitter->colorBuffer = CreateVertexBuffer(maxParticles, &instanceLayouts[3], SDL_GPU_BUFFERUSAGE_VERTEX);
 	emitter->animationBuffer = CreateVertexBuffer(maxParticles, &instanceLayouts[4], SDL_GPU_BUFFERUSAGE_VERTEX);
 
-	emitter->positionTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(vec3), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
-	emitter->sizeTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(vec2), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
-	emitter->rotationTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(float), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
-	emitter->colorTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(vec4), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
-	emitter->animationTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(float), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, true);
+	emitter->positionTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(vec3), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD);
+	emitter->sizeTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(vec2), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD);
+	emitter->rotationTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(float), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD);
+	emitter->colorTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(vec4), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD);
+	emitter->animationTransferBuffer = CreateTransferBuffer(maxParticles * sizeof(float), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD);
 }
 
 void DestroyParticleEmitter(ParticleEmitter* emitter)
@@ -403,23 +403,23 @@ static void UpdateParticleEmitter(ParticleEffect* effect, ParticleEmitter* emitt
 	{
 		SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmdBuffer);
 
-		void* mapped = MapTransferBuffer(emitter->positionTransferBuffer);
+		void* mapped = MapTransferBuffer(emitter->positionTransferBuffer, true);
 		SDL_memcpy(mapped, emitter->positions, emitter->numParticles * sizeof(vec3));
 		UnmapTransferBuffer(emitter->positionTransferBuffer);
 
-		mapped = MapTransferBuffer(emitter->sizeTransferBuffer);
+		mapped = MapTransferBuffer(emitter->sizeTransferBuffer, true);
 		SDL_memcpy(mapped, emitter->sizes, emitter->numParticles * sizeof(vec2));
 		UnmapTransferBuffer(emitter->sizeTransferBuffer);
 
-		mapped = MapTransferBuffer(emitter->rotationTransferBuffer);
+		mapped = MapTransferBuffer(emitter->rotationTransferBuffer, true);
 		SDL_memcpy(mapped, emitter->rotations, emitter->numParticles * sizeof(float));
 		UnmapTransferBuffer(emitter->rotationTransferBuffer);
 
-		mapped = MapTransferBuffer(emitter->colorTransferBuffer);
+		mapped = MapTransferBuffer(emitter->colorTransferBuffer, true);
 		SDL_memcpy(mapped, emitter->colors, emitter->numParticles * sizeof(vec4));
 		UnmapTransferBuffer(emitter->colorTransferBuffer);
 
-		mapped = MapTransferBuffer(emitter->animationTransferBuffer);
+		mapped = MapTransferBuffer(emitter->animationTransferBuffer, true);
 		SDL_memcpy(mapped, emitter->animations, emitter->numParticles * sizeof(float));
 		UnmapTransferBuffer(emitter->animationTransferBuffer);
 

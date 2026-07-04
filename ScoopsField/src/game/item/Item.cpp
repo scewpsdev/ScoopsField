@@ -168,11 +168,11 @@ static void InitWeapons(ItemDatabase* items)
 
 		item->equipSound = &items->equipSwordSound;
 
-		AddAttack(item, "attack_primary_1", "attack1", ATTACK_PRIMARY, 1.0f, 10, 18, 24, 1, "attack_primary_2", "attack_secondary_2");
-		AddAttack(item, "attack_primary_2", "attack2", ATTACK_PRIMARY, 1.0f, 10, 18, 24, 1, "attack_primary_1");
+		AddAttack(item, "attack_primary_1", "attack1", ATTACK_PRIMARY, 1.0f, 8, 16, 22, 1, "attack_primary_2", "attack_secondary_2");
+		AddAttack(item, "attack_primary_2", "attack2", ATTACK_PRIMARY, 1.0f, 8, 16, 22, 1, "attack_primary_1");
 
-		AddAttack(item, "attack_secondary_1", "attack3", ATTACK_SECONDARY, 1.0f, 12, 16, 25, 1, "attack_primary_2", "attack_secondary_2");
-		AddAttack(item, "attack_secondary_2", "attack4", ATTACK_SECONDARY, 1.0f, 10, 16, 26, 1, nullptr, "attack_secondary_1");
+		AddAttack(item, "attack_secondary_1", "attack3", ATTACK_SECONDARY, 1.0f, 10, 14, 23, 1, "attack_primary_2", "attack_secondary_2");
+		AddAttack(item, "attack_secondary_2", "attack4", ATTACK_SECONDARY, 1.0f, 8, 14, 24, 1, nullptr, "attack_secondary_1");
 
 		item->weapon.runningAttack = AddAttack(item, "attack_running", "attack_running", ATTACK_PRIMARY, 1.0f, 15, 22, 28, 1);
 

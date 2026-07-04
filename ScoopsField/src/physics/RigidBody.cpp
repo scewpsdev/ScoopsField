@@ -384,12 +384,12 @@ void AddRigidBodyAcceleration(RigidBody* body, const vec3& acceleration)
 	dynamic->addForce(PxVector(acceleration), PxForceMode::eACCELERATION);
 }
 
-void AddRigidBodyImpulse(RigidBody* body, vec3 impulse)
+void AddRigidBodyForce(RigidBody* body, vec3 force)
 {
 	PxRigidBody* dynamic = body->actor->is<PxRigidBody>();
 	SDL_assert(dynamic);
 
-	dynamic->addForce(PxVector(impulse), PxForceMode::eIMPULSE);
+	dynamic->addForce(PxVector(force), PxForceMode::eIMPULSE);
 }
 
 void SetRigidBodyEnabled(RigidBody* body, bool enabled)

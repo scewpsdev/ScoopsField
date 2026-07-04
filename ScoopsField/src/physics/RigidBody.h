@@ -58,7 +58,7 @@ void SetRigidBodyTransform(RigidBody* body, const vec3& position, const quat& ro
 void GetRigidBodyVelocity(RigidBody* body, vec3* velocity, vec3* angularVelocity);
 void SetRigidBodyVelocity(RigidBody* body, const vec3& velocity, const vec3& angularVelocity);
 void AddRigidBodyAcceleration(RigidBody* body, const vec3& acceleration);
-void AddRigidBodyImpulse(RigidBody* body, vec3 impulse);
+void AddRigidBodyForce(RigidBody* body, vec3 force);
 void SetRigidBodyEnabled(RigidBody* body, bool enabled);
 void SetRigidBodyAxisLock(RigidBody* body, uint8_t lockFlags);
 void GetRigidBodyAABB(RigidBody* body, vec3* center, vec3* size);
