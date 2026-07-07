@@ -1,0 +1,119 @@
+#version 460
+
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+
+layout (set = 0, binding = 0) uniform sampler2D s_input;
+layout (set = 0, binding = 1) uniform sampler2D s_exposureBuffer;
+
+layout (set = 1, binding = 0, r11f_g11f_b10f) uniform writeonly image2D i_output;
+
+layout(set = 2, binding = 0) uniform UniformBlock {
+	vec4 params;
+
+#define bloomStep int(params.x + 0.5)
+};
+
+
+// Custom function to calculate Karis luminance weight
+float KarisWeight(vec3 c) {
+    // Using Digital ITU BT.709 luma coefficients
+    float luma = dot(c, vec3(0.2126, 0.7152, 0.0722));
+    return 1.0 / (1.0 + luma);
+}
+
+vec3 threshold(vec3 color)
+{
+    float threshold = 1.0;
+    float knee = 0.5; 
+    
+    float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    
+    float soft = luminance - threshold + knee;
+    soft = clamp(soft, 0, 2 * knee);
+    soft = (soft * soft) / (4 * knee + 0.0001);
+    
+    float contribution = max(soft, luminance - threshold) / max(luminance, 0.0001);
+    
+    return color * contribution;
+}
+
+void main()
+{
+	ivec2 gid = ivec2(gl_GlobalInvocationID.xy);
+	ivec2 size = imageSize(i_output);
+	if (gid.x >= size.x || gid.y >= size.y)
+		return;
+
+	int mip = bloomStep == 0 ? 0 : bloomStep - 1;
+
+	vec2 uv = (gid + 0.5) / vec2(size);
+	vec2 texelSize = 1.0 / textureSize(s_input, mip);
+	float x = texelSize.x;
+	float y = texelSize.y;
+
+	vec3 a = textureLod(s_input, vec2(uv.x - 2 * x, uv.y + 2 * y), mip).rgb;
+	vec3 b = textureLod(s_input, vec2(uv.x, uv.y + 2 * y), mip).rgb;
+	vec3 c = textureLod(s_input, vec2(uv.x + 2 * x, uv.y + 2 * y), mip).rgb;
+
+	vec3 d = textureLod(s_input, vec2(uv.x - 2 * x, uv.y), mip).rgb;
+	vec3 e = textureLod(s_input, vec2(uv.x, uv.y), mip).rgb;
+	vec3 f = textureLod(s_input, vec2(uv.x + 2 * x, uv.y), mip).rgb;
+
+	vec3 g = textureLod(s_input, vec2(uv.x - 2 * x, uv.y - 2 * y), mip).rgb;
+	vec3 h = textureLod(s_input, vec2(uv.x, uv.y - 2 * y), mip).rgb;
+	vec3 i = textureLod(s_input, vec2(uv.x + 2 * x, uv.y - 2 * y), mip).rgb;
+
+	vec3 j = textureLod(s_input, vec2(uv.x - x, uv.y + y), mip).rgb;
+	vec3 k = textureLod(s_input, vec2(uv.x + x, uv.y + y), mip).rgb;
+	vec3 l = textureLod(s_input, vec2(uv.x - x, uv.y - y), mip).rgb;
+	vec3 m = textureLod(s_input, vec2(uv.x + x, uv.y - y), mip).rgb;
+
+	vec3 result = vec3(0);
+
+	if (bloomStep == 0)
+	{
+		/*
+		float exposure = texture(s_exposureBuffer, vec2(0.5)).r;
+        a = threshold(a * exposure); b = threshold(b * exposure); c = threshold(c * exposure);
+        d = threshold(d * exposure); e = threshold(e * exposure); f = threshold(f * exposure);
+        g = threshold(g * exposure); h = threshold(h * exposure); i = threshold(i * exposure);
+        j = threshold(j * exposure); k = threshold(k * exposure); l = threshold(l * exposure);
+        m = threshold(m * exposure);
+
+		// Karis Average integration for sub-pixel stabilization
+
+		vec3 groups[4];
+        groups[0] = (a + b + d + e) * 0.25;
+        groups[1] = (b + c + e + f) * 0.25;
+        groups[2] = (d + e + g + h) * 0.25;
+        groups[3] = (e + f + h + i) * 0.25;
+
+		// Apply partial weightings based on localized brightness groups
+        float w0 = KarisWeight(groups[0]);
+        float w1 = KarisWeight(groups[1]);
+        float w2 = KarisWeight(groups[2]);
+        float w3 = KarisWeight(groups[3]);
+
+		result = (groups[0]*w0 + groups[1]*w1 + groups[2]*w2 + groups[3]*w3) / (w0 + w1 + w2 + w3);
+		*/
+
+		result = e * 0.125;
+		result += (a + c + g + i) * 0.03125;
+		result += (b + d + f + h) * 0.0625;
+		result += (j + k + l + m) * 0.125;
+
+		float exposure = texture(s_exposureBuffer, vec2(0.5)).r;
+		result = threshold(result * exposure);
+	}
+	else
+	{
+		result = e * 0.125;
+		result += (a + c + g + i) * 0.03125;
+		result += (b + d + f + h) * 0.0625;
+		result += (j + k + l + m) * 0.125;
+	}
+
+	result = max(result, 0.0001);
+
+	imageStore(i_output, gid, vec4(result, 0));
+}

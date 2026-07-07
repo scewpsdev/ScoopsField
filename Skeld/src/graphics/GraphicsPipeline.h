@@ -1,0 +1,112 @@
+#pragma once
+
+#include <SDL3/SDL.h>
+
+
+struct VertexBuffer;
+struct VertexBufferLayout;
+struct Shader;
+struct RenderTarget;
+
+struct GraphicsPipelineInfo
+{
+	Shader* shader;
+	SDL_GPUPrimitiveType primitiveType;
+	SDL_GPUCullMode cullMode;
+	SDL_GPUFillMode fillMode;
+	SDL_GPUFrontFace frontFace;
+	bool depthClamp;
+
+#define MAX_PIPELINE_COLOR_TARGETS 8
+	int numColorTargets;
+	SDL_GPUColorTargetDescription colorTargets[MAX_PIPELINE_COLOR_TARGETS];
+
+	bool hasDepthTarget;
+	SDL_GPUTextureFormat depthFormat;
+	bool depthTest;
+	bool depthWrite;
+	SDL_GPUCompareOp compareOp;
+
+#define MAX_PIPELINE_VERTEX_ATTRIBUTES 8
+	int numAttributes;
+	SDL_GPUVertexAttribute attributes[MAX_PIPELINE_VERTEX_ATTRIBUTES];
+
+#define MAX_PIPELINE_VERTEX_BUFFERS 8
+	int numVertexBuffers;
+	SDL_GPUVertexBufferDescription bufferDescriptions[MAX_PIPELINE_VERTEX_BUFFERS];
+};
+
+struct GraphicsPipeline
+{
+	SDL_GPUGraphicsPipeline* pipeline;
+	GraphicsPipelineInfo pipelineInfo;
+};
+
+
+GraphicsPipeline* CreateGraphicsPipeline(const GraphicsPipelineInfo* pipelineInfo);
+void DestroyGraphicsPipeline(GraphicsPipeline* pipeline);
+
+void ReloadGraphicsPipeline(GraphicsPipeline* pipeline);
+
+GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, Shader* shader, int numColorAttachments, SDL_GPUTextureFormat* colorAttachmentFormats, bool hasDepthAttachment, SDL_GPUTextureFormat depthAttachmentFormat, int numVertexBuffers, const VertexBufferLayout* vertexLayouts);
+GraphicsPipelineInfo CreateGraphicsPipelineInfo(SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, Shader* shader, RenderTarget* renderTarget, int numVertexBuffers, const VertexBufferLayout* vertexLayouts);
+
+GraphicsPipeline* CreateForwardGraphicsPipeline(Shader* shader, VertexBufferLayout* vertexLayouts, int numVertexLayouts, SDL_GPUPrimitiveType primitiveType = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPUCullMode cullMode = SDL_GPU_CULLMODE_BACK, bool additive = false);
+
+
+inline void CreateBlendStateOpaque(SDL_GPUColorTargetBlendState* blendState)
+{
+	blendState->enable_blend = false;
+}
+
+inline void CreateBlendStateAlpha(SDL_GPUColorTargetBlendState* blendState)
+{
+	blendState->enable_blend = true;
+
+	blendState->src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+	blendState->dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+	blendState->color_blend_op = SDL_GPU_BLENDOP_ADD;
+
+	blendState->src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
+	blendState->dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+	blendState->alpha_blend_op = SDL_GPU_BLENDOP_ADD;
+}
+
+inline void CreateBlendStateAlphaPremultiplied(SDL_GPUColorTargetBlendState* blendState)
+{
+	blendState->enable_blend = true;
+
+	blendState->src_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
+	blendState->dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+	blendState->color_blend_op = SDL_GPU_BLENDOP_ADD;
+
+	blendState->src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
+	blendState->dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+	blendState->alpha_blend_op = SDL_GPU_BLENDOP_ADD;
+}
+
+inline void CreateBlendStateAddPremultiplied(SDL_GPUColorTargetBlendState* blendState)
+{
+	blendState->enable_blend = true;
+
+	blendState->src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+	blendState->dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
+	blendState->color_blend_op = SDL_GPU_BLENDOP_ADD;
+
+	blendState->src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+	blendState->dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+	blendState->alpha_blend_op = SDL_GPU_BLENDOP_ADD;
+}
+
+inline void CreateBlendStateMultiply(SDL_GPUColorTargetBlendState* blendState)
+{
+	blendState->enable_blend = true;
+
+	blendState->src_color_blendfactor = SDL_GPU_BLENDFACTOR_DST_COLOR;
+	blendState->dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ZERO;
+	blendState->color_blend_op = SDL_GPU_BLENDOP_ADD;
+
+	blendState->src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_DST_ALPHA;
+	blendState->dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ZERO;
+	blendState->alpha_blend_op = SDL_GPU_BLENDOP_ADD;
+}

@@ -1,0 +1,158 @@
+#version 460
+
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout (set = 0, binding = 0) uniform samplerCube s_input;
+
+layout (set = 1, binding = 0, r11f_g11f_b10f) uniform writeonly image2D i_output0;
+layout (set = 1, binding = 1, r11f_g11f_b10f) uniform writeonly image2D i_output1;
+layout (set = 1, binding = 2, r11f_g11f_b10f) uniform writeonly image2D i_output2;
+layout (set = 1, binding = 3, r11f_g11f_b10f) uniform writeonly image2D i_output3;
+layout (set = 1, binding = 4, r11f_g11f_b10f) uniform writeonly image2D i_output4;
+layout (set = 1, binding = 5, r11f_g11f_b10f) uniform writeonly image2D i_output5;
+
+layout (set = 2, binding = 0) uniform UniformBlock {
+	vec4 params;
+
+#define mip int(params.x + 0.5)
+};
+
+
+#include "../common.glsl"
+
+
+#define NUM_SAMPLES 1024
+
+
+// Van der Corput radical inverse for Hammersley sequence
+float RadicalInverse_VdC(uint bits)
+{
+    bits = (bits << 16u) | (bits >> 16u);
+    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+    return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+}
+
+// Generate low-discrepancy sequence sample point
+vec2 Hammersley(uint i, uint N)
+{
+    return vec2(float(i)/float(N), RadicalInverse_VdC(i));
+}
+
+// GGX Importance Sampling directional generation
+vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
+{
+    float a = roughness * roughness;
+    
+    float phi = 2.0 * pi * Xi.x;
+    float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a*a - 1.0) * Xi.y));
+    float sinTheta = sqrt(1.0 - cosTheta*cosTheta);
+    
+    // Convert from spherical to cartesian coordinates
+    vec3 H;
+    H.x = cos(phi) * sinTheta;
+    H.y = sin(phi) * sinTheta;
+    H.z = cosTheta;
+    
+    // Transform from tangent-space to world-space normal orientation
+    vec3 up        = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+    vec3 tangent   = normalize(cross(up, N));
+    vec3 bitangent = cross(N, tangent);
+    
+    vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
+    return normalize(sampleVec);
+}
+
+// Determine direction pointing from face-centric UV space
+vec3 GetTexelDirection(ivec3 globalCoord, vec2 size)
+{
+    vec2 uv = (vec2(globalCoord.xy) + 0.5) / size;
+    uv = uv * 2.0 - 1.0; // Map to [-1, 1]
+    
+    int face = globalCoord.z;
+    vec3 dir = vec3(0.0);
+    
+    // Native OpenGL Cubemap face coordinates mapping
+    if(face == 0) dir = vec3( 1.0, -uv.y, -uv.x); // +X
+    if(face == 1) dir = vec3(-1.0, -uv.y,  uv.x); // -X
+    if(face == 2) dir = vec3( uv.x,  1.0,  uv.y); // +Y
+    if(face == 3) dir = vec3( uv.x, -1.0, -uv.y); // -Y
+    if(face == 4) dir = vec3( uv.x, -uv.y,  1.0); // +Z
+    if(face == 5) dir = vec3(-uv.x, -uv.y, -1.0); // -Z
+
+    // Native OpenGL Cubemap face coordinates mapping
+    //if(face == 0) dir = vec3( 1.0, -uv.y, -uv.x); // +X
+    //if(face == 1) dir = vec3(-1.0, -uv.y,  uv.x); // -X
+    //if(face == 2) dir = vec3( uv.x,  1.0,  uv.y); // +Y
+    //if(face == 3) dir = vec3( uv.x, -1.0, -uv.y); // -Y
+    //if(face == 4) dir = vec3( uv.x, -uv.y,  1.0); // +Z
+    //if(face == 5) dir = vec3(-uv.x, -uv.y, -1.0); // -Z
+    
+    return normalize(dir);
+}
+
+void storeFace(ivec3 gid, vec4 color)
+{
+    ivec2 coord = gid.xy;
+    int face = gid.z;
+    if (face == 0) imageStore(i_output0, coord, color);
+    else if (face == 1) imageStore(i_output1, coord, color);
+    else if (face == 2) imageStore(i_output2, coord, color);
+    else if (face == 3) imageStore(i_output3, coord, color);
+    else if (face == 4) imageStore(i_output4, coord, color);
+    else imageStore(i_output5, coord, color);
+}
+
+void main()
+{
+    ivec3 gid = ivec3(gl_GlobalInvocationID.xyz);
+    vec2 size = vec2(imageSize(i_output0).xy);
+    //if (gid.x >= size.x || gid.y >= size.y) return;
+
+    float roughness = params.x;
+    
+    vec3 N = GetTexelDirection(gid, size);
+    
+    // Standard real-time approximation: Assume View vector equals Normal vector
+    vec3 V = N;
+    
+    vec3 prefilteredColor = vec3(0.0);
+    float totalWeight = 0.0;
+    
+    for(int i = 0; i < NUM_SAMPLES; i++)
+    {
+        vec2 Xi = Hammersley(i, NUM_SAMPLES);
+        vec3 H  = ImportanceSampleGGX(Xi, N, roughness);
+        vec3 L  = normalize(2.0 * dot(V, H) * H - V);
+        
+        float NdotL = max(dot(N, L), 0.0);
+        if (NdotL > 0.0)
+        {
+            /*
+            // Mitigate artifacts on low resolution grids by using mip-mapped cubemap fetching 
+            // Based on the distribution function (D) and PDF
+            float a = roughness * roughness;
+            float NdotH = max(dot(N, H), 0.0);
+            float D = (a * a) / (pi * pow(NdotH * NdotH * (a * a - 1.0) + 1.0, 2.0));
+            float pdf = (D * NdotH / (4.0 * max(dot(V, H), 0.0))) + 0.0001; 
+
+            // Resolution of solid angle for a single pixel vs the sample's PDF
+            float saTexel  = 4.0 * pi / (6.0 * 32.0 * 32.0); // Base size is 32x32
+            float saSample = 1.0 / (float(NUM_SAMPLES) * pdf + 0.0001);
+            float mipLevelSample = roughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel); 
+            */
+            
+            prefilteredColor += textureLod(s_input, L, 0).rgb * NdotL;
+            //vec3 faceNormal = (abs(L).x > abs(L).y && abs(L).x > abs(L).z ? vec3(1, 0, 0) : abs(L).y > abs(L).z ? vec3(0, 1, 0) : vec3(0, 0, 1)) * sign(L);
+            //prefilteredColor += (faceNormal * 0.5 + 0.5) * NdotL;
+            totalWeight      += NdotL;
+        }
+    }
+    
+    prefilteredColor = prefilteredColor / totalWeight;
+    
+    int face = gid.z;
+    storeFace(gid, vec4(prefilteredColor, 1.0));
+}

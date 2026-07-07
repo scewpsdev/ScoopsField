@@ -1,0 +1,365 @@
+#include "Physics.h"
+
+#include "Application.h"
+
+#include <physx/PxPhysicsAPI.h>
+
+#include <new>
+
+
+using namespace physx;
+
+
+#define PHYSICS_TICKS 60
+#define MAX_PHYSICS_STEPS_PER_FRAME 10
+
+#define InitTrashCppObject(x, T) new(x)T()
+
+
+extern GameMemory* memory;
+extern AppState* app;
+extern float deltaTime;
+
+
+static PxVec3 PxVector(const vec3& v)
+{
+	return PxVec3(v.x, v.y, v.z);
+}
+
+static PxQuat PxQuaternion(const quat& q)
+{
+	return PxQuat(q.x, q.y, q.z, q.w);
+}
+
+static vec3 FromPxVector(const PxVec3& v)
+{
+	return vec3(v.x, v.y, v.z);
+}
+
+void* PhysicsAllocator::allocate(size_t size, const char* typeName, const char* filename, int line)
+{
+	return PhysicsMalloc(size);
+}
+
+void PhysicsAllocator::deallocate(void* ptr)
+{
+	PhysicsFree(ptr);
+}
+
+void PhysicsErrorCallback::reportError(physx::PxErrorCode::Enum code, const char* message, const char* file, int line)
+{
+	SDL_LogError(SDL_LOG_CATEGORY_CUSTOM, "PhysX Error %d at %s:%d: %s", (int)code, file, line, message);
+}
+
+static PxFilterFlags FilterShader(
+	PxFilterObjectAttributes attributes0,
+	PxFilterData filterData0,
+	PxFilterObjectAttributes attributes1,
+	PxFilterData filterData1,
+	PxPairFlags& pairFlags,
+	const void* constantBlock,
+	PxU32 constantBlockSize)
+{
+	PX_UNUSED(constantBlock);
+	PX_UNUSED(constantBlockSize);
+
+	if ((filterData0.word0 & filterData1.word1) || (filterData1.word0 & filterData0.word1))
+	{
+		// let triggers through
+		if (PxFilterObjectIsTrigger(attributes0) || PxFilterObjectIsTrigger(attributes1))
+		{
+			pairFlags = PxPairFlag::eTRIGGER_DEFAULT;
+			return PxFilterFlag::eDEFAULT;
+		}
+
+		pairFlags = PxPairFlag::eCONTACT_DEFAULT | PxPairFlag::eNOTIFY_TOUCH_FOUND;
+		return PxFilterFlag::eDEFAULT;
+	}
+	return PxFilterFlag::eKILL;
+}
+
+
+bool InitPhysics(PhysicsState* physics)
+{
+	InitTrashCppObject(&physics->allocator, PhysicsAllocator);
+	InitTrashCppObject(&physics->errorCallback, PhysicsErrorCallback);
+
+	physics->foundation = PxCreateFoundation(PX_PHYSICS_VERSION, physics->allocator, physics->errorCallback);
+	if (!physics->foundation)
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_CUSTOM, "Failed to initialize PhysX foundation");
+		return false;
+	}
+
+//#if _DEBUG
+	physics->pvd = PxCreatePvd(*physics->foundation);
+	if (physics->pvd)
+	{
+		PxPvdTransport* pvdTransport = PxDefaultPvdSocketTransportCreate("localhost", 5425, 10);
+		if (!physics->pvd->connect(*pvdTransport, PxPvdInstrumentationFlag::eALL))
+		{
+			SDL_LogInfo(SDL_LOG_CATEGORY_CUSTOM, "Could not connect PVD instance");
+		}
+	}
+	else
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_CUSTOM, "Failed to initialize PVD instance");
+	}
+//#endif
+
+	PxTolerancesScale scale;
+	bool trackAllocations = false;
+	physics->physics = PxCreatePhysics(PX_PHYSICS_VERSION, *physics->foundation, scale, trackAllocations, physics->pvd);
+	if (!physics->physics)
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_CUSTOM, "Failed to initialize PhysX module");
+		return false;
+	}
+
+	PxSceneDesc sceneDesc(scale);
+	sceneDesc.gravity = PxVec3(0, -10, 0);
+	sceneDesc.filterShader = FilterShader;
+	sceneDesc.cpuDispatcher = PxDefaultCpuDispatcherCreate(8);
+	if (!sceneDesc.cpuDispatcher)
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_CUSTOM, "Failed to create PhysX CPU dispatcher");
+		return false;
+	}
+
+	physics->scene = physics->physics->createScene(sceneDesc);
+	if (!physics->scene)
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_CUSTOM, "Failed to create PhysX scene");
+		return false;
+	}
+
+	physics->cookingParams = PxCookingParams(scale);
+
+	physics->controllers = PxCreateControllerManager(*physics->scene);
+
+	physics->material = physics->physics->createMaterial(0.5f, 0.5f, 0.2f);
+
+	physics->timeAcc = 0.0f;
+	physics->running = false;
+
+	return true;
+}
+
+void DestroyPhysics(PhysicsState* physics)
+{
+	EndPhysicsFrame(physics);
+
+	physics->material->release();
+	physics->controllers->release();
+	physics->scene->release();
+	physics->physics->release();
+	if (physics->pvd)
+		physics->pvd->release();
+	physics->foundation->release();
+}
+
+void StartPhysicsFrame(PhysicsState* physics)
+{
+	float timeStep = 1.0f / PHYSICS_TICKS;
+	physics->timeAcc += deltaTime;
+
+	if (!physics->running)
+	{
+		// read transforms here
+
+		int numSteps = (int)SDL_floorf(physics->timeAcc / timeStep);
+		if (numSteps > 0)
+		{
+			physics->scene->simulate(timeStep);
+			physics->timeAcc -= timeStep * numSteps;
+			physics->running = true;
+		}
+	}
+}
+
+void EndPhysicsFrame(PhysicsState* physics)
+{
+	if (physics->running)
+	{
+		uint32_t error;
+		physics->scene->fetchResults(true, &error);
+		if (error)
+		{
+			SDL_LogError(SDL_LOG_CATEGORY_CUSTOM, "PhysX hardware error: %u", error);
+		}
+
+		// write transforms here
+
+		physics->running = false;
+	}
+}
+
+int Raycast(const vec3& origin, const vec3& direction, float distance, PhysicsHit* hits, int maxHits, uint32_t filterMask)
+{
+	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);
+	filterData.data.word0 = filterMask;
+
+	PxRaycastBuffer hitBuffer((PxRaycastHit*)BumpAllocatorMalloc(&memory->transientAllocator, maxHits * sizeof(PxRaycastHit)), maxHits);
+	if (physics->scene->raycast(PxVector(origin), PxVector(direction), distance, hitBuffer, PxHitFlag::eDEFAULT, filterData))
+	{
+		for (int i = 0; i < (int)hitBuffer.getNbAnyHits(); i++)
+		{
+			const PxRaycastHit* hit = &hitBuffer.getAnyHit(i);
+			hits[i].distance = hit->distance;
+			hits[i].position = FromPxVector(hit->position);
+			hits[i].normal = FromPxVector(hit->normal);
+			hits[i].trigger = hit->shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
+			hits[i].body = (RigidBody*)hit->actor->userData;
+		}
+	}
+
+	return (int)hitBuffer.getNbAnyHits();
+}
+
+bool Raycast(const vec3& origin, const vec3& direction, float distance, uint32_t filterMask)
+{
+	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);
+	filterData.data.word0 = filterMask;
+
+	PxRaycastBuffer hitBuffer = PxRaycastBuffer();
+	return physics->scene->raycast(PxVector(origin), PxVector(direction), distance, hitBuffer, PxHitFlag::eDEFAULT, filterData);
+}
+
+bool Linecast(vec3 point0, vec3 point1, uint32_t filterMask)
+{
+	vec3 direction = point1 - point0;
+	float distance = direction.length();
+	direction /= distance;
+
+	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);
+	filterData.data.word0 = filterMask;
+
+	PxRaycastBuffer hitBuffer = PxRaycastBuffer();
+	return physics->scene->raycast(PxVector(point0), PxVector(direction), distance, hitBuffer, PxHitFlag::eDEFAULT, filterData);
+}
+
+int OverlapBox(vec3 position, vec3 size, PhysicsHit* hits, int maxHits, uint32_t filterMask)
+{
+	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);
+	filterData.data.word0 = filterMask;
+
+	PxOverlapBuffer hitBuffer((PxOverlapHit*)BumpAllocatorMalloc(&memory->transientAllocator, maxHits * sizeof(PxOverlapHit)), maxHits);
+	if (physics->scene->overlap(PxBoxGeometry(PxVector(0.5f * size)), PxTransform(PxVector(position)), hitBuffer, filterData))
+	{
+		for (int i = 0; i < (int)hitBuffer.getNbAnyHits(); i++)
+		{
+			const PxOverlapHit* hit = &hitBuffer.getAnyHit(i);
+			hits[i].distance = 0;
+			hits[i].position = vec3::Zero;
+			hits[i].normal = vec3::Zero;
+			hits[i].trigger = hit->shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
+			hits[i].body = (RigidBody*)hit->actor->userData;
+		}
+	}
+
+	return (int)hitBuffer.getNbAnyHits();
+}
+
+bool OverlapBox(vec3 position, vec3 size, uint32_t filterMask)
+{
+	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC | PxQueryFlag::eANY_HIT);
+	filterData.data.word0 = filterMask;
+
+	PxOverlapHit hits[16];
+	PxOverlapBuffer hitBuffer(hits, 16);
+	return physics->scene->overlap(PxBoxGeometry(PxVector(0.5f * size)), PxTransform(PxVector(position)), hitBuffer, filterData);
+}
+
+int OverlapSphere(const vec3& position, float radius, PhysicsHit* hits, int maxHits, uint32_t filterMask)
+{
+	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);
+	filterData.data.word0 = filterMask;
+
+	PxOverlapBuffer hitBuffer((PxOverlapHit*)BumpAllocatorMalloc(&memory->transientAllocator, maxHits * sizeof(PxOverlapHit)), maxHits);
+	if (physics->scene->overlap(PxSphereGeometry(radius), PxTransform(PxVector(position)), hitBuffer, filterData))
+	{
+		for (int i = 0; i < (int)hitBuffer.getNbAnyHits(); i++)
+		{
+			const PxOverlapHit* hit = &hitBuffer.getAnyHit(i);
+			hits[i].distance = 0;
+			hits[i].position = vec3::Zero;
+			hits[i].normal = vec3::Zero;
+			hits[i].trigger = hit->shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
+			hits[i].body = (RigidBody*)hit->actor->userData;
+		}
+	}
+
+	return (int)hitBuffer.getNbAnyHits();
+}
+
+bool OverlapSphere(vec3 position, float radius, uint32_t filterMask)
+{
+	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);
+	filterData.data.word0 = filterMask;
+
+	PxOverlapHit hits[1];
+	PxOverlapBuffer hitBuffer(hits, 1);
+	return physics->scene->overlap(PxSphereGeometry(radius), PxTransform(PxVector(position)), hitBuffer, filterData);
+}
+
+static int Sweep(const PxGeometry& geometry, const vec3& position, const quat& rotation, const vec3& direction, float maxDistance, PhysicsHit* hits, int maxHits, uint32_t filterMask)
+{
+	if (direction.lengthSquared() == 0.0f)
+		return 0;
+
+	PxHitFlags hitFlags = PxHitFlags(PxHitFlag::eDEFAULT | PxHitFlag::eMTD);
+	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);
+	filterData.data.word0 = filterMask;
+
+	static PxSweepHit hitData[256];
+	PxSweepBuffer hitBuffer(hitData, maxHits);
+
+	PxTransform transform(PxVector(position), PxQuaternion(rotation));
+	if (geometry.getType() == PxGeometryType::eCAPSULE)
+		transform.q = transform.q * PxQuat(PxHalfPi, PxVec3(0, 0, 1));
+
+	if (physics->scene->sweep(geometry, transform, PxVector(direction), maxDistance, hitBuffer, hitFlags, filterData))
+	{
+		for (uint32_t i = 0; i < hitBuffer.getNbAnyHits(); i++)
+		{
+			const PxSweepHit* hit = &hitBuffer.getAnyHit(i);
+
+			hits[i].distance = hit->distance;
+			hits[i].position = FromPxVector(hit->position);
+			hits[i].normal = FromPxVector(hit->normal);
+			hits[i].trigger = hit->shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE ? 1 : 0;
+			hits[i].body = (RigidBody*)hit->actor->userData;
+		}
+	}
+
+	return hitBuffer.getNbAnyHits();
+}
+
+static bool Sweep(const PxGeometry& geometry, const vec3& position, const quat& rotation, const vec3& direction, float maxDistance, uint32_t filterMask)
+{
+	if (direction.lengthSquared() == 0.0f)
+		return 0;
+
+	PxHitFlags hitFlags = PxHitFlags(PxHitFlag::eDEFAULT | PxHitFlag::eMTD);
+	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);
+	filterData.data.word0 = filterMask;
+
+	static PxSweepHit hitData[256];
+	PxSweepBuffer hitBuffer = PxSweepBuffer();
+
+	PxTransform transform(PxVector(position), PxQuaternion(rotation));
+	if (geometry.getType() == PxGeometryType::eCAPSULE)
+		transform.q = transform.q * PxQuat(PxHalfPi, PxVec3(0, 0, 1));
+
+	return physics->scene->sweep(geometry, transform, PxVector(direction), maxDistance, hitBuffer, hitFlags, filterData);
+}
+
+int SweepSphere(float radius, const vec3& position, const vec3& direction, float maxDistance, PhysicsHit* hits, int maxHits, uint32_t filterMask)
+{
+	return Sweep(PxSphereGeometry(radius), position, quat::Identity, direction, maxDistance, hits, maxHits, filterMask);
+}
+
+bool SweepSphere(float radius, const vec3& position, const vec3& direction, float maxDistance, uint32_t filterMask)
+{
+	return Sweep(PxSphereGeometry(radius), position, quat::Identity, direction, maxDistance, filterMask);
+}
