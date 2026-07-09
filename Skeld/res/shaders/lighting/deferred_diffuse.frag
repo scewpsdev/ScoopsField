@@ -4,19 +4,32 @@ layout (location = 0) in vec2 v_texcoord;
 
 layout (location = 0) out vec4 out_color;
 
-layout(set = 2, binding = 0) uniform sampler2D s_normal;
-layout(set = 2, binding = 1) uniform sampler2D s_color;
-layout(set = 2, binding = 2) uniform sampler2D s_material;
-layout(set = 2, binding = 3) uniform sampler2D s_depth;
-layout(set = 2, binding = 4) uniform sampler2D s_sunColor;
-layout(set = 2, binding = 5) uniform sampler2DShadow s_shadowMap;
-layout(set = 2, binding = 6) uniform sampler2D s_skybox;
+layout (set = 2, binding = 0) uniform sampler2D s_normal;
+layout (set = 2, binding = 1) uniform sampler2D s_color;
+layout (set = 2, binding = 2) uniform sampler2D s_material;
+layout (set = 2, binding = 3) uniform sampler2D s_depth;
+layout (set = 2, binding = 4) uniform sampler2D s_sunColor;
+layout (set = 2, binding = 5) uniform sampler2DShadow s_shadowMap;
+layout (set = 2, binding = 6) uniform sampler2D s_skybox;
 
-layout(set = 2, binding = 7) readonly buffer SHBuffer {
+layout (set = 2, binding = 7) readonly buffer SHBuffer {
 	vec3 coefficients[9];
 };
 
-layout(set = 3, binding = 0) uniform UniformBlock {
+layout (set = 2, binding = 8) readonly buffer ReflectionProbe0 {
+	vec3 coefficients0[9];
+};
+layout (set = 2, binding = 9) readonly buffer ReflectionProbe1 {
+	vec3 coefficients1[9];
+};
+layout (set = 2, binding = 10) readonly buffer ReflectionProbe2 {
+	vec3 coefficients2[9];
+};
+layout (set = 2, binding = 11) readonly buffer ReflectionProbe3 {
+	vec3 coefficients3[9];
+};
+
+layout (set = 3, binding = 0) uniform UniformBlock {
 	mat4 projectionViewInv;
 	mat4 projectionInv;
 	mat4 viewInv;
@@ -28,14 +41,17 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 
 	vec4 pointLightPosition[4];
 	vec4 pointLightColor[4];
+	vec4 reflectionProbePosition[4];
+	vec4 reflectionProbeSize[4];
 	vec4 params5;
 
 #define sunDirection params.xyz
 #define cameraPosition params2.xyz
-#define probePosition params3.xyz
-#define probeSize params4.xyz
+#define probePosition_ params3.xyz
+#define probeSize_ params4.xyz
 
 #define numPointLights int(params5.x + 0.5)
+#define numReflectionProbes int(params5.y + 0.5)
 };
 
 #include "../common.glsl"
@@ -125,20 +141,30 @@ vec3 pointLight(vec3 position, vec3 normal, vec3 view, vec3 albedo, float roughn
 	return s;
 }
 
-vec3 environmentLight(vec3 position, vec3 normal, vec3 albedo, float roughness, float metallic)
+vec3 environmentLight(vec3 position, vec3 normal, vec3 albedo, float roughness, float metallic, vec3 coefficients[9], vec3 probePosition, vec3 probeSize)
 {
 	//vec3 irradiance = getIrradiance(position, normal);
 
+	float sdf = length(max(abs(position - probePosition) - probeSize, 0));
+	const float maxDistance = 1.0;
+	float alpha = max(remap(sdf, 0, maxDistance, 1, 0), 0);
+	if (alpha == 0)
+		return vec3(0);
+
 	float irradianceWeight;
-	vec3 irradiance = getIrradianceSample(position, normal, irradianceWeight) * irradianceWeight;
+	vec3 irradiance = getIrradianceSample(position, normal, coefficients, probePosition, probeSize, irradianceWeight) * irradianceWeight;
+
+	//vec3 irradiance = getIrradiance(position, normal, coefficients, probePosition, probeSize);
 
 	vec3 diffuse = irradiance * albedo;
 
 	vec3 f0 = mix(vec3(0.04), albedo, metallic);
-	vec3 ks = f0; //fresnel2(max(dot(normal, view), 0.0), f0, roughness);
-	vec3 kd = (1.0 - ks) * (1.0 - metallic);
+	vec3 kS = f0; //fresnel2(max(dot(normal, view), 0.0), f0, roughness);
+	vec3 kD = (1.0 - kS) * (1.0 - metallic);
 
-	vec3 ambient = kd * diffuse;
+	vec3 ambient = kD * diffuse;
+
+	ambient *= alpha;
 
 	return ambient;
 }
@@ -208,12 +234,17 @@ void main()
 
 	radiance *= calculateShadow(position, normal, -sunDirection, s_shadowMap, toLightSpace);
 
-	radiance += environmentLight(position, normal, albedo, roughness, metallic);
-
 	for (int i = 0; i < numPointLights; i++)
 	{
 		radiance += pointLight(position, normal, view, albedo, roughness, metallic, pointLightPosition[i].xyz, pointLightColor[i].xyz);
 	}
+
+	radiance += environmentLight(position, normal, albedo, roughness, metallic, coefficients, probePosition_, probeSize_);
+
+	if (numReflectionProbes > 0) radiance += environmentLight(position, normal, albedo, roughness, metallic, coefficients0, reflectionProbePosition[0].xyz, reflectionProbeSize[0].xyz);
+	if (numReflectionProbes > 1) radiance += environmentLight(position, normal, albedo, roughness, metallic, coefficients1, reflectionProbePosition[1].xyz, reflectionProbeSize[1].xyz);
+	if (numReflectionProbes > 2) radiance += environmentLight(position, normal, albedo, roughness, metallic, coefficients2, reflectionProbePosition[2].xyz, reflectionProbeSize[2].xyz);
+	if (numReflectionProbes > 3) radiance += environmentLight(position, normal, albedo, roughness, metallic, coefficients3, reflectionProbePosition[3].xyz, reflectionProbeSize[3].xyz);
 		
 	out_color = vec4(radiance, 1);
 }

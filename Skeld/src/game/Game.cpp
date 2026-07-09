@@ -131,6 +131,7 @@ static void ResetGame(bool destroy, bool init)
 				InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], position, size);
 			}
 		}
+		
 
 		InitPlayer(&game->player, cmdBuffer, game->playerSpawn.translation(), game->playerSpawn.rotation().getAngle());
 
@@ -433,12 +434,21 @@ void GameRender()
 	RenderModel(&game->renderer, &game->mapModel, nullptr, mat4::Identity, true);
 
 	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, 1 * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 1);
-	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Right, 1 * 0.5f * PI * 0.7f) * vec3(-1, 2, 0), vec3(0.5f, 1, 0.5f) * 1);
+	//RenderLight(&game->renderer, vec3(5, 2, -25) + quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(-8, 0, 0), vec3(0.5f, 1, 0.5f));
+	//RenderModel(&game->renderer, &game->cube, mat4::Translate(vec3(5, 2, -25) + quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(-8, 0, 0)));
 
 	for (int i = 0; i < game->numReflectionProbes; i++)
 	{
 		UpdateReflectionProbe(&game->renderer, &game->reflectionProbes[i]);
 		RenderReflectionProbe(&game->renderer, &game->reflectionProbes[i]);
+	}
+
+	for (int i = 0; i < game->mapModel.numLights; i++)
+	{
+		Light* light = &game->mapModel.lights[i];
+		Node* node = GetNodeByName(&game->mapModel, light->name);
+		vec3 position = node->transform * light->position;
+		RenderLight(&game->renderer, position, light->color);
 	}
 
 	/*

@@ -130,6 +130,7 @@ struct Renderer
 
 	RenderTarget* cubemapGbuffers[6];
 	RenderTarget* reflectionProbeShadowMap;
+	RenderTarget* reflectionProbeTarget;
 
 	SDL_GPUTexture* luminanceDownsampleBuffer;
 	Shader* hdrToLuminanceShader;

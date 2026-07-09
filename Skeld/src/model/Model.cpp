@@ -362,15 +362,14 @@ static void ReadNode(Node* node, BinaryReader& reader)
 	}
 }
 
-static void ReadLight(BinaryReader& reader)
+static void ReadLight(Light* light, BinaryReader& reader)
 {
-	char name[32];
-	reader.ReadBytes(name, sizeof(name));
+	reader.ReadBytes(light->name, sizeof(light->name));
 
-	int type = reader.ReadInt32();
-	vec3 position = reader.ReadVector3();
-	vec3 direction = reader.ReadVector3();
-	vec3 color = reader.ReadVector3();
+	light->type = reader.ReadInt32();
+	light->position = reader.ReadVector3();
+	light->direction = reader.ReadVector3();
+	light->color = reader.ReadVector3();
 }
 
 static void FindNodeParents(Model* model, Node* node)
@@ -387,7 +386,6 @@ bool LoadModel(Model* model, const char* path, bool cacheMeshes, SDL_GPUCommandB
 {
 	model->numMeshes = 0;
 
-	// TODO free memory
 	size_t fileSize;
 	void* data = SDL_LoadFile(path, &fileSize);
 
@@ -400,13 +398,14 @@ bool LoadModel(Model* model, const char* path, bool cacheMeshes, SDL_GPUCommandB
 		model->numSkeletons = reader.ReadInt32();
 		model->numAnimations = reader.ReadInt32();
 		model->numNodes = reader.ReadInt32();
-		int numLights = reader.ReadInt32();
+		model->numLights = reader.ReadInt32();
 
 		SDL_assert(model->numMeshes <= MAX_MESHES);
 		SDL_assert(model->numMaterials <= MAX_MATERIALS);
 		SDL_assert(model->numSkeletons <= MAX_SKELETONS);
 		SDL_assert(model->numAnimations <= MAX_ANIMATIONS);
 		SDL_assert(model->numNodes <= MAX_NODES);
+		SDL_assert(model->numLights <= MAX_LIGHTS);
 
 		for (int i = 0; i < model->numMeshes; i++)
 			ReadMesh(&model->meshes[i], reader, cacheMeshes, cmdBuffer);
@@ -423,8 +422,8 @@ bool LoadModel(Model* model, const char* path, bool cacheMeshes, SDL_GPUCommandB
 		for (int i = 0; i < model->numNodes; i++)
 			ReadNode(&model->nodes[i], reader);
 
-		for (int i = 0; i < numLights; i++)
-			ReadLight(reader);
+		for (int i = 0; i < model->numLights; i++)
+			ReadLight(&model->lights[i], reader);
 
 		reader.Read(&model->boundingBox);
 		reader.Read(&model->boundingSphere);

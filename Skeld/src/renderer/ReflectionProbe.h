@@ -16,7 +16,6 @@ struct ReflectionProbe
 	vec3 position;
 	vec3 size;
 
-	RenderTarget* cubemap;
 	SDL_GPUBuffer* irradiance;
 	SDL_GPUTexture* specular;
 };

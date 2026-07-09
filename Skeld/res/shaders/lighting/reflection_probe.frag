@@ -21,8 +21,8 @@ layout(std140, set = 3, binding = 0) uniform UniformBlock {
 	vec4 params2;
 	vec4 params3;
 
-#define probePosition params.xyz
-#define probeSize params2.xyz
+#define probePosition_ params.xyz
+#define probeSize_ params2.xyz
 #define cameraPosition params3.xyz
 };
 
@@ -31,7 +31,7 @@ layout(std140, set = 3, binding = 0) uniform UniformBlock {
 #include "sh_reconstruct.glsl"
 
 
-vec3 sampleEnvironmentPrefiltered(vec3 position, vec3 normal, vec3 view, float roughness, samplerCube environmentMap)
+vec3 sampleEnvironmentPrefiltered(vec3 position, vec3 normal, vec3 view, float roughness, samplerCube environmentMap, vec3 probePosition, vec3 probeSize)
 {
 	//float lodFactor = 1 - (1 - roughness) * (1 - roughness); //1.0 - exp(-roughness * 12);
 
@@ -43,12 +43,12 @@ vec3 sampleEnvironmentPrefiltered(vec3 position, vec3 normal, vec3 view, float r
 	float maxLod = 5; //log2(textureSize(environmentMap, 0).x);
 	float lod = roughness * maxLod;
 
-	return textureLod(environmentMap, dir * vec3(-1, -1, 1), lod).rgb;
+	return textureLod(environmentMap, dir * vec3(1, 1, -1), lod).rgb;
 }
 
-vec3 environmentLight(vec3 position, vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, samplerCube environmentMap)
+vec3 environmentLight(vec3 position, vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, samplerCube environmentMap, vec3 probePosition, vec3 probeSize)
 {
-	vec3 irradiance = getIrradiance(position, normal);
+	vec3 irradiance = getIrradiance(position, normal, coefficients, probePosition, probeSize);
 
 	vec3 diffuse = irradiance * albedo;
 
@@ -56,7 +56,7 @@ vec3 environmentLight(vec3 position, vec3 normal, vec3 view, vec3 albedo, float 
 	vec3 kS = fresnel2(max(dot(normal, view), 0.0), f0, roughness);
 	vec3 kD = (1.0 - kS) * (1.0 - metallic);
 
-	vec3 prefiltered = sampleEnvironmentPrefiltered(position, normal, view, roughness, environmentMap);
+	vec3 prefiltered = sampleEnvironmentPrefiltered(position, normal, view, roughness, environmentMap, probePosition, probeSize);
 
 	vec2 brdf = texture(s_brdf, vec2(max(dot(normal, view), 0), roughness)).rg;
 	vec3 specular = prefiltered * (kS * brdf.x + brdf.y);
@@ -91,9 +91,9 @@ void main()
 	float roughness = material.r;
 	float metallic = material.g;
 
-	vec3 radiance = environmentLight(position, normal, view, albedo, roughness, metallic, s_cubemap);
+	vec3 radiance = environmentLight(position, normal, view, albedo, roughness, metallic, s_cubemap, probePosition_, probeSize_);
 
-	float sdf = length(max(abs(position - probePosition) - probeSize, 0));
+	float sdf = length(max(abs(position - probePosition_) - probeSize_, 0));
 	const float maxDistance = 1.0;
 	float alpha = max(remap(sdf, 0, maxDistance, 1, 0), 0);
 

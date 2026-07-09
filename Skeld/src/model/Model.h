@@ -150,6 +150,15 @@ struct Animation
 	HashMap<uint32_t, int, MAX_ANIMATION_CHANNELS> channelNameMap;
 };
 
+struct Light
+{
+	char name[32];
+	int type;
+	vec3 position;
+	vec3 direction;
+	vec3 color;
+};
+
 struct Model
 {
 #define MAX_MESHES 64
@@ -171,6 +180,10 @@ struct Model
 #define MAX_ANIMATIONS 32
 	Animation animations[MAX_ANIMATIONS];
 	int numAnimations;
+
+#define MAX_LIGHTS 32
+	Light lights[MAX_LIGHTS];
+	int numLights;
 
 	AABB boundingBox;
 	Sphere boundingSphere;

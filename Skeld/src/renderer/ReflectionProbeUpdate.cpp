@@ -15,8 +15,8 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 		cubemapRotations[SDL_GPU_CUBEMAPFACE_NEGATIVEX] = quat::FromAxisAngle(vec3::Up, 0.5f * PI);
 		cubemapRotations[SDL_GPU_CUBEMAPFACE_POSITIVEY] = quat::FromAxisAngle(vec3::Right, 0.5f * PI);
 		cubemapRotations[SDL_GPU_CUBEMAPFACE_NEGATIVEY] = quat::FromAxisAngle(vec3::Right, -0.5f * PI);
-		cubemapRotations[SDL_GPU_CUBEMAPFACE_POSITIVEZ] = quat::FromAxisAngle(vec3::Up, PI);
-		cubemapRotations[SDL_GPU_CUBEMAPFACE_NEGATIVEZ] = quat::Identity;
+		cubemapRotations[SDL_GPU_CUBEMAPFACE_POSITIVEZ] = quat::Identity;
+		cubemapRotations[SDL_GPU_CUBEMAPFACE_NEGATIVEZ] = quat::FromAxisAngle(vec3::Up, PI);
 
 		mat4 projection = mat4::Perspective(PI * 0.5f, 1, 0.1f);
 
@@ -85,9 +85,26 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 
 			vec4 pointLightPosition[4];
 			vec4 pointLightColor[4];
-			float numPointLights;
+			int numPointLights;
 
-			GetClosestPointLightData(renderer, probe->position, pointLightPosition, pointLightColor, &numPointLights);
+			GetClosestPointLights(renderer, probe->position, pointLightPosition, pointLightColor, &numPointLights);
+
+			ReflectionProbe* reflectionProbes[4];
+			vec4 reflectionProbePosition[4];
+			vec4 reflectionProbeSize[4];
+			SDL_GPUBuffer* irradiances[5];
+			int numReflectionProbes;
+
+			GetClosestReflectionProbes(renderer, probe->position, probe, reflectionProbes, &numReflectionProbes);
+
+			irradiances[0] = probe->irradiance;
+			for (int i = 0; i < numReflectionProbes; i++)
+			{
+				reflectionProbePosition[i] = vec4(reflectionProbes[i]->position, 0);
+				reflectionProbeSize[i] = vec4(reflectionProbes[i]->size, 0);
+				irradiances[1 + i] = reflectionProbes[i]->irradiance;
+			}
+
 
 			for (int i = 0; i < 6; i++)
 			{
@@ -95,7 +112,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 				mat4 projectionInv = projection.inverted();
 				mat4 viewInv = views[i].inverted();
 
-				SDL_GPURenderPass* renderPass = BindRenderTarget(probe->cubemap, i, cmdBuffer);
+				SDL_GPURenderPass* renderPass = BindRenderTarget(renderer->reflectionProbeTarget, i, cmdBuffer);
 
 				SDL_BindGPUGraphicsPipeline(renderPass, renderer->deferredDiffusePipeline->pipeline);
 
@@ -112,6 +129,8 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 
 					vec4 pointLightPosition[4];
 					vec4 pointLightColor[4];
+					vec4 reflectionProbePosition[4];
+					vec4 reflectionProbeSize[4];
 					vec4 params5;
 				};
 
@@ -127,11 +146,14 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 
 				SDL_memcpy(uniforms.pointLightPosition, pointLightPosition, sizeof(pointLightPosition));
 				SDL_memcpy(uniforms.pointLightColor, pointLightColor, sizeof(pointLightColor));
-				uniforms.params5.x = numPointLights;
+				SDL_memcpy(uniforms.reflectionProbePosition, reflectionProbePosition, sizeof(reflectionProbePosition));
+				SDL_memcpy(uniforms.reflectionProbeSize, reflectionProbeSize, sizeof(reflectionProbeSize));
+				uniforms.params5.x = (float)numPointLights;
+				uniforms.params5.y = (float)numReflectionProbes;
 
 				SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
-				SDL_BindGPUFragmentStorageBuffers(renderPass, 0, &probe->irradiance, 1);
+				SDL_BindGPUFragmentStorageBuffers(renderPass, 0, irradiances, 1 + numReflectionProbes);
 
 				SDL_GPUTexture* textures[7];
 				textures[0] = renderer->cubemapGbuffers[i]->colorAttachments[0];
@@ -157,7 +179,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 			}
 		}
 
-		SDL_GenerateMipmapsForGPUTexture(cmdBuffer, probe->cubemap->colorAttachments[0]);
+		SDL_GenerateMipmapsForGPUTexture(cmdBuffer, renderer->reflectionProbeTarget->colorAttachments[0]);
 
 		{
 			GPU_TIMER("SH Convolution");
@@ -171,7 +193,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 			SDL_BindGPUComputePipeline(computePass, renderer->shConvoluteShader->compute);
 
 			SDL_GPUTextureSamplerBinding bindings[1];
-			bindings[0].texture = probe->cubemap->colorAttachments[0];
+			bindings[0].texture = renderer->reflectionProbeTarget->colorAttachments[0];
 			bindings[0].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
 			SDL_BindGPUComputeSamplers(computePass, 0, bindings, 1);
 
@@ -208,7 +230,7 @@ static void UpdateReflectionProbes(Renderer* renderer, vec3 sunDirection, vec3 c
 				SDL_PushGPUComputeUniformData(cmdBuffer, 0, &params, sizeof(params));
 
 				SDL_GPUTextureSamplerBinding bindings[1];
-				bindings[0].texture = probe->cubemap->colorAttachments[0];
+				bindings[0].texture = renderer->reflectionProbeTarget->colorAttachments[0];
 				bindings[0].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
 				SDL_BindGPUComputeSamplers(computePass, 0, bindings, 1);
 

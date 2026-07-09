@@ -7,7 +7,7 @@ const float SH_C3 = 0.315392;
 const float SH_C4 = 0.546274;
 
 
-vec3 sampleSH(vec3 dir)
+vec3 sampleSH(vec3 dir, vec3 coefficients[9])
 {
 	 return (
 		coefficients[0] * SH_C0 +
@@ -48,17 +48,17 @@ float getSampleWeight(vec3 toSample, vec3 size)
 	return weight;
 }
 
-vec3 getIrradianceSample(vec3 position, vec3 normal, out float weight)
+vec3 getIrradianceSample(vec3 position, vec3 normal, vec3 coefficients[9], vec3 probePosition, vec3 probeSize, out float weight)
 {
 	vec3 localPos = position - probePosition;	
 	vec3 toSample = parallaxCorrect(localPos, normal, probeSize);
 	weight = getSampleWeight(toSample, probeSize);
 
 	vec3 dir = normalize(localPos + toSample);
-	return sampleSH(dir);
+	return sampleSH(dir, coefficients);
 }
 
-vec3 getIrradiance(vec3 position, vec3 normal)
+vec3 getIrradiance(vec3 position, vec3 normal, vec3 coefficients[9], vec3 probePosition, vec3 probeSize)
 {
 	vec3 worldUp = abs(normal.y) > 0.99 ? vec3(0, 0, 1) : vec3(0, 1, 0); // Avoid gimbal lock
 
@@ -72,11 +72,11 @@ vec3 getIrradiance(vec3 position, vec3 normal)
 
 	float weight0, weight1, weight2, weight3, weight4;
 
-	vec3 sample0 = getIrradianceSample(position, normal, weight0);
-	vec3 sample1 = getIrradianceSample(position, sampleRight, weight1);
-	vec3 sample2 = getIrradianceSample(position, sampleLeft, weight2);
-	vec3 sample3 = getIrradianceSample(position, sampleFwd, weight3);
-	vec3 sample4 = getIrradianceSample(position, sampleBack, weight4);
+	vec3 sample0 = getIrradianceSample(position, normal, coefficients, probePosition, probeSize, weight0);
+	vec3 sample1 = getIrradianceSample(position, sampleRight, coefficients, probePosition, probeSize, weight1);
+	vec3 sample2 = getIrradianceSample(position, sampleLeft, coefficients, probePosition, probeSize, weight2);
+	vec3 sample3 = getIrradianceSample(position, sampleFwd, coefficients, probePosition, probeSize, weight3);
+	vec3 sample4 = getIrradianceSample(position, sampleBack, coefficients, probePosition, probeSize, weight4);
 
 	vec3 irradiance = vec3(0);
 	irradiance += sample0 * weight0;

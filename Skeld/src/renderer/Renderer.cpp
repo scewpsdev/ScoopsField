@@ -537,7 +537,7 @@ static float CalculateLightRadius(vec3 color)
 	return maxDistance;
 }
 
-static int GetFurthestLight(float distances[4])
+static int GetFurthestDistance(float distances[4])
 {
 	float distance = distances[0];
 	int result = 0;
@@ -552,7 +552,7 @@ static int GetFurthestLight(float distances[4])
 	return result;
 }
 
-static void GetClosestPointLightData(Renderer* renderer, vec3 position, vec4* lightPositions, vec4* lightColors, float* lightCount)
+static void GetClosestPointLights(Renderer* renderer, vec3 position, vec4* lightPositions, vec4* lightColors, int* lightCount)
 {
 	float distances[4] = { INFINITY, INFINITY, INFINITY, INFINITY };
 	int furthestLight = 0;
@@ -565,18 +565,38 @@ static void GetClosestPointLightData(Renderer* renderer, vec3 position, vec4* li
 			distances[furthestLight] = effectiveDistance;
 			lightPositions[furthestLight].xyz = renderer->pointLights[i].position;
 			lightColors[furthestLight].rgb = renderer->pointLights[i].color;
-			furthestLight = GetFurthestLight(distances);
+			furthestLight = GetFurthestDistance(distances);
 		}
 	}
 
-	int numLights;
-	for (numLights = 0; numLights < 4; numLights++)
+	for (*lightCount = 0; *lightCount < 4; (*lightCount)++)
 	{
-		if (distances[numLights] == INFINITY)
+		if (distances[*lightCount] == INFINITY)
 			break;
 	}
+}
 
-	*lightCount = (float)numLights;
+static void GetClosestReflectionProbes(Renderer* renderer, vec3 position, ReflectionProbe* ignore, ReflectionProbe** probes, int* probeCount)
+{
+	float distances[4] = { INFINITY, INFINITY, INFINITY, INFINITY };
+	int furthestProbe = 0;
+	for (int i = 0; i < renderer->reflectionProbes.size; i++)
+	{
+		vec3 toProbe = renderer->reflectionProbes[i].probe->position - position;
+		float effectiveDistance = toProbe.length() - renderer->reflectionProbes[i].probe->size.length();
+		if (effectiveDistance < distances[furthestProbe] && renderer->reflectionProbes[i].probe != ignore)
+		{
+			distances[furthestProbe] = effectiveDistance;
+			probes[furthestProbe] = renderer->reflectionProbes[i].probe;
+			furthestProbe = GetFurthestDistance(distances);
+		}
+	}
+
+	for (*probeCount = 0; *probeCount < 4; (*probeCount)++)
+	{
+		if (distances[*probeCount] == INFINITY)
+			break;
+	}
 }
 
 static SDL_GPUTexture* GetClosestEnvironment(Renderer* renderer)
@@ -620,6 +640,17 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	for (int i = 0; i < 6; i++)
 		renderer->cubemapGbuffers[i] = CreateGBuffer(REFLECTION_PROBE_RESOLUTION, REFLECTION_PROBE_RESOLUTION);
 	renderer->reflectionProbeShadowMap = CreateShadowMap(256);
+
+	{
+		ColorAttachmentInfo targetInfo = {};
+		targetInfo.format = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
+		targetInfo.loadOp = SDL_GPU_LOADOP_CLEAR;
+		targetInfo.storeOp = SDL_GPU_STOREOP_STORE;
+		targetInfo.clearColor = { 0, 0, 0, 0 };
+		targetInfo.mips = true;
+
+		renderer->reflectionProbeTarget = CreateRenderTarget(REFLECTION_PROBE_RESOLUTION, REFLECTION_PROBE_RESOLUTION, SDL_GPU_TEXTURETYPE_CUBE, 1, &targetInfo, nullptr);
+	}
 
 	{
 		ColorAttachmentInfo hdrTargetInfo = {};
@@ -895,6 +926,8 @@ void DestroyRenderer(Renderer* renderer)
 
 	DestroyGraphicsPipeline(renderer->environmentLightPipeline);
 	DestroyShader(renderer->environmentLightShader);
+
+	DestroyRenderTarget(renderer->reflectionProbeTarget);
 
 	DestroyRenderTarget(renderer->gbuffer);
 }
@@ -1217,7 +1250,9 @@ static void SubmitMesh(Renderer* renderer,
 			extraUniforms->params = vec4(cameraPosition, 0);
 			extraUniforms->sunDirection = vec4(sunDirection, 0);
 
-			GetClosestPointLightData(renderer, 0.5f * (mesh->boundingBox.min + mesh->boundingBox.max), extraUniforms->pointLightPositions, extraUniforms->pointLightColors, &extraUniforms->params.w);
+			int numPointLights;
+			GetClosestPointLights(renderer, 0.5f * (mesh->boundingBox.min + mesh->boundingBox.max), extraUniforms->pointLightPositions, extraUniforms->pointLightColors, &numPointLights);
+			extraUniforms->params.w = (float)numPointLights;
 
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, data, mesh->uniformDataSize + sizeof(UniformData));
 

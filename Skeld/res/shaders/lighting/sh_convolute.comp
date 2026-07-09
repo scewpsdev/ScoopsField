@@ -43,7 +43,7 @@ void main()
         normal = normalize(normal);
 
 		float weight = 4 / pow(1 + uv.x * uv.x + uv.y * uv.y, 1.5);
-		vec3 color = textureLod(s_cubemap, normal, 3).rgb * weight;
+		vec3 color = textureLod(s_cubemap, normal * vec3(1, 1, -1), 3).rgb * weight;
 
 		float Y[9];
 		Y[0] = SH_C0;
