@@ -44,15 +44,15 @@ void main()
 	vec4 result;
 
     result.x = cloudType(uvw);
-	result.y = perlinWorley(uvw, 2);
-    result.z = perlinWorley(uvw, 1);
+	result.y = perlinWorley(uvw, 1);
+    result.z = perlinWorley(uvw, 0.5);
     //result.y = 0.625 * perlinFbm(uvw, 1, 3)
     //         + 0.250 * perlinFbm(uvw, 1, 3)
     //         + 0.125 * perlinFbm(uvw, 1, 3);
 	//result.y = 0.625 * worleyFbm(uvw, 15, 3)
     //         + 0.250 * worleyFbm(uvw, 19, 3)
     //         + 0.125 * worleyFbm(uvw, 23, 3) - 1;
-	result.w = 1 - worleyFbm(uvw + 0.5, 9, 6);
+	result.w = 1 - worleyFbm(uvw + 0.5, 4.5, 6);
 	//result.w = worleyFbm(uvw, freq * 16, 3);
 
     /*

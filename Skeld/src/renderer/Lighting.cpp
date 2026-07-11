@@ -6,6 +6,7 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 	GPU_SCOPE("Lighting");
 
 	// environment light
+	if (false)
 	{
 		GPU_TIMER("environment");
 

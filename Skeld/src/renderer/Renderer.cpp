@@ -1382,6 +1382,8 @@ static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov, flo
 		}
 	}
 
+	int lod = 2;
+
 	// ssao
 	{
 		GPU_SCOPE("SSAO & Blur");
@@ -1401,7 +1403,7 @@ static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov, flo
 			"SSAO Blur 4",
 		};
 
-		for (int i = SSAO_STEPS - 1; i >= 0; i--)
+		for (int i = SSAO_STEPS - 1; i >= lod; i--)
 		{
 			// ssao
 			{
@@ -1438,7 +1440,7 @@ static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov, flo
 
 				UniformData uniforms = {};
 				uniforms.projection = projection;
-				uniforms.params = vec4((float)i, SDL_tanf(0.5f * fov), 0, 0);
+				uniforms.params = vec4((float)i, (float)lod, 0, 0);
 				SDL_PushGPUComputeUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
 				SDL_DispatchGPUCompute(computePass, (width + 31) / 32, (height + 31) / 32, 1);
@@ -1447,7 +1449,7 @@ static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov, flo
 			}
 
 			// blur
-			if (i > 0)
+			if (i > lod)
 			{
 				GPU_TIMER(ssaoBlurLabels[i]);
 
@@ -1502,6 +1504,9 @@ static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov, flo
 		SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(cmdBuffer, &colorTarget, 1, nullptr);
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->ssaoCompositePipeline->pipeline);
+
+		vec4 params = vec4((float)lod, 0, 0, 0);
+		SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &params, sizeof(params));
 
 		RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, &renderer->ssao, &renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED], cmdBuffer);
 

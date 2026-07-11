@@ -368,7 +368,7 @@ float getCloudDensity2(vec3 p, float height, int lod)
 
 	vec3 leanOffset = 1.0 * vec3(5e3, 0, 6e3) * pow(remap(height, minCloudHeight, maxCloudHeight), 2);
 
-	float baseNoiseScale = 0.000005 * 1.51;
+	float baseNoiseScale = 0.00001 * 1.51;
 	vec3 baseCoord = (p + windOffset + leanOffset) * baseNoiseScale + 0.5;
 	vec4 baseNoise = texture(s_weatherMap, baseCoord.xz);
 
@@ -395,20 +395,20 @@ float getCloudDensity2(vec3 p, float height, int lod)
 	if (cloud > 0)
 	{
 		float structureNoiseScale = 0.0001 * 1.51;
-		vec3 structureWarp = vec3(baseNoise.a, 0, baseNoise.r);
-		vec3 structureCoord = (p + windOffset * 1.25 + structureWarp * 1e3) * structureNoiseScale + 0.5;
-		vec4 structureNoise = texture(s_cloudNoise, structureCoord);
+		//vec3 structureWarp = vec3(baseNoise.a, 0, baseNoise.r);
+		vec3 structureCoord = (p + windOffset * 1.25) * structureNoiseScale + 0.5;
+		float structureNoise = 1 - texture(s_cloudNoise, structureCoord).r;
 		//float structureErosion = 1 - structureNoise.r; //(structureNoise.r + 0.5 * structureNoise.g + 0.25 * structureNoise.b + 0.125 * structureNoise.a) / 1.875;
 		//cloud = remap(cloud, structureErosion * structureErosionMultiplier, 1);
 		//cloud = max(cloud, 0);
 
-		float stratusMapping = 0.7 * structureNoise.g + 0.3 * structureNoise.b;
-		float cumulusMapping = 0.625 * structureNoise.g + 0.25 * structureNoise.b + 0.125 * structureNoise.a;
-		float cumulonimbusMapping = 0.5 * structureNoise.g + 0.3 * structureNoise.b + 0.2 * structureNoise.a;
+		//float stratusMapping = 0.7 * structureNoise.g + 0.3 * structureNoise.b;
+		//float cumulusMapping = 0.625 * structureNoise.g + 0.25 * structureNoise.b + 0.125 * structureNoise.a;
+		//float cumulonimbusMapping = 0.5 * structureNoise.g + 0.3 * structureNoise.b + 0.2 * structureNoise.a;
 
-		float structureMapping = interpolate3(stratusMapping, cumulusMapping, cumulonimbusMapping, cloudType);
+		//float structureMapping = interpolate3(stratusMapping, cumulusMapping, cumulonimbusMapping, cloudType);
 
-		float structureErosion = cumulusMapping;
+		float structureErosion = structureNoise; //cumulusMapping;
 		//structureErosion = heightFraction < 0.3 || height > 5e3 ? 1 - structureErosion : structureErosion;
 		cloud = remap(cloud, structureErosion * 0.1, 1);
 		cloud = max(cloud, 0);

@@ -2,17 +2,17 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
-layout(set = 1, binding = 0, rgba8) uniform writeonly image3D s_output;
+layout(set = 1, binding = 0, r8) uniform writeonly image3D s_output;
 
 #include "../common.glsl"
 #include "noise.glsl"
 
 
-float perlinWorley(vec3 p, float freq)
+float perlinWorley(vec3 p, float freq, float lacunarity, float persistence)
 {
-    float pfbm = perlinFbm(p * vec3(1, 2, 1), freq, 7);
-    float wfbm = worleyFbm(p, freq * 2.5, 8);
-    return remap(pfbm, wfbm * 0.6, 1);
+    float pfbm = perlinFbm(p, freq * 1, 3, lacunarity, persistence);
+    float wfbm = worleyFbm(p, freq * 2.5, 3, lacunarity, persistence);
+    return remap(pfbm, wfbm * 0.0, 1);
 }
 
 void main()
@@ -24,12 +24,11 @@ void main()
 	float L = 2.17;
 	float P = 0.42;
 
-	vec4 result;
+	//result.x = perlinWorley(uvw, freq);
+    float x = perlinWorley(uvw, freq, L, P);
+    float y = 1 - worleyFbm(uvw, freq * L, 3, L, P);
+    float z = 1 - worleyFbm(uvw, freq * L * L, 3, L, P);
+	float result = 0.625 * x + 0.25 * y + 0.125 * z;
 
-	result.x = perlinWorley(uvw, freq);
-    result.y = worleyFbm(uvw, freq, 3, L, P);
-    result.z = worleyFbm(uvw, freq * L, 3, L, P);
-    result.w = worleyFbm(uvw, freq * L * L, 3, L, P);
-
-	imageStore(s_output, gid, result);
+	imageStore(s_output, gid, vec4(result, 0, 0, 0));
 }

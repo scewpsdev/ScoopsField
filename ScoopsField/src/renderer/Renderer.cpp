@@ -471,7 +471,7 @@ static SDL_GPUTexture* CreateCloudNoiseTexture(Renderer* renderer, SDL_GPUComman
 {
 	SDL_GPUTextureCreateInfo textureInfo = {};
 	textureInfo.type = SDL_GPU_TEXTURETYPE_3D;
-	textureInfo.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+	textureInfo.format = SDL_GPU_TEXTUREFORMAT_R8_UNORM;
 	textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COMPUTE_STORAGE_WRITE;
 	textureInfo.width = 128;
 	textureInfo.height = 128;

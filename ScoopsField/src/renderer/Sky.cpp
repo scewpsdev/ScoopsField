@@ -117,7 +117,6 @@ static void UpdateSkyCubemap(Renderer* renderer, vec3 cameraPosition, vec3 sunDi
 		SDL_EndGPUComputePass(computePass);
 	}
 
-	/*
 	// weather map
 	{
 		GPU_TIMER("weather map");
@@ -156,6 +155,7 @@ static void UpdateSkyCubemap(Renderer* renderer, vec3 cameraPosition, vec3 sunDi
 		SDL_EndGPUComputePass(computePass);
 	}
 
+	/*
 	// cloud noise detail
 	{
 		GPU_TIMER("cloud noise detail");

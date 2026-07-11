@@ -16,8 +16,8 @@ layout (set = 2, binding = 0) uniform UniformBlock {
 
 #define outputSize imageSize(i_output).xy
 #define mip int(params.x + 0.5)
-#define tanHalfFov params.y
-#define ssaoLod params.z
+//#define tanHalfFov params.y
+#define ssaoLod int(params.y + 0.5)
 };
 
 
@@ -89,7 +89,7 @@ float computeAO2(vec2 uv, vec3 position, vec3 normal)
 	float maxDistance = 2;
 	int maxKernelSize = mip == 0 ? 2 : 4;
 
-	int kernelSize = int((outputSize.y * maxDistance) / (2 * -position.z * tanHalfFov));
+	int kernelSize = int((outputSize.y * maxDistance) / (2 * -position.z /** tanHalfFov*/));
 	kernelSize = min(kernelSize, maxKernelSize);
 
 	if (kernelSize == 0)
@@ -216,7 +216,7 @@ void main()
 		{
 		    ao = computeAO(uv, position, normal);
 		}
-		else if (mip >= 0)
+		else if (mip >= ssaoLod)
 		{
 			float ao1 = computeAO(uv, position, normal);
 			float ao2 = upsample(uv, depth, normal);
@@ -232,7 +232,7 @@ void main()
 		ao = 0;
 	}
 
-	if (mip == 0)
+	if (mip == ssaoLod)
 		ao = 1 - ao;
 
 	imageStore(i_output, gid, vec4(ao, 0, 0, 0));
