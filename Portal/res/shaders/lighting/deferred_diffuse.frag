@@ -1,0 +1,250 @@
+#version 460
+
+layout (location = 0) in vec2 v_texcoord;
+
+layout (location = 0) out vec4 out_color;
+
+layout (set = 2, binding = 0) uniform sampler2D s_normal;
+layout (set = 2, binding = 1) uniform sampler2D s_color;
+layout (set = 2, binding = 2) uniform sampler2D s_material;
+layout (set = 2, binding = 3) uniform sampler2D s_depth;
+layout (set = 2, binding = 4) uniform sampler2D s_sunColor;
+layout (set = 2, binding = 5) uniform sampler2DShadow s_shadowMap;
+layout (set = 2, binding = 6) uniform sampler2D s_skybox;
+
+layout (set = 2, binding = 7) readonly buffer SHBuffer {
+	vec3 coefficients[9];
+};
+
+layout (set = 2, binding = 8) readonly buffer ReflectionProbe0 {
+	vec3 coefficients0[9];
+};
+layout (set = 2, binding = 9) readonly buffer ReflectionProbe1 {
+	vec3 coefficients1[9];
+};
+layout (set = 2, binding = 10) readonly buffer ReflectionProbe2 {
+	vec3 coefficients2[9];
+};
+layout (set = 2, binding = 11) readonly buffer ReflectionProbe3 {
+	vec3 coefficients3[9];
+};
+
+layout (set = 3, binding = 0) uniform UniformBlock {
+	mat4 projectionViewInv;
+	mat4 projectionInv;
+	mat4 viewInv;
+	mat4 toLightSpace;
+	vec4 params;
+	vec4 params2;
+	vec4 params3;
+	vec4 params4;
+
+	vec4 pointLightPosition[4];
+	vec4 pointLightColor[4];
+	vec4 reflectionProbePosition[4];
+	vec4 reflectionProbeSize[4];
+	vec4 params5;
+
+#define sunDirection params.xyz
+#define cameraPosition params2.xyz
+#define probePosition_ params3.xyz
+#define probeSize_ params4.xyz
+
+#define numPointLights int(params5.x + 0.5)
+#define numReflectionProbes int(params5.y + 0.5)
+};
+
+#include "../common.glsl"
+#include "lighting.glsl"
+#include "sh_reconstruct.glsl"
+
+
+// Directional light indirect specular lighting
+vec3 directionalLight(vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, vec3 lightDirection, vec3 lightColor)
+{
+	vec3 f0 = mix(vec3(0.04), albedo, metallic);
+	vec3 fLambert = albedo / PI;
+
+	// Per light radiance
+	vec3 wi = -lightDirection;
+	vec3 h = normalize(view + wi);
+
+	// Cook-Torrance BRDF
+	float d = normalDistribution(normal, h, roughness);
+	float g = geometrySmith(normal, view, wi, roughness);
+	vec3 f = fresnel2(max(dot(h, view), 0.0), f0, roughness);
+	vec3 numerator = d * f * g;
+	float denominator = 4.0 * max(dot(view, normal), 0.0) * max(dot(wi, normal), 0.0);
+	vec3 specular = numerator / max(denominator, 0.0001);
+
+	vec3 ks = f;
+	vec3 kd = (1.0 - ks) * (1.0 - metallic);
+
+	vec3 radiance = lightColor;
+
+	float ndotwi = max(dot(wi, normal), 0.0);
+
+	vec3 s = (specular + fLambert * kd) * radiance * ndotwi;
+
+	return s;
+}
+
+float calculateShadow(vec3 position, vec3 normal, vec3 toLight, sampler2DShadow shadowMap, mat4 toLightSpace)
+{
+	vec4 lightSpacePosition = toLightSpace * vec4(position, 1);
+	vec3 projectedCoords = lightSpacePosition.xyz / lightSpacePosition.w;
+	vec2 sampleCoords = 0.5 * projectedCoords.xy * vec2(1, -1) + 0.5;
+
+	//if (sampleCoords.x < 0.0 || sampleCoords.x > 1.0 || sampleCoords.y < 0.0 || sampleCoords.y > 1.0)
+	//	return 1.0;
+
+	ivec2 shadowMapSize = textureSize(shadowMap, 0);
+	
+	float shadowBias = 0.01; //0.00002 + 0.0001 * (3 - cascade);
+	shadowBias += max(0.006 * (1 - dot(normal, toLight)), 0);
+
+	float shadow = texture(shadowMap, vec3(sampleCoords.xy, projectedCoords.z - shadowBias));
+
+	return shadow;
+}
+
+// Point light indirect specular lighting
+vec3 pointLight(vec3 position, vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, vec3 lightPosition, vec3 lightColor)
+{
+	vec3 f0 = mix(vec3(0.04), albedo, metallic);
+	vec3 fLambert = albedo / PI;
+
+	// Per light radiance
+	vec3 toLight = lightPosition - position;
+	vec3 wi = normalize(toLight);
+	vec3 h = normalize(view + wi);
+
+	float distanceSq = dot(toLight, toLight);
+	vec3 radiance = L(lightColor, distanceSq, 0.1);
+
+	// Cook-Torrance BRDF
+	float d = normalDistribution(normal, h, roughness);
+	float g = geometrySmith(normal, view, wi, roughness);
+	vec3 f = fresnel2(max(dot(h, view), 0.0), f0, roughness);
+	vec3 numerator = d * f * g;
+	float denominator = 4.0 * max(dot(view, normal), 0.0) * max(dot(wi, normal), 0.0);
+	vec3 specular = numerator / max(denominator, 0.0001);
+
+	vec3 ks = f;
+	vec3 kd = (1.0 - ks) * (1.0 - metallic);
+
+	float ndotwi = max(dot(wi, normal), 0.0);
+	float shadow = 1.0; // Shadow mapping
+
+	vec3 s = (specular + fLambert * kd) * radiance * ndotwi * shadow;
+
+	return s;
+}
+
+vec3 environmentLight(vec3 position, vec3 normal, vec3 albedo, float roughness, float metallic, vec3 coefficients[9], vec3 probePosition, vec3 probeSize)
+{
+	//vec3 irradiance = getIrradiance(position, normal);
+
+	float sdf = length(max(abs(position - probePosition) - probeSize, 0));
+	const float maxDistance = 1.0;
+	float alpha = max(remap(sdf, 0, maxDistance, 1, 0), 0);
+	if (alpha == 0)
+		return vec3(0);
+
+	float irradianceWeight;
+	vec3 irradiance = getIrradianceSample(position, normal, coefficients, probePosition, probeSize, irradianceWeight) * irradianceWeight;
+
+	//vec3 irradiance = getIrradiance(position, normal, coefficients, probePosition, probeSize);
+
+	vec3 diffuse = irradiance * albedo;
+
+	vec3 f0 = mix(vec3(0.04), albedo, metallic);
+	vec3 kS = f0; //fresnel2(max(dot(normal, view), 0.0), f0, roughness);
+	vec3 kD = (1.0 - kS) * (1.0 - metallic);
+
+	vec3 ambient = kD * diffuse;
+
+	ambient *= alpha;
+
+	return ambient;
+}
+
+vec3 reconstructPosition(vec2 uv, float depth)
+{
+	vec4 ndc = vec4(uv.x * 2 - 1, uv.y * -2 + 1, depth, 1);
+	vec4 worldPosition = projectionViewInv * ndc;
+	return worldPosition.xyz / worldPosition.w;
+}
+
+vec3 reconstructView(vec2 uv, mat4 projectionInv, mat4 viewInv)
+{
+	vec2 ndc = vec2(uv.x * 2 - 1, uv.y * -2 + 1);
+
+	vec3 dir;
+	dir.x = ndc.x * projectionInv[0][0];
+	dir.y = ndc.y * projectionInv[1][1];
+	dir.z = -1;
+
+	dir = mat3(viewInv) * dir;
+	dir = normalize(dir);
+
+	return dir;
+}
+
+vec3 sampleSkyViewLUT(vec3 dir)
+{
+	float longitude = mod(atan(dir.x, dir.z) + 2 * pi, 2 * pi);
+	float latitude = asin(dir.y);
+
+	float u = longitude / pi * 0.5;
+	float v = 0.5 + 0.5 * -sign(latitude) * sqrt(abs(latitude) / pi * 2);
+
+	vec3 color = texture(s_skybox, vec2(u, v)).rgb;
+	color = SRGBToLinear(color);
+
+	return color;
+}
+
+void main()
+{
+	float depth = texture(s_depth, v_texcoord).r;
+
+	if (depth == 0)
+	{
+		vec3 dir = reconstructView(v_texcoord, projectionInv, viewInv);
+		vec3 color = sampleSkyViewLUT(dir);
+		out_color = vec4(color, 1);
+		return;
+	}
+
+	vec3 position = reconstructPosition(v_texcoord, depth);
+	vec3 view = normalize(cameraPosition - position);
+
+	vec3 viewSpaceNormal = texture(s_normal, v_texcoord).rgb * 2 - 1;
+	vec3 normal = (viewInv * vec4(viewSpaceNormal, 0)).xyz; // world space normal
+	vec3 albedo = SRGBToLinear(texture(s_color, v_texcoord).rgb);
+
+	vec4 material = texture(s_material, v_texcoord);
+	float roughness = material.r;
+	float metallic = material.g;
+
+	vec3 sunColor = texture(s_sunColor, vec2(0.5)).rgb;
+
+	vec3 radiance = directionalLight(normal, view, albedo, roughness, metallic, sunDirection, sunColor);
+
+	radiance *= calculateShadow(position, normal, -sunDirection, s_shadowMap, toLightSpace);
+
+	for (int i = 0; i < numPointLights; i++)
+	{
+		radiance += pointLight(position, normal, view, albedo, roughness, metallic, pointLightPosition[i].xyz, pointLightColor[i].xyz);
+	}
+
+	radiance += environmentLight(position, normal, albedo, roughness, metallic, coefficients, probePosition_, probeSize_);
+
+	if (numReflectionProbes > 0) radiance += environmentLight(position, normal, albedo, roughness, metallic, coefficients0, reflectionProbePosition[0].xyz, reflectionProbeSize[0].xyz);
+	if (numReflectionProbes > 1) radiance += environmentLight(position, normal, albedo, roughness, metallic, coefficients1, reflectionProbePosition[1].xyz, reflectionProbeSize[1].xyz);
+	if (numReflectionProbes > 2) radiance += environmentLight(position, normal, albedo, roughness, metallic, coefficients2, reflectionProbePosition[2].xyz, reflectionProbeSize[2].xyz);
+	if (numReflectionProbes > 3) radiance += environmentLight(position, normal, albedo, roughness, metallic, coefficients3, reflectionProbePosition[3].xyz, reflectionProbeSize[3].xyz);
+		
+	out_color = vec4(radiance, 1);
+}

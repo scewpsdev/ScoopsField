@@ -1,0 +1,50 @@
+#version 460
+
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+
+layout (set = 0, binding = 0) uniform sampler2D s_input0;
+layout (set = 0, binding = 1) uniform sampler2D s_input1;
+
+layout (set = 1, binding = 0, r11f_g11f_b10f) uniform writeonly image2D i_output;
+
+layout(set = 2, binding = 0) uniform UniformBlock {
+	vec4 params;
+
+#define bloomStep int(params.x + 0.5)
+};
+
+
+void main()
+{
+	ivec2 gid = ivec2(gl_GlobalInvocationID.xy);
+	ivec2 size = imageSize(i_output);
+	if (gid.x >= size.x || gid.y >= size.y)
+		return;
+
+	vec2 uv = (gid + 0.5) / vec2(size);
+	vec2 texelSize = 1.0 / vec2(textureSize(s_input0, int(bloomStep) + 1));
+    float x = texelSize.x;
+    float y = texelSize.y;
+
+	vec3 result = vec3(0);
+
+	// Corners
+    result += textureLod(s_input0, vec2(uv.x - x, uv.y + y), bloomStep + 1).rgb * 0.0625;
+    result += textureLod(s_input0, vec2(uv.x + x, uv.y + y), bloomStep + 1).rgb * 0.0625;
+    result += textureLod(s_input0, vec2(uv.x - x, uv.y - y), bloomStep + 1).rgb * 0.0625;
+    result += textureLod(s_input0, vec2(uv.x + x, uv.y - y), bloomStep + 1).rgb * 0.0625;
+
+    // Edges
+    result += textureLod(s_input0, vec2(uv.x,     uv.y + y), bloomStep + 1).rgb * 0.125;
+    result += textureLod(s_input0, vec2(uv.x - x, uv.y),     bloomStep + 1).rgb * 0.125;
+    result += textureLod(s_input0, vec2(uv.x + x, uv.y),     bloomStep + 1).rgb * 0.125;
+    result += textureLod(s_input0, vec2(uv.x,     uv.y - y), bloomStep + 1).rgb * 0.125;
+
+    // Center
+    result += textureLod(s_input0, vec2(uv.x,     uv.y),     bloomStep + 1).rgb * 0.25;
+
+	vec3 input0 = result;
+	vec3 input1 = textureLod(s_input1, uv, bloomStep).rgb;
+
+	imageStore(i_output, gid, vec4(input0 + input1, 0));
+}

@@ -1,0 +1,476 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{287AD6CD-E1DE-4E02-97AF-9C037EC1B124}</ProjectGuid>
+    <RootNamespace>ScoopsField</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)include\;$(ProjectDir)include\physx\;D:\Repositories\SDL3-main\include\;D:\Repositories\SDL3-main\include\build_config\;D:\Repositories\SDL3-main\src\;D:\Repositories\NvCloth\NvCloth\include</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PreprocessorDefinitions>PX_PHYSX_STATIC_LIB;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(ProjectDir)lib\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>LowLevel_static_64.lib;LowLevelAABB_static_64.lib;LowLevelDynamics_static_64.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle_static_64.lib;PhysXVehicle2_static_64.lib;SceneQuery_static_64.lib;SimulationController_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)include\;$(ProjectDir)include\physx\;D:\Repositories\SDL3-main\include\;D:\Repositories\SDL3-main\include\build_config\;D:\Repositories\SDL3-main\src\;D:\Repositories\NvCloth\NvCloth\include</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <PreprocessorDefinitions>PX_PHYSX_STATIC_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(ProjectDir)lib\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>LowLevel_static_64.lib;LowLevelAABB_static_64.lib;LowLevelDynamics_static_64.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle_static_64.lib;PhysXVehicle2_static_64.lib;SceneQuery_static_64.lib;SimulationController_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="src\game\entity\component\Creature.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\game\entity\component\CreatureLoader.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\game\entity\component\Elevator.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\game\entity\component\ItemEntity.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\game\entity\component\Portal.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\game\entity\component\Projectile.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\game\entity\component\Ragdoll.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\game\entity\component\RestingSpot.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\game\entity\component\Sconce.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\game\entity\component\Trail.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\game\Game.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\game\Navmesh.cpp" />
+    <ClCompile Include="src\game\particle\ParticleLoader.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\game\particle\ParticleSystem.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\game\player\action\Action.cpp" />
+    <ClCompile Include="src\game\entity\action\EntityAttackAction.cpp" />
+    <ClCompile Include="src\game\entity\action\EntityDeathAction.cpp" />
+    <ClCompile Include="src\game\entity\action\EntityAction.cpp" />
+    <ClCompile Include="src\game\entity\action\EntityStaggerAction.cpp" />
+    <ClCompile Include="src\game\entity\Entity.cpp" />
+    <ClCompile Include="src\game\item\Item.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\audio\Audio.cpp" />
+    <ClCompile Include="src\game\player\action\AttackAction.cpp" />
+    <ClCompile Include="src\game\player\action\ParryAction.cpp" />
+    <ClCompile Include="src\game\player\action\StaggerAction.cpp" />
+    <ClCompile Include="src\game\player\action\DropAction.cpp" />
+    <ClCompile Include="src\game\player\action\EquipAction.cpp" />
+    <ClCompile Include="src\game\player\action\PickUpAction.cpp" />
+    <ClCompile Include="src\game\player\action\ShootAction.cpp" />
+    <ClCompile Include="src\game\player\action\SitAction.cpp" />
+    <ClCompile Include="src\game\player\action\TurnAction.cpp" />
+    <ClCompile Include="src\game\player\action\UnequipAction.cpp" />
+    <ClCompile Include="src\game\player\Player.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\file\Image.cpp" />
+    <ClCompile Include="src\game\player\SourceMovement.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\renderer\AutoExposure.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\graphics\GPUTiming.cpp" />
+    <ClCompile Include="src\graphics\Graphics.cpp" />
+    <ClCompile Include="src\graphics\GraphicsPipeline.cpp" />
+    <ClCompile Include="src\graphics\IndexBuffer.cpp" />
+    <ClCompile Include="src\graphics\IndirectBuffer.cpp" />
+    <ClCompile Include="src\graphics\RenderTarget.cpp" />
+    <ClCompile Include="src\graphics\Shader.cpp" />
+    <ClCompile Include="src\graphics\StorageBuffer.cpp" />
+    <ClCompile Include="src\graphics\Texture.cpp" />
+    <ClCompile Include="src\graphics\TransferBuffer.cpp" />
+    <ClCompile Include="src\graphics\VertexBuffer.cpp" />
+    <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\math\Math.cpp" />
+    <ClCompile Include="src\math\Matrix.cpp" />
+    <ClCompile Include="src\math\Quaternion.cpp" />
+    <ClCompile Include="src\math\Vector.cpp" />
+    <ClCompile Include="src\model\Animation.cpp" />
+    <ClCompile Include="src\model\AnimationCache.cpp" />
+    <ClCompile Include="src\model\Model.cpp" />
+    <ClCompile Include="src\physics\Articulation.cpp" />
+    <ClCompile Include="src\physics\CharacterController.cpp" />
+    <ClCompile Include="src\physics\Physics.cpp" />
+    <ClCompile Include="src\physics\RigidBody.cpp" />
+    <ClCompile Include="src\renderer\Bloom.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\renderer\DebugTextRenderer.cpp" />
+    <ClCompile Include="src\graphics\Font.cpp" />
+    <ClCompile Include="src\renderer\Lighting.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\renderer\ReflectionProbe.cpp" />
+    <ClCompile Include="src\renderer\ReflectionProbeUpdate.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\renderer\Renderer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\renderer\SpriteRenderer.cpp" />
+    <ClCompile Include="src\renderer\ScreenQuad.cpp" />
+    <ClCompile Include="src\renderer\ShadowMapping.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\renderer\Sky.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\Resource.cpp" />
+    <ClCompile Include="src\utils\BinaryReader.cpp" />
+    <ClCompile Include="src\utils\Hash.cpp" />
+    <ClCompile Include="src\utils\Simplex.cpp" />
+    <ClCompile Include="src\utils\TokenReader.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Application.h" />
+    <ClInclude Include="src\audio\Audio.h" />
+    <ClInclude Include="src\GameMemory.h" />
+    <ClInclude Include="src\game\entity\component\Creature.h" />
+    <ClInclude Include="src\game\entity\component\Elevator.h" />
+    <ClInclude Include="src\game\entity\component\ItemEntity.h" />
+    <ClInclude Include="src\game\entity\component\Portal.h" />
+    <ClInclude Include="src\game\entity\component\Projectile.h" />
+    <ClInclude Include="src\game\entity\component\Ragdoll.h" />
+    <ClInclude Include="src\game\entity\component\RestingSpot.h" />
+    <ClInclude Include="src\game\entity\component\Sconce.h" />
+    <ClInclude Include="src\game\entity\EntityBase.h" />
+    <ClInclude Include="src\game\entity\component\Trail.h" />
+    <ClInclude Include="src\game\Navmesh.h" />
+    <ClInclude Include="src\game\particle\ParticleSystem.h" />
+    <ClInclude Include="src\game\player\action\Action.h" />
+    <ClInclude Include="src\game\entity\action\EntityAttackAction.h" />
+    <ClInclude Include="src\game\entity\action\EntityDeathAction.h" />
+    <ClInclude Include="src\game\entity\action\EntityAction.h" />
+    <ClInclude Include="src\game\entity\action\EntityStaggerAction.h" />
+    <ClInclude Include="src\game\entity\Entity.h" />
+    <ClInclude Include="src\game\player\action\AttackAction.h" />
+    <ClInclude Include="src\game\player\action\ParryAction.h" />
+    <ClInclude Include="src\game\player\action\StaggerAction.h" />
+    <ClInclude Include="src\game\player\action\DropAction.h" />
+    <ClInclude Include="src\game\player\action\EquipAction.h" />
+    <ClInclude Include="src\game\player\action\PickUpAction.h" />
+    <ClInclude Include="src\game\player\action\ShootAction.h" />
+    <ClInclude Include="src\game\player\action\SitAction.h" />
+    <ClInclude Include="src\game\player\action\TurnAction.h" />
+    <ClInclude Include="src\game\player\action\UnequipAction.h" />
+    <ClInclude Include="src\game\player\Player.h" />
+    <ClInclude Include="src\file\Image.h" />
+    <ClInclude Include="src\game\Game.h" />
+    <ClInclude Include="src\game\item\Item.h" />
+    <ClInclude Include="src\graphics\GPUTiming.h" />
+    <ClInclude Include="src\graphics\GPUVulkan.h" />
+    <ClInclude Include="src\graphics\Graphics.h" />
+    <ClInclude Include="src\graphics\GraphicsPipeline.h" />
+    <ClInclude Include="src\graphics\IndexBuffer.h" />
+    <ClInclude Include="src\graphics\IndirectBuffer.h" />
+    <ClInclude Include="src\graphics\RenderTarget.h" />
+    <ClInclude Include="src\graphics\Shader.h" />
+    <ClInclude Include="src\graphics\StorageBuffer.h" />
+    <ClInclude Include="src\graphics\Texture.h" />
+    <ClInclude Include="src\graphics\TextureFormat.h" />
+    <ClInclude Include="src\graphics\TransferBuffer.h" />
+    <ClInclude Include="src\graphics\VertexBuffer.h" />
+    <ClInclude Include="src\math\Gradient.h" />
+    <ClInclude Include="src\math\Math.h" />
+    <ClInclude Include="src\math\Matrix.h" />
+    <ClInclude Include="src\math\Quaternion.h" />
+    <ClInclude Include="src\math\Shape.h" />
+    <ClInclude Include="src\math\Vector.h" />
+    <ClInclude Include="src\model\Animation.h" />
+    <ClInclude Include="src\model\AnimationCache.h" />
+    <ClInclude Include="src\model\Model.h" />
+    <ClInclude Include="src\physics\CharacterController.h" />
+    <ClInclude Include="src\physics\Physics.h" />
+    <ClInclude Include="src\physics\Articulation.h" />
+    <ClInclude Include="src\physics\RigidBody.h" />
+    <ClInclude Include="src\renderer\DebugTextRenderer.h" />
+    <ClInclude Include="src\graphics\Font.h" />
+    <ClInclude Include="src\renderer\ReflectionProbe.h" />
+    <ClInclude Include="src\renderer\Renderer.h" />
+    <ClInclude Include="src\renderer\SpriteRenderer.h" />
+    <ClInclude Include="src\renderer\ScreenQuad.h" />
+    <ClInclude Include="src\Resource.h" />
+    <ClInclude Include="src\soloud\audiosource\ay\chipplayer.h" />
+    <ClInclude Include="src\soloud\audiosource\ay\sndbuffer.h" />
+    <ClInclude Include="src\soloud\audiosource\ay\sndchip.h" />
+    <ClInclude Include="src\soloud\audiosource\ay\sndrender.h" />
+    <ClInclude Include="src\spirv_cross\spirv.h" />
+    <ClInclude Include="src\spirv_cross\spirv.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_cfg.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_common.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_cpp.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_cross.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_cross_c.h" />
+    <ClInclude Include="src\spirv_cross\spirv_cross_containers.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_cross_error_handling.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_cross_parsed_ir.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_cross_util.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_glsl.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_hlsl.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_msl.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_parser.hpp" />
+    <ClInclude Include="src\spirv_cross\spirv_reflect.hpp" />
+    <ClInclude Include="src\utils\BinaryReader.h" />
+    <ClInclude Include="src\utils\BumpAllocator.h" />
+    <ClInclude Include="src\utils\Defer.h" />
+    <ClInclude Include="src\utils\Hash.h" />
+    <ClInclude Include="src\utils\HashMap.h" />
+    <ClInclude Include="src\utils\HashSet.h" />
+    <ClInclude Include="src\utils\List.h" />
+    <ClInclude Include="src\utils\Optional.h" />
+    <ClInclude Include="src\utils\Pool.h" />
+    <ClInclude Include="src\utils\Queue.h" />
+    <ClInclude Include="src\utils\Random.h" />
+    <ClInclude Include="src\utils\Simplex.h" />
+    <ClInclude Include="src\utils\stb_image.h" />
+    <ClInclude Include="src\utils\StringUtils.h" />
+    <ClInclude Include="src\utils\StringView.h" />
+    <ClInclude Include="src\utils\TokenReader.h" />
+    <ClInclude Include="src\utils\uint128_t.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Repositories\SDL3-main\VisualC\SDL\SDL.vcxproj">
+      <Project>{81ce8daf-ebb2-4761-8e45-b71abcca8c68}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Dependencies\Dependencies.vcxproj">
+      <Project>{0e029a39-cbb7-49d1-93b4-bdbd20099785}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\shaders\blurh.frag" />
+    <None Include="res\shaders\blurv.frag" />
+    <None Include="res\shaders\clear_buffer.comp" />
+    <None Include="res\shaders\common.glsl" />
+    <None Include="res\shaders\copy_depth.frag" />
+    <None Include="res\shaders\entity\magic_projectile.frag" />
+    <None Include="res\shaders\entity\magic_projectile.vert" />
+    <None Include="res\shaders\entity\particle.frag" />
+    <None Include="res\shaders\entity\particle.vert" />
+    <None Include="res\shaders\entity\trail.frag" />
+    <None Include="res\shaders\entity\trail.vert" />
+    <None Include="res\shaders\depth_downsample.frag" />
+    <None Include="res\shaders\lighting\deferred_diffuse.frag" />
+    <None Include="res\shaders\lighting\environment_light.frag" />
+    <None Include="res\shaders\lighting\lighting.glsl" />
+    <None Include="res\shaders\lighting\reflection_probe.frag" />
+    <None Include="res\shaders\lighting\reflection_probe.vert" />
+    <None Include="res\shaders\lighting\shadow.frag" />
+    <None Include="res\shaders\lighting\sh_convolute.comp" />
+    <None Include="res\shaders\lighting\sh_reconstruct.glsl" />
+    <None Include="res\shaders\lighting\specular_convolute.comp" />
+    <None Include="res\shaders\mesh_animated.vert" />
+    <None Include="res\shaders\mesh_depth.frag" />
+    <None Include="res\shaders\portal\portal_depth_reset.frag" />
+    <None Include="res\shaders\portal\portal_depth_reset.vert" />
+    <None Include="res\shaders\portal\portal_mask.frag" />
+    <None Include="res\shaders\portal\portal_mask.vert" />
+    <None Include="res\shaders\postprocessing\autoexposure.comp" />
+    <None Include="res\shaders\postprocessing\bloom_downsample.comp" />
+    <None Include="res\shaders\postprocessing\bloom_upsample.comp" />
+    <None Include="res\shaders\postprocessing\hdr2luminance64.comp" />
+    <None Include="res\shaders\postprocessing\luminance_downsample.comp" />
+    <None Include="res\shaders\postprocessing\reconstruct_normals.comp" />
+    <None Include="res\shaders\postprocessing\ssao_blur.comp" />
+    <None Include="res\shaders\postprocessing\ssao_composite.frag" />
+    <None Include="res\shaders\screenquad.frag" />
+    <None Include="res\shaders\sky\clouds.glsl" />
+    <None Include="res\shaders\sky\cloud_noise.comp" />
+    <None Include="res\shaders\sky\cloud_noise_detail.comp" />
+    <None Include="res\shaders\sky\noise.glsl" />
+    <None Include="res\shaders\sky\multiscatter_lut.comp" />
+    <None Include="res\shaders\sky\sky.frag" />
+    <None Include="res\shaders\sky\sky.glsl" />
+    <None Include="res\shaders\sky\skyview_lut.comp" />
+    <None Include="res\shaders\sky\sky_cube.frag" />
+    <None Include="res\shaders\sky\sky_upsample.frag" />
+    <None Include="res\shaders\sky\sun_color.comp" />
+    <None Include="res\shaders\sky\transmittance_lut.comp" />
+    <None Include="res\shaders\sky\weather_map.comp" />
+    <None Include="res\shaders\postprocessing\ssao.comp" />
+    <None Include="res\shaders\text.frag" />
+    <None Include="res\shaders\tonemapping.frag" />
+    <None Include="res\shaders\glyph.frag" />
+    <None Include="res\shaders\glyph.vert" />
+    <None Include="res\shaders\lighting\directional_light.frag" />
+    <None Include="res\shaders\screenquad.vert" />
+    <None Include="res\shaders\lighting\point_light.frag" />
+    <None Include="res\shaders\lighting\point_light.vert" />
+    <None Include="res\shaders\mesh.frag" />
+    <None Include="res\shaders\mesh.vert" />
+    <None Include="res\shaders\sprite.frag" />
+    <None Include="res\shaders\sprite.vert" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,50 @@
+#include "ScreenQuad.h"
+
+#include "math/Vector.h"
+
+
+extern SDL_Window* window;
+extern SDL_GPUDevice* device;
+
+
+static const vec3 vertices[] = {
+	vec3(-3, -1, 0),
+	vec3(1, -1, 0),
+	vec3(1, 3, 0)
+};
+
+
+void InitScreenQuad(ScreenQuad* quad, SDL_GPUCommandBuffer* cmdBuffer)
+{
+	VertexBufferLayout bufferLayout = {};
+	bufferLayout.numAttributes = 1;
+	bufferLayout.attributes[0].location = 0;
+	bufferLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	quad->vertexBuffer = CreateVertexBuffer(3, &bufferLayout, 0);
+	UpdateVertexBuffer(quad->vertexBuffer, 0, (uint8_t*)vertices, sizeof(vertices), false, cmdBuffer);
+}
+
+void DestroyScreenQuad(ScreenQuad* quad)
+{
+	DestroyVertexBuffer(quad->vertexBuffer);
+}
+
+void RenderScreenQuad(ScreenQuad* quad, int numInstances, SDL_GPURenderPass* renderPass, int numTextures, SDL_GPUTexture** textures, SDL_GPUSampler** samplers, SDL_GPUCommandBuffer* cmdBuffer)
+{
+	SDL_GPUBufferBinding bufferBindings[1];
+	bufferBindings[0].buffer = quad->vertexBuffer->buffer;
+	bufferBindings[0].offset = 0;
+
+	SDL_BindGPUVertexBuffers(renderPass, 0, bufferBindings, 1);
+
+	SDL_GPUTextureSamplerBinding textureBindings[16];
+	for (int i = 0; i < numTextures; i++)
+	{
+		textureBindings[i].texture = textures[i];
+		textureBindings[i].sampler = samplers[i];
+	}
+
+	SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, numTextures);
+
+	SDL_DrawGPUPrimitives(renderPass, 3, numInstances, 0, 0);
+}

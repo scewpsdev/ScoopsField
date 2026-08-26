@@ -1,0 +1,95 @@
+#version 460
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform samplerCube s_cubemap;
+
+layout(set = 1, binding = 0) writeonly buffer SHBuffer {
+	vec3 coefficients[9];
+};
+
+shared vec3 s_SH[9][256];
+shared float s_Weights[256];
+
+#include "../common.glsl"
+
+// SH Basis constants
+const float SH_C0 = 0.282095; // 1/2 * sqrt(1/PI)
+const float SH_C1 = 0.488603; // 1/2 * sqrt(3/PI)
+const float SH_C2 = 1.092548; // 1/2 * sqrt(15/PI)
+const float SH_C3 = 0.315392; // 1/4 * sqrt(5/PI)
+const float SH_C4 = 0.546274; // 1/4 * sqrt(15/PI)
+
+
+void main()
+{
+	uint thread = gl_LocalInvocationIndex;
+	ivec2 gid = ivec2(gl_GlobalInvocationID.xy);
+	vec2 uv = (gid + 0.5) / 16;
+	uv = uv * 2 - 1;
+
+	vec3 faceSum[9] = vec3[](vec3(0),vec3(0),vec3(0),vec3(0),vec3(0),vec3(0),vec3(0),vec3(0),vec3(0));
+	float weightSum = 0;
+
+	for (int face = 0; face < 6; face++)
+	{
+		vec3 normal;
+		if (face == 0)		normal = vec3( 1, -uv.y, -uv.x); // +X
+        else if (face == 1) normal = vec3(-1, -uv.y,  uv.x); // -X
+        else if (face == 2) normal = vec3(uv.x,  1,  uv.y); // +Y
+        else if (face == 3) normal = vec3(uv.x, -1, -uv.y); // -Y
+        else if (face == 4) normal = vec3( uv.x, -uv.y,  1); // +Z
+        else				normal = vec3(-uv.x, -uv.y, -1); // -Z
+        normal = normalize(normal);
+
+		float weight = 4 / pow(1 + uv.x * uv.x + uv.y * uv.y, 1.5);
+		vec3 color = textureLod(s_cubemap, normal * vec3(1, 1, -1), 3).rgb * weight;
+
+		float Y[9];
+		Y[0] = SH_C0;
+        Y[1] = SH_C1 * normal.y;
+        Y[2] = SH_C1 * normal.z;
+        Y[3] = SH_C1 * normal.x;
+        Y[4] = SH_C2 * normal.x * normal.y;
+        Y[5] = SH_C2 * normal.y * normal.z;
+        Y[6] = SH_C3 * (3 * normal.z * normal.z - 1);
+        Y[7] = SH_C2 * normal.x * normal.z;
+        Y[8] = SH_C4 * (normal.x * normal.x - normal.y * normal.y);
+
+		for (int i = 0; i < 9; i++)
+			faceSum[i] += color * Y[i];
+		weightSum += weight;
+	}
+
+	for (int i = 0; i < 9; i++)
+		s_SH[i][thread] = faceSum[i];
+	s_Weights[thread] = weightSum;
+
+	barrier();
+
+	for (int s = 128; s > 0; s >>= 1)
+	{
+		if (thread < s)
+		{
+			for (int i = 0; i < 9; i++)
+				s_SH[i][thread] += s_SH[i][thread + s];
+			s_Weights[thread] += s_Weights[thread + s];
+		}
+		barrier();
+	}
+
+	if (thread == 0)
+	{
+		float norm = (4 * pi) / s_Weights[0];
+
+		// Apply diffuse convolution constants (Lambertian BRDF)
+        float A[3] = float[](pi, (2 * pi / 3), (pi / 4));
+        
+        coefficients[0] = s_SH[0][0] * norm * A[0];
+
+        for(int i = 1; i <= 3; i++)
+			coefficients[i] = s_SH[i][0] * norm * A[1];
+        for(int i = 4; i <= 8; i++)
+			coefficients[i] = s_SH[i][0] * norm * A[2];
+	}
+}
