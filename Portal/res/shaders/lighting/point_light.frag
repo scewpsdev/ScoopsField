@@ -5,6 +5,7 @@
 
 layout (location = 0) in vec3 v_lightPosition;
 layout (location = 1) in vec3 v_lightColor;
+layout (location = 2) in vec4 v_maskPlanes[5];
 
 layout (location = 0) out vec4 out_color;
 
@@ -67,6 +68,24 @@ vec3 reconstructPosition(vec2 uv, float depth)
 	return view;
 }
 
+float evaluateMask(vec3 position)
+{
+	float result = 1.0;
+
+	float distFromPortal = dot(v_maskPlanes[0].xyz, position) + v_maskPlanes[0].w;
+	if (distFromPortal < 0)
+		return 0;
+
+	for (int i = 1; i < 5; i++)
+	{
+		float dist = dot(v_maskPlanes[i].xyz, position) + v_maskPlanes[i].w;
+		if (dist < 0)
+			return 0;
+		result *= smoothstep(0, distFromPortal * 0.1, dist); // penumbra
+	}
+	return result;
+}
+
 void main()
 {
 	vec2 uv = gl_FragCoord.xy * u_viewTexel.xy;
@@ -85,6 +104,8 @@ void main()
 	float metallic = material.g;
 
 	vec3 radiance = pointLight(position, normal, view, albedo, roughness, metallic, v_lightPosition, v_lightColor);
+
+	radiance *= evaluateMask(position);
 	
 	out_color = vec4(radiance, 1);
 }

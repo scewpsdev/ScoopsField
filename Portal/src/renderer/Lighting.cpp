@@ -1,7 +1,7 @@
 
 
 
-static void RenderPointLights(Renderer* renderer, SDL_GPURenderPass* renderPass, mat4 pv, mat4 projection, mat4 view, int portalID)
+static void RenderPointLights(Renderer* renderer, SDL_GPURenderPass* renderPass, mat4 pv, mat4 projection, mat4 view, int portalID, vec3 portalCorners[4])
 {
 	GPU_TIMER("point lights");
 
@@ -28,11 +28,25 @@ static void RenderPointLights(Renderer* renderer, SDL_GPURenderPass* renderPass,
 	{
 		mat4 pv;
 		mat4 view;
+		vec4 portalMask[4];
 	};
 
 	VertexUniformData vertexUniforms = {};
 	vertexUniforms.pv = pv;
 	vertexUniforms.view = view; // add portal delta transform here
+
+	if (portalCorners)
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			vertexUniforms.portalMask[i] = vec4(portalCorners[i], 0);
+		}
+		vertexUniforms.portalMask[0].w = 1;
+	}
+	else
+	{
+		vertexUniforms.portalMask[0].w = 0;
+	}
 
 	SDL_PushGPUVertexUniformData(cmdBuffer, 0, &vertexUniforms, sizeof(vertexUniforms));
 
@@ -260,22 +274,36 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 	// point lights
 	if (renderer->pointLights.size)
 	{
-		RenderPointLights(renderer, renderPass, pv, projection, view, 0);
+		RenderPointLights(renderer, renderPass, pv, projection, view, 0, nullptr);
 
 		// lights shining out from a portal
 		for (int i = 0; i < renderer->portals.size; i++)
 		{
 			PortalDrawData* portal = &renderer->portals[i];
-			RenderPointLights(renderer, renderPass, pv, projection, view * portal->portalView, 0);
+			vec3 corners[4] = {
+				view * (portal->transform.translation()),
+				view * (portal->transform.translation() + portal->transform.rotation().right() * 2),
+				view * (portal->transform.translation() + portal->transform.rotation().right() * 2 + portal->transform.rotation().up() * 2),
+				view * (portal->transform.translation() + portal->transform.rotation().up() * 2),
+			};
+			RenderPointLights(renderer, renderPass, pv, projection, view * portal->portalView, 0, corners);
 		}
 
 		for (int i = 0; i < renderer->portals.size; i++)
 		{
 			PortalDrawData* portal = &renderer->portals[i];
-			RenderPointLights(renderer, renderPass, pv, projection, view * portal->portalView, portal->portalID);
+			RenderPointLights(renderer, renderPass, pv, projection, view * portal->portalView, portal->portalID, nullptr);
 
-			// lights shining to a portal
-			RenderPointLights(renderer, renderPass, pv, projection, view, portal->portalID);
+			// lights shining into a portal
+
+			vec3 corners[4] = {
+				view * (portal->transform.translation() + portal->transform.rotation().right() * 2),
+				view * (portal->transform.translation()),
+				view * (portal->transform.translation() + portal->transform.rotation().up() * 2),
+				view * (portal->transform.translation() + portal->transform.rotation().right() * 2 + portal->transform.rotation().up() * 2),
+			};
+
+			RenderPointLights(renderer, renderPass, pv, projection, view, portal->portalID, corners);
 		}
 	}
 }
