@@ -15,5 +15,7 @@ layout(std140, set = 1, binding = 0) uniform UniformBlock {
 
 void main()
 {
-	gl_Position = u_projectionViewModel * vec4(a_position, 1);
+	vec4 ndc = u_projectionViewModel * vec4(a_position, 1);
+	ndc.z += 0.00001;
+	gl_Position = ndc;
 }

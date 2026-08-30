@@ -280,11 +280,14 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 		for (int i = 0; i < renderer->portals.size; i++)
 		{
 			PortalDrawData* portal = &renderer->portals[i];
+			vec3 position = portal->transform.translation();
+			vec3 right = portal->transform.rotation().right();
+			vec3 up = portal->transform.rotation().up();
 			vec3 corners[4] = {
-				view * (portal->transform.translation()),
-				view * (portal->transform.translation() + portal->transform.rotation().right() * 2),
-				view * (portal->transform.translation() + portal->transform.rotation().right() * 2 + portal->transform.rotation().up() * 2),
-				view * (portal->transform.translation() + portal->transform.rotation().up() * 2),
+				view * (position - right - up),
+				view * (position + right - up),
+				view * (position + right + up),
+				view * (position - right + up),
 			};
 			RenderPointLights(renderer, renderPass, pv, projection, view * portal->portalView, 0, corners);
 		}
@@ -296,11 +299,14 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 
 			// lights shining into a portal
 
+			vec3 position = portal->transform.translation();
+			vec3 right = portal->transform.rotation().right();
+			vec3 up = portal->transform.rotation().up();
 			vec3 corners[4] = {
-				view * (portal->transform.translation() + portal->transform.rotation().right() * 2),
-				view * (portal->transform.translation()),
-				view * (portal->transform.translation() + portal->transform.rotation().up() * 2),
-				view * (portal->transform.translation() + portal->transform.rotation().right() * 2 + portal->transform.rotation().up() * 2),
+				view * (position + right - up),
+				view * (position - right - up),
+				view * (position - right + up),
+				view * (position + right + up),
 			};
 
 			RenderPointLights(renderer, renderPass, pv, projection, view, portal->portalID, corners);

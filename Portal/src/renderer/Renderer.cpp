@@ -209,6 +209,7 @@ static GraphicsPipeline* CreateAnimatedPipeline(Renderer* renderer)
 static GraphicsPipeline* CreatePortalMaskPipeline(Renderer* renderer)
 {
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->portalMaskShader, renderer->gbuffer, NUM_MESH_BUFFER_LAYOUTS, renderer->meshLayout);
+	pipelineInfo.depthClamp = true;
 	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER_OR_EQUAL;
 	pipelineInfo.stencilTest = true;
 	pipelineInfo.stencilCompareOp = SDL_GPU_COMPAREOP_ALWAYS;
@@ -244,6 +245,7 @@ static GraphicsPipeline* CreatePortalDepthResetPipeline(Renderer* renderer)
 static GraphicsPipeline* CreateGeometryStencilPipeline(Renderer* renderer)
 {
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->defaultShader, renderer->gbuffer, NUM_MESH_BUFFER_LAYOUTS, renderer->meshLayout);
+	pipelineInfo.depthClamp = true;
 	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER;
 	pipelineInfo.stencilTest = true;
 	pipelineInfo.stencilCompareOp = SDL_GPU_COMPAREOP_EQUAL;
@@ -1658,7 +1660,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		for (int i = 0; i < renderer->meshes.size; i++)
 		{
 			MeshDrawData* mesh = &renderer->meshes[i];
-			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, vec4(0), renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, vec4(0, 0, 0, 1), renderPass, cmdBuffer);
 		}
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
@@ -1667,7 +1669,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		for (int i = 0; i < renderer->animatedMeshes.size; i++)
 		{
 			MeshDrawData* mesh = &renderer->animatedMeshes[i];
-			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, vec4(0), renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, vec4(0, 0, 0, 1), renderPass, cmdBuffer);
 		}
 
 		// render portals
@@ -1679,16 +1681,16 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->portalMaskPipeline->pipeline);
 			SDL_SetGPUStencilReference(renderPass, portal->portalID);
 
-			SubmitMesh(renderer, &portal->drawData, projection, view, pv, cameraPosition, sunDirection, true, vec4(0), renderPass, cmdBuffer);
+			SubmitMesh(renderer, &portal->drawData, projection, view, pv, cameraPosition, sunDirection, true, vec4(0, 0, 0, 1), renderPass, cmdBuffer);
 
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->portalDepthResetPipeline->pipeline);
 			SDL_SetGPUStencilReference(renderPass, portal->portalID);
 
-			SubmitMesh(renderer, &portal->drawData, projection, view, pv, cameraPosition, sunDirection, true, vec4(0), renderPass, cmdBuffer);
+			SubmitMesh(renderer, &portal->drawData, projection, view, pv, cameraPosition, sunDirection, true, vec4(0, 0, 0, 1), renderPass, cmdBuffer);
 
 			vec3 portalNormal = (view * vec4(portal->transform.rotation().forward(), 0)).xyz;
 			vec3 portalPoint = view * portal->transform.translation();
-			vec4 portalClippingPlane = vec4(portalNormal, -dot(portalNormal, portalPoint));
+			vec4 portalClippingPlane = vec4(portalNormal, -dot(portalNormal, portalPoint) + 0.1f);
 
 			SDL_BindGPUGraphicsPipeline(renderPass, renderer->geometryStencilPipeline->pipeline);
 			SDL_SetGPUStencilReference(renderPass, portal->portalID);
@@ -1785,7 +1787,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 				SDL_BindGPUGraphicsPipeline(renderPass, mesh->shader->pipeline);
 
 				if (!mesh->boundingSphere.radius || FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-					SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, false, vec4(0), renderPass, cmdBuffer);
+					SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, false, vec4(0, 0, 0, 1), renderPass, cmdBuffer);
 			}
 		}
 

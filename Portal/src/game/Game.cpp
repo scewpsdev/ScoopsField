@@ -134,8 +134,8 @@ static void ResetGame(bool destroy, bool init)
 		}
 
 		Portal* portal1, * portal2;
-		InitPortal(portal1 = (Portal*)CreateEntity(), vec3(5, 0, -5), quat::Identity);
-		InitPortal(portal2 = (Portal*)CreateEntity(), vec3(8, 0, -11), quat::FromAxisAngle(vec3::Up, -0.5f * PI));
+		InitPortal(portal1 = (Portal*)CreateEntity(), vec3(5, 1, -5), quat::Identity);
+		InitPortal(portal2 = (Portal*)CreateEntity(), vec3(8, 1, -11), quat::FromAxisAngle(vec3::Up, -0.5f * PI));
 		portal1->destination = portal2;
 		portal2->destination = portal1;
 
