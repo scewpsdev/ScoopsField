@@ -49,5 +49,6 @@ vec4 ARGBToVector(uint32_t argb);
 vec3 SRGBToLinear(vec3 color);
 vec4 SRGBToLinear(vec4 color);
 vec3 DecodeRG11B10(uint32_t bits);
+bool FrustumCulling(vec3 position, float radius, vec4 planes[6]);
 bool FrustumCulling(const Sphere& boundingSphere, vec4 planes[6]);
 bool FrustumCulling(const Sphere& boundingSphere, mat4 transform, vec4 planes[6]);

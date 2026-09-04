@@ -1698,7 +1698,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 			for (int i = 0; i < renderer->meshes.size; i++)
 			{
 				MeshDrawData* mesh = &renderer->meshes[i];
-				SubmitMesh(renderer, mesh, projection, view * portal->portalView, pv, cameraPosition, sunDirection, true, portalClippingPlane, renderPass, cmdBuffer);
+				SubmitMesh(renderer, mesh, projection, view * portal->portalView, pv * portal->portalView, cameraPosition, sunDirection, true, portalClippingPlane, renderPass, cmdBuffer);
 			}
 		}
 
@@ -1720,6 +1720,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		{
 			// update point light data
 
+			/*
 			LightInstanceData* instanceData = (LightInstanceData*)MapTransferBuffer(renderer->pointLightInstanceTransferBuffer, true);
 			for (int i = 0; i < renderer->pointLights.size; i++)
 			{
@@ -1728,6 +1729,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 			}
 			UpdateVertexBuffer(renderer->pointLightInstanceBuffer, 0, renderer->pointLights.size * sizeof(LightInstanceData), renderer->pointLightInstanceTransferBuffer->buffer, true, copyPass);
 			UnmapTransferBuffer(renderer->pointLightInstanceTransferBuffer);
+			*/
 
 
 			// copy depth

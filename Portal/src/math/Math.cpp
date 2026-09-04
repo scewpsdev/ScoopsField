@@ -250,6 +250,19 @@ vec3 DecodeRG11B10(uint32_t bits)
 	return vec3(r, g, b);
 }
 
+bool FrustumCulling(vec3 position, float radius, vec4 planes[6])
+{
+	for (int i = 0; i < 6; i++)
+	{
+		float distance = position.x * planes[i].x + position.y * planes[i].y + position.z * planes[i].z;
+		float l = SDL_sqrtf(planes[i].x * planes[i].x + planes[i].y * planes[i].y + planes[i].z * planes[i].z);
+		distance += planes[i].w / l;
+		if (distance + radius < 0.0f)
+			return false;
+	}
+	return true;
+}
+
 bool FrustumCulling(const Sphere& boundingSphere, vec4 planes[6])
 {
 	vec3 boundingSpherePos = boundingSphere.center;

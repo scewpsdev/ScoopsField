@@ -1,10 +1,32 @@
 
 
 
+static bool CullLight(Renderer* renderer, vec3 position, float radius, vec3 portalCorners[4], vec4 viewFrustum[6])
+{
+	if (!FrustumCulling(position, radius, viewFrustum))
+		return false;
+
+	if (portalCorners)
+	{
+		vec3 R = portalCorners[1] - portalCorners[0];
+		vec3 U = portalCorners[3] - portalCorners[0];
+		vec3 N = cross(R, U).normalized();
+
+		if (dot(N, position) + radius < 0)
+			return false;
+	}
+
+	return true;
+}
+
+static vec4 CreatePlane(vec3 normal, vec3 point)
+{
+	normal = normal.normalized();
+	return vec4(normal, -dot(normal, point));
+}
+
 static void RenderPointLights(Renderer* renderer, SDL_GPURenderPass* renderPass, mat4 pv, mat4 projection, mat4 view, int portalID, vec3 portalCorners[4])
 {
-	GPU_TIMER("point lights");
-
 	SDL_BindGPUGraphicsPipeline(renderPass, renderer->pointLightPipeline->pipeline);
 	SDL_SetGPUStencilReference(renderPass, portalID);
 
@@ -23,32 +45,6 @@ static void RenderPointLights(Renderer* renderer, SDL_GPURenderPass* renderPass,
 	indexBinding.offset = 0;
 
 	SDL_BindGPUIndexBuffer(renderPass, &indexBinding, renderer->cubeIndexBuffer->elementSize);
-
-	struct VertexUniformData
-	{
-		mat4 pv;
-		mat4 view;
-		vec4 portalMask[4];
-	};
-
-	VertexUniformData vertexUniforms = {};
-	vertexUniforms.pv = pv;
-	vertexUniforms.view = view; // add portal delta transform here
-
-	if (portalCorners)
-	{
-		for (int i = 0; i < 4; i++)
-		{
-			vertexUniforms.portalMask[i] = vec4(portalCorners[i], 0);
-		}
-		vertexUniforms.portalMask[0].w = 1;
-	}
-	else
-	{
-		vertexUniforms.portalMask[0].w = 0;
-	}
-
-	SDL_PushGPUVertexUniformData(cmdBuffer, 0, &vertexUniforms, sizeof(vertexUniforms));
 
 	struct UniformData
 	{
@@ -74,7 +70,60 @@ static void RenderPointLights(Renderer* renderer, SDL_GPURenderPass* renderPass,
 
 	SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, 4);
 
-	SDL_DrawGPUIndexedPrimitives(renderPass, renderer->cubeIndexBuffer->numIndices, renderer->pointLights.size, 0, 0, 0);
+	vec4 frustumPlanes[6];
+	GetFrustumPlanes(pv, frustumPlanes);
+
+	for (int i = 0; i < renderer->pointLights.size; i++)
+	{
+		LightDrawData* pointLight = &renderer->pointLights[i];
+
+		if (!CullLight(renderer, pointLight->position, pointLight->radius, portalCorners, frustumPlanes))
+			continue;
+
+		vec3 lightPosition = (view * vec4(pointLight->position, 0)).xyz;
+
+		struct VertexUniformData
+		{
+			mat4 pv;
+			vec4 maskPlanes[5];
+			vec3 lightPosition;
+			float lightRadius;
+			vec4 lightColor;
+		};
+
+		VertexUniformData vertexUniforms = {};
+		vertexUniforms.pv = pv;
+		vertexUniforms.lightPosition = lightPosition;
+		vertexUniforms.lightRadius = pointLight->radius;
+		vertexUniforms.lightColor = vec4(pointLight->color, 0);
+
+		if (portalCorners)
+		{
+			vec3 V0 = portalCorners[0];
+			vec3 V1 = portalCorners[1];
+			vec3 V2 = portalCorners[2];
+			vec3 V3 = portalCorners[3];
+
+			vec3 maskNormal = cross(V1 - V0, V3 - V0);
+			vertexUniforms.maskPlanes[0] = CreatePlane(maskNormal, V0);
+			vertexUniforms.maskPlanes[1] = CreatePlane(cross(V0 - lightPosition, V1 - V0), V0);
+			vertexUniforms.maskPlanes[2] = CreatePlane(cross(V1 - lightPosition, V2 - V1), V1);
+			vertexUniforms.maskPlanes[3] = CreatePlane(cross(V2 - lightPosition, V3 - V2), V2);
+			vertexUniforms.maskPlanes[4] = CreatePlane(cross(V3 - lightPosition, V0 - V3), V3);
+		}
+		else
+		{
+			vertexUniforms.maskPlanes[0] = vec4(0, 0, 0, 1);
+			vertexUniforms.maskPlanes[1] = vec4(0, 0, 0, 1);
+			vertexUniforms.maskPlanes[2] = vec4(0, 0, 0, 1);
+			vertexUniforms.maskPlanes[3] = vec4(0, 0, 0, 1);
+			vertexUniforms.maskPlanes[4] = vec4(0, 0, 0, 1);
+		}
+
+		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &vertexUniforms, sizeof(vertexUniforms));
+
+		SDL_DrawGPUIndexedPrimitives(renderPass, renderer->cubeIndexBuffer->numIndices, 1, 0, 0, 0);
+	}
 }
 
 static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 projection, mat4 view, mat4 pv, mat4 projectionInv, mat4 viewInv, mat4 pvInv, vec4 frustumPlanes[6], vec3 sunDirection, SDL_GPURenderPass* renderPass, SDL_GPUCommandBuffer* cmdBuffer)
@@ -274,6 +323,8 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 	// point lights
 	if (renderer->pointLights.size)
 	{
+		GPU_TIMER("point lights");
+
 		RenderPointLights(renderer, renderPass, pv, projection, view, 0, nullptr);
 
 		// lights shining out from a portal
@@ -289,13 +340,13 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 				view * (position + right + up),
 				view * (position - right + up),
 			};
-			RenderPointLights(renderer, renderPass, pv, projection, view * portal->portalView, 0, corners);
+			RenderPointLights(renderer, renderPass, pv * portal->portalView, projection, view * portal->portalView, 0, corners);
 		}
 
 		for (int i = 0; i < renderer->portals.size; i++)
 		{
 			PortalDrawData* portal = &renderer->portals[i];
-			RenderPointLights(renderer, renderPass, pv, projection, view * portal->portalView, portal->portalID, nullptr);
+			RenderPointLights(renderer, renderPass, pv * portal->portalView, projection, view * portal->portalView, portal->portalID, nullptr);
 
 			// lights shining into a portal
 

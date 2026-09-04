@@ -87,10 +87,10 @@ static void ResetGame(bool destroy, bool init)
 
 		//LoadModel(&game->mapModel, "res/maps/painted_world/painted_world.glb.bin", true, cmdBuffer);
 		//LoadModel(&game->mapModel, "res/maps/testmap/testmap.glb.bin", false, cmdBuffer);
-		LoadModel(&game->mapModel, "res/maps/testmap/testmap.glb.bin", false, cmdBuffer);
+		LoadModel(&game->mapModel, "res/maps/testmap/testmap_simple.glb.bin", false, cmdBuffer);
 
 		Model* mapCollider = (Model*)BumpAllocatorMalloc(&memory->transientAllocator, sizeof(Model));
-		LoadModel(mapCollider, "res/maps/testmap/testmap_collider.glb.bin", true, cmdBuffer);
+		LoadModel(mapCollider, "res/maps/testmap/testmap_simple_collider.glb.bin", true, cmdBuffer);
 
 		InitRigidBody(&game->mapCollider, RIGID_BODY_STATIC, vec3::Zero, quat::Identity, nullptr);
 		AddModelCollider(&game->mapCollider, mapCollider, vec3::Zero, quat::Identity, vec3::One, 1, 1, false);
@@ -100,6 +100,9 @@ static void ResetGame(bool destroy, bool init)
 		//Model* navmeshModel = (Model*)BumpAllocatorMalloc(&memory->transientAllocator, sizeof(Model));
 		//LoadModel(navmeshModel, "res/maps/testmap/testmap_navmesh.glb.bin", true, cmdBuffer);
 		//InitNavmesh(&game->mapNavmesh, navmeshModel);
+
+		HashMap<int, Portal*, 32> portalIDMap;
+		InitHashMap(&portalIDMap);
 
 		for (int i = 0; i < game->mapModel.numNodes; i++)
 		{
@@ -131,13 +134,36 @@ static void ResetGame(bool destroy, bool init)
 				vec3 size = node->transform.scale();
 				InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], position, size);
 			}
-		}
+			else if (SDL_strncmp(node->name, "Portal", 6) == 0)
+			{
+				vec3 position = node->transform.translation();
+				quat rotation = node->transform.rotation();
+				vec3 size = node->transform.scale();
 
-		Portal* portal1, * portal2;
-		InitPortal(portal1 = (Portal*)CreateEntity(), vec3(5, 1, -5), quat::Identity);
-		InitPortal(portal2 = (Portal*)CreateEntity(), vec3(8, 1, -11), quat::FromAxisAngle(vec3::Up, -0.5f * PI));
-		portal1->destination = portal2;
-		portal2->destination = portal1;
+				Portal* portal = (Portal*)CreateEntity();
+				InitPortal(portal, position, rotation);
+
+				char portalIDStr[32] = "";
+				char* portalIDStart = node->name + 7;
+				char* portalIDEnd = SDL_strchr(portalIDStart, '.');
+				if (!portalIDEnd) portalIDEnd = portalIDStart + strlen(portalIDStart);
+				SDL_memcpy(portalIDStr, portalIDStart, (int)(portalIDEnd - portalIDStart));
+
+				int portalID = strtol(portalIDStr, nullptr, 10);
+
+				if (Portal** otherRef = HashMapGet(&portalIDMap, portalID))
+				{
+					Portal* other = *otherRef;
+					portal->destination = other;
+					other->destination = portal;
+					HashMapRemove(&portalIDMap, portalID);
+				}
+				else
+				{
+					HashMapAdd(&portalIDMap, portalID, portal);
+				}
+			}
+		}
 
 
 		InitPlayer(&game->player, cmdBuffer, game->playerSpawn.translation(), game->playerSpawn.rotation().getAngle());
