@@ -15,6 +15,6 @@ layout (set = 3, binding = 0) uniform UniformBlock {
 
 void main()
 {
-    float ao = textureLod(s_texture, v_texcoord, lod).r;
+    float ao = textureLod(s_texture, v_texcoord, 0).r;
     out_color = vec4(ao, ao, ao, 1);
 }

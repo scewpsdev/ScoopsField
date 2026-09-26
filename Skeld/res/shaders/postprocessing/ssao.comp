@@ -232,7 +232,7 @@ void main()
 		ao = 0;
 	}
 
-	if (mip == ssaoLod)
+	if (mip == 0)
 		ao = 1 - ao;
 
 	imageStore(i_output, gid, vec4(ao, 0, 0, 0));

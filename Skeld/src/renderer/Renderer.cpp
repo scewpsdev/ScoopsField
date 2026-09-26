@@ -854,7 +854,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 
 	renderer->brdfLUT = LoadTexture("res/textures/brdf.png.bin", cmdBuffer);
 	renderer->blueNoise = LoadTexture("res/textures/bluenoise.png.bin", cmdBuffer);
-	renderer->skybox = LoadTexture("res/textures/sky/milkyway.png.bin", cmdBuffer);
+	//renderer->skybox = LoadTexture("res/textures/sky/milkyway.png.bin", cmdBuffer);
 
 	//renderer->noiseTexture = LoadTexture("res/textures/noise.png.bin", cmdBuffer);
 	//renderer->environmentMap = LoadTexture("res/textures/sky/sky_cubemap_equirect.png.bin", cmdBuffer);
@@ -1403,7 +1403,7 @@ static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov, flo
 			"SSAO Blur 4",
 		};
 
-		for (int i = SSAO_STEPS - 1; i >= lod; i--)
+		for (int i = SSAO_STEPS - 1; i >= 0; i--)
 		{
 			// ssao
 			{
@@ -1449,7 +1449,7 @@ static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov, flo
 			}
 
 			// blur
-			if (i > lod)
+			if (i > 0)
 			{
 				GPU_TIMER(ssaoBlurLabels[i]);
 
@@ -1569,11 +1569,11 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 	ShadowMapping(renderer, cameraPosition, cameraRotation, near, fov, aspect, projection, view, viewInv, sunDirection, cmdBuffer);
 
-	//UpdateSkyCubemap(renderer, cameraPosition, sunDirection, cmdBuffer);
+	UpdateSkyCubemap(renderer, cameraPosition, sunDirection, cmdBuffer);
 
 	UpdateReflectionProbes(renderer, sunDirection, cameraPosition, cmdBuffer);
 
-	//RenderSky(renderer, projectionInv, viewInv, sunDirection, cmdBuffer);
+	RenderSky(renderer, projectionInv, viewInv, sunDirection, cmdBuffer);
 
 	// lighting pass
 	{
@@ -1626,13 +1626,16 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 				RenderTarget* rt = app->frameIdx % 2 == 0 ? renderer->skyTarget : renderer->skyTarget2;
 
-				SDL_GPUTexture* textures[1];
-				textures[0] = renderer->skybox->handle;
+				SDL_GPUTexture* textures[2];
+				//textures[0] = renderer->skybox->handle;
+				textures[0] = rt->colorAttachments[0];
+				textures[1] = renderer->gbuffer->depthAttachment;
 
-				SDL_GPUSampler* samplers[1];
-				samplers[0] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED_VERTICAL];
+				SDL_GPUSampler* samplers[2];
+				samplers[0] = renderer->samplers[TEXTURE_SAMPLER_LINEAR_CLAMPED];
+				samplers[1] = renderer->samplers[TEXTURE_SAMPLER_CLAMPED];
 
-				RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, textures, samplers, cmdBuffer);
+				RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 2, textures, samplers, cmdBuffer);
 			}
 
 			for (int i = 0; i < renderer->forwardMeshes.size; i++)

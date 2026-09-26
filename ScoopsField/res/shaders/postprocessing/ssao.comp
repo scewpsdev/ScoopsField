@@ -216,7 +216,7 @@ void main()
 		{
 		    ao = computeAO(uv, position, normal);
 		}
-		else if (mip >= 0)
+		else if (mip >= 2)
 		{
 			float ao1 = computeAO(uv, position, normal);
 			float ao2 = upsample(uv, depth, normal);
@@ -232,7 +232,7 @@ void main()
 		ao = 0;
 	}
 
-	if (mip == 0)
+	if (mip == 2)
 		ao = 1 - ao;
 
 	imageStore(i_output, gid, vec4(ao, 0, 0, 0));

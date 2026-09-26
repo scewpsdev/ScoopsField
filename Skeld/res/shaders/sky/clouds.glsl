@@ -416,7 +416,7 @@ float getCloudDensity2(vec3 p, float height, int lod)
 		float detailStrength = smoothstep(1, 0.5, cloud) * detailStrengthMultiplier;
 		if (cloudType > 1.5)
 			detailStrength *= mix(0.5, 1, heightFraction);
-		if (cloud > 0 && detailStrength > 0)
+		if (cloud > 0 && detailStrength > 0 && lod == 0)
 		{
 			float detailNoiseScale = 0.001 * 1.51;
 			vec3 detailCoord = (p + windOffset * 1.5) * detailNoiseScale + 0.5;
@@ -696,5 +696,5 @@ vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise, int lod, int numS
 
 vec4 clouds(vec3 origin, vec3 dir, vec3 lightDir, float noise)
 {
-	return clouds(origin, dir, lightDir, noise, 0, 128);
+	return clouds(origin, dir, lightDir, noise, 0, 32);
 }
