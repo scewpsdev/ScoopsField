@@ -1,7 +1,9 @@
 .vs/
 bin/
 ScoopsField/obj/
+ScoopsField/res/asset_table
 Dependencies/obj/
 Launcher/obj/
 Skeld/obj/
+Skeld/res/asset_table
 Portal/obj/

@@ -328,7 +328,8 @@ static void RenderSky(Renderer* renderer, mat4 projectionInv, mat4 viewInv, vec3
 	gbufferTextures[2] = rt2->colorAttachments[0];
 	gbufferTextures[3] = renderer->skyTransmittanceLUT;
 	gbufferTextures[4] = renderer->skyMultiScatterLUT;
-	gbufferTextures[5] = renderer->skybox->handle;
+	//gbufferTextures[5] = renderer->skybox->handle;
+	gbufferTextures[5] = renderer->skyViewLUT;
 	gbufferTextures[6] = renderer->weatherMap;
 	gbufferTextures[7] = renderer->cloudNoise;
 	gbufferTextures[8] = renderer->cloudNoiseDetail;

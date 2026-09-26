@@ -1360,7 +1360,6 @@ void UpdatePlayer(Player* player)
 
 void RenderPlayer(Player* player)
 {
-	/*
 	mat4 bodyTransform = mat4::Translate(player->position) * mat4::Rotate(vec3::Up, player->rotation + PI);
 	mat4 scaleToCamera = game->view.inverted() * mat4::Scale(0.5f) * game->view;
 	bodyTransform = scaleToCamera * bodyTransform;
@@ -1394,7 +1393,6 @@ void RenderPlayer(Player* player)
 		weaponTransform = scaleToCamera * weaponTransform;
 		RenderModel(&game->renderer, &leftWeapon->model, nullptr, weaponTransform);
 	}
-	*/
 
 	// exhaustion vignette
 	{

@@ -99,7 +99,7 @@ vec3 sampleSkyViewLUT(vec3 dir)
 	float v = 0.5 + 0.5 * -sign(latitude) * sqrt(abs(latitude) / pi * 2);
 
 	vec3 color = texture(s_skyViewLUT, vec2(u, v)).rgb;
-	color = SRGBToLinear(color);
+	//color = SRGBToLinear(color);
 
 	return color;
 }
@@ -120,48 +120,37 @@ void main()
 	{
 		vec3 color = sampleSkyViewLUT(dir);
 
-		//vec3 pos = cameraPosition + vec3(0, planetRadius, 0);
-		//float height = length(pos);
-		//vec3 up = pos / height;
-		//height -= planetRadius;
+		vec3 pos = cameraPosition + vec3(0, planetRadius, 0);
+		float height = length(pos);
+		vec3 up = pos / height;
+		height -= planetRadius;
 
-		//vec3 toLight = -lightDirection;
-
-		//float baseNightSky = 0.0001 * max(dot(dir, vec3(0, 1, 0)) * 0.5 + 0.5, 0);
-		//color = max(color, baseNightSky);
+		vec3 toLight = -lightDirection;
 
 		// sun
-		//float sunIntensity = 25;
-		//vec3 sunColor = sampleTransmittanceLUT(height, toLight, up) * sunIntensity * 10;
-		//float sunSize = mix(0.0004, 0.0002, max(dot(toLight, vec3(0, 1, 0)), 0));
-		//float sunAlpha = smoothstep(1 - sunSize, 1.0, dot(dir, toLight)) * smoothstep(-0.005, 0.002, dir.y);
-		//color = mix(color, sunColor, sunAlpha);
-
-		// moon
-		//vec3 toMoon = normalize(vec3(1, 1, -1));
-		//float moonSize = 0.001;
-		//float moonBrightness = 0.05;
-		//vec3 moonColor = sampleTransmittanceLUT(height, toMoon, up) * moonBrightness;
-		//float moonAlpha = smoothstep(1 - moonSize, 1, dot(dir, toMoon));
-		//color = mix(color, moonColor, moonAlpha);
+		float sunIntensity = 25;
+		vec3 sunColor = sampleTransmittanceLUT(height, toLight, up) * sunIntensity * 10;
+		float sunSize = mix(0.0014, 0.001, max(dot(toLight, vec3(0, 1, 0)), 0));
+		float sunAlpha = smoothstep(1 - sunSize, 1.0, dot(dir, toLight)) * smoothstep(-0.005, 0.002, dir.y);
+		color = mix(color, sunColor, sunAlpha);
 
 		// clouds
-		//float noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
-		//vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, noise);
-		//color = mix(color, cloudColor.rgb, cloudColor.a);
+		float noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;
+		vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, noise);
+		color = mix(color, cloudColor.rgb, cloudColor.a);
 
 		// temporal accumulation
-		//vec2 lastUV = reconstructUV(dir, lastProjection, lastView);
-		//if (lastUV.x >= 0 && lastUV.x <= 1 && lastUV.y >= 0 && lastUV.y <= 1)
-		//{
-		//	float lastDepth = texture(s_depth, lastUV).r;
-		//	if (lastDepth == 0)
-		//	{
-		//		vec4 lastColor = texture(s_lastFrame, lastUV);
-		//		if (lastColor.a == 0)
-		//			color = mix(color, lastColor.rgb, 0.9);
-		//	}
-		//}
+		vec2 lastUV = reconstructUV(dir, lastProjection, lastView);
+		if (lastUV.x >= 0 && lastUV.x <= 1 && lastUV.y >= 0 && lastUV.y <= 1)
+		{
+			float lastDepth = texture(s_depth, lastUV).r;
+			if (lastDepth == 0)
+			{
+				vec4 lastColor = texture(s_lastFrame, lastUV);
+				if (lastColor.a == 0)
+					color = mix(color, lastColor.rgb, 0.9);
+			}
+		}
 
 		out_color = vec4(color, 0);
 	}

@@ -84,12 +84,15 @@ static void ResetGame(bool destroy, bool init)
 
 		InitPool(&game->entities);
 
+		// todo generate terrain
+
 		//LoadModel(&game->mapModel, "res/maps/painted_world/painted_world.glb.bin", true, cmdBuffer);
-		//LoadModel(&game->mapModel, "res/maps/testmap/testmap.glb.bin", false, cmdBuffer);
-		LoadModel(&game->mapModel, "res/maps/skeld/skeld.glb.bin", false, cmdBuffer);
+		LoadModel(&game->mapModel, "res/maps/testmap/testmap.glb.bin", false, cmdBuffer);
+		//LoadModel(&game->mapModel, "res/maps/skeld/skeld.glb.bin", false, cmdBuffer);
 
 		Model* mapCollider = (Model*)BumpAllocatorMalloc(&memory->transientAllocator, sizeof(Model));
-		LoadModel(mapCollider, "res/maps/skeld/skeld_collider.glb.bin", true, cmdBuffer);
+		//LoadModel(mapCollider, "res/maps/skeld/skeld_collider.glb.bin", true, cmdBuffer);
+		LoadModel(mapCollider, "res/maps/testmap/testmap_collider.glb.bin", true, cmdBuffer);
 
 		InitRigidBody(&game->mapCollider, RIGID_BODY_STATIC, vec3::Zero, quat::Identity, nullptr);
 		AddModelCollider(&game->mapCollider, mapCollider, vec3::Zero, quat::Identity, vec3::One, 1, 1, false);
@@ -495,7 +498,7 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -20 * 0.03f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.05f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 	//sunDirection = vec3(0.5f, -1, -1).normalized();

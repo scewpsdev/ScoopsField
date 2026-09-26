@@ -136,6 +136,7 @@ static void UpdateSkyCubemap(Renderer* renderer, vec3 cameraPosition, vec3 sunDi
 		SDL_EndGPUComputePass(computePass);
 	}
 
+	/*
 	// cloud noise
 	{
 		GPU_TIMER("cloud noise");
@@ -155,7 +156,6 @@ static void UpdateSkyCubemap(Renderer* renderer, vec3 cameraPosition, vec3 sunDi
 		SDL_EndGPUComputePass(computePass);
 	}
 
-	/*
 	// cloud noise detail
 	{
 		GPU_TIMER("cloud noise detail");
