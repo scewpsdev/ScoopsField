@@ -1,3 +1,33 @@
+/*
+*
+* TODO
+* [X] tree collider
+* [X] axe
+* [ ] simple inventory
+* [ ] chopping trees
+* [ ] shovel
+* [ ] tree instancing
+* [ ] terrain editing
+* [ ] workbench
+* [ ] building elements
+* [ ] grass rendering
+* [ ] day night cycle
+* [ ] monsters
+* [ ] sword
+* [ ] atmospheric particles
+* [ ] tree wind sound
+* [ ] step sound
+*
+*/
+
+
+
+
+
+
+
+
+
 #include "graphics/VertexBuffer.h"
 
 #include "model/Model.h"
@@ -31,7 +61,158 @@ Entity* CreateEntity()
 #include "entity/component/Ragdoll.cpp"
 #include "entity/component/Sconce.cpp"
 #include "entity/component/Elevator.cpp"
+#include "entity/component/Tree.cpp"
+#include "Terrain.cpp"
+#include "entity/Entity.cpp"
 
+
+#define ISLAND_SIZE 512.0f
+
+static float simplexFbm(float x, float y, int octaves, float persistence, float lacunarity)
+{
+	float result = 0;
+	float sum = 0;
+	float amplitude = 1;
+	float frequency = 1;
+	for (int i = 0; i < octaves; i++)
+	{
+		result += Simplex2f(x * frequency, y * frequency) * amplitude;
+		sum += amplitude;
+		amplitude *= persistence;
+		frequency *= lacunarity;
+
+		x += 123.456f;
+	}
+	return result / sum;
+}
+
+static float sampleTerrainHeight(float x, float z)
+{
+	float amplitude = 20.0f;
+	float frequency = 0.01f;
+	float height = simplexFbm(x * frequency, z * frequency, 4, 0.4f, 2);
+	height = SDL_powf(height * 0.5f + 0.5f, 2) * 2 - 1;
+	height *= amplitude;
+
+	height += 0.95f * amplitude;
+
+	float falloff = smoothstep(ISLAND_SIZE, 0.4f * ISLAND_SIZE, vec3(x, 0, z).length());
+	height = mix(-10.0f, height, falloff);
+
+	return height;
+}
+
+static float sampleTreeDensity(float x, float z)
+{
+	float frequency = 0.01f;
+	float value = simplexFbm(x * frequency + 12345, z * frequency, 3, 0.4f, 2);
+	value = max(value, 0.0f);
+
+	//float falloff = smoothstep(256.0f, 100.0f, vec3(x, 0, z).length());
+	//value *= falloff;
+
+	value *= 0.05f;
+
+	return value;
+}
+
+static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& random)
+{
+	float worldx = tilex * TERRAIN_SIZE;
+	float worldz = tilez * TERRAIN_SIZE;
+
+	vec3* terrainVertices = (vec3*)BumpAllocatorMalloc(&memory->transientAllocator, TERRAIN_VERTICES * sizeof(vec3));
+	vec3* terrainNormals = (vec3*)BumpAllocatorMalloc(&memory->transientAllocator, TERRAIN_VERTICES * sizeof(vec3));
+	short* terrainIndices = (short*)BumpAllocatorMalloc(&memory->transientAllocator, TERRAIN_TILES * 6 * sizeof(short));
+	for (int z = 0; z < TERRAIN_VERTICES_X; z++)
+	{
+		for (int x = 0; x < TERRAIN_VERTICES_X; x++)
+		{
+			float xx = worldx + x * TERRAIN_TILE_SIZE;
+			float zz = worldz + z * TERRAIN_TILE_SIZE;
+
+			float height = sampleTerrainHeight(xx, zz);
+
+			terrainVertices[x + z * TERRAIN_VERTICES_X] = vec3(xx, height, zz);
+		}
+	}
+	for (int z = 0; z < TERRAIN_VERTICES_X; z++)
+	{
+		for (int x = 0; x < TERRAIN_VERTICES_X; x++)
+		{
+			float xx = worldx + x * TERRAIN_TILE_SIZE;
+			float zz = worldz + z * TERRAIN_TILE_SIZE;
+
+			float leftHeight = x > 0 ? terrainVertices[x - 1 + z * TERRAIN_VERTICES_X].y : sampleTerrainHeight(xx - TERRAIN_TILE_SIZE, zz);
+			float rightHeight = x < TERRAIN_VERTICES_X - 1 ? terrainVertices[x + 1 + z * TERRAIN_VERTICES_X].y : sampleTerrainHeight(xx + TERRAIN_TILE_SIZE, zz);
+			float frontHeight = z > 0 ? terrainVertices[x + (z - 1) * TERRAIN_VERTICES_X].y : sampleTerrainHeight(xx, zz - TERRAIN_TILE_SIZE);
+			float backHeight = z < TERRAIN_VERTICES_X - 1 ? terrainVertices[x + (z + 1) * TERRAIN_VERTICES_X].y : sampleTerrainHeight(xx, zz + TERRAIN_TILE_SIZE);
+
+			float nx = leftHeight - rightHeight;
+			float ny = TERRAIN_TILE_SIZE;
+			float nz = frontHeight - backHeight;
+
+			terrainNormals[x + z * TERRAIN_VERTICES_X] = vec3(nx, ny, nz).normalized();
+		}
+	}
+	for (int z = 0; z < TERRAIN_TILES_X; z++)
+	{
+		for (int x = 0; x < TERRAIN_TILES_X; x++)
+		{
+			terrainIndices[(x + z * TERRAIN_TILES_X) * 6 + 0] = x + z * TERRAIN_VERTICES_X;
+			terrainIndices[(x + z * TERRAIN_TILES_X) * 6 + 1] = x + (z + 1) * TERRAIN_VERTICES_X;
+			terrainIndices[(x + z * TERRAIN_TILES_X) * 6 + 2] = x + 1 + (z + 1) * TERRAIN_VERTICES_X;
+			terrainIndices[(x + z * TERRAIN_TILES_X) * 6 + 3] = x + 1 + (z + 1) * TERRAIN_VERTICES_X;
+			terrainIndices[(x + z * TERRAIN_TILES_X) * 6 + 4] = x + 1 + z * TERRAIN_VERTICES_X;
+			terrainIndices[(x + z * TERRAIN_TILES_X) * 6 + 5] = x + z * TERRAIN_VERTICES_X;
+		}
+	}
+
+	InitTerrain(terrain, tilex, tilez, terrainVertices, terrainNormals, terrainIndices, cmdBuffer);
+
+	// generate trees
+	for (int z = 0; z < TERRAIN_TILES_X; z++)
+	{
+		for (int x = 0; x < TERRAIN_TILES_X; x++)
+		{
+			float xx = worldx + x * TERRAIN_TILE_SIZE;
+			float zz = worldz + z * TERRAIN_TILE_SIZE;
+
+			if (terrain->vertices[x + z * TERRAIN_VERTICES_X].y < 0)
+				continue;
+
+			float treeChance = sampleTreeDensity(xx, zz);
+			if (random.nextFloat() < treeChance)
+			{
+				vec2 offset = vec2(random.nextFloat(), random.nextFloat());
+				vec3 position = vec3(xx + 0.5f * TERRAIN_TILE_SIZE + offset.x, 0, zz + 0.5f * TERRAIN_TILE_SIZE + offset.y);
+				float height = terrain->interpolateHeight(position.x - worldx, position.z - worldz);
+				position.y = height;
+				float rotation = random.nextFloat() * 2 * PI;
+				float scale = mix(0.8f, 1.6f, random.nextFloat());
+				InitTree((Tree*)CreateEntity(), position, rotation, scale);
+			}
+		}
+	}
+}
+
+Terrain* GetTerrainAtGridPosition(int x, int z)
+{
+	for (int i = 0; i < game->numTerrains; i++)
+	{
+		Terrain* terrain = &game->terrains[i];
+		if (terrain->tilex == x && terrain->tilez == z)
+			return terrain;
+	}
+	return nullptr;
+}
+
+Terrain* GetTerrainAtPosition(vec3 position)
+{
+	int tilex = (int)SDL_floorf(position.x / TERRAIN_SIZE);
+	int tilez = (int)SDL_floorf(position.z / TERRAIN_SIZE);
+	return GetTerrainAtGridPosition(tilex, tilez);
+}
 
 static void ResetGame(bool destroy, bool init)
 {
@@ -85,7 +266,20 @@ static void ResetGame(bool destroy, bool init)
 		InitPool(&game->entities);
 
 		// todo generate terrain
+		Random random = Random(12345);
+		for (int z = -2; z < 2; z++)
+		{
+			for (int x = -2; x < 2; x++)
+			{
+				GenerateTerrain(&game->terrains[game->numTerrains++], x, z, random);
+			}
+		}
 
+		LoadModel(&game->mapModel, "res/models/water_surface.glb.bin", false, cmdBuffer);
+
+		game->playerSpawn = mat4::Translate(0, 12.0f, 0);
+
+		/*
 		//LoadModel(&game->mapModel, "res/maps/painted_world/painted_world.glb.bin", true, cmdBuffer);
 		LoadModel(&game->mapModel, "res/maps/testmap/testmap.glb.bin", false, cmdBuffer);
 		//LoadModel(&game->mapModel, "res/maps/skeld/skeld.glb.bin", false, cmdBuffer);
@@ -134,9 +328,12 @@ static void ResetGame(bool destroy, bool init)
 				InitReflectionProbe(&game->reflectionProbes[game->numReflectionProbes++], position, size);
 			}
 		}
-		
+		*/
+
 
 		InitPlayer(&game->player, cmdBuffer, game->playerSpawn.translation(), game->playerSpawn.rotation().getAngle());
+
+		InitItemEntity((ItemEntity*)CreateEntity(), GetItem(ITEM_AXE), vec3(0, 12, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
 
 		//InitKnight((Creature*)CreateEntity(), vec3(0, 0, -5), 0);
 		//InitKnight((Creature*)CreateEntity(), vec3(-4, 0, -5), 0);
@@ -260,6 +457,9 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	game->trailAdditiveShader = CreateForwardGraphicsPipeline(
 		LoadGraphicsShader("res/shaders/entity/trail.vert.bin", "res/shaders/entity/trail.frag.bin"),
 		&trailLayout, 1, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_NONE, true);
+
+	game->treeShader = CreateDeferredGraphicsPipeline(&game->renderer, "res/shaders/entity/tree.vert.bin", "res/shaders/entity/tree.frag.bin");
+	game->treeShadowShader = CreateDeferredShadowGraphicsPipeline(&game->renderer, "res/shaders/entity/tree.vert.bin");
 
 	VertexBufferLayout particleLayouts[6];
 	particleLayouts[0] = game->particles.quad->layout;
@@ -436,6 +636,11 @@ void GameRender()
 
 	RenderModel(&game->renderer, &game->mapModel, nullptr, mat4::Identity, true);
 
+	for (int i = 0; i < game->numTerrains; i++)
+	{
+		RenderTerrain(&game->renderer, &game->terrains[i]);
+	}
+
 	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, 1 * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 1);
 	//RenderLight(&game->renderer, vec3(5, 2, -25) + quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(-8, 0, 0), vec3(0.5f, 1, 0.5f));
 	//RenderModel(&game->renderer, &game->cube, mat4::Translate(vec3(5, 2, -25) + quat::FromAxisAngle(vec3::Up, gameTime * 0.5f * PI) * vec3(-8, 0, 0)));
@@ -498,7 +703,8 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.05f) * vec3(1, 0, 0);
+	//vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.1f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -20 * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 	//sunDirection = vec3(0.5f, -1, -1).normalized();

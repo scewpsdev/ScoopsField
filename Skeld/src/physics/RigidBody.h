@@ -5,6 +5,7 @@
 #include "math/Matrix.h"
 
 #include <PxPhysics.h>
+#include <physx/geometry/PxHeightFieldSample.h>
 
 
 enum RigidBodyAxisLock
@@ -49,6 +50,7 @@ void AddCapsuleCollider(RigidBody* body, float radius, float height, const vec3&
 void AddMeshCollider(RigidBody* body, physx::PxTriangleMesh* mesh, const vec3& position, const quat& rotation, const vec3& scale, uint32_t filterGroup, uint32_t filterMask, bool trigger);
 void AddModelCollider(RigidBody* body, struct Model* model, const vec3& position, const quat& rotation, const vec3& scale, uint32_t filterGroup, uint32_t filterMask, bool trigger);
 void AddConvexMeshCollider(RigidBody* body, physx::PxConvexMesh* mesh, const vec3& position, const quat& rotation, const vec3& scale, uint32_t filterGroup, uint32_t filterMask, bool trigger);
+void AddHeightFieldCollider(RigidBody* body, int width, int height, physx::PxHeightFieldSample* heights, float heightScale, float tileSize, vec3 position, quat rotation, uint32_t filterGroup, uint32_t filterMask);
 void RemoveColliders(RigidBody* body);
 void CopyColliders(RigidBody* dst, RigidBody* src, uint32_t filterGroup, uint32_t filterMask);
 

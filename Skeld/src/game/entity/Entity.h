@@ -14,6 +14,7 @@
 #include "component/Ragdoll.h"
 #include "component/Sconce.h"
 #include "component/Elevator.h"
+#include "component/Tree.h"
 
 
 enum EntityPhysicsFilter
@@ -25,6 +26,7 @@ enum EntityPhysicsFilter
 	ENTITY_FILTER_ITEM = 1 << 4,
 	ENTITY_FILTER_INTERACTABLE = 1 << 5,
 	ENTITY_FILTER_RAGDOLL = 1 << 6,
+	ENTITY_FILTER_TERRAIN = 1 << 7,
 };
 
 struct HitParams
@@ -59,16 +61,9 @@ struct Entity
 			GraphicsPipeline* shader;
 		};
 
-		Player player;
-		Creature creature;
-		ItemEntity item;
-		RestingSpot restingSpot;
-		Projectile projectile;
-		Trail trail;
-		ParticleEffect particles;
-		Ragdoll ragdoll;
-		Sconce sconce;
-		Elevator elevator;
+#define ENTITY_TYPE(caps, pascal, camel) pascal camel;
+		SWITCH_ENTITY()
+#undef ENTITY_TYPE
 	};
 };
 

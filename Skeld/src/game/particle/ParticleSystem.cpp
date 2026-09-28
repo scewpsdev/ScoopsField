@@ -550,6 +550,10 @@ void RenderParticleEffect(ParticleSystem* particles, ParticleEffect* effect)
 	}
 }
 
+void RenderParticleEffect(ParticleEffect* effect)
+{
+}
+
 const vec2 quadVertices[] = {
 	vec2(0.5f, -0.5f),
 	vec2(0.5f, 0.5f),

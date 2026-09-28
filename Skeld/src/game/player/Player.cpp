@@ -5,7 +5,7 @@
 
 #define HEALTH_REGEN_HIT_DELAY 5.0f
 #define HIT_RECOVERY_DURATION 0.25f
-#define STEP_FREQUENCY 0.6f
+#define STEP_FREQUENCY 0.4f
 #define PLAYER_REACH 2.5f
 #define CAMERA_HEIGHT 1.49f
 #define CAMERA_HEIGHT_DUCKED 0.94f
@@ -237,7 +237,8 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 
 	InitActionManager(player->actions, player->model, player->bodyModel);
 
-	player->walkSpeed = 4.0f;
+	player->walkSpeed = 6.0f;
+	player->jumpPower = 9.0f;
 
 	player->health = 100;
 	player->maxHealth = 100;
@@ -245,7 +246,7 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 	player->stamina = 1.0f;
 	player->exhausted = false;
 
-	//SetRightWeapon(player, 0, GetItem(ITEM_KINGS_SWORD));
+	//SetRightWeapon(player, 0, GetItem(ITEM_AXE));
 	//SetLeftWeapon(player, 0, GetItem(ITEM_WOODEN_SHIELD));
 	//SetRightWeapon(player, 1, GetItem(ITEM_DARKWOOD_STAFF));
 	//SetRightWeapon(player, 2, GetItem(ITEM_SHORTBOW));
@@ -636,6 +637,152 @@ static void UpdateRootMotion(Player* player)
 	player->lastRootMotionUpdate = gameTime;
 }
 
+static void UpdateAttacks(Player* player)
+{
+	Item* rightWeapon = GetRightWeapon(player);
+	Item* leftWeapon = GetLeftWeapon(player);
+
+	Action* currentAction = GetCurrentAction(player);
+	if (player->stamina > 0 && player->actions.actions.size < player->actions.actions.capacity)
+	{
+		bool inFollowUpWindow = !currentAction ||
+			player->actions.actions.size < player->actions.actions.capacity && (
+				currentAction->type != ACTION_TYPE_ATTACK || currentAction->elapsedTime >= 0.5f * currentAction->duration || currentAction->followUpCancelTime && currentAction->elapsedTime >= 0.4f * currentAction->followUpCancelTime
+				);
+
+		if ((GetMouseButton(SDL_BUTTON_LEFT) || GetMouseScroll() > 0) && rightWeapon && (!currentAction || currentAction->elapsedTime >= currentAction->followUpCancelTime))
+		{
+			Attack* nextAttack = nullptr;
+			int attackIdx = 0;
+
+			AttackType type = GetMouseButton(SDL_BUTTON_LEFT) ? ATTACK_PRIMARY : ATTACK_SECONDARY;
+
+			if (currentAction && currentAction->type == ACTION_TYPE_ATTACK && currentAction->attack.weapon == rightWeapon &&
+				(type == ATTACK_PRIMARY && currentAction->attack.attack->followUp || type == ATTACK_SECONDARY && currentAction->attack.attack->followUpSecondary))
+			{
+				if (inFollowUpWindow)
+				{
+					nextAttack = GetAttackByName(currentAction->attack.weapon, type == ATTACK_PRIMARY ? currentAction->attack.attack->followUp : currentAction->attack.attack->followUpSecondary);
+					attackIdx = currentAction->attack.attackIdx + 1;
+				}
+			}
+			else if (player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry && rightWeapon->weapon.riposteAttack != -1)
+			{
+				if (type == ATTACK_PRIMARY && rightWeapon->weapon.riposteAttack != -1)
+					nextAttack = &rightWeapon->weapon.attacks[rightWeapon->weapon.riposteAttack];
+				else if (type == ATTACK_SECONDARY && rightWeapon->weapon.riposteSecondaryAttack != -1)
+					nextAttack = &rightWeapon->weapon.attacks[rightWeapon->weapon.riposteSecondaryAttack];
+
+				if (nextAttack)
+					CancelAction(player->actions, *player);
+			}
+			else if (player->sprinting && rightWeapon->weapon.runningAttack != -1)
+			{
+				nextAttack = &rightWeapon->weapon.attacks[rightWeapon->weapon.runningAttack];
+			}
+			else
+			{
+				if (inFollowUpWindow)
+				{
+					nextAttack = GetFirstAttack(rightWeapon, type);
+
+					bool hasParried = player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry;
+					if (hasParried && nextAttack->parryWindow.lengthSquared())
+						CancelAction(player->actions, *player);
+				}
+			}
+
+			if (nextAttack)
+			{
+				Action action;
+				InitAttackAction(&action, rightWeapon, true, nextAttack, attackIdx, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT);
+				QueueAction(player->actions, action, *player);
+			}
+		}
+		else if (GetMouseButtonDown(SDL_BUTTON_RIGHT) && !leftWeapon)
+		{
+			if (Attack* nextAttack = GetFirstAttack(rightWeapon, ATTACK_OFFHAND_PRIMARY))
+			{
+				bool hasParried = player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry;
+				if (hasParried && nextAttack->parryWindow.lengthSquared())
+					CancelAction(player->actions, *player);
+
+				int attackIdx = 0;
+
+				Action action;
+				InitAttackAction(&action, rightWeapon, true, nextAttack, attackIdx, SDL_BUTTON_RIGHT, SDL_BUTTON_LEFT);
+				QueueAction(player->actions, action, *player);
+			}
+		}
+
+		if ((GetMouseButtonDown(SDL_BUTTON_RIGHT) || GetMouseScroll() < 0) && leftWeapon)
+		{
+			Attack* nextAttack = nullptr;
+			int attackIdx = 0;
+
+			AttackType type = GetMouseButtonDown(SDL_BUTTON_RIGHT) ? ATTACK_PRIMARY : ATTACK_SECONDARY;
+
+			if (currentAction && currentAction->type == ACTION_TYPE_ATTACK && currentAction->attack.weapon == leftWeapon && currentAction->attack.attack->followUp)
+			{
+				if (inFollowUpWindow)
+				{
+					nextAttack = GetAttackByName(currentAction->attack.weapon, currentAction->attack.attack->followUp);
+					attackIdx = currentAction->attack.attackIdx + 1;
+				}
+			}
+			else if (player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry && leftWeapon->weapon.riposteAttack != -1)
+			{
+				if (type == ATTACK_PRIMARY && leftWeapon->weapon.riposteAttack != -1)
+					nextAttack = &leftWeapon->weapon.attacks[leftWeapon->weapon.riposteAttack];
+				else if (type == ATTACK_SECONDARY && leftWeapon->weapon.riposteSecondaryAttack != -1)
+					nextAttack = &leftWeapon->weapon.attacks[leftWeapon->weapon.riposteSecondaryAttack];
+
+				if (nextAttack)
+					CancelAction(player->actions, *player);
+			}
+			else if (player->sprinting && leftWeapon->weapon.runningAttack != -1)
+			{
+				nextAttack = &leftWeapon->weapon.attacks[leftWeapon->weapon.runningAttack];
+			}
+			else
+			{
+				if (inFollowUpWindow)
+				{
+					nextAttack = GetFirstAttack(leftWeapon, type);
+
+					bool hasParried = player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry;
+					if (hasParried && nextAttack->parryWindow.lengthSquared())
+						CancelAction(player->actions, *player);
+				}
+			}
+
+			if (nextAttack)
+			{
+				Action action;
+				InitAttackAction(&action, leftWeapon, false, nextAttack, attackIdx, SDL_BUTTON_RIGHT, SDL_BUTTON_LEFT);
+				QueueAction(player->actions, action, *player);
+			}
+		}
+		else if (GetMouseButtonDown(SDL_BUTTON_LEFT) && !rightWeapon)
+		{
+			/*
+			if (Attack* nextAttack = GetFirstAttack(leftWeapon, ATTACK_OFFHAND_PRIMARY))
+			{
+				bool hasParried = player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry;
+				if (hasParried && nextAttack->parryWindow.lengthSquared())
+					CancelAction(player->actions, *player);
+
+				int attackIdx = 0;
+
+				Action action;
+				InitAttackAction(&action, leftWeapon, false, nextAttack, attackIdx, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT);
+				QueueAction(player->actions, action, *player);
+			}
+			*/
+		}
+	}
+}
+
 void UpdatePlayer(Player* player)
 {
 	if (player->health <= 0)
@@ -761,146 +908,19 @@ void UpdatePlayer(Player* player)
 		}
 	}
 
-	Item* rightWeapon = GetRightWeapon(player);
-	Item* leftWeapon = GetLeftWeapon(player);
-
-	Action* currentAction = GetCurrentAction(player);
-	if (player->stamina > 0 && player->actions.actions.size < player->actions.actions.capacity)
+	if (GetMouseButtonDown(SDL_BUTTON_RIGHT))
 	{
-		bool inFollowUpWindow = !currentAction ||
-			player->actions.actions.size < player->actions.actions.capacity && (
-				currentAction->type != ACTION_TYPE_ATTACK || currentAction->elapsedTime >= 0.5f * currentAction->duration || currentAction->followUpCancelTime && currentAction->elapsedTime >= 0.4f * currentAction->followUpCancelTime
-				);
-
-		if ((GetMouseButtonDown(SDL_BUTTON_LEFT) || GetMouseScroll() > 0) && rightWeapon)
+		PhysicsHit hit = {};
+		if (Raycast(game->cameraPosition, game->cameraRotation.forward(), 5, &hit, 1, ENTITY_FILTER_TERRAIN))
 		{
-			Attack* nextAttack = nullptr;
-			int attackIdx = 0;
-
-			AttackType type = GetMouseButtonDown(SDL_BUTTON_LEFT) ? ATTACK_PRIMARY : ATTACK_SECONDARY;
-
-			if (currentAction && currentAction->type == ACTION_TYPE_ATTACK && currentAction->attack.weapon == rightWeapon &&
-				(type == ATTACK_PRIMARY && currentAction->attack.attack->followUp || type == ATTACK_SECONDARY && currentAction->attack.attack->followUpSecondary))
-			{
-				if (inFollowUpWindow)
-				{
-					nextAttack = GetAttackByName(currentAction->attack.weapon, type == ATTACK_PRIMARY ? currentAction->attack.attack->followUp : currentAction->attack.attack->followUpSecondary);
-					attackIdx = currentAction->attack.attackIdx + 1;
-				}
-			}
-			else if (player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry && rightWeapon->weapon.riposteAttack != -1)
-			{
-				if (type == ATTACK_PRIMARY && rightWeapon->weapon.riposteAttack != -1)
-					nextAttack = &rightWeapon->weapon.attacks[rightWeapon->weapon.riposteAttack];
-				else if (type == ATTACK_SECONDARY && rightWeapon->weapon.riposteSecondaryAttack != -1)
-					nextAttack = &rightWeapon->weapon.attacks[rightWeapon->weapon.riposteSecondaryAttack];
-
-				if (nextAttack)
-					CancelAction(player->actions, *player);
-			}
-			else if (player->sprinting && rightWeapon->weapon.runningAttack != -1)
-			{
-				nextAttack = &rightWeapon->weapon.attacks[rightWeapon->weapon.runningAttack];
-			}
-			else
-			{
-				if (inFollowUpWindow)
-				{
-					nextAttack = GetFirstAttack(rightWeapon, type);
-
-					bool hasParried = player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry;
-					if (hasParried && nextAttack->parryWindow.lengthSquared())
-						CancelAction(player->actions, *player);
-				}
-			}
-
-			if (nextAttack)
-			{
-				Action action;
-				InitAttackAction(&action, rightWeapon, true, nextAttack, attackIdx, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT);
-				QueueAction(player->actions, action, *player);
-			}
-		}
-		else if (GetMouseButtonDown(SDL_BUTTON_RIGHT) && !leftWeapon)
-		{
-			if (Attack* nextAttack = GetFirstAttack(rightWeapon, ATTACK_OFFHAND_PRIMARY))
-			{
-				bool hasParried = player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry;
-				if (hasParried && nextAttack->parryWindow.lengthSquared())
-					CancelAction(player->actions, *player);
-
-				int attackIdx = 0;
-
-				Action action;
-				InitAttackAction(&action, rightWeapon, true, nextAttack, attackIdx, SDL_BUTTON_RIGHT, SDL_BUTTON_LEFT);
-				QueueAction(player->actions, action, *player);
-			}
-		}
-
-		if ((GetMouseButtonDown(SDL_BUTTON_RIGHT) || GetMouseScroll() < 0) && leftWeapon)
-		{
-			Attack* nextAttack = nullptr;
-			int attackIdx = 0;
-
-			AttackType type = GetMouseButtonDown(SDL_BUTTON_RIGHT) ? ATTACK_PRIMARY : ATTACK_SECONDARY;
-
-			if (currentAction && currentAction->type == ACTION_TYPE_ATTACK && currentAction->attack.weapon == leftWeapon && currentAction->attack.attack->followUp)
-			{
-				if (inFollowUpWindow)
-				{
-					nextAttack = GetAttackByName(currentAction->attack.weapon, currentAction->attack.attack->followUp);
-					attackIdx = currentAction->attack.attackIdx + 1;
-				}
-			}
-			else if (player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry && leftWeapon->weapon.riposteAttack != -1)
-			{
-				if (type == ATTACK_PRIMARY && leftWeapon->weapon.riposteAttack != -1)
-					nextAttack = &leftWeapon->weapon.attacks[leftWeapon->weapon.riposteAttack];
-				else if (type == ATTACK_SECONDARY && leftWeapon->weapon.riposteSecondaryAttack != -1)
-					nextAttack = &leftWeapon->weapon.attacks[leftWeapon->weapon.riposteSecondaryAttack];
-
-				if (nextAttack)
-					CancelAction(player->actions, *player);
-			}
-			else if (player->sprinting && leftWeapon->weapon.runningAttack != -1)
-			{
-				nextAttack = &leftWeapon->weapon.attacks[leftWeapon->weapon.runningAttack];
-			}
-			else
-			{
-				if (inFollowUpWindow)
-				{
-					nextAttack = GetFirstAttack(leftWeapon, type);
-
-					bool hasParried = player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry;
-					if (hasParried && nextAttack->parryWindow.lengthSquared())
-						CancelAction(player->actions, *player);
-				}
-			}
-
-			if (nextAttack)
-			{
-				Action action;
-				InitAttackAction(&action, leftWeapon, false, nextAttack, attackIdx, SDL_BUTTON_RIGHT, SDL_BUTTON_LEFT);
-				QueueAction(player->actions, action, *player);
-			}
-		}
-		else if (GetMouseButtonDown(SDL_BUTTON_LEFT) && !rightWeapon)
-		{
-			if (Attack* nextAttack = GetFirstAttack(leftWeapon, ATTACK_OFFHAND_PRIMARY))
-			{
-				bool hasParried = player->lastBlockTime && gameTime - player->lastBlockTime < 0.5f && player->lastBlockParry;
-				if (hasParried && nextAttack->parryWindow.lengthSquared())
-					CancelAction(player->actions, *player);
-
-				int attackIdx = 0;
-
-				Action action;
-				InitAttackAction(&action, leftWeapon, false, nextAttack, attackIdx, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT);
-				QueueAction(player->actions, action, *player);
-			}
+			int gridx = (int)SDL_floorf(hit.position.x / TERRAIN_TILE_SIZE);
+			int gridz = (int)SDL_floorf(hit.position.z / TERRAIN_TILE_SIZE);
+			Terrain* terrain = GetTerrainAtPosition(hit.position);
+			terrain->dig(gridx - terrain->tilex * TERRAIN_TILES_X, gridz - terrain->tilez * TERRAIN_TILES_X);
 		}
 	}
+
+	//UpdateAttacks(player);
 
 	UpdateActionManager(player->actions, *player);
 
@@ -1244,7 +1264,9 @@ void UpdatePlayer(Player* player)
 
 	UpdateRootMotion(player);
 
-	//Item* rightWeapon = GetRightWeapon(player);
+	Item* rightWeapon = GetRightWeapon(player);
+	Item* leftWeapon = GetLeftWeapon(player);
+
 	if (rightWeapon && rightWeapon->model.numAnimations)
 	{
 		Action* currentAction = GetCurrentAction(player);
@@ -1261,7 +1283,6 @@ void UpdatePlayer(Player* player)
 		ApplyAnimationToSkeleton(&rightWeapon->model, &player->rightWeaponAnim);
 	}
 
-	//Item* leftWeapon = GetLeftWeapon(player);
 	if (leftWeapon && leftWeapon->model.numAnimations)
 	{
 		Action* currentAction = GetCurrentAction(player);
@@ -1320,9 +1341,9 @@ void UpdatePlayer(Player* player)
 			player->exhausted = false;
 		}
 
-		if (player->stamina < 1.0f && player->actions.actions.size == 0 && !player->sprinting && !player->blockItem)
+		if (player->stamina < 1.0f /*&& player->actions.actions.size == 0*/ && !player->sprinting /*&& !player->blockItem*/)
 		{
-			player->stamina = min(player->stamina + 0.15f * deltaTime, 1.0f);
+			player->stamina = min(player->stamina + 0.05f * deltaTime, 1.0f);
 		}
 	}
 	else
@@ -1365,7 +1386,7 @@ void RenderPlayer(Player* player)
 	bodyTransform = scaleToCamera * bodyTransform;
 	RenderModel(&game->renderer, player->bodyModel, &player->bodyAnim, bodyTransform);
 
-	RenderModel(&game->renderer, player->bodyModel, &player->bodyAnim, mat4::Translate(-1, 0, -1) * mat4::Rotate(vec3::Up, player->rotation));
+	//RenderModel(&game->renderer, player->bodyModel, &player->bodyAnim, mat4::Translate(-1, 0, -1) * mat4::Rotate(vec3::Up, player->rotation));
 
 	mat4 viewmodelTransform = mat4::Translate(player->position) * mat4::Rotate(vec3::Up, player->rotation + PI);
 

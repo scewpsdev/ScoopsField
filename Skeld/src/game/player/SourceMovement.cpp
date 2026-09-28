@@ -279,7 +279,7 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 	player->sprinting = GetKey(SDL_SCANCODE_LSHIFT) && player->stamina > 0 && !player->exhausted;
 	float speed = (player->sprinting ? 1.5f : GetKey(SDL_SCANCODE_LALT) ? 0.25f : 1) * player->walkSpeed;
 	if (player->sprinting)
-		player->stamina -= 0.1f * deltaTime;
+		player->stamina -= 0.05f * deltaTime;
 	if (currentAction)
 		speed *= currentAction->moveSpeed;
 
@@ -293,12 +293,11 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 		player->lastGroundedTime = gameTime;
 	if ((player->grounded || gameTime - player->lastGroundedTime < COYOTE_TIME) && player->lastJumpInput && gameTime - player->lastJumpInput < JUMP_BUFFER && !player->exhausted)
 	{
-		const float jumpPower = 7;
-		player->velocity.y = jumpPower;
+		player->velocity.y = player->jumpPower;
 		player->grounded = false;
 		player->lastJumpInput = 0;
 
-		const float staminaCost = 0.15f;
+		const float staminaCost = 0.025f;
 		player->stamina -= staminaCost;
 
 		OnJump(player);
@@ -349,7 +348,7 @@ static void SourceMovement(Player* player, vec3 extraDisplacement)
 	}
 	else
 	{
-		player->grounded = OverlapSphere(player->position + vec3(0, 0.3f - 0.01f, 0), 0.3f, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ENEMY);
+		player->grounded = OverlapSphere(player->position + vec3(0, 0.3f - 0.1f, 0), 0.3f, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ENEMY);
 
 		if (player->grounded && player->velocity.y < -5 && gameTime - player->lastLandedTime > 0.2f)
 		{

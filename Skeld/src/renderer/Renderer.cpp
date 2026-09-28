@@ -3,6 +3,7 @@
 #include "Application.h"
 
 #include "graphics/GPUTiming.h"
+#include "game/Terrain.h"
 
 //#include "CloudNoise.cpp"
 
@@ -200,6 +201,13 @@ static GraphicsPipeline* CreateAnimatedPipeline(Renderer* renderer)
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
+static GraphicsPipeline* CreateTerrainPipeline(Renderer* renderer)
+{
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->terrainShader, renderer->gbuffer, NUM_TERRAIN_BUFFER_LAYOUTS, renderer->terrainLayout);
+	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER;
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
 static GraphicsPipeline* CreateShadowMapPipeline(Renderer* renderer)
 {
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->depthShader, renderer->shadowMaps[0], NUM_MESH_BUFFER_LAYOUTS, renderer->meshLayout);
@@ -380,6 +388,16 @@ static GraphicsPipeline* CreateSSAOCompositePipeline(Renderer* renderer)
 	SDL_GPUTextureFormat targetFormat = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->ssaoCompositeShader, 1, &targetFormat, false, SDL_GPU_TEXTUREFORMAT_INVALID, 1, &renderer->screenQuad.vertexBuffer->layout);
 	CreateBlendStateMultiply(&pipelineInfo.colorTargets[0].blend_state);
+	pipelineInfo.depthTest = false;
+	pipelineInfo.depthWrite = false;
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
+static GraphicsPipeline* CreateFogPipeline(Renderer* renderer)
+{
+	SDL_GPUTextureFormat targetFormat = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->fogShader, 1, &targetFormat, false, SDL_GPU_TEXTUREFORMAT_INVALID, 1, &renderer->screenQuad.vertexBuffer->layout);
+	CreateBlendStateAlpha(&pipelineInfo.colorTargets[0].blend_state);
 	pipelineInfo.depthTest = false;
 	pipelineInfo.depthWrite = false;
 	return CreateGraphicsPipeline(&pipelineInfo);
@@ -703,6 +721,15 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 		renderer->animatedLayout[3].numAttributes = 1;
 		renderer->animatedLayout[3].attributes[0].location = 4;
 		renderer->animatedLayout[3].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+
+		// position
+		renderer->terrainLayout[0].numAttributes = 1;
+		renderer->terrainLayout[0].attributes[0].location = 0;
+		renderer->terrainLayout[0].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+		// normal
+		renderer->terrainLayout[1].numAttributes = 1;
+		renderer->terrainLayout[1].attributes[0].location = 1;
+		renderer->terrainLayout[1].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
 	}
 
 	InitScreenQuad(&renderer->screenQuad, cmdBuffer);
@@ -732,6 +759,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 
 	renderer->defaultShader = LoadGraphicsShader("res/shaders/mesh.vert.bin", "res/shaders/mesh.frag.bin");
 	renderer->animatedShader = LoadGraphicsShader("res/shaders/mesh_animated.vert.bin", "res/shaders/mesh.frag.bin");
+	renderer->terrainShader = LoadGraphicsShader("res/shaders/terrain.vert.bin", "res/shaders/terrain.frag.bin");
 	renderer->depthShader = LoadGraphicsShader("res/shaders/mesh.vert.bin", "res/shaders/mesh_depth.frag.bin");
 	renderer->animatedDepthShader = LoadGraphicsShader("res/shaders/mesh_animated.vert.bin", "res/shaders/mesh_depth.frag.bin");
 	renderer->shadowShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/lighting/shadow.frag.bin");
@@ -760,6 +788,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->ssaoShader = LoadComputeShader("res/shaders/postprocessing/ssao.comp.bin");
 	renderer->ssaoBlurShader = LoadComputeShader("res/shaders/postprocessing/ssao_blur.comp.bin");
 	renderer->ssaoCompositeShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/postprocessing/ssao_composite.frag.bin");
+	renderer->fogShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/postprocessing/fog.frag.bin");
 	renderer->bloomDownsampleShader = LoadComputeShader("res/shaders/postprocessing/bloom_downsample.comp.bin");
 	renderer->bloomUpsampleShader = LoadComputeShader("res/shaders/postprocessing/bloom_upsample.comp.bin");
 	renderer->hdrToLuminanceShader = LoadComputeShader("res/shaders/postprocessing/hdr2luminance64.comp.bin");
@@ -769,6 +798,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 
 	renderer->geometryPipeline = CreateGeometryPipeline(renderer);
 	renderer->animatedPipeline = CreateAnimatedPipeline(renderer);
+	renderer->terrainPipeline = CreateTerrainPipeline(renderer);
 	renderer->shadowMapPipeline = CreateShadowMapPipeline(renderer);
 	renderer->animatedShadowMapPipeline = CreateAnimatedShadowMapPipeline(renderer);
 	renderer->shadowPipeline = CreateShadowPipeline(renderer);
@@ -786,6 +816,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->skyUpsamplePipeline = CreateSkyUpsamplePipeline(renderer);
 	renderer->skyCubePipeline = CreateSkyCubePipeline(renderer);
 	renderer->ssaoCompositePipeline = CreateSSAOCompositePipeline(renderer);
+	renderer->fogPipeline = CreateFogPipeline(renderer);
 	renderer->tonemappingPipeline = CreateTonemappingPipeline(renderer);
 
 	SDL_GPUSamplerCreateInfo samplerInfo = {};
@@ -1033,7 +1064,7 @@ void RenderMesh(Renderer* renderer,
 	}
 }
 
-static void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, GraphicsPipeline* shader, SkeletonState* skeleton, mat4 transform, uint32_t flags)
+static void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, SkeletonState* skeleton, mat4 transform, uint32_t flags)
 {
 	MeshDrawData data = {};
 
@@ -1075,6 +1106,7 @@ static void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, Graph
 	data.skeleton = skeleton;
 	data.transform = transform;
 	data.shader = shader;
+	data.shadowShader = shadowShader;
 
 	data.flags = flags;
 
@@ -1098,7 +1130,7 @@ static void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, Graph
 	}
 }
 
-void RenderModelNode(Renderer* renderer, Model* model, Node* node, GraphicsPipeline* shader, AnimationState* animation, mat4 parentTransform, mat4 modelMatrix, uint32_t flags)
+void RenderModelNode(Renderer* renderer, Model* model, Node* node, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, AnimationState* animation, mat4 parentTransform, mat4 modelMatrix, uint32_t flags)
 {
 	mat4 nodeTransform = animation ? modelMatrix * GetNodeTransform(animation, node) : parentTransform * node->transform;
 
@@ -1107,12 +1139,12 @@ void RenderModelNode(Renderer* renderer, Model* model, Node* node, GraphicsPipel
 		int meshID = node->meshes[i];
 		Mesh* mesh = &model->meshes[meshID];
 		Material* material = mesh->materialID != -1 ? &model->materials[mesh->materialID] : nullptr;
-		RenderMesh(renderer, mesh, material, shader, animation && mesh->skeletonID != -1 ? &animation->skeletons[mesh->skeletonID] : nullptr, nodeTransform, flags);
+		RenderMesh(renderer, mesh, material, shader, shadowShader, animation && mesh->skeletonID != -1 ? &animation->skeletons[mesh->skeletonID] : nullptr, nodeTransform, flags);
 	}
 
 	for (int i = 0; i < node->numChildren; i++)
 	{
-		RenderModelNode(renderer, model, &model->nodes[node->children[i]], shader, animation, nodeTransform, modelMatrix, flags);
+		RenderModelNode(renderer, model, &model->nodes[node->children[i]], shader, shadowShader, animation, nodeTransform, modelMatrix, flags);
 	}
 }
 
@@ -1120,21 +1152,70 @@ void RenderModel(Renderer* renderer, Model* model, mat4 transform, bool isStatic
 {
 	SDL_assert(model);
 	uint32_t flags = isStatic ? (MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP | MESH_DRAW_FLAG_RENDER_TO_REFLECTION) : 0;
-	RenderModelNode(renderer, model, &model->nodes[0], nullptr, nullptr, transform, transform, flags);
+	RenderModelNode(renderer, model, &model->nodes[0], nullptr, nullptr, nullptr, transform, transform, flags);
 }
 
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform, bool isStatic)
 {
 	SDL_assert(model);
 	uint32_t flags = isStatic ? (MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP | MESH_DRAW_FLAG_RENDER_TO_REFLECTION) : 0;
-	RenderModelNode(renderer, model, &model->nodes[0], nullptr, animation, transform, transform, flags);
+	RenderModelNode(renderer, model, &model->nodes[0], nullptr, nullptr, animation, transform, transform, flags);
 }
 
-void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform, bool isStatic)
+void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform, bool isStatic, uint32_t extraFlags)
 {
 	SDL_assert(model);
 	uint32_t flags = isStatic ? (MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP | MESH_DRAW_FLAG_RENDER_TO_REFLECTION) : 0;
-	RenderModelNode(renderer, model, &model->nodes[0], shader, animation, transform, transform, flags);
+	flags |= extraFlags;
+	RenderModelNode(renderer, model, &model->nodes[0], shader, nullptr, animation, transform, transform, flags);
+}
+
+void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, AnimationState* animation, mat4 transform, bool isStatic, uint32_t extraFlags)
+{
+	SDL_assert(model);
+	uint32_t flags = isStatic ? (MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP | MESH_DRAW_FLAG_RENDER_TO_REFLECTION) : 0;
+	flags |= extraFlags;
+	RenderModelNode(renderer, model, &model->nodes[0], shader, shadowShader, animation, transform, transform, flags);
+}
+
+void RenderTerrain(Renderer* renderer, Terrain* terrain)
+{
+	uint32_t flags = MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP | MESH_DRAW_FLAG_RENDER_TO_REFLECTION;
+
+	MeshDrawData data = {};
+
+	data.numVertexBuffers = 2;
+	data.vertexBuffers[0] = terrain->heightBuffer;
+	data.vertexBuffers[1] = terrain->normalBuffer;
+
+	data.indexBuffer = terrain->indexBuffer;
+
+	data.vertexCount = TERRAIN_VERTICES;
+	data.indexCount = TERRAIN_TILES * 6;
+	data.instanceCount = 1;
+
+	data.boundingBox = terrain->boundingBox;
+	data.boundingSphere = terrain->boundingSphere;
+
+	//data.uniformData[0] = material->data0;
+	//data.uniformData[1] = material->data1;
+	//data.uniformData[2] = material->data2;
+	//data.uniformData[3] = material->data3;
+	//data.uniformDataSize = sizeof(material->data0) * 4;
+
+	data.textures[0] = terrain->texture;
+	data.samplers[0] = TEXTURE_SAMPLER_LINEAR;
+	//SDL_memcpy(data.textures, material->textures, sizeof(material->textures));
+	//SDL_memcpy(data.samplers, material->samplers, sizeof(material->samplers));
+	data.numTextures = 1;
+
+	//data.skeleton = skeleton;
+	data.transform = mat4::Identity;
+	//data.shader = renderer->terrainPipeline;
+
+	data.flags = flags;
+
+	renderer->terrains.add(data);
 }
 
 void RenderLight(Renderer* renderer, vec3 position, vec3 color)
@@ -1191,6 +1272,7 @@ static void SubmitMesh(Renderer* renderer,
 			mat4 projection;
 			mat4 model;
 			mat4 boneTransforms[64];
+			vec4 params;
 		};
 
 		UniformData uniforms = {};
@@ -1199,6 +1281,7 @@ static void SubmitMesh(Renderer* renderer,
 		uniforms.projection = projection;
 		uniforms.model = viewSpaceBuffer ? view * mesh->transform : mesh->transform;
 		SDL_memcpy(uniforms.boneTransforms, mesh->skeleton->boneTransforms, mesh->skeleton->numBones * sizeof(mat4));
+		uniforms.params = vec4(gameTime, viewSpaceBuffer ? 1.0f : 0.0f, 0, 0);
 		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 	}
 	else
@@ -1209,6 +1292,7 @@ static void SubmitMesh(Renderer* renderer,
 			mat4 view;
 			mat4 projection;
 			mat4 model;
+			vec4 params;
 		};
 
 		UniformData uniforms = {};
@@ -1216,6 +1300,7 @@ static void SubmitMesh(Renderer* renderer,
 		uniforms.view = view;
 		uniforms.projection = projection;
 		uniforms.model = viewSpaceBuffer ? view * mesh->transform : mesh->transform;
+		uniforms.params = vec4(gameTime, viewSpaceBuffer ? 1.0f : 0.0f, 0, 0);
 		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 	}
 
@@ -1247,7 +1332,7 @@ static void SubmitMesh(Renderer* renderer,
 			SDL_memcpy(data, mesh->uniformData, mesh->uniformDataSize);
 
 			UniformData* extraUniforms = (UniformData*)(data + mesh->uniformDataSize);
-			extraUniforms->params = vec4(cameraPosition, 0);
+			extraUniforms->params = vec4(cameraPosition, gameTime);
 			extraUniforms->sunDirection = vec4(sunDirection, 0);
 
 			int numPointLights;
@@ -1514,6 +1599,22 @@ static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov, flo
 	}
 }
 
+static void Fog(Renderer* renderer)
+{
+	SDL_GPUColorTargetInfo colorTarget = {};
+	colorTarget.load_op = SDL_GPU_LOADOP_LOAD;
+	colorTarget.store_op = SDL_GPU_STOREOP_STORE;
+	colorTarget.texture = renderer->hdrTarget->colorAttachments[0];
+
+	SDL_GPURenderPass* renderPass = SDL_BeginGPURenderPass(cmdBuffer, &colorTarget, 1, nullptr);
+
+	SDL_BindGPUGraphicsPipeline(renderPass, renderer->fogPipeline->pipeline);
+
+	RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, &renderer->hdrTarget->depthAttachment, &renderer->samplers[TEXTURE_SAMPLER_DEFAULT], cmdBuffer);
+
+	SDL_EndGPURenderPass(renderPass);
+}
+
 // TODO
 // [X] atmospheric scattering
 // [X] reflection probes
@@ -1553,7 +1654,20 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		for (int i = 0; i < renderer->meshes.size; i++)
 		{
 			MeshDrawData* mesh = &renderer->meshes[i];
-			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
+			if (!mesh->shader)
+			{
+				SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
+			}
+		}
+
+		for (int i = 0; i < renderer->meshes.size; i++)
+		{
+			MeshDrawData* mesh = &renderer->meshes[i];
+			if (mesh->shader)
+			{
+				SDL_BindGPUGraphicsPipeline(renderPass, mesh->shader->pipeline);
+				SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
+			}
 		}
 
 		SDL_BindGPUGraphicsPipeline(renderPass, renderer->animatedPipeline->pipeline);
@@ -1561,6 +1675,14 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		for (int i = 0; i < renderer->animatedMeshes.size; i++)
 		{
 			MeshDrawData* mesh = &renderer->animatedMeshes[i];
+			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
+		}
+
+		SDL_BindGPUGraphicsPipeline(renderPass, renderer->terrainPipeline->pipeline);
+
+		for (int i = 0; i < renderer->terrains.size; i++)
+		{
+			MeshDrawData* mesh = &renderer->terrains[i];
 			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
 		}
 
@@ -1654,6 +1776,8 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 	AmbientOcclusion(renderer, projection, fov, near);
 
+	Fog(renderer);
+
 	AutoExposure(renderer, renderer->hdrTarget->colorAttachments[0]);
 	Bloom(renderer, renderer->hdrTarget->colorAttachments[0]);
 
@@ -1691,12 +1815,42 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 	renderer->meshes.clear();
 	renderer->animatedMeshes.clear();
+	renderer->terrains.clear();
 	renderer->forwardMeshes.clear();
 	renderer->pointLights.clear();
 	renderer->reflectionProbes.clear();
 }
 
 
+
+GraphicsPipeline* CreateDeferredGraphicsPipeline(Renderer* renderer, const char* vertex, const char* fragment)
+{
+	Shader* shader = LoadGraphicsShader(vertex, fragment);
+
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(
+		SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+		SDL_GPU_CULLMODE_BACK,
+		shader, renderer->gbuffer,
+		NUM_MESH_BUFFER_LAYOUTS,
+		renderer->meshLayout);
+
+	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER;
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
+GraphicsPipeline* CreateDeferredShadowGraphicsPipeline(Renderer* renderer, const char* vertex)
+{
+	Shader* shader = LoadGraphicsShader(vertex, "res/shaders/mesh_depth.frag.bin");
+
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(
+		SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+		SDL_GPU_CULLMODE_BACK,
+		shader, renderer->shadowMaps[0],
+		NUM_MESH_BUFFER_LAYOUTS, renderer->meshLayout);
+	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_LESS;
+	pipelineInfo.depthClamp = true;
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
 
 GraphicsPipeline* CreateForwardGraphicsPipeline(Shader* shader, VertexBufferLayout* vertexLayouts, int numVertexLayouts, SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, bool additive)
 {
@@ -1708,16 +1862,14 @@ GraphicsPipeline* CreateForwardGraphicsPipeline(Shader* shader, VertexBufferLayo
 		&& game->renderer.hdrTarget->depthAttachmentInfo.format == depthAttachmentFormat);
 
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(
-		SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
-		SDL_GPU_CULLMODE_BACK,
+		primitiveType,
+		cullMode,
 		shader,
 		1, &colorAttachmentFormat,
 		true, depthAttachmentFormat,
 		numVertexLayouts, vertexLayouts);
 
 	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER;
-	pipelineInfo.primitiveType = primitiveType;
-	pipelineInfo.cullMode = cullMode;
 
 	if (additive)
 	{

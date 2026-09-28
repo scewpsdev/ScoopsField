@@ -43,7 +43,7 @@ struct Projectile : EntityBase
 
 
 void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 startTransform, float speed, int damage, DamageType damageType, Entity* shooter);
-void DestroyProjectile(Projectile* projectile, Entity* entity);
+void DestroyProjectile(Projectile* projectile);
 
 void OnEntityDestroyed(Projectile* projectile, Entity* destroyed);
 

@@ -75,7 +75,7 @@
     <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -183,6 +183,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="src\game\entity\component\Tree.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\game\Game.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -201,7 +205,10 @@
     <ClCompile Include="src\game\entity\action\EntityDeathAction.cpp" />
     <ClCompile Include="src\game\entity\action\EntityAction.cpp" />
     <ClCompile Include="src\game\entity\action\EntityStaggerAction.cpp" />
-    <ClCompile Include="src\game\entity\Entity.cpp" />
+    <ClCompile Include="src\game\entity\Entity.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\game\item\Item.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -224,6 +231,10 @@
     </ClCompile>
     <ClCompile Include="src\file\Image.cpp" />
     <ClCompile Include="src\game\player\SourceMovement.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\game\Terrain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -300,6 +311,7 @@
     <ClInclude Include="src\game\entity\component\Ragdoll.h" />
     <ClInclude Include="src\game\entity\component\RestingSpot.h" />
     <ClInclude Include="src\game\entity\component\Sconce.h" />
+    <ClInclude Include="src\game\entity\component\Tree.h" />
     <ClInclude Include="src\game\entity\EntityBase.h" />
     <ClInclude Include="src\game\entity\component\Trail.h" />
     <ClInclude Include="src\game\Navmesh.h" />
@@ -324,6 +336,7 @@
     <ClInclude Include="src\file\Image.h" />
     <ClInclude Include="src\game\Game.h" />
     <ClInclude Include="src\game\item\Item.h" />
+    <ClInclude Include="src\game\Terrain.h" />
     <ClInclude Include="src\graphics\GPUTiming.h" />
     <ClInclude Include="src\graphics\GPUVulkan.h" />
     <ClInclude Include="src\graphics\Graphics.h" />
@@ -416,6 +429,8 @@
     <None Include="res\shaders\entity\trail.frag" />
     <None Include="res\shaders\entity\trail.vert" />
     <None Include="res\shaders\depth_downsample.frag" />
+    <None Include="res\shaders\entity\tree.frag" />
+    <None Include="res\shaders\entity\tree.vert" />
     <None Include="res\shaders\lighting\deferred_diffuse.frag" />
     <None Include="res\shaders\lighting\environment_light.frag" />
     <None Include="res\shaders\lighting\lighting.glsl" />
@@ -430,6 +445,7 @@
     <None Include="res\shaders\postprocessing\autoexposure.comp" />
     <None Include="res\shaders\postprocessing\bloom_downsample.comp" />
     <None Include="res\shaders\postprocessing\bloom_upsample.comp" />
+    <None Include="res\shaders\postprocessing\fog.frag" />
     <None Include="res\shaders\postprocessing\hdr2luminance64.comp" />
     <None Include="res\shaders\postprocessing\luminance_downsample.comp" />
     <None Include="res\shaders\postprocessing\reconstruct_normals.comp" />
@@ -450,6 +466,8 @@
     <None Include="res\shaders\sky\transmittance_lut.comp" />
     <None Include="res\shaders\sky\weather_map.comp" />
     <None Include="res\shaders\postprocessing\ssao.comp" />
+    <None Include="res\shaders\terrain.frag" />
+    <None Include="res\shaders\terrain.vert" />
     <None Include="res\shaders\text.frag" />
     <None Include="res\shaders\tonemapping.frag" />
     <None Include="res\shaders\glyph.frag" />

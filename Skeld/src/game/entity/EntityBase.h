@@ -4,20 +4,27 @@
 #include "math/Quaternion.h"
 
 
+#define SWITCH_ENTITY() \
+ENTITY_TYPE(PLAYER, Player, player)\
+ENTITY_TYPE(CREATURE, Creature, creature)\
+ENTITY_TYPE(ITEM, ItemEntity, item)\
+ENTITY_TYPE(RESTING_SPOT, RestingSpot, restingSpot)\
+ENTITY_TYPE(PROJECTILE, Projectile, projectile)\
+ENTITY_TYPE(TRAIL, Trail, trail)\
+ENTITY_TYPE(PARTICLE_EFFECT, ParticleEffect, particles)\
+ENTITY_TYPE(RAGDOLL, Ragdoll, ragdoll)\
+ENTITY_TYPE(SCONCE, Sconce, sconce)\
+ENTITY_TYPE(ELEVATOR, Elevator, elevator)\
+ENTITY_TYPE(TREE, Tree, tree)\
+
+
 enum EntityType
 {
 	ENTITY_TYPE_NONE = 0,
 
-	ENTITY_TYPE_PLAYER,
-	ENTITY_TYPE_CREATURE,
-	ENTITY_TYPE_ITEM,
-	ENTITY_TYPE_RESTING_SPOT,
-	ENTITY_TYPE_PROJECTILE,
-	ENTITY_TYPE_TRAIL,
-	ENTITY_TYPE_PARTICLE_EFFECT,
-	ENTITY_TYPE_RAGDOLL,
-	ENTITY_TYPE_SCONCE,
-	ENTITY_TYPE_ELEVATOR,
+#define ENTITY_TYPE(caps, pascal, camel) ENTITY_TYPE_##caps,
+	SWITCH_ENTITY()
+#undef ENTITY_TYPE
 
 	ENTITY_TYPE_LAST
 };
@@ -42,4 +49,5 @@ struct EntityBase
 
 	Model* model;
 	GraphicsPipeline* shader;
+	GraphicsPipeline* shadowShader;
 };

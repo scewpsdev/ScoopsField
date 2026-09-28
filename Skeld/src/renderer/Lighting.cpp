@@ -156,7 +156,7 @@ static void Lighting(Renderer* renderer, vec3 cameraPosition, float near, mat4 p
 	}
 
 	// directional lights
-	if (false)
+	//if (false)
 	{
 		GPU_TIMER("sun");
 

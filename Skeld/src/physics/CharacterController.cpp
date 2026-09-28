@@ -72,7 +72,8 @@ void InitCharacterController(CharacterController* controller, float radius, floa
 	desc.height = height - 2 * radius;
 	desc.stepOffset = stepOffset;
 	desc.climbingMode = PxCapsuleClimbingMode::eEASY;
-	desc.nonWalkableMode = PxControllerNonWalkableMode::ePREVENT_CLIMBING_AND_FORCE_SLIDING;
+	desc.nonWalkableMode = PxControllerNonWalkableMode::ePREVENT_CLIMBING;
+	desc.slopeLimit = SDL_cosf(0.26f * PI);
 
 	new((ControllerHitCallback*)controller->hitCallback)ControllerHitCallback();
 	desc.reportCallback = (PxUserControllerHitReport*)controller->hitCallback;

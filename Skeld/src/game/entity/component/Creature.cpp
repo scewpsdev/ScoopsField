@@ -598,7 +598,7 @@ void RenderCreature(Creature* creature)
 		if (SDL_strcmp(node->name, "Weapon") == 0)
 		{
 			mat4 weaponTransform = GetRightWeaponTransform(creature);
-			RenderModelNode(&game->renderer, creature->model, node, nullptr, nullptr, weaponTransform, weaponTransform, 0);
+			RenderModelNode(&game->renderer, creature->model, node, nullptr, nullptr, nullptr, weaponTransform, weaponTransform, 0);
 		}
 	}
 

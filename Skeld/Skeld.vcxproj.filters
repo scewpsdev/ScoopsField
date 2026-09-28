@@ -240,6 +240,12 @@
     <ClCompile Include="src\graphics\Font.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\game\Terrain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\entity\component\Tree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\spirv_cross\spirv.h">
@@ -554,6 +560,12 @@
     <ClInclude Include="src\graphics\Font.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\game\Terrain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\entity\component\Tree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\clear_buffer.comp" />
@@ -614,5 +626,10 @@
     <None Include="res\shaders\postprocessing\ssao_composite.frag" />
     <None Include="res\shaders\postprocessing\reconstruct_normals.comp" />
     <None Include="res\shaders\lighting\specular_convolute.comp" />
+    <None Include="res\shaders\terrain.vert" />
+    <None Include="res\shaders\terrain.frag" />
+    <None Include="res\shaders\entity\tree.frag" />
+    <None Include="res\shaders\entity\tree.vert" />
+    <None Include="res\shaders\postprocessing\fog.frag" />
   </ItemGroup>
 </Project>

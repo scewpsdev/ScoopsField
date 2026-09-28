@@ -21,7 +21,7 @@ void InitProjectile(Projectile* projectile, vec3 position, vec3 direction, mat4 
 	projectile->shooter = shooter;
 }
 
-void DestroyProjectile(Projectile* projectile, Entity* entity)
+void DestroyProjectile(Projectile* projectile)
 {
 	if (projectile->trail)
 	{

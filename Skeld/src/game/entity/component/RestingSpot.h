@@ -16,9 +16,9 @@ struct RestingSpot : EntityBase
 
 
 void InitRestingSpot(Entity* entity, vec3 position, quat rotation);
-void DestroyRestingSpot(RestingSpot* item, Entity* entity);
+void DestroyRestingSpot(RestingSpot* item);
 
-bool InteractRestingSpot(RestingSpot* item, Entity* entity, Entity* by);
+bool InteractRestingSpot(RestingSpot* item, Entity* by);
 
-void UpdateRestingSpot(RestingSpot* item, Entity* entity);
-void RenderRestingSpot(RestingSpot* item, Entity* entity);
+void UpdateRestingSpot(RestingSpot* item);
+void RenderRestingSpot(RestingSpot* item);

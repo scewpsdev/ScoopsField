@@ -37,6 +37,8 @@ enum MeshDrawFlags : uint32_t
 	MESH_DRAW_FLAG_SHADER_ENVIRONMENT_MAP = 1 << 3,
 };
 
+struct Terrain;
+
 struct MeshDrawData
 {
 	VertexBuffer* vertexBuffers[16];
@@ -58,6 +60,7 @@ struct MeshDrawData
 
 	SkeletonState* skeleton;
 	GraphicsPipeline* shader;
+	GraphicsPipeline* shadowShader;
 	mat4 transform;
 
 	uint32_t flags;
@@ -106,6 +109,8 @@ struct Renderer
 	VertexBufferLayout meshLayout[NUM_MESH_BUFFER_LAYOUTS];
 #define NUM_ANIMATED_MESH_BUFFER_LAYOUTS 4
 	VertexBufferLayout animatedLayout[NUM_ANIMATED_MESH_BUFFER_LAYOUTS];
+#define NUM_TERRAIN_BUFFER_LAYOUTS 2
+	VertexBufferLayout terrainLayout[NUM_TERRAIN_BUFFER_LAYOUTS];
 
 	VertexBuffer* cubeVertexBuffer;
 	IndexBuffer* cubeIndexBuffer;
@@ -145,8 +150,10 @@ struct Renderer
 	Shader* ssaoShader;
 	Shader* ssaoBlurShader;
 	Shader* ssaoCompositeShader;
+	Shader* fogShader;
 	GraphicsPipeline* depthDownsamplePipeline;
 	GraphicsPipeline* ssaoCompositePipeline;
+	GraphicsPipeline* fogPipeline;
 
 #define BLOOM_STEPS 16
 	int bloomStepCount;
@@ -159,6 +166,7 @@ struct Renderer
 
 	Shader* defaultShader;
 	Shader* animatedShader;
+	Shader* terrainShader;
 	Shader* copyDepthShader;
 	Shader* reconstructNormalsShader;
 	Shader* directionalLightShader;
@@ -172,6 +180,7 @@ struct Renderer
 
 	GraphicsPipeline* geometryPipeline;
 	GraphicsPipeline* animatedPipeline;
+	GraphicsPipeline* terrainPipeline;
 	GraphicsPipeline* copyDepthPipeline;
 	GraphicsPipeline* copyDepthPipeline2;
 	GraphicsPipeline* directionalLightPipeline;
@@ -209,10 +218,12 @@ struct Renderer
 	SDL_GPUBuffer* emptyBuffer;
 	SDL_GPUTexture* emptyTexture;
 
-#define MAX_MESH_DRAWS 1024
+#define MAX_MESH_DRAWS 2048
 	List<MeshDrawData, MAX_MESH_DRAWS> meshes;
 #define MAX_ANIMATED_MESH_DRAWS 64
 	List<MeshDrawData, MAX_MESH_DRAWS> animatedMeshes;
+#define MAX_TERRAINS 16
+	List<MeshDrawData, MAX_TERRAINS> terrains;
 #define MAX_FORWARD_MESH_DRAWS 64
 	List<MeshDrawData, MAX_FORWARD_MESH_DRAWS> forwardMeshes;
 
@@ -245,11 +256,15 @@ void RenderMesh(Renderer* renderer,
 
 void RenderModel(Renderer* renderer, Model* model, mat4 transform, bool isStatic = false);
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform, bool isStatic = false);
-void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform, bool isStatic = false);
+void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform, bool isStatic = false, uint32_t extraFlags = 0);
+void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, AnimationState* animation, mat4 transform, bool isStatic, uint32_t extraFlags);
+void RenderTerrain(Renderer* renderer, Terrain* terrain);
 void RenderLight(Renderer* renderer, vec3 position, vec3 color);
 void RenderReflectionProbe(Renderer* renderer, ReflectionProbe* probe);
 void UpdateReflectionProbe(Renderer* renderer, ReflectionProbe* probe);
 
 
+GraphicsPipeline* CreateDeferredGraphicsPipeline(Renderer* renderer, const char* vertex, const char* fragment);
+GraphicsPipeline* CreateDeferredShadowGraphicsPipeline(Renderer* renderer, const char* vertex);
 GraphicsPipeline* CreateForwardGraphicsPipeline(Shader* shader, VertexBufferLayout* vertexLayouts, int numVertexLayouts, SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, bool additive);
 bool IsForward(GraphicsPipeline* pipeline);

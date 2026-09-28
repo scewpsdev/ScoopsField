@@ -151,7 +151,7 @@ void DestroyRigidBody(RigidBody* body)
 
 static void AddShape(PxRigidActor* actor, const PxGeometry& geometry, uint32_t filterGroup, uint32_t filterMask, const vec3& position, const quat& rotation, bool dynamic, bool trigger)
 {
-	SDL_assert(!(dynamic && trigger));
+	//SDL_assert(!(dynamic && trigger));
 
 	PxShape* shape = physics->physics->createShape(geometry, *physics->material, true);
 	shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, !trigger);
@@ -173,7 +173,7 @@ static void AddShape(PxRigidActor* actor, const PxGeometry& geometry, uint32_t f
 
 	shape->release(); // decrease ref count since attaching the shape increases it
 
-	if (dynamic)
+	if (dynamic && !trigger)
 	{
 		float density = 1;
 		bool result = PxRigidBodyExt::updateMassAndInertia(*(PxRigidBody*)actor, density);
@@ -268,6 +268,29 @@ void AddModelCollider(RigidBody* body, Model* model, const vec3& position, const
 void AddConvexMeshCollider(RigidBody* body, PxConvexMesh* mesh, const vec3& position, const quat& rotation, const vec3& scale, uint32_t filterGroup, uint32_t filterMask, bool trigger)
 {
 	AddShape(body->actor, PxConvexMeshGeometry(mesh, PxMeshScale(PxVector(scale))), filterGroup, filterMask, position, rotation, body->type == RIGID_BODY_DYNAMIC, trigger);
+}
+
+void AddHeightFieldCollider(RigidBody* body, int width, int height, PxHeightFieldSample* heights, float heightScale, float tileSize, vec3 position, quat rotation, uint32_t filterGroup, uint32_t filterMask)
+{
+	PxHeightFieldDesc desc;
+	desc.format = PxHeightFieldFormat::eS16_TM;
+	desc.samples.stride = sizeof(PxHeightFieldSample);
+	desc.samples.data = heights;
+	desc.nbRows = width;
+	desc.nbColumns = height;
+
+	PxDefaultMemoryOutputStream writeBuffer;
+	bool status = PxCookHeightField(desc, writeBuffer);
+	if (!status)
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_CUSTOM, "Failed to cook triangle mesh\n");
+		return;
+	}
+
+	PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
+	PxHeightField* heightField = physics->physics->createHeightField(readBuffer);
+
+	AddShape(body->actor, PxHeightFieldGeometry(heightField, (PxMeshGeometryFlags)0, heightScale, tileSize, tileSize), filterGroup, filterMask, position, rotation, false, false);
 }
 
 void RemoveColliders(RigidBody* body)

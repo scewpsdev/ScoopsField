@@ -22,6 +22,7 @@
 #include "game/item/Item.h"
 
 #include "Navmesh.h"
+#include "Terrain.h"
 
 
 struct GameState
@@ -51,19 +52,21 @@ struct GameState
 	ItemDatabase items;
 
 	Player player;
-
-#define MAX_ENTITIES 256
-	Pool<Entity, MAX_ENTITIES> entities;
-
-	ParticleSystem particles;
-
 	mat4 playerSpawn;
+
+	Model cube;
 
 	Model mapModel;
 	Navmesh mapNavmesh;
 	RigidBody mapCollider;
 
-	Model cube;
+	Terrain terrains[64];
+	int numTerrains;
+
+#define MAX_ENTITIES 1024
+	Pool<Entity, MAX_ENTITIES> entities;
+
+	ParticleSystem particles;
 
 	Sound ambientSound;
 	uint32_t ambientSource;
@@ -96,6 +99,8 @@ struct GameState
 	GraphicsPipeline* trailAdditiveShader;
 	GraphicsPipeline* particleShader;
 	GraphicsPipeline* particleAdditiveShader;
+	GraphicsPipeline* treeShader;
+	GraphicsPipeline* treeShadowShader;
 
 	Font* font;
 
@@ -111,3 +116,6 @@ extern float deltaTime;
 
 
 Entity* CreateEntity();
+
+Terrain* GetTerrainAtGridPosition(int x, int z);
+Terrain* GetTerrainAtPosition(vec3 position);

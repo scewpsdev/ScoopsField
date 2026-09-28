@@ -23,6 +23,7 @@ void InitItemEntity(ItemEntity* item, Item* actualItem, vec3 position, quat rota
 	vec3 center = (boundingBox.min + boundingBox.max) * 0.5f;
 	size = max(size, vec3(0.02f));
 	AddBoxCollider(&item->body, size, center, quat::Identity, ENTITY_FILTER_ITEM | ENTITY_FILTER_INTERACTABLE, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ITEM, false);
+	AddBoxCollider(&item->body, size + 0.2f, center, quat::Identity, ENTITY_FILTER_INTERACTABLE, 0, true);
 	//AddBoxCollider(&item->body, vec3(0.3f), vec3(0), quat::Identity, ENTITY_FILTER_ITEM | ENTITY_FILTER_INTERACTABLE, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ITEM, false);
 }
 

@@ -44,6 +44,7 @@ struct Player : EntityBase
 	float duckTimer;
 
 	float walkSpeed;
+	float jumpPower;
 
 	CameraMode cameraMode;
 
