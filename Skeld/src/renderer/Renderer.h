@@ -56,6 +56,7 @@ struct MeshDrawData
 
 	Texture* textures[MAX_MATERIAL_TEXTURES];
 	TextureSampler samplers[MAX_MATERIAL_TEXTURES];
+	bool vertexSampler[MAX_MATERIAL_TEXTURES];
 	int numTextures;
 
 	SkeletonState* skeleton;
@@ -258,14 +259,16 @@ void RenderModel(Renderer* renderer, Model* model, mat4 transform, bool isStatic
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform, bool isStatic = false);
 void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform, bool isStatic = false, uint32_t extraFlags = 0);
 void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, AnimationState* animation, mat4 transform, bool isStatic, uint32_t extraFlags);
-void RenderInstancedModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, VertexBuffer* instanceBuffer);
+void RenderInstancedModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, Material* material, VertexBuffer* instanceBuffer, int instanceCount, mat4 transform);
 void RenderTerrain(Renderer* renderer, Terrain* terrain);
 void RenderLight(Renderer* renderer, vec3 position, vec3 color);
 void RenderReflectionProbe(Renderer* renderer, ReflectionProbe* probe);
 void UpdateReflectionProbe(Renderer* renderer, ReflectionProbe* probe);
 
 
+GraphicsPipelineInfo CreateDeferredGraphicsPipelineInfo(Renderer* renderer, const char* vertex, const char* fragment);
 GraphicsPipeline* CreateDeferredGraphicsPipeline(Renderer* renderer, const char* vertex, const char* fragment);
+GraphicsPipelineInfo CreateDeferredShadowGraphicsPipelineInfo(Renderer* renderer, const char* vertex);
 GraphicsPipeline* CreateDeferredShadowGraphicsPipeline(Renderer* renderer, const char* vertex);
 GraphicsPipeline* CreateForwardGraphicsPipeline(Shader* shader, VertexBufferLayout* vertexLayouts, int numVertexLayouts, SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, bool additive);
 bool IsForward(GraphicsPipeline* pipeline);

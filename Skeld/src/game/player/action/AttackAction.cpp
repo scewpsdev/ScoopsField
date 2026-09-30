@@ -168,7 +168,7 @@ void UpdateAttackAction(Action* action, Player* player)
 	//player->parry = action->elapsedTime >= action->attack.attack->parryWindow.x && action->elapsedTime <= action->attack.attack->parryWindow.y;
 
 	//mat4 weaponTransform = GetRightWeaponTransform(player);
-	quat weaponRotation = quat::FromAxisAngle(vec3::Right, -0.5f * PI) * quat::FromAxisAngle(vec3::Up, 0.5f * PI);
+	quat weaponRotation = quat::FromAxisAngle(vec3::Right, -0.45f * PI) * quat::FromAxisAngle(vec3::Up, 0.5f * PI);
 	float range = 1.0f;
 	vec3 weaponTranslation = vec3(0, 0, -range + action->attack.weapon->weapon.damageRange.y);
 	mat4 weaponTransform = mat4::Transform(weaponTranslation, weaponRotation);
@@ -187,7 +187,7 @@ void UpdateAttackAction(Action* action, Player* player)
 	angle = (angle - 0.5f) * PI;
 	weaponTransform = mat4::Rotate(vec3::Up, angle) * weaponTransform;
 	weaponTransform = mat4::Rotate(vec3::Back, tilt * Deg2Rad) * weaponTransform;
-	weaponTransform = mat4::Translate(0, -0.2f, 0) * weaponTransform;
+	weaponTransform = mat4::Translate(0, -0.1f, 0) * weaponTransform;
 	action->weaponTransform = weaponTransform;
 
 	if (action->elapsedTime / action->duration >= 0.5f && !action->attack.didRaycast)

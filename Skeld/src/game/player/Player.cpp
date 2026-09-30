@@ -1465,10 +1465,10 @@ void RenderPlayer(Player* player)
 			int x1 = player->hoveredTile.x + 1 - terrain->tilex * TERRAIN_TILES_X;
 			int z1 = player->hoveredTile.y + 1 - terrain->tilez * TERRAIN_TILES_X;
 
-			float h0 = terrain->vertices[x0 + z0 * TERRAIN_VERTICES_X].y;
-			float h1 = terrain->vertices[x1 + z0 * TERRAIN_VERTICES_X].y;
-			float h2 = terrain->vertices[x0 + z1 * TERRAIN_VERTICES_X].y;
-			float h3 = terrain->vertices[x1 + z1 * TERRAIN_VERTICES_X].y;
+			float h0 = terrain->heights[x0 + z0 * TERRAIN_VERTICES_X];
+			float h1 = terrain->heights[x1 + z0 * TERRAIN_VERTICES_X];
+			float h2 = terrain->heights[x0 + z1 * TERRAIN_VERTICES_X];
+			float h3 = terrain->heights[x1 + z1 * TERRAIN_VERTICES_X];
 
 			vec3 p0 = vec3(player->hoveredTile.x * TERRAIN_TILE_SIZE, h0, player->hoveredTile.y * TERRAIN_TILE_SIZE);
 			vec3 p1 = vec3((player->hoveredTile.x + 1) * TERRAIN_TILE_SIZE, h1, player->hoveredTile.y * TERRAIN_TILE_SIZE);

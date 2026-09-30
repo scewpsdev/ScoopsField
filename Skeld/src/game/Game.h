@@ -102,6 +102,8 @@ struct GameState
 	GraphicsPipeline* particleAdditiveShader;
 	GraphicsPipeline* treeShader;
 	GraphicsPipeline* treeShadowShader;
+	GraphicsPipeline* grassShader;
+	GraphicsPipeline* grassShadowShader;
 
 	Font* font;
 

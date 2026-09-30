@@ -180,7 +180,7 @@ static Texture* ReadTexture(BinaryReader& reader, const char* scenePath, SDL_GPU
 			info.numFaces = 1;
 			info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 
-			Texture* texture = LoadTextureFromData(data, size, &info, cmdBuffer);
+			Texture* texture = CreateTexture(data, size, &info, cmdBuffer);
 
 			return texture;
 		}
@@ -200,7 +200,7 @@ static Texture* ReadTexture(BinaryReader& reader, const char* scenePath, SDL_GPU
 			info.numFaces = 1;
 			info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 
-			Texture* texture = LoadTextureFromData(textureData, size, &info, cmdBuffer);
+			Texture* texture = CreateTexture(textureData, size, &info, cmdBuffer);
 
 			stbi_image_free(textureData);
 

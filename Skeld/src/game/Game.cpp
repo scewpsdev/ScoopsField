@@ -17,17 +17,17 @@
 * [ ] atmospheric particles
 * [ ] tree wind sound
 * [ ] step sound
-* 
-* 
+*
+*
 * Game Loop
 * - you try to survive
-* 
+*
 * - to survive you need food and water
 * - to get food and water you have to plant crops, trees and keep animals
 * - to plant crops you have to find seeds
 * - to plant trees you have to chop trees to get saplings
 * - to keep animals you have to find animals and tame them with crops
-* 
+*
 * - to survive you need to defend yourself against monsters that spawn at night
 * - to defend yourself you need weapons and armor
 * - to get weapons and armor you need ores and minerals
@@ -37,12 +37,12 @@
 * - to get coal you need to burn wood
 * - to get wood you need to chop down trees
 * - to make a pickaxe you need wood and rocks
-* 
+*
 * - to defend yourself you need shelter
 * - to have shelter you need to build it
 * - to build shelter you need building materials
 * - to get building materials you need to chop down trees or collect rocks
-* 
+*
 * - fishing
 * - ships
 * - bow and arrow
@@ -93,6 +93,7 @@ Entity* CreateEntity()
 #include "entity/component/Elevator.cpp"
 #include "entity/component/Tree.cpp"
 #include "entity/component/WoodFloor.cpp"
+#include "entity/component/GrassField.cpp"
 #include "Terrain.cpp"
 #include "entity/Entity.cpp"
 
@@ -147,12 +148,26 @@ static float sampleTreeDensity(float x, float z)
 	return value;
 }
 
+static float sampleGrassDensity(float x, float z)
+{
+	float frequency = 0.01f;
+	float value = simplexFbm(x * frequency - 12345, z * frequency, 3, 0.4f, 2);
+	value = max(value, 0.0f);
+
+	//float falloff = smoothstep(256.0f, 100.0f, vec3(x, 0, z).length());
+	//value *= falloff;
+
+	//value *= 0.05f;
+
+	return value;
+}
+
 static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& random)
 {
 	float worldx = tilex * TERRAIN_SIZE;
 	float worldz = tilez * TERRAIN_SIZE;
 
-	vec3* terrainVertices = (vec3*)BumpAllocatorMalloc(&memory->transientAllocator, TERRAIN_VERTICES * sizeof(vec3));
+	float* terrainVertices = (float*)BumpAllocatorMalloc(&memory->transientAllocator, TERRAIN_VERTICES * sizeof(float));
 	vec3* terrainNormals = (vec3*)BumpAllocatorMalloc(&memory->transientAllocator, TERRAIN_VERTICES * sizeof(vec3));
 	short* terrainIndices = (short*)BumpAllocatorMalloc(&memory->transientAllocator, TERRAIN_TILES * 6 * sizeof(short));
 	for (int z = 0; z < TERRAIN_VERTICES_X; z++)
@@ -164,7 +179,7 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 
 			float height = sampleTerrainHeight(xx, zz);
 
-			terrainVertices[x + z * TERRAIN_VERTICES_X] = vec3(xx, height, zz);
+			terrainVertices[x + z * TERRAIN_VERTICES_X] = height;
 		}
 	}
 	for (int z = 0; z < TERRAIN_VERTICES_X; z++)
@@ -174,10 +189,10 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 			float xx = worldx + x * TERRAIN_TILE_SIZE;
 			float zz = worldz + z * TERRAIN_TILE_SIZE;
 
-			float leftHeight = x > 0 ? terrainVertices[x - 1 + z * TERRAIN_VERTICES_X].y : sampleTerrainHeight(xx - TERRAIN_TILE_SIZE, zz);
-			float rightHeight = x < TERRAIN_VERTICES_X - 1 ? terrainVertices[x + 1 + z * TERRAIN_VERTICES_X].y : sampleTerrainHeight(xx + TERRAIN_TILE_SIZE, zz);
-			float frontHeight = z > 0 ? terrainVertices[x + (z - 1) * TERRAIN_VERTICES_X].y : sampleTerrainHeight(xx, zz - TERRAIN_TILE_SIZE);
-			float backHeight = z < TERRAIN_VERTICES_X - 1 ? terrainVertices[x + (z + 1) * TERRAIN_VERTICES_X].y : sampleTerrainHeight(xx, zz + TERRAIN_TILE_SIZE);
+			float leftHeight = x > 0 ? terrainVertices[x - 1 + z * TERRAIN_VERTICES_X] : sampleTerrainHeight(xx - TERRAIN_TILE_SIZE, zz);
+			float rightHeight = x < TERRAIN_VERTICES_X - 1 ? terrainVertices[x + 1 + z * TERRAIN_VERTICES_X] : sampleTerrainHeight(xx + TERRAIN_TILE_SIZE, zz);
+			float frontHeight = z > 0 ? terrainVertices[x + (z - 1) * TERRAIN_VERTICES_X] : sampleTerrainHeight(xx, zz - TERRAIN_TILE_SIZE);
+			float backHeight = z < TERRAIN_VERTICES_X - 1 ? terrainVertices[x + (z + 1) * TERRAIN_VERTICES_X] : sampleTerrainHeight(xx, zz + TERRAIN_TILE_SIZE);
 
 			float nx = leftHeight - rightHeight;
 			float ny = TERRAIN_TILE_SIZE;
@@ -209,7 +224,7 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 			float xx = worldx + x * TERRAIN_TILE_SIZE;
 			float zz = worldz + z * TERRAIN_TILE_SIZE;
 
-			if (terrain->vertices[x + z * TERRAIN_VERTICES_X].y < 0)
+			if (terrain->heights[x + z * TERRAIN_VERTICES_X] < 0)
 				continue;
 
 			float treeChance = sampleTreeDensity(xx, zz);
@@ -217,8 +232,8 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 			{
 				SDL_assert(terrain->numTrees < MAX_TREES);
 
-				vec2 offset = vec2(random.nextFloat(), random.nextFloat());
-				vec3 position = vec3(xx + 0.5f * TERRAIN_TILE_SIZE + offset.x, 0, zz + 0.5f * TERRAIN_TILE_SIZE + offset.y);
+				vec2 offset = vec2(random.nextFloat(), random.nextFloat()) * TERRAIN_TILE_SIZE;
+				vec3 position = vec3(xx + offset.x, 0, zz + offset.y);
 				float height = terrain->interpolateHeight(position.x - worldx, position.z - worldz);
 				position.y = height;
 				float rotation = random.nextFloat() * 2 * PI;
@@ -230,6 +245,35 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 			}
 		}
 	}
+
+	GrassField* grass = (GrassField*)CreateEntity();
+	InitGrassField(grass, terrain);
+
+	// generate grass
+	for (int z = 0; z < TERRAIN_TILES_X; z++)
+	{
+		for (int x = 0; x < TERRAIN_TILES_X; x++)
+		{
+			float xx = x * TERRAIN_TILE_SIZE;
+			float zz = z * TERRAIN_TILE_SIZE;
+
+			if (terrain->heights[x + z * TERRAIN_VERTICES_X] < 0)
+				continue;
+
+			int numGrassBlades = (int)(sampleGrassDensity(xx, zz) * 100);
+			for (int i = 0; i < numGrassBlades; i++)
+			{
+				vec2 offset = vec2(random.nextFloat(), random.nextFloat()) * TERRAIN_TILE_SIZE;
+				vec2 position = vec2(xx + offset.x, zz + offset.y);
+				//float rotation = random.nextFloat() * 2 * PI;
+				//float scale = mix(0.8f, 1.6f, random.nextFloat());
+
+				grass->bladeData[grass->numBlades++].position.xy = position;
+			}
+		}
+	}
+
+	UpdateGrassFieldData(grass);
 }
 
 Terrain* GetTerrainAtGridPosition(int x, int z)
@@ -495,8 +539,103 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 		LoadGraphicsShader("res/shaders/entity/trail.vert.bin", "res/shaders/entity/trail.frag.bin"),
 		&trailLayout, 1, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_NONE, true);
 
-	game->treeShader = CreateDeferredGraphicsPipeline(&game->renderer, "res/shaders/entity/tree.vert.bin", "res/shaders/entity/tree.frag.bin");
-	game->treeShadowShader = CreateDeferredShadowGraphicsPipeline(&game->renderer, "res/shaders/entity/tree.vert.bin");
+	GraphicsPipelineInfo treeShaderInfo = CreateDeferredGraphicsPipelineInfo(&game->renderer, "res/shaders/entity/tree.vert.bin", "res/shaders/entity/tree.frag.bin");
+	treeShaderInfo.attributes[treeShaderInfo.numAttributes++] = {
+		.location = 5,
+		.buffer_slot = NUM_MESH_BUFFER_LAYOUTS,
+		.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+		.offset = 0,
+	};
+	treeShaderInfo.attributes[treeShaderInfo.numAttributes++] = {
+		.location = 6,
+		.buffer_slot = NUM_MESH_BUFFER_LAYOUTS,
+		.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+		.offset = sizeof(vec4),
+	};
+	treeShaderInfo.attributes[treeShaderInfo.numAttributes++] = {
+		.location = 7,
+		.buffer_slot = NUM_MESH_BUFFER_LAYOUTS,
+		.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+		.offset = 2 * sizeof(vec4),
+	};
+	treeShaderInfo.attributes[treeShaderInfo.numAttributes++] = {
+		.location = 8,
+		.buffer_slot = NUM_MESH_BUFFER_LAYOUTS,
+		.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+		.offset = 3 * sizeof(vec4),
+	};
+	treeShaderInfo.bufferDescriptions[treeShaderInfo.numVertexBuffers++] = {
+		.slot = NUM_MESH_BUFFER_LAYOUTS,
+		.pitch = sizeof(mat4),
+		.input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE,
+		.instance_step_rate = 0,
+	};
+	game->treeShader = CreateGraphicsPipeline(&treeShaderInfo);
+
+	GraphicsPipelineInfo treeShadowShaderInfo = CreateDeferredShadowGraphicsPipelineInfo(&game->renderer, "res/shaders/entity/tree.vert.bin");
+	treeShadowShaderInfo.attributes[treeShadowShaderInfo.numAttributes++] = {
+		.location = 5,
+		.buffer_slot = NUM_MESH_BUFFER_LAYOUTS,
+		.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+		.offset = 0,
+	};
+	treeShadowShaderInfo.attributes[treeShadowShaderInfo.numAttributes++] = {
+		.location = 6,
+		.buffer_slot = NUM_MESH_BUFFER_LAYOUTS,
+		.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+		.offset = sizeof(vec4),
+	};
+	treeShadowShaderInfo.attributes[treeShadowShaderInfo.numAttributes++] = {
+		.location = 7,
+		.buffer_slot = NUM_MESH_BUFFER_LAYOUTS,
+		.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+		.offset = 2 * sizeof(vec4),
+	};
+	treeShadowShaderInfo.attributes[treeShadowShaderInfo.numAttributes++] = {
+		.location = 8,
+		.buffer_slot = NUM_MESH_BUFFER_LAYOUTS,
+		.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+		.offset = 3 * sizeof(vec4),
+	};
+	treeShadowShaderInfo.bufferDescriptions[treeShadowShaderInfo.numVertexBuffers++] = {
+		.slot = NUM_MESH_BUFFER_LAYOUTS,
+		.pitch = sizeof(mat4),
+		.input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE,
+		.instance_step_rate = 0,
+	};
+	game->treeShadowShader = CreateGraphicsPipeline(&treeShadowShaderInfo);
+
+	GraphicsPipelineInfo grassShaderInfo = CreateDeferredGraphicsPipelineInfo(&game->renderer, "res/shaders/entity/grass.vert.bin", "res/shaders/entity/grass.frag.bin");
+	grassShaderInfo.cullMode = SDL_GPU_CULLMODE_NONE;
+	grassShaderInfo.attributes[grassShaderInfo.numAttributes++] = {
+		.location = 5,
+		.buffer_slot = NUM_MESH_BUFFER_LAYOUTS,
+		.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+		.offset = 0,
+	};
+	grassShaderInfo.bufferDescriptions[grassShaderInfo.numVertexBuffers++] = {
+		.slot = NUM_MESH_BUFFER_LAYOUTS,
+		.pitch = sizeof(vec4),
+		.input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE,
+		.instance_step_rate = 0,
+	};
+	game->grassShader = CreateGraphicsPipeline(&grassShaderInfo);
+
+	GraphicsPipelineInfo grassShadowShaderInfo = CreateDeferredShadowGraphicsPipelineInfo(&game->renderer, "res/shaders/entity/grass.vert.bin");
+	grassShadowShaderInfo.cullMode = SDL_GPU_CULLMODE_NONE;
+	grassShadowShaderInfo.attributes[grassShadowShaderInfo.numAttributes++] = {
+		.location = 5,
+		.buffer_slot = NUM_MESH_BUFFER_LAYOUTS,
+		.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+		.offset = 0,
+	};
+	grassShadowShaderInfo.bufferDescriptions[grassShadowShaderInfo.numVertexBuffers++] = {
+		.slot = NUM_MESH_BUFFER_LAYOUTS,
+		.pitch = sizeof(vec4),
+		.input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE,
+		.instance_step_rate = 0,
+	};
+	game->grassShadowShader = CreateGraphicsPipeline(&grassShadowShaderInfo);
 
 	VertexBufferLayout particleLayouts[6];
 	particleLayouts[0] = game->particles.quad->layout;

@@ -725,7 +725,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 		// position
 		renderer->terrainLayout[0].numAttributes = 1;
 		renderer->terrainLayout[0].attributes[0].location = 0;
-		renderer->terrainLayout[0].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+		renderer->terrainLayout[0].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT;
 		// normal
 		renderer->terrainLayout[1].numAttributes = 1;
 		renderer->terrainLayout[1].attributes[0].location = 1;
@@ -1030,6 +1030,9 @@ void RenderMesh(Renderer* renderer,
 	SDL_assert(numVertexBuffers <= 16);
 	SDL_memcpy(data.vertexBuffers, vertexBuffers, numVertexBuffers * sizeof(VertexBuffer*));
 
+	for (int i = 0; i < shader->pipelineInfo.numAttributes; i++)
+		SDL_assert((int)shader->pipelineInfo.attributes[i].buffer_slot < numVertexBuffers);
+
 	data.indexBuffer = indexBuffer;
 
 	data.vertexCount = vertexCount;
@@ -1106,6 +1109,7 @@ static void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, Graph
 
 	SDL_memcpy(data.textures, material->textures, sizeof(material->textures));
 	SDL_memcpy(data.samplers, material->samplers, sizeof(material->samplers));
+	SDL_memcpy(data.vertexSampler, material->vertexSampler, sizeof(material->vertexSampler));
 	data.numTextures = material->numTextures;
 
 	data.skeleton = skeleton;
@@ -1183,7 +1187,7 @@ void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, Gra
 	RenderModelNode(renderer, model, &model->nodes[0], shader, shadowShader, animation, transform, transform, flags);
 }
 
-void RenderInstancedModelNode(Renderer* renderer, Model* model, Node* node, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, VertexBuffer* instanceBuffer, int instanceCount, mat4 parentTransform, uint32_t flags)
+void RenderInstancedModelNode(Renderer* renderer, Model* model, Node* node, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, Material* material, VertexBuffer* instanceBuffer, int instanceCount, mat4 parentTransform, uint32_t flags)
 {
 	mat4 nodeTransform = parentTransform * node->transform;
 
@@ -1191,21 +1195,21 @@ void RenderInstancedModelNode(Renderer* renderer, Model* model, Node* node, Grap
 	{
 		int meshID = node->meshes[i];
 		Mesh* mesh = &model->meshes[meshID];
-		Material* material = mesh->materialID != -1 ? &model->materials[mesh->materialID] : nullptr;
-		RenderMesh(renderer, mesh, material, shader, shadowShader, instanceBuffer, instanceCount, nullptr, nodeTransform, flags);
+		Material* meshMaterial = material ? material : mesh->materialID != -1 ? &model->materials[mesh->materialID] : nullptr;
+		RenderMesh(renderer, mesh, meshMaterial, shader, shadowShader, instanceBuffer, instanceCount, nullptr, nodeTransform, flags);
 	}
 
 	for (int i = 0; i < node->numChildren; i++)
 	{
-		RenderInstancedModelNode(renderer, model, &model->nodes[node->children[i]], shader, shadowShader, instanceBuffer, instanceCount, nodeTransform, flags);
+		RenderInstancedModelNode(renderer, model, &model->nodes[node->children[i]], shader, shadowShader, material, instanceBuffer, instanceCount, nodeTransform, flags);
 	}
 }
 
-void RenderInstancedModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, VertexBuffer* instanceBuffer, int instanceCount)
+void RenderInstancedModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, Material* material, VertexBuffer* instanceBuffer, int instanceCount, mat4 transform)
 {
 	SDL_assert(model);
 	uint32_t flags = MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP | MESH_DRAW_FLAG_RENDER_TO_REFLECTION;
-	RenderInstancedModelNode(renderer, model, &model->nodes[0], shader, shadowShader, instanceBuffer, instanceCount, mat4::Identity, flags);
+	RenderInstancedModelNode(renderer, model, &model->nodes[0], shader, shadowShader, material, instanceBuffer, instanceCount, transform, flags);
 }
 
 void RenderTerrain(Renderer* renderer, Terrain* terrain)
@@ -1240,7 +1244,7 @@ void RenderTerrain(Renderer* renderer, Terrain* terrain)
 	data.numTextures = 1;
 
 	//data.skeleton = skeleton;
-	data.transform = mat4::Identity;
+	data.transform = mat4::Translate(terrain->tilex * TERRAIN_SIZE, 0, terrain->tilez * TERRAIN_SIZE);
 	//data.shader = renderer->terrainPipeline;
 
 	data.flags = flags;
@@ -1336,14 +1340,26 @@ static void SubmitMesh(Renderer* renderer,
 
 	if (mesh->uniformData)
 	{
-		SDL_GPUTextureSamplerBinding textureBindings[MAX_MATERIAL_TEXTURES + 2] = {};
-		int numTextureBindings = 0;
+		SDL_GPUTextureSamplerBinding fragmentSamplers[MAX_MATERIAL_TEXTURES + 2] = {};
+		int numFragmentSamplers = 0;
+
+		SDL_GPUTextureSamplerBinding vertexSamplers[MAX_MATERIAL_TEXTURES + 2] = {};
+		int numVertexSamplers = 0;
 
 		for (int i = 0; i < mesh->numTextures; i++)
 		{
-			textureBindings[numTextureBindings].texture = mesh->textures[i] ? mesh->textures[i]->handle : renderer->emptyTexture;
-			textureBindings[numTextureBindings].sampler = renderer->samplers[mesh->samplers[i]];
-			numTextureBindings++;
+			if (mesh->vertexSampler[i])
+			{
+				vertexSamplers[numVertexSamplers].texture = mesh->textures[i] ? mesh->textures[i]->handle : renderer->emptyTexture;
+				vertexSamplers[numVertexSamplers].sampler = renderer->samplers[mesh->samplers[i]];
+				numVertexSamplers++;
+			}
+			else
+			{
+				fragmentSamplers[numFragmentSamplers].texture = mesh->textures[i] ? mesh->textures[i]->handle : renderer->emptyTexture;
+				fragmentSamplers[numFragmentSamplers].sampler = renderer->samplers[mesh->samplers[i]];
+				numFragmentSamplers++;
+			}
 		}
 
 		if (mesh->flags & MESH_DRAW_FLAG_SHADER_EXTRA_UNIFORMS)
@@ -1371,9 +1387,9 @@ static void SubmitMesh(Renderer* renderer,
 
 			SDL_PushGPUFragmentUniformData(cmdBuffer, 0, data, mesh->uniformDataSize + sizeof(UniformData));
 
-			textureBindings[numTextureBindings].texture = renderer->sunColorBuffer;
-			textureBindings[numTextureBindings].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
-			numTextureBindings++;
+			fragmentSamplers[numFragmentSamplers].texture = renderer->sunColorBuffer;
+			fragmentSamplers[numFragmentSamplers].sampler = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+			numFragmentSamplers++;
 		}
 		else
 		{
@@ -1386,12 +1402,19 @@ static void SubmitMesh(Renderer* renderer,
 		{
 			SDL_assert(mesh->shader && IsForward(mesh->shader));
 
-			textureBindings[numTextureBindings].texture = GetClosestEnvironment(renderer);
-			textureBindings[numTextureBindings].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
-			numTextureBindings++;
+			fragmentSamplers[numFragmentSamplers].texture = GetClosestEnvironment(renderer);
+			fragmentSamplers[numFragmentSamplers].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
+			numFragmentSamplers++;
 		}
 
-		SDL_BindGPUFragmentSamplers(renderPass, 0, textureBindings, numTextureBindings);
+		if (numFragmentSamplers)
+		{
+			SDL_BindGPUFragmentSamplers(renderPass, 0, fragmentSamplers, numFragmentSamplers);
+		}
+		if (numVertexSamplers)
+		{
+			SDL_BindGPUVertexSamplers(renderPass, 0, vertexSamplers, numVertexSamplers);
+		}
 	}
 
 	if (mesh->indexBuffer)
@@ -1853,7 +1876,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 
 
-GraphicsPipeline* CreateDeferredGraphicsPipeline(Renderer* renderer, const char* vertex, const char* fragment)
+GraphicsPipelineInfo CreateDeferredGraphicsPipelineInfo(Renderer* renderer, const char* vertex, const char* fragment)
 {
 	Shader* shader = LoadGraphicsShader(vertex, fragment);
 
@@ -1865,10 +1888,17 @@ GraphicsPipeline* CreateDeferredGraphicsPipeline(Renderer* renderer, const char*
 		renderer->meshLayout);
 
 	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_GREATER;
+
+	return pipelineInfo;
+}
+
+GraphicsPipeline* CreateDeferredGraphicsPipeline(Renderer* renderer, const char* vertex, const char* fragment)
+{
+	GraphicsPipelineInfo pipelineInfo = CreateDeferredGraphicsPipelineInfo(renderer, vertex, fragment);
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
-GraphicsPipeline* CreateDeferredShadowGraphicsPipeline(Renderer* renderer, const char* vertex)
+GraphicsPipelineInfo CreateDeferredShadowGraphicsPipelineInfo(Renderer* renderer, const char* vertex)
 {
 	Shader* shader = LoadGraphicsShader(vertex, "res/shaders/mesh_depth.frag.bin");
 
@@ -1877,8 +1907,16 @@ GraphicsPipeline* CreateDeferredShadowGraphicsPipeline(Renderer* renderer, const
 		SDL_GPU_CULLMODE_BACK,
 		shader, renderer->shadowMaps[0],
 		NUM_MESH_BUFFER_LAYOUTS, renderer->meshLayout);
+
 	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_LESS;
 	pipelineInfo.depthClamp = true;
+
+	return pipelineInfo;
+}
+
+GraphicsPipeline* CreateDeferredShadowGraphicsPipeline(Renderer* renderer, const char* vertex)
+{
+	GraphicsPipelineInfo pipelineInfo = CreateDeferredShadowGraphicsPipelineInfo(renderer, vertex);
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 

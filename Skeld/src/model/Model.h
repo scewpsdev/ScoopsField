@@ -45,6 +45,7 @@ struct Material
 #define MAX_MATERIAL_TEXTURES 6
 			Texture* textures[MAX_MATERIAL_TEXTURES];
 			TextureSampler samplers[MAX_MATERIAL_TEXTURES];
+			bool vertexSampler[MAX_MATERIAL_TEXTURES];
 			int numTextures;
 		};
 		struct {

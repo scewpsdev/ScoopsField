@@ -157,6 +157,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="src\game\entity\component\GrassField.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\game\entity\component\ItemEntity.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -309,6 +313,7 @@
     <ClInclude Include="src\GameMemory.h" />
     <ClInclude Include="src\game\entity\component\Creature.h" />
     <ClInclude Include="src\game\entity\component\Elevator.h" />
+    <ClInclude Include="src\game\entity\component\GrassField.h" />
     <ClInclude Include="src\game\entity\component\ItemEntity.h" />
     <ClInclude Include="src\game\entity\component\Projectile.h" />
     <ClInclude Include="src\game\entity\component\Ragdoll.h" />
@@ -426,6 +431,8 @@
     <None Include="res\shaders\clear_buffer.comp" />
     <None Include="res\shaders\common.glsl" />
     <None Include="res\shaders\copy_depth.frag" />
+    <None Include="res\shaders\entity\grass.frag" />
+    <None Include="res\shaders\entity\grass.vert" />
     <None Include="res\shaders\entity\magic_projectile.frag" />
     <None Include="res\shaders\entity\magic_projectile.vert" />
     <None Include="res\shaders\entity\particle.frag" />

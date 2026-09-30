@@ -16,6 +16,7 @@
 #include "component/Elevator.h"
 #include "component/Tree.h"
 #include "component/WoodFloor.h"
+#include "component/GrassField.h"
 
 
 enum EntityPhysicsFilter

@@ -24,12 +24,13 @@ struct Terrain
 {
 	int tilex, tilez;
 
-	vec3* vertices;
+	float* heights;
 	vec3* normals;
 
 	VertexBuffer* heightBuffer;
 	VertexBuffer* normalBuffer;
 	IndexBuffer* indexBuffer;
+	Texture* heightmap;
 
 	AABB boundingBox;
 	Sphere boundingSphere;
@@ -51,6 +52,6 @@ struct Terrain
 };
 
 
-void InitTerrain(Terrain* terrain, int tilex, int tilez, vec3* heights, vec3* normals, short* indices, SDL_GPUCommandBuffer* cmdBuffer);
+void InitTerrain(Terrain* terrain, int tilex, int tilez, float* heights, vec3* normals, short* indices, SDL_GPUCommandBuffer* cmdBuffer);
 
 void RenderTerrain(Terrain* terrain);

@@ -19,7 +19,7 @@ void InitTree(Tree* tree, vec3 position, float rotation, float scale)
 	tree->shadowShader = game->treeShadowShader;
 
 	InitRigidBody(&tree->body, RIGID_BODY_STATIC, tree->position, quat::Identity, tree);
-	AddCapsuleCollider(&tree->body, 0.2f * scale, 5.0f, vec3(0, 2.5f, 0), quat::Identity, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ENEMY_HITBOX, 0, false);
+	AddCapsuleCollider(&tree->body, 0.3f * scale, 5.0f, vec3(0, 2.5f, 0), quat::Identity, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ENEMY_HITBOX, 0, false);
 }
 
 void DestroyTree(Tree* tree)
@@ -38,7 +38,7 @@ bool HitTree(Tree* tree, HitParams* hit, Entity* by)
 	// hit particles
 	// leaf particles
 
-	LoadParticleEffect((ParticleEffect*)CreateEntity(), "res/effects/impact/spark.rfs.bin", hit->position, quat::LookAt(hit->force.normalized(), vec3::Up));
+	LoadParticleEffect((ParticleEffect*)CreateEntity(), "effects/impact/tree.rfs", hit->position, quat::LookAt(hit->force.normalized(), vec3::Up));
 
 	return true;
 }

@@ -17,6 +17,7 @@ ENTITY_TYPE(SCONCE, Sconce, sconce)\
 ENTITY_TYPE(ELEVATOR, Elevator, elevator)\
 ENTITY_TYPE(TREE, Tree, tree)\
 ENTITY_TYPE(WOOD_FLOOR, WoodFloor, woodFloor)\
+ENTITY_TYPE(GRASS_FIELD, GrassField, grassField)\
 
 
 enum EntityType

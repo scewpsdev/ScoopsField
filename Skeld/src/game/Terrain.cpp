@@ -6,25 +6,36 @@
 #include "graphics/IndexBuffer.h"
 
 
-void InitTerrain(Terrain* terrain, int tilex, int tilez, vec3* heights, vec3* normals, short* indices, SDL_GPUCommandBuffer* cmdBuffer)
+void InitTerrain(Terrain* terrain, int tilex, int tilez, float* heights, vec3* normals, short* indices, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	terrain->tilex = tilex;
 	terrain->tilez = tilez;
 
-	terrain->vertices = (vec3*)SDL_malloc(TERRAIN_VERTICES * sizeof(vec3));
-	SDL_memcpy(terrain->vertices, heights, TERRAIN_VERTICES * sizeof(vec3));
+	terrain->heights = (float*)SDL_malloc(TERRAIN_VERTICES * sizeof(float));
+	SDL_memcpy(terrain->heights, heights, TERRAIN_VERTICES * sizeof(float));
 
 	terrain->normals = (vec3*)SDL_malloc(TERRAIN_VERTICES * sizeof(vec3));
 	SDL_memcpy(terrain->normals, normals, TERRAIN_VERTICES * sizeof(vec3));
 
 	terrain->heightBuffer = CreateVertexBuffer(TERRAIN_VERTICES, &game->renderer.terrainLayout[0], 0);
-	UpdateVertexBuffer(terrain->heightBuffer, 0, (const uint8_t*)heights, TERRAIN_VERTICES * sizeof(vec3), true, cmdBuffer);
+	UpdateVertexBuffer(terrain->heightBuffer, 0, (const uint8_t*)heights, TERRAIN_VERTICES * sizeof(float), true, cmdBuffer);
 
 	terrain->normalBuffer = CreateVertexBuffer(TERRAIN_VERTICES, &game->renderer.terrainLayout[1], 0);
 	UpdateVertexBuffer(terrain->normalBuffer, 0, (const uint8_t*)normals, TERRAIN_VERTICES * sizeof(vec3), true, cmdBuffer);
 
 	terrain->indexBuffer = CreateIndexBuffer(TERRAIN_TILES * 6, SDL_GPU_INDEXELEMENTSIZE_16BIT);
 	UpdateIndexBuffer(terrain->indexBuffer, 0, (const uint8_t*)indices, TERRAIN_TILES * 6 * sizeof(short), true, cmdBuffer);
+
+	TextureInfo heightmapInfo = {};
+	heightmapInfo.format = SDL_GPU_TEXTUREFORMAT_R32_FLOAT;
+	heightmapInfo.width = TERRAIN_VERTICES_X;
+	heightmapInfo.height = TERRAIN_VERTICES_X;
+	heightmapInfo.depth = 1;
+	heightmapInfo.numMips = 1;
+	heightmapInfo.numLayers = 1;
+	heightmapInfo.numFaces = 1;
+	terrain->heightmap = CreateTexture(&heightmapInfo);
+	SetTextureData(terrain->heightmap->handle, (const uint8_t*)terrain->heights, TERRAIN_VERTICES * sizeof(float), TERRAIN_VERTICES_X, TERRAIN_VERTICES_X, 1, cmdBuffer);
 
 	VertexBufferLayout instanceLayout = {};
 	instanceLayout.numAttributes = 4;
@@ -36,15 +47,16 @@ void InitTerrain(Terrain* terrain, int tilex, int tilez, vec3* heights, vec3* no
 	instanceLayout.attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
 	instanceLayout.attributes[3].location = 8;
 	instanceLayout.attributes[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	instanceLayout.perInstance = true;
 	terrain->treeInstances = CreateVertexBuffer(MAX_TREES, &instanceLayout, 0);
 	terrain->treeInstanceTransfer = CreateTransferBuffer(MAX_TREES * sizeof(mat4), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD);
 
-	terrain->boundingBox.min = vec3(FLT_MAX);
-	terrain->boundingBox.max = vec3(-FLT_MAX);
+	terrain->boundingBox.min = vec3(0, FLT_MAX, 0);
+	terrain->boundingBox.max = vec3(TERRAIN_SIZE, -FLT_MAX, TERRAIN_SIZE);
 	for (int i = 0; i < TERRAIN_VERTICES; i++)
 	{
-		terrain->boundingBox.min = min(terrain->boundingBox.min, heights[i]);
-		terrain->boundingBox.max = max(terrain->boundingBox.max, heights[i]);
+		terrain->boundingBox.y0 = min(terrain->boundingBox.y0, heights[i]);
+		terrain->boundingBox.y1 = max(terrain->boundingBox.y1, heights[i]);
 	}
 	terrain->boundingSphere.center = 0.5f * (terrain->boundingBox.min + terrain->boundingBox.max);
 	for (int i = 0; i < TERRAIN_VERTICES; i++)
@@ -59,7 +71,7 @@ void InitTerrain(Terrain* terrain, int tilex, int tilez, vec3* heights, vec3* no
 	{
 		for (int x = 0; x < TERRAIN_VERTICES_X; x++)
 		{
-			float height = heights[x + z * TERRAIN_VERTICES_X].y;
+			float height = heights[x + z * TERRAIN_VERTICES_X];
 			int16_t flooredHeight = (int16_t)SDL_roundf(height * 10);
 			heightField[z + x * TERRAIN_VERTICES_X].height = flooredHeight;
 		}
@@ -77,8 +89,58 @@ void DestroyTerrain(Terrain* terrain)
 	DestroyVertexBuffer(terrain->heightBuffer);
 	DestroyVertexBuffer(terrain->normalBuffer);
 	DestroyIndexBuffer(terrain->indexBuffer);
-	SDL_free(terrain->vertices);
+	SDL_free(terrain->heights);
 	SDL_free(terrain->normals);
+}
+
+static void UpdateVertexBuffer(Terrain* terrain)
+{
+	UpdateVertexBuffer(terrain->heightBuffer, 0, (const uint8_t*)terrain->heights, TERRAIN_VERTICES * sizeof(float), true, cmdBuffer);
+
+	RemoveColliders(&terrain->collider);
+
+	physx::PxHeightFieldSample* heightField = (physx::PxHeightFieldSample*)BumpAllocatorMalloc(&memory->transientAllocator, TERRAIN_VERTICES_X * TERRAIN_VERTICES_X * sizeof(physx::PxHeightFieldSample));
+	SDL_memset(heightField, 0, TERRAIN_VERTICES_X * TERRAIN_VERTICES_X * sizeof(physx::PxHeightFieldSample));
+	for (int z = 0; z < TERRAIN_VERTICES_X; z++)
+	{
+		for (int x = 0; x < TERRAIN_VERTICES_X; x++)
+		{
+			float height = terrain->heights[x + z * TERRAIN_VERTICES_X];
+			int16_t flooredHeight = (int16_t)SDL_roundf(height * 10);
+			heightField[z + x * TERRAIN_VERTICES_X].height = flooredHeight;
+		}
+	}
+	AddHeightFieldCollider(&terrain->collider, TERRAIN_VERTICES_X, TERRAIN_VERTICES_X, heightField, 0.1f, TERRAIN_TILE_SIZE, vec3(0), quat::Identity, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_TERRAIN, ENTITY_FILTER_DEFAULT);
+}
+
+static void UpdateNormalBuffer(Terrain* terrain)
+{
+	UpdateVertexBuffer(terrain->normalBuffer, 0, (const uint8_t*)terrain->normals, TERRAIN_VERTICES * sizeof(vec3), true, cmdBuffer);
+}
+
+static void UpdateHeightmap(Terrain* terrain)
+{
+	SetTextureData(terrain->heightmap->handle, (const uint8_t*)terrain->heights, TERRAIN_VERTICES * sizeof(vec3), TERRAIN_VERTICES_X, TERRAIN_VERTICES_X, 1, cmdBuffer);
+}
+
+static void RecalculateNormals(Terrain* terrain, int x0, int z0, int x1, int z1)
+{
+	for (int z = z0; z <= z1; z++)
+	{
+		for (int x = x0; x <= x1; x++)
+		{
+			float leftHeight = terrain->heights[x - 1 + z * TERRAIN_VERTICES_X];
+			float rightHeight = terrain->heights[x + 1 + z * TERRAIN_VERTICES_X];
+			float frontHeight = terrain->heights[x + (z - 1) * TERRAIN_VERTICES_X];
+			float backHeight = terrain->heights[x + (z + 1) * TERRAIN_VERTICES_X];
+
+			float nx = leftHeight - rightHeight;
+			float ny = TERRAIN_TILE_SIZE;
+			float nz = frontHeight - backHeight;
+
+			terrain->normals[x + z * TERRAIN_VERTICES_X] = vec3(nx, ny, nz).normalized();
+		}
+	}
 }
 
 float Terrain::interpolateHeight(float localx, float localz)
@@ -93,60 +155,15 @@ float Terrain::interpolateHeight(float localx, float localz)
 
 	dz = 1 - dz;
 
-	float h00 = vertices[gridx + (gridz + 1) * TERRAIN_VERTICES_X].y;
-	float h10 = vertices[gridx + 1 + (gridz + 1) * TERRAIN_VERTICES_X].y;
-	float h01 = vertices[gridx + gridz * TERRAIN_VERTICES_X].y;
-	float h11 = vertices[gridx + 1 + gridz * TERRAIN_VERTICES_X].y;
+	float h00 = heights[gridx + (gridz + 1) * TERRAIN_VERTICES_X];
+	float h10 = heights[gridx + 1 + (gridz + 1) * TERRAIN_VERTICES_X];
+	float h01 = heights[gridx + gridz * TERRAIN_VERTICES_X];
+	float h11 = heights[gridx + 1 + gridz * TERRAIN_VERTICES_X];
 
 	if (dx + dz < 1)
 		return h00 + (h10 - h00) * dx + (h01 - h00) * dz;
 	else
 		return h11 + (h01 - h11) * (1 - dx) + (h10 - h11) * (1 - dz);
-}
-
-static void UpdateTerrainHeightmap(Terrain* terrain)
-{
-	UpdateVertexBuffer(terrain->heightBuffer, 0, (const uint8_t*)terrain->vertices, TERRAIN_VERTICES * sizeof(vec3), true, cmdBuffer);
-
-	RemoveColliders(&terrain->collider);
-
-	physx::PxHeightFieldSample* heightField = (physx::PxHeightFieldSample*)BumpAllocatorMalloc(&memory->transientAllocator, TERRAIN_VERTICES_X * TERRAIN_VERTICES_X * sizeof(physx::PxHeightFieldSample));
-	SDL_memset(heightField, 0, TERRAIN_VERTICES_X * TERRAIN_VERTICES_X * sizeof(physx::PxHeightFieldSample));
-	for (int z = 0; z < TERRAIN_VERTICES_X; z++)
-	{
-		for (int x = 0; x < TERRAIN_VERTICES_X; x++)
-		{
-			float height = terrain->vertices[x + z * TERRAIN_VERTICES_X].y;
-			int16_t flooredHeight = (int16_t)SDL_roundf(height * 10);
-			heightField[z + x * TERRAIN_VERTICES_X].height = flooredHeight;
-		}
-	}
-	AddHeightFieldCollider(&terrain->collider, TERRAIN_VERTICES_X, TERRAIN_VERTICES_X, heightField, 0.1f, TERRAIN_TILE_SIZE, vec3(0), quat::Identity, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_TERRAIN, ENTITY_FILTER_DEFAULT);
-}
-
-static void UpdateTerrainNormals(Terrain* terrain)
-{
-	UpdateVertexBuffer(terrain->normalBuffer, 0, (const uint8_t*)terrain->normals, TERRAIN_VERTICES * sizeof(vec3), true, cmdBuffer);
-}
-
-static void RecalculateNormals(Terrain* terrain, int x0, int z0, int x1, int z1)
-{
-	for (int z = z0; z <= z1; z++)
-	{
-		for (int x = x0; x <= x1; x++)
-		{
-			float leftHeight = terrain->vertices[x - 1 + z * TERRAIN_VERTICES_X].y;
-			float rightHeight = terrain->vertices[x + 1 + z * TERRAIN_VERTICES_X].y;
-			float frontHeight = terrain->vertices[x + (z - 1) * TERRAIN_VERTICES_X].y;
-			float backHeight = terrain->vertices[x + (z + 1) * TERRAIN_VERTICES_X].y;
-
-			float nx = leftHeight - rightHeight;
-			float ny = TERRAIN_TILE_SIZE;
-			float nz = frontHeight - backHeight;
-
-			terrain->normals[x + z * TERRAIN_VERTICES_X] = vec3(nx, ny, nz).normalized();
-		}
-	}
 }
 
 void Terrain::dig(int gridx, int gridz)
@@ -156,15 +173,15 @@ void Terrain::dig(int gridx, int gridz)
 	int z0 = gridz;
 	int z1 = gridz + 1;
 
-	vec3& v0 = vertices[x0 + z0 * TERRAIN_VERTICES_X];
-	vec3& v1 = vertices[x1 + z0 * TERRAIN_VERTICES_X];
-	vec3& v2 = vertices[x0 + z1 * TERRAIN_VERTICES_X];
-	vec3& v3 = vertices[x1 + z1 * TERRAIN_VERTICES_X];
+	float& v0 = heights[x0 + z0 * TERRAIN_VERTICES_X];
+	float& v1 = heights[x1 + z0 * TERRAIN_VERTICES_X];
+	float& v2 = heights[x0 + z1 * TERRAIN_VERTICES_X];
+	float& v3 = heights[x1 + z1 * TERRAIN_VERTICES_X];
 
-	int h0 = (int)SDL_roundf(v0.y * 2);
-	int h1 = (int)SDL_roundf(v1.y * 2);
-	int h2 = (int)SDL_roundf(v2.y * 2);
-	int h3 = (int)SDL_roundf(v3.y * 2);
+	int h0 = (int)SDL_roundf(v0 * 2);
+	int h1 = (int)SDL_roundf(v1 * 2);
+	int h2 = (int)SDL_roundf(v2 * 2);
+	int h3 = (int)SDL_roundf(v3 * 2);
 
 	int maxHeight = max(max(h0, h1), max(h2, h3));
 	int newHeight = maxHeight - 1;
@@ -185,55 +202,55 @@ void Terrain::dig(int gridx, int gridz)
 
 	if (x0 == 0 && (newHeight < h0 || newHeight < h2) && left)
 	{
-		left->vertices[TERRAIN_TILES_X + z0 * TERRAIN_VERTICES_X].y = fh0;
-		left->vertices[TERRAIN_TILES_X + z1 * TERRAIN_VERTICES_X].y = fh2;
-		UpdateTerrainHeightmap(left);
+		left->heights[TERRAIN_TILES_X + z0 * TERRAIN_VERTICES_X] = fh0;
+		left->heights[TERRAIN_TILES_X + z1 * TERRAIN_VERTICES_X] = fh2;
+		UpdateVertexBuffer(left);
 	}
 	if (x1 == TERRAIN_TILES_X && (newHeight < h1 || newHeight < h3) && right)
 	{
-		right->vertices[0 + z0 * TERRAIN_VERTICES_X].y = fh1;
-		right->vertices[0 + z1 * TERRAIN_VERTICES_X].y = fh3;
-		UpdateTerrainHeightmap(right);
+		right->heights[0 + z0 * TERRAIN_VERTICES_X] = fh1;
+		right->heights[0 + z1 * TERRAIN_VERTICES_X] = fh3;
+		UpdateVertexBuffer(right);
 	}
 	if (z0 == 0 && (newHeight < h0 || newHeight < h1) && front)
 	{
-		front->vertices[x0 + TERRAIN_TILES_X * TERRAIN_VERTICES_X].y = fh0;
-		front->vertices[x1 + TERRAIN_TILES_X * TERRAIN_VERTICES_X].y = fh1;
-		UpdateTerrainHeightmap(front);
+		front->heights[x0 + TERRAIN_TILES_X * TERRAIN_VERTICES_X] = fh0;
+		front->heights[x1 + TERRAIN_TILES_X * TERRAIN_VERTICES_X] = fh1;
+		UpdateVertexBuffer(front);
 	}
 	if (z1 == TERRAIN_TILES_X && (newHeight < h2 || newHeight < h3) && back)
 	{
-		back->vertices[x0 + 0 * TERRAIN_VERTICES_X].y = fh2;
-		back->vertices[x1 + 0 * TERRAIN_VERTICES_X].y = fh3;
-		UpdateTerrainHeightmap(back);
+		back->heights[x0 + 0 * TERRAIN_VERTICES_X] = fh2;
+		back->heights[x1 + 0 * TERRAIN_VERTICES_X] = fh3;
+		UpdateVertexBuffer(back);
 	}
 	if (x0 == 0 && z0 == 0 && newHeight < h0 && leftfront)
 	{
-		leftfront->vertices[TERRAIN_TILES_X + TERRAIN_TILES_X * TERRAIN_VERTICES_X].y = fh0;
-		UpdateTerrainHeightmap(leftfront);
+		leftfront->heights[TERRAIN_TILES_X + TERRAIN_TILES_X * TERRAIN_VERTICES_X] = fh0;
+		UpdateVertexBuffer(leftfront);
 	}
 	if (x1 == TERRAIN_TILES_X && z0 == 0 && newHeight < h1 && rightfront)
 	{
-		rightfront->vertices[0 + TERRAIN_TILES_X * TERRAIN_VERTICES_X].y = fh1;
-		UpdateTerrainHeightmap(rightfront);
+		rightfront->heights[0 + TERRAIN_TILES_X * TERRAIN_VERTICES_X] = fh1;
+		UpdateVertexBuffer(rightfront);
 	}
 	if (x0 == 0 && z1 == TERRAIN_TILES_X && newHeight < h2 && leftback)
 	{
-		leftback->vertices[TERRAIN_TILES_X + 0 * TERRAIN_VERTICES_X].y = fh2;
-		UpdateTerrainHeightmap(leftback);
+		leftback->heights[TERRAIN_TILES_X + 0 * TERRAIN_VERTICES_X] = fh2;
+		UpdateVertexBuffer(leftback);
 	}
 	if (x1 == TERRAIN_TILES_X && z1 == TERRAIN_TILES_X && newHeight < h3 && rightback)
 	{
-		rightback->vertices[0 + 0 * TERRAIN_VERTICES_X].y = fh3;
-		UpdateTerrainHeightmap(rightback);
+		rightback->heights[0 + 0 * TERRAIN_VERTICES_X] = fh3;
+		UpdateVertexBuffer(rightback);
 	}
 
-	v0.y = fh0;
-	v1.y = fh1;
-	v2.y = fh2;
-	v3.y = fh3;
+	v0 = fh0;
+	v1 = fh1;
+	v2 = fh2;
+	v3 = fh3;
 
-	UpdateTerrainHeightmap(this);
+	UpdateVertexBuffer(this);
 
 	int nx0 = x0 - 1;
 	int nx1 = x1 + 1;
@@ -243,7 +260,7 @@ void Terrain::dig(int gridx, int gridz)
 	if (nx0 > 0 && nz0 > 0 && nx1 < TERRAIN_TILES_X && nz1 < TERRAIN_TILES_X)
 	{
 		RecalculateNormals(this, nx0, nz0, nx1, nz1);
-		UpdateTerrainNormals(this);
+		UpdateNormalBuffer(this);
 	}
 }
 
@@ -254,15 +271,15 @@ float Terrain::getTileHeight(int gridx, int gridz)
 	int z0 = gridz;
 	int z1 = gridz + 1;
 
-	vec3& v0 = vertices[x0 + z0 * TERRAIN_VERTICES_X];
-	vec3& v1 = vertices[x1 + z0 * TERRAIN_VERTICES_X];
-	vec3& v2 = vertices[x0 + z1 * TERRAIN_VERTICES_X];
-	vec3& v3 = vertices[x1 + z1 * TERRAIN_VERTICES_X];
+	float& v0 = heights[x0 + z0 * TERRAIN_VERTICES_X];
+	float& v1 = heights[x1 + z0 * TERRAIN_VERTICES_X];
+	float& v2 = heights[x0 + z1 * TERRAIN_VERTICES_X];
+	float& v3 = heights[x1 + z1 * TERRAIN_VERTICES_X];
 
-	int h0 = (int)SDL_roundf(v0.y * 2);
-	int h1 = (int)SDL_roundf(v1.y * 2);
-	int h2 = (int)SDL_roundf(v2.y * 2);
-	int h3 = (int)SDL_roundf(v3.y * 2);
+	int h0 = (int)SDL_roundf(v0 * 2);
+	int h1 = (int)SDL_roundf(v1 * 2);
+	int h2 = (int)SDL_roundf(v2 * 2);
+	int h3 = (int)SDL_roundf(v3 * 2);
 
 	int maxHeight = max(max(h0, h1), max(h2, h3));
 
@@ -285,6 +302,6 @@ void RenderTerrain(Terrain* terrain)
 
 		UpdateVertexBuffer(terrain->treeInstances, 0, terrain->numTrees * sizeof(mat4), terrain->treeInstanceTransfer->buffer, true, cmdBuffer);
 
-		RenderInstancedModel(&game->renderer, terrain->trees[0]->model, terrain->trees[0]->shader, terrain->trees[0]->shadowShader, terrain->treeInstances, terrain->numTrees);
+		RenderInstancedModel(&game->renderer, terrain->trees[0]->model, terrain->trees[0]->shader, terrain->trees[0]->shadowShader, nullptr, terrain->treeInstances, terrain->numTrees, mat4::Identity);
 	}
 }

@@ -211,7 +211,8 @@ static void SpawnParticle(ParticleEffect* effect, ParticleEmitter* emitter, vec3
 		velocity = velocity.length() * game->random.randomDirection(velocity.normalized(), emitter->randomDirection, emitter->randomDirectionUniform);
 	if (emitter->randomVelocity)
 		velocity += velocity * emitter->randomVelocity * game->random.nextFloat(-1, 1);
-	velocity = (transform * vec4(velocity, 0)).xyz;
+	if (!emitter->follow)
+		velocity = (transform * vec4(velocity, 0)).xyz;
 	if (emitter->inheritVelocity)
 		velocity += effectVelocity;
 	if (emitter->inheritCentrifugal)

@@ -136,7 +136,7 @@ Texture* LoadTexture(const char* path, SDL_GPUCommandBuffer* cmdBuffer)
 	return nullptr;
 }
 
-Texture* LoadTextureFromData(const uint8_t* data, uint32_t size, const TextureInfo* info, SDL_GPUCommandBuffer* cmdBuffer)
+Texture* CreateTexture(const uint8_t* data, uint32_t size, const TextureInfo* info, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	SDL_GPUTextureCreateInfo textureInfo = {};
 	textureInfo.format = info->format;
@@ -154,16 +154,24 @@ Texture* LoadTextureFromData(const uint8_t* data, uint32_t size, const TextureIn
 		return nullptr;
 	}
 
-	SetTextureData(handle, data, size, info->width, info->height, info->depth, cmdBuffer);
+	if (data)
+	{
+		SetTextureData(handle, data, size, info->width, info->height, info->depth, cmdBuffer);
 
-	if (info->numMips > 1)
-		SDL_GenerateMipmapsForGPUTexture(cmdBuffer, handle);
+		if (info->numMips > 1)
+			SDL_GenerateMipmapsForGPUTexture(cmdBuffer, handle);
+	}
 
 	Texture* texture = PoolAlloc(&graphics->textures);
 	texture->handle = handle;
 	texture->info = *info;
 
 	return texture;
+}
+
+Texture* CreateTexture(const TextureInfo* info)
+{
+	return CreateTexture(nullptr, 0, info, nullptr);
 }
 
 void DestroyTexture(Texture* texture)
