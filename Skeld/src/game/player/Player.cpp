@@ -12,6 +12,7 @@
 #define CONTROLLER_HEIGHT 1.7f
 #define CONTROLLER_HEIGHT_DUCKED (CONTROLLER_HEIGHT + (CAMERA_HEIGHT_DUCKED - CAMERA_HEIGHT))
 //#define CAMERA_HEIGHT_DUCKED (CAMERA_HEIGHT - (CONTROLLER_HEIGHT - CONTROLLER_HEIGHT_DUCKED))
+#define DEFAULT_WEAPON_TRANSFORM mat4::Translate(0.3f, -0.2f, -0.3f)
 
 
 Action* GetCurrentAction(Player* player)
@@ -236,6 +237,8 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 	AddCapsuleCollider(&player->kinematicBody, 0.2f, 1.5f, vec3(0, 1, 0), quat::Identity, ENTITY_FILTER_PLAYER, ENTITY_FILTER_ENEMY | ENTITY_FILTER_RAGDOLL, false);
 
 	InitActionManager(player->actions, player->model, player->bodyModel);
+
+	player->weaponTransform = DEFAULT_WEAPON_TRANSFORM;
 
 	player->walkSpeed = 6.0f;
 	player->jumpPower = 9.0f;
@@ -908,19 +911,50 @@ void UpdatePlayer(Player* player)
 		}
 	}
 
-	if (GetMouseButtonDown(SDL_BUTTON_RIGHT))
+	player->hoveredTile = ivec2(69, 420);
+	if (GetRightWeapon(player))
+		UpdateAttacks(player);
+	else
 	{
 		PhysicsHit hit = {};
 		if (Raycast(game->cameraPosition, game->cameraRotation.forward(), 5, &hit, 1, ENTITY_FILTER_TERRAIN))
 		{
 			int gridx = (int)SDL_floorf(hit.position.x / TERRAIN_TILE_SIZE);
 			int gridz = (int)SDL_floorf(hit.position.z / TERRAIN_TILE_SIZE);
-			Terrain* terrain = GetTerrainAtPosition(hit.position);
-			terrain->dig(gridx - terrain->tilex * TERRAIN_TILES_X, gridz - terrain->tilez * TERRAIN_TILES_X);
+			player->hoveredTile = ivec2(gridx, gridz);
+		}
+
+		if (GetMouseButtonDown(SDL_BUTTON_LEFT) && player->hoveredTile != ivec2(69, 420))
+		{
+			if (Terrain* terrain = GetTerrainAtPosition(hit.position))
+			{
+				terrain->dig(player->hoveredTile.x - terrain->tilex * TERRAIN_TILES_X, player->hoveredTile.y - terrain->tilez * TERRAIN_TILES_X);
+			}
+		}
+		if (GetMouseButtonDown(SDL_BUTTON_RIGHT) && player->hoveredTile != ivec2(69, 420))
+		{
+			if (Terrain* terrain = GetTerrainAtPosition(hit.position))
+			{
+				float xx = player->hoveredTile.x * TERRAIN_TILE_SIZE;
+				float zz = player->hoveredTile.y * TERRAIN_TILE_SIZE;
+				float height = terrain->getTileHeight(player->hoveredTile.x - terrain->tilex * TERRAIN_TILES_X, player->hoveredTile.y - terrain->tilez * TERRAIN_TILES_X);
+
+				InitWoodFloor((WoodFloor*)CreateEntity(), vec3(xx, height, zz));
+			}
 		}
 	}
 
-	//UpdateAttacks(player);
+	mat4 weaponViewBob = CalculateViewBobbing(player, 0);
+	mat4 dstWeaponTransform = DEFAULT_WEAPON_TRANSFORM;
+	if (Action* currentAction = GetCurrentAction(player))
+	{
+		if (currentAction->controlWeaponTransform)
+			dstWeaponTransform = currentAction->weaponTransform;
+	}
+	dstWeaponTransform = weaponViewBob * dstWeaponTransform;
+	if (player->weaponTransformInterpolator < 1)
+		player->weaponTransformInterpolator = min(player->weaponTransformInterpolator + deltaTime * 2, 1.0f);
+	player->weaponTransform = interpolate(player->weaponTransform, dstWeaponTransform, player->weaponTransformInterpolator); //interpolate(player->weaponTransform, dstWeaponTransform, 10 * deltaTime);
 
 	UpdateActionManager(player->actions, *player);
 
@@ -1005,7 +1039,7 @@ void UpdatePlayer(Player* player)
 		if (currentAction->rightAnim.animation)
 		{
 			rightAnimation = currentAction->rightAnim.animation;
-			rightAnimationTimer = currentAction->elapsedTime;
+			rightAnimationTimer = currentAction->animationTimer;
 			rightAnimationLoop = false;
 			rightAnimationMirror = currentAction->rightAnimMirror;
 			rightAnimationBlendDuration = currentAction->rightAnimBlendDuration;
@@ -1013,7 +1047,7 @@ void UpdatePlayer(Player* player)
 		if (currentAction->leftAnim.animation)
 		{
 			leftAnimation = currentAction->leftAnim.animation;
-			leftAnimationTimer = currentAction->elapsedTime;
+			leftAnimationTimer = currentAction->animationTimer;
 			leftAnimationLoop = false;
 			leftAnimationMirror = currentAction->leftAnimMirror;
 			leftAnimationBlendDuration = currentAction->leftAnimBlendDuration;
@@ -1021,7 +1055,7 @@ void UpdatePlayer(Player* player)
 		if (currentAction->bodyAnim.animation)
 		{
 			bodyAnimation = currentAction->bodyAnim.animation;
-			bodyAnimationTimer = currentAction->elapsedTime;
+			bodyAnimationTimer = currentAction->animationTimer;
 			bodyAnimationLoop = false;
 			bodyAnimationBlendDuration = currentAction->bodyAnimBlendDuration;
 		}
@@ -1381,6 +1415,7 @@ void UpdatePlayer(Player* player)
 
 void RenderPlayer(Player* player)
 {
+	/*
 	mat4 bodyTransform = mat4::Translate(player->position) * mat4::Rotate(vec3::Up, player->rotation + PI);
 	mat4 scaleToCamera = game->view.inverted() * mat4::Scale(0.5f) * game->view;
 	bodyTransform = scaleToCamera * bodyTransform;
@@ -1413,6 +1448,38 @@ void RenderPlayer(Player* player)
 		mat4 weaponTransform = GetLeftWeaponTransform(player);
 		weaponTransform = scaleToCamera * weaponTransform;
 		RenderModel(&game->renderer, &leftWeapon->model, nullptr, weaponTransform);
+	}
+	*/
+
+	if (Item* rightWeapon = GetRightWeapon(player))
+	{
+		RenderModel(&game->renderer, &rightWeapon->model, nullptr, mat4::Transform(game->cameraPosition, game->cameraRotation) * player->weaponTransform * mat4::Rotate(vec3::Up, PI));
+	}
+
+	if (player->hoveredTile != ivec2(69, 420))
+	{
+		if (Terrain* terrain = GetTerrainAtPosition(vec3(player->hoveredTile.x * TERRAIN_TILE_SIZE, 0, player->hoveredTile.y * TERRAIN_TILE_SIZE)))
+		{
+			int x0 = player->hoveredTile.x - terrain->tilex * TERRAIN_TILES_X;
+			int z0 = player->hoveredTile.y - terrain->tilez * TERRAIN_TILES_X;
+			int x1 = player->hoveredTile.x + 1 - terrain->tilex * TERRAIN_TILES_X;
+			int z1 = player->hoveredTile.y + 1 - terrain->tilez * TERRAIN_TILES_X;
+
+			float h0 = terrain->vertices[x0 + z0 * TERRAIN_VERTICES_X].y;
+			float h1 = terrain->vertices[x1 + z0 * TERRAIN_VERTICES_X].y;
+			float h2 = terrain->vertices[x0 + z1 * TERRAIN_VERTICES_X].y;
+			float h3 = terrain->vertices[x1 + z1 * TERRAIN_VERTICES_X].y;
+
+			vec3 p0 = vec3(player->hoveredTile.x * TERRAIN_TILE_SIZE, h0, player->hoveredTile.y * TERRAIN_TILE_SIZE);
+			vec3 p1 = vec3((player->hoveredTile.x + 1) * TERRAIN_TILE_SIZE, h1, player->hoveredTile.y * TERRAIN_TILE_SIZE);
+			vec3 p2 = vec3(player->hoveredTile.x * TERRAIN_TILE_SIZE, h2, (player->hoveredTile.y + 1) * TERRAIN_TILE_SIZE);
+			vec3 p3 = vec3((player->hoveredTile.x + 1) * TERRAIN_TILE_SIZE, h3, (player->hoveredTile.y + 1) * TERRAIN_TILE_SIZE);
+
+			RenderModel(&game->renderer, &game->cube, mat4::Translate(p0) * mat4::Scale(0.1f), false);
+			RenderModel(&game->renderer, &game->cube, mat4::Translate(p1) * mat4::Scale(0.1f), false);
+			RenderModel(&game->renderer, &game->cube, mat4::Translate(p2) * mat4::Scale(0.1f), false);
+			RenderModel(&game->renderer, &game->cube, mat4::Translate(p3) * mat4::Scale(0.1f), false);
+		}
 	}
 
 	// exhaustion vignette
@@ -1459,7 +1526,7 @@ void RenderPlayer(Player* player)
 		}
 		else
 		{
-			//GUIPanel(app->width / 2 - game->crosshair->info.width / 2, app->height / 2 - game->crosshair->info.height / 2, game->crosshair);
+			GUIPanel(app->width / 2 - game->crosshair->info.width / 2, app->height / 2 - game->crosshair->info.height / 2, game->crosshair);
 		}
 	}
 

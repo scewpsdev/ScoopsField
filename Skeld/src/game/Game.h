@@ -85,6 +85,7 @@ struct GameState
 	Sound hitShieldParrySound;
 	Sound stepBareSound, jumpBareSound, landBareSound;
 	Sound fireSound;
+	Sound hitWoodSound;
 
 	Texture* crosshair;
 	Texture* crosshairInteract;

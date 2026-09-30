@@ -1,5 +1,6 @@
 #include "Resource.h"
 
+#include "Core.h"
 #include "Application.h"
 
 #include <Windows.h>

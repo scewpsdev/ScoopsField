@@ -40,9 +40,9 @@ bool InteractItemEntity(ItemEntity* item, Entity* by)
 
 		SDL_assert(!GetCurrentAction(player));
 
-		Action pickupAction;
-		InitPickUpAction(&pickupAction, item->item);
-		QueueAction(player->actions, pickupAction, *player);
+		//Action pickupAction;
+		//InitPickUpAction(&pickupAction, item->item);
+		//QueueAction(player->actions, pickupAction, *player);
 
 		if (GiveItem(player, item->item))
 		{

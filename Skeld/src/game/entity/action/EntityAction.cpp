@@ -1,6 +1,6 @@
 #include "EntityAction.h"
 
-#include "Application.h"
+#include "game/Game.h"
 
 #include "game/entity/Entity.h"
 

@@ -1,6 +1,6 @@
 #include "Terrain.h"
 
-#include "Application.h"
+#include "Core.h"
 
 #include "graphics/VertexBuffer.h"
 #include "graphics/IndexBuffer.h"
@@ -230,4 +230,26 @@ void Terrain::dig(int gridx, int gridz)
 		RecalculateNormals(this, nx0, nz0, nx1, nz1);
 		UpdateTerrainNormals(this);
 	}
+}
+
+float Terrain::getTileHeight(int gridx, int gridz)
+{
+	int x0 = gridx;
+	int x1 = gridx + 1;
+	int z0 = gridz;
+	int z1 = gridz + 1;
+
+	vec3& v0 = vertices[x0 + z0 * TERRAIN_VERTICES_X];
+	vec3& v1 = vertices[x1 + z0 * TERRAIN_VERTICES_X];
+	vec3& v2 = vertices[x0 + z1 * TERRAIN_VERTICES_X];
+	vec3& v3 = vertices[x1 + z1 * TERRAIN_VERTICES_X];
+
+	int h0 = (int)SDL_roundf(v0.y * 2);
+	int h1 = (int)SDL_roundf(v1.y * 2);
+	int h2 = (int)SDL_roundf(v2.y * 2);
+	int h3 = (int)SDL_roundf(v3.y * 2);
+
+	int maxHeight = max(max(h0, h1), max(h2, h3));
+
+	return maxHeight / 2.0f;
 }

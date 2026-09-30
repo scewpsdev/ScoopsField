@@ -1,6 +1,7 @@
 #include "Font.h"
 
-#include "Application.h"
+#include "Core.h"
+#include "graphics/Texture.h"
 
 #include "utils/BumpAllocator.h"
 

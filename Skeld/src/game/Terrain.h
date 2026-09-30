@@ -41,6 +41,7 @@ struct Terrain
 
 	float interpolateHeight(float localx, float localz);
 	void dig(int gridx, int gridz);
+	float getTileHeight(int gridx, int gridz);
 };
 
 

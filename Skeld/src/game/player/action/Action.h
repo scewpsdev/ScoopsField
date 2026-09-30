@@ -92,6 +92,10 @@ struct Action
 	bool overrideLeftWeapon;
 	Item* leftWeapon;
 
+	bool controlWeaponTransform;
+	mat4 weaponTransform;
+
+	float actionSpeed;
 	float animationSpeed;
 	bool rootMotion;
 	bool fullBodyAnim;
@@ -109,6 +113,7 @@ struct Action
 
 	float startTime;
 	float elapsedTime;
+	float animationTimer;
 
 	union
 	{

@@ -1,7 +1,11 @@
 #include "Model.h"
 
-#include "Application.h"
+#include "Core.h"
+#include "graphics/Texture.h"
+#include "graphics/RenderTarget.h"
+#include "Resource.h"
 
+#include "math/Math.h"
 #include "math/Shape.h"
 
 #include "utils/BinaryReader.h"

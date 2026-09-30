@@ -1,6 +1,6 @@
 #include "Tree.h"
 
-#include "Application.h"
+#include "Core.h"
 
 #include "game/player/action/Action.h"
 #include "game/particle/ParticleSystem.h"
@@ -19,7 +19,7 @@ void InitTree(Tree* tree, vec3 position, float rotation, float scale)
 	tree->shadowShader = game->treeShadowShader;
 
 	InitRigidBody(&tree->body, RIGID_BODY_STATIC, tree->position, quat::Identity, tree);
-	AddCapsuleCollider(&tree->body, 0.75f * scale, 10.0f, vec3(0, 5.0f, 0), quat::Identity, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ENEMY_HITBOX, 0, false);
+	AddCapsuleCollider(&tree->body, 0.2f * scale, 5.0f, vec3(0, 2.5f, 0), quat::Identity, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_ENEMY_HITBOX, 0, false);
 }
 
 void DestroyTree(Tree* tree)
@@ -29,7 +29,12 @@ void DestroyTree(Tree* tree)
 
 bool HitTree(Tree* tree, HitParams* hit, Entity* by)
 {
-	SDL_Log("hit tree");
+	hit->wasBlocked = true;
+
+	PlaySound(&game->hitWoodSound, 0, 1);
+	// hit reaction swing
+	// particles
+
 	return true;
 }
 

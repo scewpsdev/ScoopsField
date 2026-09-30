@@ -1,10 +1,11 @@
 #include "GraphicsPipeline.h"
 
-#include "Application.h"
+#include "Core.h"
 
 #include "VertexBuffer.h"
 #include "Shader.h"
 #include "RenderTarget.h"
+#include "Graphics.h"
 
 
 extern SDL_Window* window;

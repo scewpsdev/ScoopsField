@@ -1,6 +1,6 @@
 #include "StaggerAction.h"
 
-#include "Application.h"
+#include "Core.h"
 
 #include "Action.h"
 

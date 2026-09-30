@@ -1,7 +1,7 @@
 #include "Articulation.h"
 
 #include "Physics.h"
-#include "Application.h"
+#include "Core.h"
 
 #include <PxPhysicsAPI.h>
 

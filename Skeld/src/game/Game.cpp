@@ -17,6 +17,36 @@
 * [ ] atmospheric particles
 * [ ] tree wind sound
 * [ ] step sound
+* 
+* 
+* Game Loop
+* - you try to survive
+* 
+* - to survive you need food and water
+* - to get food and water you have to plant crops, trees and keep animals
+* - to plant crops you have to find seeds
+* - to plant trees you have to chop trees to get saplings
+* - to keep animals you have to find animals and tame them with crops
+* 
+* - to survive you need to defend yourself against monsters that spawn at night
+* - to defend yourself you need weapons and armor
+* - to get weapons and armor you need ores and minerals
+* - to get ores and minerals you need to make a pickaxe and explore caves
+* - to explore caves you need a torch
+* - to get a torch you need coal
+* - to get coal you need to burn wood
+* - to get wood you need to chop down trees
+* - to make a pickaxe you need wood and rocks
+* 
+* - to defend yourself you need shelter
+* - to have shelter you need to build it
+* - to build shelter you need building materials
+* - to get building materials you need to chop down trees or collect rocks
+* 
+* - fishing
+* - ships
+* - bow and arrow
+* - castles in the landscape
 *
 */
 
@@ -62,6 +92,7 @@ Entity* CreateEntity()
 #include "entity/component/Sconce.cpp"
 #include "entity/component/Elevator.cpp"
 #include "entity/component/Tree.cpp"
+#include "entity/component/WoodFloor.cpp"
 #include "Terrain.cpp"
 #include "entity/Entity.cpp"
 
@@ -432,6 +463,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	LoadSound(&game->hitParrySound, "res/sounds/hit/hit_parry.ogg.bin");
 	LoadSound(&game->hitShieldSound, "res/sounds/hit/hit_shield.ogg.bin");
 	LoadSound(&game->hitShieldParrySound, "res/sounds/hit/hit_shield_parry.ogg.bin");
+	LoadSounds(&game->hitWoodSound, "sounds/hit/hit_wood", 1);
 	LoadSounds(&game->stepBareSound, "sounds/step/step_bare", 3);
 	LoadSound(&game->jumpBareSound, "res/sounds/step/jump_bare.ogg.bin");
 	LoadSounds(&game->landBareSound, "sounds/step/land_bare", 3);

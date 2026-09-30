@@ -205,7 +205,7 @@ static void InitWeapons(ItemDatabase* items)
 	// axe
 	{
 		Item* item = &items->items[ITEM_AXE];
-		InitWeapon(items, item, "axe", false, 50, vec2(0.1f, 0.85f), DAMAGE_TYPE_SLASH);
+		InitWeapon(items, item, "axe", false, 50, vec2(0.1f, 0.3f), DAMAGE_TYPE_SLASH);
 
 		item->equipSound = &items->equipSwordSound;
 

@@ -16,7 +16,7 @@ void InitAction(Action* action, ActionType type)
 	action->animationSpeed = 1.0f;
 	action->moveSpeed = 1.0f;
 	action->idleAnimStrength = 1.0f;
-
+	
 	action->rightAnimBlendDuration = 0.2f;
 	action->leftAnimBlendDuration = 0.2f;
 	action->bodyAnimBlendDuration = 0.2f;
@@ -48,7 +48,8 @@ void AddActionEffect(Action* action, const char* effect, float time, vec3 localP
 
 void UpdateAction(Action* action, struct Player* player, float deltaTime)
 {
-	action->elapsedTime += deltaTime * action->animationSpeed;
+	action->elapsedTime += deltaTime * action->actionSpeed;
+	action->animationTimer += deltaTime * action->animationSpeed;
 
 	for (int i = 0; i < action->numEvents; i++)
 	{
@@ -90,6 +91,7 @@ void InitActionManager(ActionManager& actions, Model* moveset, Model* bodyMovese
 static void StartActionInternal(ActionManager& actions, Action* action, Player* player)
 {
 	action->startTime = gameTime;
+	action->actionSpeed = action->animationSpeed;
 
 	if (action->rightAnimName)
 		InitAnimation(&action->rightAnim, action->rightAnimName, action->rightAnimMoveset ? action->rightAnimMoveset : actions.moveset, action->animationSpeed, false, false);
@@ -154,6 +156,7 @@ void UpdateActionManager(ActionManager& actions, Player& player)
 		if (action->startTime > 0)
 		{
 			bool shouldFinish = action->elapsedTime >= action->duration ||
+				action->animationSpeed < 0 && action->elapsedTime < 0 ||
 				action->followUpCancelTime && action->elapsedTime >= action->followUpCancelTime && actions.actions.size > 1 /*&& action->type == QueuePeekAt(actions.actions, 1)->type*/;
 			if (shouldFinish)
 			{

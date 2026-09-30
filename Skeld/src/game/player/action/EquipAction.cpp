@@ -13,6 +13,7 @@ void InitEquipAction(Action* action, Item* rightWeapon, Item* leftWeapon, int ds
 {
 	InitAction(action, ACTION_TYPE_EQUIP);
 
+	/*
 	if (rightWeapon)
 	{
 		action->rightAnimName = "equip";
@@ -58,8 +59,14 @@ void InitEquipAction(Action* action, Item* rightWeapon, Item* leftWeapon, int ds
 		if (leftWeapon->equipSound)
 			AddActionSound(action, leftWeapon->equipSound, 0, 1, 1, 0);
 	}
+	*/
+
+	action->duration = 0.5f;
+	action->controlWeaponTransform = true;
 
 	action->equip.dstLoadout = dstLoadout;
+
+	AddActionSound(action, &game->items.clothSound, 0, 1, 1, 0);
 
 	//AddActionSound(action, game->swingSounds, 3, attack->damageWindow.x, 1, (attackIdx % 2 * -2 + 1) * 0.2f);
 }
@@ -78,4 +85,8 @@ void StopEquipAction(Action* action, Player* player)
 
 void UpdateEquipAction(Action* action, Player* player)
 {
+	float anim = action->elapsedTime / action->duration;
+	anim = 1 - SDL_expf(-anim * 6);
+	vec3 offset = (1 - anim) * vec3(0.3f, -0.5f, 0.3f);
+	action->weaponTransform = mat4::Translate(vec3(0.3f, -0.2f, -0.3f) + offset);
 }

@@ -1,6 +1,6 @@
 #include "Trail.h"
 
-#include "Application.h"
+#include "Core.h"
 
 #include "graphics/VertexBuffer.h"
 #include "graphics/TransferBuffer.h"

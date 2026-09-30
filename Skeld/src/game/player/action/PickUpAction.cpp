@@ -24,6 +24,7 @@ void InitPickUpAction(Action* action, Item* item)
 
 void StartPickUpAction(Action* action, Player* player)
 {
+	player->weaponTransformInterpolator = 0;
 }
 
 void StopPickUpAction(Action* action, Player* player)

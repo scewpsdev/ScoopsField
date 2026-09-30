@@ -16,6 +16,7 @@ ENTITY_TYPE(RAGDOLL, Ragdoll, ragdoll)\
 ENTITY_TYPE(SCONCE, Sconce, sconce)\
 ENTITY_TYPE(ELEVATOR, Elevator, elevator)\
 ENTITY_TYPE(TREE, Tree, tree)\
+ENTITY_TYPE(WOOD_FLOOR, WoodFloor, woodFloor)\
 
 
 enum EntityType

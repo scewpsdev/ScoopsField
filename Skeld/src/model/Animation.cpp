@@ -1,6 +1,6 @@
 #include "Animation.h"
 
-#include "Application.h"
+#include "Core.h"
 
 #include "math/Math.h"
 

@@ -119,6 +119,9 @@ struct Player : EntityBase
 	Item* leftWeapons[NUM_LOADOUTS];
 	int currentLoadout;
 
+	mat4 weaponTransform;
+	float weaponTransformInterpolator;
+
 	CharacterController controller;
 	float distanceWalked;
 	float lastJumpInput;
@@ -136,6 +139,7 @@ struct Player : EntityBase
 	ActionManager actions;
 
 	Entity* interactTarget;
+	ivec2 hoveredTile;
 
 	Item* blockItem;
 	bool parry;

@@ -1,10 +1,11 @@
 #include "RigidBody.h"
 
 #include "Physics.h"
-#include "Application.h"
+#include "Core.h"
 
 #include "Articulation.h"
 #include "model/Model.h"
+#include "math/Math.h"
 
 #include <PxActor.h>
 #include <PxRigidBody.h>

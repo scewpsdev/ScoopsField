@@ -1,6 +1,6 @@
 #include "EntityAttackAction.h"
 
-#include "Application.h"
+#include "Core.h"
 
 #include "EntityAction.h"
 

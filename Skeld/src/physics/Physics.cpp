@@ -1,6 +1,6 @@
 #include "Physics.h"
 
-#include "Application.h"
+#include "Core.h"
 
 #include <physx/PxPhysicsAPI.h>
 

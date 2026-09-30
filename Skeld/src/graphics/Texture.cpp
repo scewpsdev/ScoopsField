@@ -1,6 +1,7 @@
 #include "Texture.h"
 
-#include "Application.h"
+#include "Core.h"
+#include "Graphics.h"
 
 #include "TextureFormat.h"
 

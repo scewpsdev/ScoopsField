@@ -1,6 +1,6 @@
 #include "RestingSpot.h"
 
-#include "Application.h"
+#include "Core.h"
 
 #include "game/player/action/Action.h"
 #include "game/particle/ParticleSystem.h"

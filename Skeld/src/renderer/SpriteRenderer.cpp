@@ -1,5 +1,6 @@
 #include "SpriteRenderer.h"
 
+#include "Core.h"
 #include "Application.h"
 
 #include "graphics/Shader.h"

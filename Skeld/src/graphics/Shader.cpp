@@ -1,6 +1,7 @@
 #include "Shader.h"
 
-#include "Application.h"
+#include "Core.h"
+#include "Graphics.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3_shadercross/SDL_shadercross.h>

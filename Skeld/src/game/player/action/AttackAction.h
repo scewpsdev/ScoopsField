@@ -33,6 +33,9 @@ struct AttackAction
 	Trail* trail;
 
 	float lastHitTime;
+	bool lastHitReflect;
+
+	bool didRaycast;
 };
 
 

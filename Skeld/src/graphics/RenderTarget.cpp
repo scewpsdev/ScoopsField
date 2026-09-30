@@ -1,6 +1,9 @@
 #include "RenderTarget.h"
 
-#include "Application.h"
+#include "Core.h"
+#include "Graphics.h"
+
+#include "math/Math.h"
 
 
 extern SDL_GPUDevice* device;

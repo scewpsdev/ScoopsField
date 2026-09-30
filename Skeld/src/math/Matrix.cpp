@@ -253,6 +253,16 @@ mat4 mat4::Scale(const vec3& v)
 	return matrix;
 }
 
+mat4 mat4::Scale(float x, float y, float z)
+{
+	mat4 matrix = {};
+	matrix.m00 = x;
+	matrix.m11 = y;
+	matrix.m22 = z;
+	matrix.m33 = 1.0f;
+	return matrix;
+}
+
 mat4 mat4::Scale(float f)
 {
 	mat4 matrix = {};

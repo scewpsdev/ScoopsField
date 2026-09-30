@@ -1,6 +1,6 @@
 #include "Renderer.h"
 
-#include "Application.h"
+#include "Core.h"
 
 #include "graphics/GPUTiming.h"
 #include "game/Terrain.h"
