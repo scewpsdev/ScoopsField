@@ -215,13 +215,18 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 			float treeChance = sampleTreeDensity(xx, zz);
 			if (random.nextFloat() < treeChance)
 			{
+				SDL_assert(terrain->numTrees < MAX_TREES);
+
 				vec2 offset = vec2(random.nextFloat(), random.nextFloat());
 				vec3 position = vec3(xx + 0.5f * TERRAIN_TILE_SIZE + offset.x, 0, zz + 0.5f * TERRAIN_TILE_SIZE + offset.y);
 				float height = terrain->interpolateHeight(position.x - worldx, position.z - worldz);
 				position.y = height;
 				float rotation = random.nextFloat() * 2 * PI;
 				float scale = mix(0.8f, 1.6f, random.nextFloat());
-				InitTree((Tree*)CreateEntity(), position, rotation, scale);
+
+				Tree* tree = (Tree*)CreateEntity();
+				InitTree(tree, position, rotation, scale);
+				terrain->trees[terrain->numTrees++] = tree;
 			}
 		}
 	}
@@ -670,7 +675,7 @@ void GameRender()
 
 	for (int i = 0; i < game->numTerrains; i++)
 	{
-		RenderTerrain(&game->renderer, &game->terrains[i]);
+		RenderTerrain(&game->terrains[i]);
 	}
 
 	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, 1 * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 1);

@@ -38,6 +38,12 @@ struct Terrain
 
 	Texture* texture;
 
+#define MAX_TREES 256
+	Tree* trees[MAX_TREES];
+	int numTrees;
+	VertexBuffer* treeInstances;
+	TransferBuffer* treeInstanceTransfer;
+
 
 	float interpolateHeight(float localx, float localz);
 	void dig(int gridx, int gridz);
@@ -46,3 +52,5 @@ struct Terrain
 
 
 void InitTerrain(Terrain* terrain, int tilex, int tilez, vec3* heights, vec3* normals, short* indices, SDL_GPUCommandBuffer* cmdBuffer);
+
+void RenderTerrain(Terrain* terrain);

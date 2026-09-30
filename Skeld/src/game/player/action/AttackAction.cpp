@@ -209,6 +209,7 @@ void UpdateAttackAction(Action* action, Player* player)
 				params.position = hit->position;
 				params.body = hit->body;
 				//params.force = (tip - action->attack.lastHitboxTip).normalized() * 0.1f;
+				params.force = game->cameraRotation.left();
 
 				if (HitEntity(hitEntity, &params, (Entity*)player))
 				{

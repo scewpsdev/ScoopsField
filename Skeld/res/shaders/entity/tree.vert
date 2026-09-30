@@ -3,6 +3,7 @@
 layout (location = 0) in vec3 a_position;
 layout (location = 1) in vec3 a_normal;
 layout (location = 4) in vec2 a_texcoord;
+layout (location = 5) in mat4 i_transform;
 
 layout (location = 0) out vec3 v_normal;
 layout (location = 1) out vec2 v_texcoord;
@@ -22,7 +23,9 @@ layout(std140, set = 1, binding = 0) uniform UniformBlock {
 
 void main()
 {
-	mat4 model = u_viewSpaceBuffer > 0.5 ? inverse(u_view) * u_model : u_model;
+	mat4 model = i_transform; //mat4(i_transform0, i_transform1, i_transform2, i_transform3);
+
+	//mat4 model = u_viewSpaceBuffer > 0.5 ? inverse(u_view) * u_model : u_model;
 	vec4 worldPosition = model * vec4(a_position, 1);
 
 	// wind
@@ -46,7 +49,7 @@ void main()
 
 	gl_Position = u_projection * u_view * worldPosition;
 
-	vec4 viewSpaceNormal = u_model * vec4(a_normal, 0);
+	vec4 viewSpaceNormal = model * vec4(a_normal, 0);
 
 	v_normal = viewSpaceNormal.xyz;
 	v_texcoord = a_texcoord;

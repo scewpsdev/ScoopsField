@@ -303,9 +303,6 @@ vec2 operator*(ivec2 a, vec2 b);
 vec2 operator/(ivec2 a, vec2 b);
 
 
-vec2& operator+=(vec2& a, const vec2& b);
-vec2& operator-=(vec2& a, const vec2& b);
-
 bool operator==(const vec2& a, const vec2& b);
 
 

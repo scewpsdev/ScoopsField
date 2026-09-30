@@ -26,6 +26,19 @@ void InitTerrain(Terrain* terrain, int tilex, int tilez, vec3* heights, vec3* no
 	terrain->indexBuffer = CreateIndexBuffer(TERRAIN_TILES * 6, SDL_GPU_INDEXELEMENTSIZE_16BIT);
 	UpdateIndexBuffer(terrain->indexBuffer, 0, (const uint8_t*)indices, TERRAIN_TILES * 6 * sizeof(short), true, cmdBuffer);
 
+	VertexBufferLayout instanceLayout = {};
+	instanceLayout.numAttributes = 4;
+	instanceLayout.attributes[0].location = 5;
+	instanceLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	instanceLayout.attributes[1].location = 6;
+	instanceLayout.attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	instanceLayout.attributes[2].location = 7;
+	instanceLayout.attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	instanceLayout.attributes[3].location = 8;
+	instanceLayout.attributes[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	terrain->treeInstances = CreateVertexBuffer(MAX_TREES, &instanceLayout, 0);
+	terrain->treeInstanceTransfer = CreateTransferBuffer(MAX_TREES * sizeof(mat4), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD);
+
 	terrain->boundingBox.min = vec3(FLT_MAX);
 	terrain->boundingBox.max = vec3(-FLT_MAX);
 	for (int i = 0; i < TERRAIN_VERTICES; i++)
@@ -54,6 +67,8 @@ void InitTerrain(Terrain* terrain, int tilex, int tilez, vec3* heights, vec3* no
 	AddHeightFieldCollider(&terrain->collider, TERRAIN_VERTICES_X, TERRAIN_VERTICES_X, heightField, 0.1f, TERRAIN_TILE_SIZE, vec3(0), quat::Identity, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_TERRAIN, ENTITY_FILTER_DEFAULT);
 
 	terrain->texture = GetTexture("textures/grass_diffuse.png");
+
+	terrain->numTrees = 0;
 }
 
 void DestroyTerrain(Terrain* terrain)
@@ -252,4 +267,24 @@ float Terrain::getTileHeight(int gridx, int gridz)
 	int maxHeight = max(max(h0, h1), max(h2, h3));
 
 	return maxHeight / 2.0f;
+}
+
+void RenderTerrain(Terrain* terrain)
+{
+	RenderTerrain(&game->renderer, terrain);
+
+	if (terrain->numTrees)
+	{
+		mat4* transforms = (mat4*)MapTransferBuffer(terrain->treeInstanceTransfer, true);
+		for (int i = 0; i < terrain->numTrees; i++)
+		{
+			Tree* tree = terrain->trees[i];
+			transforms[i] = tree->animatedTransform;
+		}
+		UnmapTransferBuffer(terrain->treeInstanceTransfer);
+
+		UpdateVertexBuffer(terrain->treeInstances, 0, terrain->numTrees * sizeof(mat4), terrain->treeInstanceTransfer->buffer, true, cmdBuffer);
+
+		RenderInstancedModel(&game->renderer, terrain->trees[0]->model, terrain->trees[0]->shader, terrain->trees[0]->shadowShader, terrain->treeInstances, terrain->numTrees);
+	}
 }

@@ -548,20 +548,6 @@ vec2 operator/(ivec2 a, vec2 b)
 	return vec2(a.x / b.x, a.y / b.y);
 }
 
-vec2& operator+=(vec2& a, const vec2& b)
-{
-	a.x += b.x;
-	a.y += b.y;
-	return a;
-}
-
-vec2& operator-=(vec2& a, const vec2& b)
-{
-	a.x -= b.x;
-	a.y -= b.y;
-	return a;
-}
-
 bool operator==(const vec2& a, const vec2& b)
 {
 	return a.x == b.x && a.y == b.y;

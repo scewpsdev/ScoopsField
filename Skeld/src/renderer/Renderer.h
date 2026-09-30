@@ -258,6 +258,7 @@ void RenderModel(Renderer* renderer, Model* model, mat4 transform, bool isStatic
 void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, mat4 transform, bool isStatic = false);
 void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform, bool isStatic = false, uint32_t extraFlags = 0);
 void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, AnimationState* animation, mat4 transform, bool isStatic, uint32_t extraFlags);
+void RenderInstancedModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, VertexBuffer* instanceBuffer);
 void RenderTerrain(Renderer* renderer, Terrain* terrain);
 void RenderLight(Renderer* renderer, vec3 position, vec3 color);
 void RenderReflectionProbe(Renderer* renderer, ReflectionProbe* probe);

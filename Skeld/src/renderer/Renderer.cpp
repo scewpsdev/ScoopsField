@@ -1064,7 +1064,7 @@ void RenderMesh(Renderer* renderer,
 	}
 }
 
-static void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, SkeletonState* skeleton, mat4 transform, uint32_t flags)
+static void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, VertexBuffer* instanceBuffer, int instanceCount, SkeletonState* skeleton, mat4 transform, uint32_t flags)
 {
 	MeshDrawData data = {};
 
@@ -1086,9 +1086,14 @@ static void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, Graph
 
 	data.indexBuffer = mesh->indexBuffer;
 
+	if (instanceBuffer)
+	{
+		data.vertexBuffers[data.numVertexBuffers++] = instanceBuffer;
+	}
+
 	data.vertexCount = mesh->vertexCount;
 	data.indexCount = mesh->indexCount;
-	data.instanceCount = 1;
+	data.instanceCount = instanceCount;
 
 	data.boundingBox = mesh->boundingBox;
 	data.boundingSphere = mesh->boundingSphere;
@@ -1139,7 +1144,7 @@ void RenderModelNode(Renderer* renderer, Model* model, Node* node, GraphicsPipel
 		int meshID = node->meshes[i];
 		Mesh* mesh = &model->meshes[meshID];
 		Material* material = mesh->materialID != -1 ? &model->materials[mesh->materialID] : nullptr;
-		RenderMesh(renderer, mesh, material, shader, shadowShader, animation && mesh->skeletonID != -1 ? &animation->skeletons[mesh->skeletonID] : nullptr, nodeTransform, flags);
+		RenderMesh(renderer, mesh, material, shader, shadowShader, nullptr, 1, animation && mesh->skeletonID != -1 ? &animation->skeletons[mesh->skeletonID] : nullptr, nodeTransform, flags);
 	}
 
 	for (int i = 0; i < node->numChildren; i++)
@@ -1176,6 +1181,31 @@ void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, Gra
 	uint32_t flags = isStatic ? (MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP | MESH_DRAW_FLAG_RENDER_TO_REFLECTION) : 0;
 	flags |= extraFlags;
 	RenderModelNode(renderer, model, &model->nodes[0], shader, shadowShader, animation, transform, transform, flags);
+}
+
+void RenderInstancedModelNode(Renderer* renderer, Model* model, Node* node, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, VertexBuffer* instanceBuffer, int instanceCount, mat4 parentTransform, uint32_t flags)
+{
+	mat4 nodeTransform = parentTransform * node->transform;
+
+	for (int i = 0; i < node->numMeshes; i++)
+	{
+		int meshID = node->meshes[i];
+		Mesh* mesh = &model->meshes[meshID];
+		Material* material = mesh->materialID != -1 ? &model->materials[mesh->materialID] : nullptr;
+		RenderMesh(renderer, mesh, material, shader, shadowShader, instanceBuffer, instanceCount, nullptr, nodeTransform, flags);
+	}
+
+	for (int i = 0; i < node->numChildren; i++)
+	{
+		RenderInstancedModelNode(renderer, model, &model->nodes[node->children[i]], shader, shadowShader, instanceBuffer, instanceCount, nodeTransform, flags);
+	}
+}
+
+void RenderInstancedModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, VertexBuffer* instanceBuffer, int instanceCount)
+{
+	SDL_assert(model);
+	uint32_t flags = MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP | MESH_DRAW_FLAG_RENDER_TO_REFLECTION;
+	RenderInstancedModelNode(renderer, model, &model->nodes[0], shader, shadowShader, instanceBuffer, instanceCount, mat4::Identity, flags);
 }
 
 void RenderTerrain(Renderer* renderer, Terrain* terrain)

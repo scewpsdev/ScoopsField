@@ -10,6 +10,10 @@
 struct Tree : EntityBase
 {
 	RigidBody body;
+
+	vec2 tiltOffset;
+	vec2 tiltVelocity;
+	mat4 animatedTransform;
 };
 
 
