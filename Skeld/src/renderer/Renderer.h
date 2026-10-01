@@ -54,6 +54,9 @@ struct MeshDrawData
 	vec4 uniformData[4];
 	int uniformDataSize;
 
+	vec4 vertexUniformData;
+	int vertexUniformDataSize;
+
 	Texture* textures[MAX_MATERIAL_TEXTURES];
 	TextureSampler samplers[MAX_MATERIAL_TEXTURES];
 	bool vertexSampler[MAX_MATERIAL_TEXTURES];
@@ -250,8 +253,9 @@ void RenderMesh(Renderer* renderer,
 	int vertexCount, int instanceCount,
 	AABB boundingBox, Sphere boundingSphere,
 	vec4 uniformData[4], int uniformDataSize,
-	Texture* textures[], TextureSampler samplers[], int numTextures,
-	GraphicsPipeline* shader,
+	vec4 vertexUniformData, int vertexUniformDataSize,
+	Texture* textures[], TextureSampler samplers[], bool vertexSampler[], int numTextures,
+	GraphicsPipeline* shader, GraphicsPipeline* shadowShader,
 	mat4 transform,
 	uint32_t flags);
 

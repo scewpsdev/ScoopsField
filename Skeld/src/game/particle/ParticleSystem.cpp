@@ -450,7 +450,17 @@ static void RenderParticleEmitter(ParticleSystem* particles, ParticleEmitter* em
 		params[0] = vec4(emitter->texture ? 1.0f : 0.0f, emitter->atlasFrameCount ? 1.0f : 0.0f, (vec2)emitter->atlasSize);
 		params[1] = vec4(emitter->emissive, 0, 0, 0);
 
-		RenderMesh(&game->renderer, buffers, 6, nullptr, 4, emitter->numParticles, emitter->boundingBox, emitter->boundingSphere, params, sizeof(params), &emitter->texture, &emitter->textureSampler, 1, emitter->shader, emitter->follow ? transform : mat4::Identity, MESH_DRAW_FLAG_SHADER_EXTRA_UNIFORMS | MESH_DRAW_FLAG_SHADER_ENVIRONMENT_MAP);
+		RenderMesh(&game->renderer,
+			buffers, 6,
+			nullptr,
+			4, emitter->numParticles,
+			emitter->boundingBox, emitter->boundingSphere,
+			params, sizeof(params),
+			vec4(0), 0,
+			&emitter->texture, &emitter->textureSampler, nullptr, 1,
+			emitter->shader, nullptr,
+			emitter->follow ? transform : mat4::Identity,
+			MESH_DRAW_FLAG_SHADER_EXTRA_UNIFORMS | MESH_DRAW_FLAG_SHADER_ENVIRONMENT_MAP);
 
 		if (emitter->emissive)
 		{

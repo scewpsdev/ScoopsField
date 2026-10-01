@@ -15,7 +15,7 @@ layout(std140, set = 1, binding = 0) uniform UniformBlock {
 };
 
 #define TILE_SIZE 2.0
-#define VERTICES 129
+#define VERTICES 33
 
 
 void main()

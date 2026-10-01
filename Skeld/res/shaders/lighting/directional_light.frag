@@ -25,31 +25,40 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 // Directional light indirect specular lighting
 vec3 directionalLight(vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, vec3 lightDirection, vec3 lightColor)
 {
-	vec3 f0 = mix(vec3(0.04), albedo, metallic);
-	vec3 fLambert = albedo / PI;
+	vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
 	// Per light radiance
-	vec3 wi = -lightDirection;
-	vec3 h = normalize(view + wi);
+	vec3 N = normal;
+	vec3 V = view;
+	vec3 L = -lightDirection;
+	vec3 H = normalize(V + L);
+
+	float NdotV = max(dot(N, V), 0);
+	float NdotL = max(dot(N, L), 0);
 
 	// Cook-Torrance BRDF
-	float d = normalDistribution(normal, h, roughness);
-	float g = geometrySmith(normal, view, wi, roughness);
-	vec3 f = fresnel2(max(dot(h, view), 0.0), f0, roughness);
-	vec3 numerator = d * f * g;
-	float denominator = 4.0 * max(dot(view, normal), 0.0) * max(dot(wi, normal), 0.0);
-	vec3 specular = numerator / max(denominator, 0.0001);
+	float D = distributionGGX(N, H, roughness);
+	float G = geometrySmith(NdotV, NdotL, roughness);
+	vec3 F = fresnelSchlick(max(dot(H, L), 0), F0);
+	vec3 numerator = D * F * G;
+	float denominator = 4 * NdotV * NdotL;
+	vec3 specular = numerator / max(denominator, 0.0000001);
 
-	vec3 ks = f;
-	vec3 kd = (1.0 - ks) * (1.0 - metallic);
+	// valve horizon fade
+	float fadeV = clamp(dot(N, V) * 4, 0, 1);
+	float fadeL = clamp(dot(N, L) * 4, 0, 1);
+	specular *= fadeV * fadeL;
+
+	vec3 kS = F;
+	vec3 kD = (1 - kS) * (1 - metallic);
+
+	vec3 lambert = albedo / PI;
+	vec3 diffuse = kD * lambert;
 
 	vec3 radiance = lightColor;
+	vec3 lighting = (diffuse + specular) * radiance * NdotL;
 
-	float ndotwi = max(dot(wi, normal), 0.0);
-
-	vec3 s = (specular + fLambert * kd) * radiance * ndotwi;
-
-	return s;
+	return lighting;
 }
 
 // reconstruct without matrix multiplication just using near plane and fov
@@ -105,8 +114,7 @@ float upsampleShadowBuffer(vec2 uv, float depth)
 	//getShadowSample(uv + 0.5 * vec2(-texel.x, texel.y), depth, texel, shadow, sum);
 	//getShadowSample(uv + 0.5 * vec2(texel.x, -texel.y), depth, texel, shadow, sum);
 
-	if (sum > 0)
-		shadow /= sum;
+	shadow = sum > 0 ? shadow / sum : 1;
 
 	return shadow;
 }

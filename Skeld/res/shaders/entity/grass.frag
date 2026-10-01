@@ -2,9 +2,6 @@
 
 #include "../common.glsl"
 
-layout (location = 0) in vec3 v_normal;
-layout (location = 1) in vec2 v_texcoord;
-
 layout (location = 0) out vec4 out_normal;
 layout (location = 1) out vec3 out_color;
 layout (location = 2) out vec4 out_material;
@@ -35,15 +32,11 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 
 void main()
 {
-	vec4 textureColor = texture(s_diffuse, v_texcoord);
-	textureColor.rgb = SRGBToLinear(mix(vec3(1), textureColor.rgb, hasDiffuse));
-	textureColor.rgb = vec3(1, 0, 1);
-
 	float roughness = 1; //mix(roughnessFactor, texture(s_roughness, v_texcoord).g, hasRoughness);
 	float metallic = 0; //mix(metallicFactor, texture(s_metallic, v_texcoord).b, hasMetallic);
 
 	out_normal = vec4(vec3(0, 1, 0) * 0.5 + 0.5, emissiveStrength);
-	out_color = vec3(1, 0, 1);
+	out_color = vec3(0.3, 0.4, 0.2);
 	out_material = vec4(roughness, metallic, 0, 0);
 	out_emissive = vec4(linearToSRGB(emissiveColor), 0);
 }

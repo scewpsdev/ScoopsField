@@ -184,5 +184,15 @@ void RenderTrail(Trail* trail)
 {
 	vec4 params = vec4(trail->texture ? 1.0f : 0.0f, trail->emissive, 0, 0);
 
-	RenderMesh(&game->renderer, &trail->vertexBuffer, 1, nullptr, trail->numNodes * 2, 1, trail->boundingBox, trail->boundingSphere, &params, sizeof(params), &trail->texture, &trail->textureSampler, 1, trail->shader, mat4::Identity, MESH_DRAW_FLAG_SHADER_EXTRA_UNIFORMS | MESH_DRAW_FLAG_SHADER_ENVIRONMENT_MAP);
+	RenderMesh(&game->renderer,
+		&trail->vertexBuffer, 1,
+		nullptr,
+		trail->numNodes * 2, 1,
+		trail->boundingBox, trail->boundingSphere,
+		&params, sizeof(params),
+		vec4(0), 0,
+		&trail->texture, &trail->textureSampler, nullptr, 1,
+		trail->shader, nullptr,
+		mat4::Identity,
+		MESH_DRAW_FLAG_SHADER_EXTRA_UNIFORMS | MESH_DRAW_FLAG_SHADER_ENVIRONMENT_MAP);
 }

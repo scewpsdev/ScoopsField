@@ -1,12 +1,7 @@
 #version 460
 
-layout (location = 0) in vec3 a_position;
-layout (location = 1) in vec3 a_normal;
-layout (location = 4) in vec2 a_texcoord;
-layout (location = 5) in vec4 i_blade;
-
-layout (location = 0) out vec3 v_normal;
-layout (location = 1) out vec2 v_texcoord;
+layout (location = 0) in vec2 a_position;
+layout (location = 1) in vec4 i_blade;
 
 
 layout(set = 0, binding = 0) uniform sampler2D s_heightmap;
@@ -18,21 +13,35 @@ layout(std140, set = 1, binding = 0) uniform UniformBlock {
 	mat4 u_model;
 	vec4 params;
 
+	//vec4 grassData;
+
 #define u_time params.x
 #define u_viewSpaceBuffer params.y
+
+//#define u_lod grassData.x
 };
 
 
 #define TILE_SIZE 2.0
-#define VERTICES 129
+#define VERTICES 33
 
 
 void main()
 {
-	//mat4 model = u_viewSpaceBuffer > 0.5 ? inverse(u_view) * u_model : u_model;
-	vec2 heightmapCoord = ((i_blade.xy / TILE_SIZE) + 0.5) / VERTICES;
-	float height = texture(s_heightmap, heightmapCoord).x;
-	vec4 worldPosition = vec4(a_position + vec3(i_blade.x, height, i_blade.y), 1);
+	vec2 terrainPosition = i_blade.xy;
+	float rotation = i_blade.z;
+	float scale = i_blade.w;
+
+	vec2 heightmapCoord = ((terrainPosition / TILE_SIZE) + 0.5) / VERTICES;
+	float height = textureLod(s_heightmap, heightmapCoord, 0).x;
+
+	float s = sin(rotation);
+	float c = cos(rotation);
+	vec3 vertexPosition = vec3(a_position.x * c, a_position.y, -a_position.x * s);
+	//vertexPosition.xz *= pow(2, u_lod);
+	//vertexPosition *= scale;
+
+	vec3 position = vec3(terrainPosition.x, height, terrainPosition.y) + vertexPosition;
 
 	// wind
 
@@ -55,10 +64,5 @@ void main()
     worldPosition.xyz += leafFlutter * heightMask * flutterMask * 0.0025;
 	*/
 
-	gl_Position = u_projectionViewModel * worldPosition;
-
-	vec4 viewSpaceNormal = u_view * vec4(a_normal, 0);
-
-	v_normal = viewSpaceNormal.xyz;
-	v_texcoord = a_texcoord;
+	gl_Position = u_projectionViewModel * vec4(position, 1);
 }

@@ -250,6 +250,22 @@ vec3 DecodeRG11B10(uint32_t bits)
 	return vec3(r, g, b);
 }
 
+bool FrustumCulling(const AABB& boundingBox, vec4 planes[6])
+{
+	vec3 center = (boundingBox.min + boundingBox.max) * 0.5f;
+	vec3 extents = boundingBox.max - center;
+
+	for (int i = 0; i < 6; i++)
+	{
+		float projectionRadius = dot(extents, abs(planes[i].xyz));
+		float distance = dot(center, planes[i].xyz) + planes[i].w;
+		if (distance < -projectionRadius)
+			return false;
+	}
+
+	return true;
+}
+
 bool FrustumCulling(const Sphere& boundingSphere, vec4 planes[6])
 {
 	vec3 boundingSpherePos = boundingSphere.center;

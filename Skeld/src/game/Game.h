@@ -25,6 +25,11 @@
 #include "Terrain.h"
 
 
+struct GrassBladeData
+{
+	vec4 data;
+};
+
 struct GameState
 {
 	float gameTime;
@@ -104,6 +109,10 @@ struct GameState
 	GraphicsPipeline* treeShadowShader;
 	GraphicsPipeline* grassShader;
 	GraphicsPipeline* grassShadowShader;
+
+	GrassBladeData* grassBlades;
+	int numGrassBlades;
+	VertexBuffer* grassInstances;
 
 	Font* font;
 

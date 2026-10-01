@@ -8,21 +8,15 @@
 #include <SDL3/SDL.h>
 
 
-struct Terrain;
+#define MAX_GRASS_BLADES 128 // max grass blades per tile
 
-struct GrassBladeData
-{
-	vec4 position;
-};
+
+struct Terrain;
 
 struct GrassField : EntityBase
 {
 	Terrain* terrain;
 
-	GrassBladeData* bladeData;
-	int numBlades;
-
-	VertexBuffer* instanceBuffer;
 	Material material;
 };
 

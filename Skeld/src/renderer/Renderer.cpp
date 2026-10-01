@@ -1018,9 +1018,10 @@ void RenderMesh(Renderer* renderer,
 	IndexBuffer* indexBuffer,
 	int vertexCount, int instanceCount,
 	AABB boundingBox, Sphere boundingSphere,
-	vec4 uniformData[], int uniformDataSize,
-	Texture* textures[], TextureSampler samplers[], int numTextures,
-	GraphicsPipeline* shader,
+	vec4 uniformData[4], int uniformDataSize,
+	vec4 vertexUniformData, int vertexUniformDataSize,
+	Texture* textures[], TextureSampler samplers[], bool vertexSampler[], int numTextures,
+	GraphicsPipeline* shader, GraphicsPipeline* shadowShader,
 	mat4 transform,
 	uint32_t flags)
 {
@@ -1046,13 +1047,20 @@ void RenderMesh(Renderer* renderer,
 	SDL_memcpy(data.uniformData, uniformData, uniformDataSize);
 	data.uniformDataSize = uniformDataSize;
 
+	SDL_assert(vertexUniformDataSize <= sizeof(vec4));
+	SDL_memcpy(&data.vertexUniformData, &vertexUniformData, vertexUniformDataSize);
+	data.vertexUniformDataSize = vertexUniformDataSize;
+
 	SDL_assert(numTextures <= MAX_MATERIAL_TEXTURES);
 	SDL_memcpy(data.textures, textures, numTextures * sizeof(textures[0]));
 	SDL_memcpy(data.samplers, samplers, numTextures * sizeof(samplers[0]));
+	if (vertexSampler)
+		SDL_memcpy(data.vertexSampler, vertexSampler, numTextures * sizeof(vertexSampler[0]));
 	data.numTextures = numTextures;
 
 	data.transform = transform;
 	data.shader = shader;
+	data.shadowShader = shadowShader;
 
 	data.flags = flags;
 
@@ -1106,6 +1114,9 @@ static void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, Graph
 	data.uniformData[2] = material->data2;
 	data.uniformData[3] = material->data3;
 	data.uniformDataSize = sizeof(material->data0) * 4;
+
+	data.vertexUniformData = material->vertexShaderData;
+	data.vertexUniformDataSize = sizeof(material->vertexShaderData);
 
 	SDL_memcpy(data.textures, material->textures, sizeof(material->textures));
 	SDL_memcpy(data.samplers, material->samplers, sizeof(material->samplers));
@@ -1208,8 +1219,14 @@ void RenderInstancedModelNode(Renderer* renderer, Model* model, Node* node, Grap
 void RenderInstancedModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, Material* material, VertexBuffer* instanceBuffer, int instanceCount, mat4 transform)
 {
 	SDL_assert(model);
-	uint32_t flags = MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP | MESH_DRAW_FLAG_RENDER_TO_REFLECTION;
-	RenderInstancedModelNode(renderer, model, &model->nodes[0], shader, shadowShader, material, instanceBuffer, instanceCount, transform, flags);
+	//vec4 frustumPlanes[6];
+	//GetFrustumPlanes(game->pv, frustumPlanes);
+	//if (FrustumCulling(boundingBox, frustumPlanes))
+	{
+		//uint32_t flags = MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP | MESH_DRAW_FLAG_RENDER_TO_REFLECTION;
+		uint32_t flags = 0;
+		RenderInstancedModelNode(renderer, model, &model->nodes[0], shader, shadowShader, material, instanceBuffer, instanceCount, transform, flags);
+	}
 }
 
 void RenderTerrain(Renderer* renderer, Terrain* terrain)
@@ -1309,14 +1326,19 @@ static void SubmitMesh(Renderer* renderer,
 			vec4 params;
 		};
 
-		UniformData uniforms = {};
+		uint8_t* data = BumpAllocatorMalloc(&memory->transientAllocator, mesh->vertexUniformDataSize + sizeof(UniformData));
+		SDL_memcpy(data, &mesh->vertexUniformData, mesh->vertexUniformDataSize);
+
+		UniformData& uniforms = *(UniformData*)data;
+
 		uniforms.projectionViewModel = pv * mesh->transform;
 		uniforms.view = view;
 		uniforms.projection = projection;
 		uniforms.model = viewSpaceBuffer ? view * mesh->transform : mesh->transform;
 		SDL_memcpy(uniforms.boneTransforms, mesh->skeleton->boneTransforms, mesh->skeleton->numBones * sizeof(mat4));
 		uniforms.params = vec4(gameTime, viewSpaceBuffer ? 1.0f : 0.0f, 0, 0);
-		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+
+		SDL_PushGPUVertexUniformData(cmdBuffer, 0, data, mesh->vertexUniformDataSize + sizeof(UniformData));
 	}
 	else
 	{
@@ -1329,13 +1351,18 @@ static void SubmitMesh(Renderer* renderer,
 			vec4 params;
 		};
 
-		UniformData uniforms = {};
+		uint8_t* data = BumpAllocatorMalloc(&memory->transientAllocator, sizeof(UniformData) + mesh->vertexUniformDataSize);
+		SDL_memcpy(data + sizeof(UniformData), &mesh->vertexUniformData, mesh->vertexUniformDataSize);
+
+		UniformData& uniforms = *(UniformData*)data;
+
 		uniforms.projectionViewModel = pv * mesh->transform;
 		uniforms.view = view;
 		uniforms.projection = projection;
 		uniforms.model = viewSpaceBuffer ? view * mesh->transform : mesh->transform;
 		uniforms.params = vec4(gameTime, viewSpaceBuffer ? 1.0f : 0.0f, 0, 0);
-		SDL_PushGPUVertexUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+
+		SDL_PushGPUVertexUniformData(cmdBuffer, 0, data, mesh->vertexUniformDataSize + sizeof(UniformData));
 	}
 
 	if (mesh->uniformData)

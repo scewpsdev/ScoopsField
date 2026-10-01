@@ -248,32 +248,42 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 
 	GrassField* grass = (GrassField*)CreateEntity();
 	InitGrassField(grass, terrain);
+}
+
+static void GenerateGrassData(Random& random)
+{
+	VertexBufferLayout layout = {};
+	layout.numAttributes = 1;
+	layout.attributes[0].location = 5;
+	layout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	layout.perInstance = true;
+	game->grassInstances = CreateVertexBuffer(TERRAIN_TILES * MAX_GRASS_BLADES, &layout, 0);
+
+	game->grassBlades = (GrassBladeData*)SDL_malloc(TERRAIN_TILES * MAX_GRASS_BLADES * sizeof(GrassBladeData));
+	game->numGrassBlades = 0;
 
 	// generate grass
 	for (int z = 0; z < TERRAIN_TILES_X; z++)
 	{
 		for (int x = 0; x < TERRAIN_TILES_X; x++)
 		{
-			float xx = x * TERRAIN_TILE_SIZE;
-			float zz = z * TERRAIN_TILE_SIZE;
-
-			if (terrain->heights[x + z * TERRAIN_VERTICES_X] < 0)
-				continue;
-
-			int numGrassBlades = (int)(sampleGrassDensity(xx, zz) * 100);
-			for (int i = 0; i < numGrassBlades; i++)
+			for (int i = 0; i < MAX_GRASS_BLADES; i++)
 			{
+				float xx = x * TERRAIN_TILE_SIZE;
+				float zz = z * TERRAIN_TILE_SIZE;
+
 				vec2 offset = vec2(random.nextFloat(), random.nextFloat()) * TERRAIN_TILE_SIZE;
 				vec2 position = vec2(xx + offset.x, zz + offset.y);
-				//float rotation = random.nextFloat() * 2 * PI;
-				//float scale = mix(0.8f, 1.6f, random.nextFloat());
+				float rotation = random.nextFloat() * 2 * PI;
+				float scale = mix(0.8f, 1.6f, random.nextFloat());
 
-				grass->bladeData[grass->numBlades++].position.xy = position;
+				game->grassBlades[game->numGrassBlades++].data = vec4(position, rotation, scale);
+
 			}
 		}
 	}
 
-	UpdateGrassFieldData(grass);
+	UpdateVertexBuffer(game->grassInstances, 0, (const uint8_t*)game->grassBlades, game->numGrassBlades * sizeof(GrassBladeData), false, cmdBuffer);
 }
 
 Terrain* GetTerrainAtGridPosition(int x, int z)
@@ -334,6 +344,7 @@ static void ResetGame(bool destroy, bool init)
 		//game->ambientSource = PlaySound(&game->ambientSound, 0.5f);
 
 		game->cameraPosition = vec3(0, 0, 3);
+		game->cameraRotation = quat::Identity;
 		//game->cameraPitch = -0.4f * PI;
 		//game->cameraYaw = 0.25f * PI;
 		game->cameraNear = 0.01f;
@@ -354,6 +365,8 @@ static void ResetGame(bool destroy, bool init)
 				GenerateTerrain(&game->terrains[game->numTerrains++], x, z, random);
 			}
 		}
+
+		GenerateGrassData(random);
 
 		LoadModel(&game->mapModel, "res/models/water_surface.glb.bin", false, cmdBuffer);
 
@@ -607,14 +620,28 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 
 	GraphicsPipelineInfo grassShaderInfo = CreateDeferredGraphicsPipelineInfo(&game->renderer, "res/shaders/entity/grass.vert.bin", "res/shaders/entity/grass.frag.bin");
 	grassShaderInfo.cullMode = SDL_GPU_CULLMODE_NONE;
-	grassShaderInfo.attributes[grassShaderInfo.numAttributes++] = {
-		.location = 5,
-		.buffer_slot = NUM_MESH_BUFFER_LAYOUTS,
+	grassShaderInfo.numAttributes = 2;
+	grassShaderInfo.numVertexBuffers = 2;
+	grassShaderInfo.attributes[0] = {
+		.location = 0,
+		.buffer_slot = 0,
+		.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
+		.offset = 0,
+	};
+	grassShaderInfo.attributes[1] = {
+		.location = 1,
+		.buffer_slot = 1,
 		.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
 		.offset = 0,
 	};
-	grassShaderInfo.bufferDescriptions[grassShaderInfo.numVertexBuffers++] = {
-		.slot = NUM_MESH_BUFFER_LAYOUTS,
+	grassShaderInfo.bufferDescriptions[0] = {
+		.slot = 0,
+		.pitch = sizeof(vec3),
+		.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX,
+		.instance_step_rate = 0,
+	};
+	grassShaderInfo.bufferDescriptions[1] = {
+		.slot = 1,
 		.pitch = sizeof(vec4),
 		.input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE,
 		.instance_step_rate = 0,
@@ -623,14 +650,28 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 
 	GraphicsPipelineInfo grassShadowShaderInfo = CreateDeferredShadowGraphicsPipelineInfo(&game->renderer, "res/shaders/entity/grass.vert.bin");
 	grassShadowShaderInfo.cullMode = SDL_GPU_CULLMODE_NONE;
-	grassShadowShaderInfo.attributes[grassShadowShaderInfo.numAttributes++] = {
-		.location = 5,
-		.buffer_slot = NUM_MESH_BUFFER_LAYOUTS,
+	grassShadowShaderInfo.numAttributes = 2;
+	grassShadowShaderInfo.numVertexBuffers = 2;
+	grassShadowShaderInfo.attributes[0] = {
+		.location = 0,
+		.buffer_slot = 0,
+		.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
+		.offset = 0,
+	};
+	grassShadowShaderInfo.attributes[1] = {
+		.location = 1,
+		.buffer_slot = 1,
 		.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
 		.offset = 0,
 	};
-	grassShadowShaderInfo.bufferDescriptions[grassShadowShaderInfo.numVertexBuffers++] = {
-		.slot = NUM_MESH_BUFFER_LAYOUTS,
+	grassShadowShaderInfo.bufferDescriptions[0] = {
+		.slot = 0,
+		.pitch = sizeof(vec3),
+		.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX,
+		.instance_step_rate = 0,
+	};
+	grassShadowShaderInfo.bufferDescriptions[1] = {
+		.slot = 1,
 		.pitch = sizeof(vec4),
 		.input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE,
 		.instance_step_rate = 0,
@@ -686,6 +727,9 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 void GameDestroy()
 {
 	ResetGame(true, false);
+
+	SDL_free(game->grassBlades);
+	DestroyVertexBuffer(game->grassInstances);
 
 	DestroyRenderer(&game->renderer);
 	DestroySpriteRenderer(&game->guiRenderer);

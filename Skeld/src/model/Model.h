@@ -42,6 +42,8 @@ struct Material
 			vec4 data2;
 			vec4 data3;
 
+			vec4 vertexShaderData;
+
 #define MAX_MATERIAL_TEXTURES 6
 			Texture* textures[MAX_MATERIAL_TEXTURES];
 			TextureSampler samplers[MAX_MATERIAL_TEXTURES];
@@ -56,6 +58,8 @@ struct Material
 			float roughnessFactor;
 			float metallicFactor;
 			vec2 padding;
+
+			vec4 vertexShaderData;
 
 			Texture* diffuse;
 			Texture* roughness;

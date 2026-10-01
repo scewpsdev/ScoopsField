@@ -3,9 +3,6 @@
 #include "game/Terrain.h"
 
 
-#define MAX_GRASS_BLADES (TERRAIN_TILES * 100)
-
-
 void InitGrassField(GrassField* grass, Terrain* terrain)
 {
 	InitEntity((Entity*)grass, ENTITY_TYPE_GRASS_FIELD);
@@ -19,40 +16,61 @@ void InitGrassField(GrassField* grass, Terrain* terrain)
 	grass->material.samplers[0] = TEXTURE_SAMPLER_LINEAR_CLAMPED;
 	grass->material.vertexSampler[0] = true;
 	grass->material.numTextures++;
-
-	VertexBufferLayout layout = {};
-	layout.numAttributes = 1;
-	layout.attributes[0].location = 5;
-	layout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
-	layout.perInstance = true;
-	grass->instanceBuffer = CreateVertexBuffer(MAX_GRASS_BLADES, &layout, 0);
-
-	grass->bladeData = (GrassBladeData*)SDL_malloc(MAX_GRASS_BLADES * sizeof(GrassBladeData));
-	grass->numBlades = 0;
 }
 
 void DestroyGrassField(GrassField* grass)
 {
-	SDL_free(grass->bladeData);
-	DestroyVertexBuffer(grass->instanceBuffer);
 }
 
 void UpdateGrassFieldData(GrassField* grass)
 {
-	if (grass->numBlades)
-	{
-		UpdateVertexBuffer(grass->instanceBuffer, 0, (const uint8_t*)grass->bladeData, grass->numBlades * sizeof(GrassBladeData), false, cmdBuffer);
-	}
 }
 
 void UpdateGrassField(GrassField* grass)
 {
 }
 
+static float DistanceToTerrain(Terrain* terrain, vec3 position)
+{
+	float x0 = terrain->tilex * TERRAIN_SIZE;
+	float x1 = terrain->tilex * TERRAIN_SIZE + TERRAIN_SIZE;
+	float z0 = terrain->tilez * TERRAIN_SIZE;
+	float z1 = terrain->tilez * TERRAIN_SIZE + TERRAIN_SIZE;
+
+	if (position.x >= x0 && position.x <= x1 &&
+		position.z >= z0 && position.z <= z1)
+		return 0;
+
+	float distx = position.x < x0 ? x0 - position.x : position.x > x1 ? position.x - x1 : 0;
+	float distz = position.z < z0 ? z0 - position.z : position.z > z1 ? position.z - z1 : 0;
+
+	return max(distx, distz);
+}
+
 void RenderGrassField(GrassField* grass)
 {
-	if (grass->numBlades)
+	float distance = DistanceToTerrain(grass->terrain, game->cameraPosition);
+	float lodDistance = 0.5f * TERRAIN_SIZE;
+	int lod = (int)log2f(max(SDL_ceilf(distance / lodDistance), 1.0f));
+
+	int maxLod = 1;
+	if (lod <= maxLod)
 	{
-		RenderInstancedModel(&game->renderer, grass->model, game->grassShader, game->grassShadowShader, &grass->material, grass->instanceBuffer, grass->numBlades, ModelMatrix((Entity*)grass));
+		int numGrassBlades = TERRAIN_TILES * MAX_GRASS_BLADES / ipow(4, lod);
+		grass->material.vertexShaderData[0] = (float)lod;
+		//RenderInstancedModel(&game->renderer, grass->model, game->grassShader, game->grassShadowShader, &grass->material, game->grassInstances, numGrassBlades, ModelMatrix((Entity*)grass));
+
+		Mesh* mesh = &grass->model->meshes[0];
+		VertexBuffer* buffers[2] = {mesh->positionBuffer, game->grassInstances};
+		mat4 transform = ModelMatrix((Entity*)grass);
+		RenderMesh(&game->renderer,
+			buffers, 2,
+			nullptr,
+			3, numGrassBlades,
+			{}, {},
+			nullptr, 0, vec4(0), 0,
+			grass->material.textures, grass->material.samplers, grass->material.vertexSampler, grass->material.numTextures,
+			game->grassShader, game->grassShadowShader,
+			transform, 0);
 	}
 }
