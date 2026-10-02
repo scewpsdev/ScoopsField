@@ -1017,6 +1017,7 @@ void RenderMesh(Renderer* renderer,
 	VertexBuffer* vertexBuffers[], int numVertexBuffers,
 	IndexBuffer* indexBuffer,
 	int vertexCount, int instanceCount,
+	int vertexOffset, int indexOffset, int instanceOffset,
 	AABB boundingBox, Sphere boundingSphere,
 	vec4 uniformData[4], int uniformDataSize,
 	vec4 vertexUniformData, int vertexUniformDataSize,
@@ -1039,6 +1040,10 @@ void RenderMesh(Renderer* renderer,
 	data.vertexCount = vertexCount;
 	data.indexCount = indexBuffer ? indexBuffer->numIndices : 0;
 	data.instanceCount = instanceCount;
+
+	data.vertexOffset = vertexOffset;
+	data.indexOffset = indexOffset;
+	data.instanceOffset = instanceOffset;
 
 	data.boundingBox = boundingBox;
 	data.boundingSphere = boundingSphere;
@@ -1445,9 +1450,9 @@ static void SubmitMesh(Renderer* renderer,
 	}
 
 	if (mesh->indexBuffer)
-		SDL_DrawGPUIndexedPrimitives(renderPass, mesh->indexCount, mesh->instanceCount, 0, 0, 0);
+		SDL_DrawGPUIndexedPrimitives(renderPass, mesh->indexCount, mesh->instanceCount, mesh->indexOffset, mesh->vertexOffset, mesh->instanceOffset);
 	else
-		SDL_DrawGPUPrimitives(renderPass, mesh->vertexCount, mesh->instanceCount, 0, 0);
+		SDL_DrawGPUPrimitives(renderPass, mesh->vertexCount, mesh->instanceCount, mesh->vertexOffset, mesh->instanceOffset);
 }
 
 static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov, float near)

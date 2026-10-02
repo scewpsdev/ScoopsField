@@ -13,12 +13,12 @@ layout(std140, set = 1, binding = 0) uniform UniformBlock {
 	mat4 u_model;
 	vec4 params;
 
-	//vec4 grassData;
+	vec4 grassData;
 
 #define u_time params.x
 #define u_viewSpaceBuffer params.y
 
-//#define u_lod grassData.x
+#define u_lod grassData.x
 };
 
 
@@ -38,7 +38,7 @@ void main()
 	float s = sin(rotation);
 	float c = cos(rotation);
 	vec3 vertexPosition = vec3(a_position.x * c, a_position.y, -a_position.x * s);
-	//vertexPosition.xz *= pow(2, u_lod);
+	vertexPosition.xz *= pow(4, u_lod);
 	//vertexPosition *= scale;
 
 	vec3 position = vec3(terrainPosition.x, height, terrainPosition.y) + vertexPosition;

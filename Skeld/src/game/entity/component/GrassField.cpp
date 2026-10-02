@@ -53,22 +53,29 @@ void RenderGrassField(GrassField* grass)
 	float lodDistance = 0.5f * TERRAIN_SIZE;
 	int lod = (int)log2f(max(SDL_ceilf(distance / lodDistance), 1.0f));
 
-	int maxLod = 1;
-	if (lod <= maxLod)
+	if (lod <= MAX_GRASS_LOD)
 	{
 		int numGrassBlades = TERRAIN_TILES * MAX_GRASS_BLADES / ipow(4, lod);
-		grass->material.vertexShaderData[0] = (float)lod;
+		int dataOffset = 0;
+		for (int i = 0; i < lod; i++)
+			dataOffset += TERRAIN_TILES * MAX_GRASS_BLADES / ipow(4, i);
+
+		//grass->material.vertexShaderData[0] = (float)lod;
 		//RenderInstancedModel(&game->renderer, grass->model, game->grassShader, game->grassShadowShader, &grass->material, game->grassInstances, numGrassBlades, ModelMatrix((Entity*)grass));
+
+		// todo use simpler model for higher lods
+		// frustum culling
 
 		Mesh* mesh = &grass->model->meshes[0];
 		VertexBuffer* buffers[2] = {mesh->positionBuffer, game->grassInstances};
 		mat4 transform = ModelMatrix((Entity*)grass);
 		RenderMesh(&game->renderer,
 			buffers, 2,
-			nullptr,
-			3, numGrassBlades,
+			mesh->indexBuffer,
+			mesh->vertexCount, numGrassBlades,
+			0, 0, dataOffset,
 			{}, {},
-			nullptr, 0, vec4(0), 0,
+			nullptr, 0, vec4((float)lod, 0, 0, 0), sizeof(vec4),
 			grass->material.textures, grass->material.samplers, grass->material.vertexSampler, grass->material.numTextures,
 			game->grassShader, game->grassShadowShader,
 			transform, 0);

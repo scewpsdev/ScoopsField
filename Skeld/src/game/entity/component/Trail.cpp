@@ -188,6 +188,7 @@ void RenderTrail(Trail* trail)
 		&trail->vertexBuffer, 1,
 		nullptr,
 		trail->numNodes * 2, 1,
+		0, 0, 0,
 		trail->boundingBox, trail->boundingSphere,
 		&params, sizeof(params),
 		vec4(0), 0,

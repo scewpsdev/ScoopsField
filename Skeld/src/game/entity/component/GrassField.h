@@ -8,7 +8,8 @@
 #include <SDL3/SDL.h>
 
 
-#define MAX_GRASS_BLADES 128 // max grass blades per tile
+#define MAX_GRASS_BLADES 256 // max grass blades per tile
+#define MAX_GRASS_LOD 2
 
 
 struct Terrain;

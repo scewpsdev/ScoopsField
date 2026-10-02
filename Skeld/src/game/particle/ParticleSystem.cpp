@@ -454,6 +454,7 @@ static void RenderParticleEmitter(ParticleSystem* particles, ParticleEmitter* em
 			buffers, 6,
 			nullptr,
 			4, emitter->numParticles,
+			0, 0, 0,
 			emitter->boundingBox, emitter->boundingSphere,
 			params, sizeof(params),
 			vec4(0), 0,

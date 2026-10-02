@@ -257,28 +257,31 @@ static void GenerateGrassData(Random& random)
 	layout.attributes[0].location = 5;
 	layout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
 	layout.perInstance = true;
-	game->grassInstances = CreateVertexBuffer(TERRAIN_TILES * MAX_GRASS_BLADES, &layout, 0);
+	game->grassInstances = CreateVertexBuffer(TERRAIN_TILES * MAX_GRASS_BLADES * 2, &layout, 0);
 
-	game->grassBlades = (GrassBladeData*)SDL_malloc(TERRAIN_TILES * MAX_GRASS_BLADES * sizeof(GrassBladeData));
+	game->grassBlades = (GrassBladeData*)SDL_malloc(TERRAIN_TILES * MAX_GRASS_BLADES * 2 * sizeof(GrassBladeData));
 	game->numGrassBlades = 0;
 
 	// generate grass
-	for (int z = 0; z < TERRAIN_TILES_X; z++)
+	for (int lod = 0; lod <= MAX_GRASS_LOD; lod++)
 	{
-		for (int x = 0; x < TERRAIN_TILES_X; x++)
+		for (int z = 0; z < TERRAIN_TILES_X; z++)
 		{
-			for (int i = 0; i < MAX_GRASS_BLADES; i++)
+			for (int x = 0; x < TERRAIN_TILES_X; x++)
 			{
-				float xx = x * TERRAIN_TILE_SIZE;
-				float zz = z * TERRAIN_TILE_SIZE;
+				int numGrassBlades = MAX_GRASS_BLADES / ipow(4, lod);
+				for (int i = 0; i < numGrassBlades; i++)
+				{
+					float xx = x * TERRAIN_TILE_SIZE;
+					float zz = z * TERRAIN_TILE_SIZE;
 
-				vec2 offset = vec2(random.nextFloat(), random.nextFloat()) * TERRAIN_TILE_SIZE;
-				vec2 position = vec2(xx + offset.x, zz + offset.y);
-				float rotation = random.nextFloat() * 2 * PI;
-				float scale = mix(0.8f, 1.6f, random.nextFloat());
+					vec2 offset = vec2(random.nextFloat(), random.nextFloat()) * TERRAIN_TILE_SIZE;
+					vec2 position = vec2(xx + offset.x, zz + offset.y);
+					float rotation = random.nextFloat() * 2 * PI;
+					float scale = mix(0.8f, 1.6f, random.nextFloat());
 
-				game->grassBlades[game->numGrassBlades++].data = vec4(position, rotation, scale);
-
+					game->grassBlades[game->numGrassBlades++].data = vec4(position, rotation, scale);
+				}
 			}
 		}
 	}

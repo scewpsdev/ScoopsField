@@ -47,6 +47,7 @@ struct MeshDrawData
 	IndexBuffer* indexBuffer;
 
 	int vertexCount, indexCount, instanceCount;
+	int vertexOffset, indexOffset, instanceOffset;
 
 	AABB boundingBox;
 	Sphere boundingSphere;
@@ -251,6 +252,7 @@ void RenderMesh(Renderer* renderer,
 	VertexBuffer* vertexBuffers[], int numVertexBuffers,
 	IndexBuffer* indexBuffer,
 	int vertexCount, int instanceCount,
+	int vertexOffset, int indexOffset, int instanceOffset,
 	AABB boundingBox, Sphere boundingSphere,
 	vec4 uniformData[4], int uniformDataSize,
 	vec4 vertexUniformData, int vertexUniformDataSize,
