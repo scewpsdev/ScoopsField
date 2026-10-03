@@ -1111,8 +1111,11 @@ static void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, Graph
 	data.indexCount = mesh->indexCount;
 	data.instanceCount = instanceCount;
 
-	data.boundingBox = mesh->boundingBox;
-	data.boundingSphere = mesh->boundingSphere;
+	if (instanceCount == 1)
+	{
+		data.boundingBox = mesh->boundingBox;
+		data.boundingSphere = mesh->boundingSphere;
+	}
 
 	data.uniformData[0] = material->data0;
 	data.uniformData[1] = material->data1;
@@ -1228,8 +1231,7 @@ void RenderInstancedModel(Renderer* renderer, Model* model, GraphicsPipeline* sh
 	//GetFrustumPlanes(game->pv, frustumPlanes);
 	//if (FrustumCulling(boundingBox, frustumPlanes))
 	{
-		//uint32_t flags = MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP | MESH_DRAW_FLAG_RENDER_TO_REFLECTION;
-		uint32_t flags = 0;
+		uint32_t flags = MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP | MESH_DRAW_FLAG_RENDER_TO_REFLECTION;
 		RenderInstancedModelNode(renderer, model, &model->nodes[0], shader, shadowShader, material, instanceBuffer, instanceCount, transform, flags);
 	}
 }
@@ -1741,7 +1743,8 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 			MeshDrawData* mesh = &renderer->meshes[i];
 			if (!mesh->shader)
 			{
-				SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
+				if (mesh->instanceCount > 1 ? FrustumCulling(mesh->boundingBox, frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
+					SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
 			}
 		}
 
@@ -1750,8 +1753,11 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 			MeshDrawData* mesh = &renderer->meshes[i];
 			if (mesh->shader)
 			{
-				SDL_BindGPUGraphicsPipeline(renderPass, mesh->shader->pipeline);
-				SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
+				if (mesh->instanceCount > 1 ? FrustumCulling(mesh->boundingBox, frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
+				{
+					SDL_BindGPUGraphicsPipeline(renderPass, mesh->shader->pipeline);
+					SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
+				}
 			}
 		}
 
@@ -1768,7 +1774,10 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		for (int i = 0; i < renderer->terrains.size; i++)
 		{
 			MeshDrawData* mesh = &renderer->terrains[i];
-			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
+			if (FrustumCulling(mesh->boundingBox, frustumPlanes))
+			{
+				SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
+			}
 		}
 
 		SDL_EndGPURenderPass(renderPass);

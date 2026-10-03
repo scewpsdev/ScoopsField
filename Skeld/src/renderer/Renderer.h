@@ -227,7 +227,7 @@ struct Renderer
 	List<MeshDrawData, MAX_MESH_DRAWS> meshes;
 #define MAX_ANIMATED_MESH_DRAWS 64
 	List<MeshDrawData, MAX_MESH_DRAWS> animatedMeshes;
-#define MAX_TERRAINS 16
+#define MAX_TERRAINS 64
 	List<MeshDrawData, MAX_TERRAINS> terrains;
 #define MAX_FORWARD_MESH_DRAWS 64
 	List<MeshDrawData, MAX_FORWARD_MESH_DRAWS> forwardMeshes;

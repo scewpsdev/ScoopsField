@@ -18,6 +18,8 @@ struct GrassField : EntityBase
 {
 	Terrain* terrain;
 
+	Model* lodModel;
+	Model* lodModel2;
 	Material material;
 };
 

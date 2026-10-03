@@ -1,7 +1,7 @@
 #version 460
 
 layout (location = 0) in float a_height;
-layout (location = 1) in vec3 a_normal;
+layout (location = 1) in vec2 a_normal;
 
 layout (location = 0) out vec3 v_normal;
 layout (location = 1) out vec2 v_texcoord;
@@ -15,7 +15,7 @@ layout(std140, set = 1, binding = 0) uniform UniformBlock {
 };
 
 #define TILE_SIZE 2.0
-#define VERTICES 33
+#define VERTICES 17
 
 
 void main()
@@ -26,7 +26,8 @@ void main()
 
 	gl_Position = u_projectionViewModel * vec4(position, 1);
 
-	vec4 viewSpaceNormal = u_model * vec4(a_normal, 0);
+	vec3 normal = normalize(vec3(a_normal.x, 1, a_normal.y));
+	vec4 viewSpaceNormal = u_model * vec4(normal, 0);
 
 	vec2 texcoord = position.xz / 5;
 

@@ -99,6 +99,7 @@ struct GameState
 	Texture* vignette;
 	Texture* roundCounter;
 	Texture* digits;
+	Texture* perlin;
 
 	GraphicsPipeline* magicProjectileShader;
 	GraphicsPipeline* trailShader;

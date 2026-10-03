@@ -11,10 +11,24 @@ void InitGrassField(GrassField* grass, Terrain* terrain)
 	grass->terrain = terrain;
 
 	grass->model = GetModel("models/grass_blade.glb");
+	grass->lodModel = GetModel("models/grass_blade_lod.glb");
+	grass->lodModel2 = GetModel("models/grass_blade_lod2.glb");
+
 	grass->material = {};
+
 	grass->material.textures[0] = terrain->heightmap;
 	grass->material.samplers[0] = TEXTURE_SAMPLER_LINEAR_CLAMPED;
 	grass->material.vertexSampler[0] = true;
+	grass->material.numTextures++;
+
+	grass->material.textures[1] = terrain->normalmap;
+	grass->material.samplers[1] = TEXTURE_SAMPLER_LINEAR_CLAMPED;
+	grass->material.vertexSampler[1] = true;
+	grass->material.numTextures++;
+
+	grass->material.textures[2] = game->perlin;
+	grass->material.samplers[2] = TEXTURE_SAMPLER_LINEAR;
+	grass->material.vertexSampler[2] = true;
 	grass->material.numTextures++;
 }
 
@@ -55,18 +69,15 @@ void RenderGrassField(GrassField* grass)
 
 	if (lod <= MAX_GRASS_LOD)
 	{
-		int numGrassBlades = TERRAIN_TILES * MAX_GRASS_BLADES / ipow(4, lod);
+		int numGrassBlades = TERRAIN_TILES * MAX_GRASS_BLADES / ipow(2, lod);
 		int dataOffset = 0;
 		for (int i = 0; i < lod; i++)
-			dataOffset += TERRAIN_TILES * MAX_GRASS_BLADES / ipow(4, i);
+			dataOffset += TERRAIN_TILES * MAX_GRASS_BLADES / ipow(2, i);
 
 		//grass->material.vertexShaderData[0] = (float)lod;
 		//RenderInstancedModel(&game->renderer, grass->model, game->grassShader, game->grassShadowShader, &grass->material, game->grassInstances, numGrassBlades, ModelMatrix((Entity*)grass));
 
-		// todo use simpler model for higher lods
-		// frustum culling
-
-		Mesh* mesh = &grass->model->meshes[0];
+		Mesh* mesh = lod == 0 ? &grass->model->meshes[0] : &grass->lodModel->meshes[0];
 		VertexBuffer* buffers[2] = {mesh->positionBuffer, game->grassInstances};
 		mat4 transform = ModelMatrix((Entity*)grass);
 		RenderMesh(&game->renderer,
@@ -74,8 +85,8 @@ void RenderGrassField(GrassField* grass)
 			mesh->indexBuffer,
 			mesh->vertexCount, numGrassBlades,
 			0, 0, dataOffset,
-			{}, {},
-			nullptr, 0, vec4((float)lod, 0, 0, 0), sizeof(vec4),
+			grass->terrain->boundingBox, grass->terrain->boundingSphere,
+			nullptr, 0, vec4(grass->terrain->tilex * TERRAIN_SIZE, grass->terrain->tilez * TERRAIN_SIZE, (float)lod, 0), sizeof(vec4),
 			grass->material.textures, grass->material.samplers, grass->material.vertexSampler, grass->material.numTextures,
 			game->grassShader, game->grassShadowShader,
 			transform, 0);

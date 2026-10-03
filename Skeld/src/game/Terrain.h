@@ -8,7 +8,7 @@
 #include "math/Shape.h"
 
 
-#define TERRAIN_TILES_X 32
+#define TERRAIN_TILES_X 16
 #define TERRAIN_TILES (TERRAIN_TILES_X * TERRAIN_TILES_X)
 #define TERRAIN_VERTICES_X (TERRAIN_TILES_X + 1)
 #define TERRAIN_VERTICES (TERRAIN_VERTICES_X * TERRAIN_VERTICES_X)
@@ -25,12 +25,13 @@ struct Terrain
 	int tilex, tilez;
 
 	float* heights;
-	vec3* normals;
+	vec2* normals;
 
 	VertexBuffer* heightBuffer;
 	VertexBuffer* normalBuffer;
 	IndexBuffer* indexBuffer;
 	Texture* heightmap;
+	Texture* normalmap;
 
 	AABB boundingBox;
 	Sphere boundingSphere;
@@ -52,6 +53,6 @@ struct Terrain
 };
 
 
-void InitTerrain(Terrain* terrain, int tilex, int tilez, float* heights, vec3* normals, short* indices, SDL_GPUCommandBuffer* cmdBuffer);
+void InitTerrain(Terrain* terrain, int tilex, int tilez, float* heights, vec2* normals, short* indices, SDL_GPUCommandBuffer* cmdBuffer);
 
 void RenderTerrain(Terrain* terrain);

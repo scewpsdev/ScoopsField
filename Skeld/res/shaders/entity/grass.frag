@@ -2,6 +2,10 @@
 
 #include "../common.glsl"
 
+layout (location = 0) in vec3 v_normal;
+layout (location = 1) in vec3 v_color;
+layout (location = 2) in float v_roughness;
+
 layout (location = 0) out vec4 out_normal;
 layout (location = 1) out vec3 out_color;
 layout (location = 2) out vec4 out_material;
@@ -35,8 +39,11 @@ void main()
 	float roughness = 1; //mix(roughnessFactor, texture(s_roughness, v_texcoord).g, hasRoughness);
 	float metallic = 0; //mix(metallicFactor, texture(s_metallic, v_texcoord).b, hasMetallic);
 
-	out_normal = vec4(vec3(0, 1, 0) * 0.5 + 0.5, emissiveStrength);
-	out_color = vec3(0.3, 0.4, 0.2);
-	out_material = vec4(roughness, metallic, 0, 0);
+	// dont need this because we're flipping in view space in the vertex shader
+	//vec3 normal = gl_FrontFacing ? v_normal : v_normal;
+
+	out_normal = vec4(v_normal * 0.5 + 0.5, emissiveStrength);
+	out_color = v_color;
+	out_material = vec4(v_roughness, metallic, 0, 0);
 	out_emissive = vec4(linearToSRGB(emissiveColor), 0);
 }

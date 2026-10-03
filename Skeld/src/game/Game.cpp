@@ -168,7 +168,7 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 	float worldz = tilez * TERRAIN_SIZE;
 
 	float* terrainVertices = (float*)BumpAllocatorMalloc(&memory->transientAllocator, TERRAIN_VERTICES * sizeof(float));
-	vec3* terrainNormals = (vec3*)BumpAllocatorMalloc(&memory->transientAllocator, TERRAIN_VERTICES * sizeof(vec3));
+	vec2* terrainNormals = (vec2*)BumpAllocatorMalloc(&memory->transientAllocator, TERRAIN_VERTICES * sizeof(vec2));
 	short* terrainIndices = (short*)BumpAllocatorMalloc(&memory->transientAllocator, TERRAIN_TILES * 6 * sizeof(short));
 	for (int z = 0; z < TERRAIN_VERTICES_X; z++)
 	{
@@ -194,11 +194,10 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 			float frontHeight = z > 0 ? terrainVertices[x + (z - 1) * TERRAIN_VERTICES_X] : sampleTerrainHeight(xx, zz - TERRAIN_TILE_SIZE);
 			float backHeight = z < TERRAIN_VERTICES_X - 1 ? terrainVertices[x + (z + 1) * TERRAIN_VERTICES_X] : sampleTerrainHeight(xx, zz + TERRAIN_TILE_SIZE);
 
-			float nx = leftHeight - rightHeight;
-			float ny = TERRAIN_TILE_SIZE;
-			float nz = frontHeight - backHeight;
+			float nx = (leftHeight - rightHeight) / TERRAIN_TILE_SIZE;
+			float nz = (frontHeight - backHeight) / TERRAIN_TILE_SIZE;
 
-			terrainNormals[x + z * TERRAIN_VERTICES_X] = vec3(nx, ny, nz).normalized();
+			terrainNormals[x + z * TERRAIN_VERTICES_X] = vec2(nx, nz).normalized();
 		}
 	}
 	for (int z = 0; z < TERRAIN_TILES_X; z++)
@@ -269,7 +268,7 @@ static void GenerateGrassData(Random& random)
 		{
 			for (int x = 0; x < TERRAIN_TILES_X; x++)
 			{
-				int numGrassBlades = MAX_GRASS_BLADES / ipow(4, lod);
+				int numGrassBlades = MAX_GRASS_BLADES / ipow(2, lod);
 				for (int i = 0; i < numGrassBlades; i++)
 				{
 					float xx = x * TERRAIN_TILE_SIZE;
@@ -278,7 +277,7 @@ static void GenerateGrassData(Random& random)
 					vec2 offset = vec2(random.nextFloat(), random.nextFloat()) * TERRAIN_TILE_SIZE;
 					vec2 position = vec2(xx + offset.x, zz + offset.y);
 					float rotation = random.nextFloat() * 2 * PI;
-					float scale = mix(0.8f, 1.6f, random.nextFloat());
+					float scale = mix(0.7f, 1.3f, random.nextFloat());
 
 					game->grassBlades[game->numGrassBlades++].data = vec4(position, rotation, scale);
 				}
@@ -361,9 +360,9 @@ static void ResetGame(bool destroy, bool init)
 
 		// todo generate terrain
 		Random random = Random(12345);
-		for (int z = -2; z < 2; z++)
+		for (int z = -4; z < 4; z++)
 		{
-			for (int x = -2; x < 2; x++)
+			for (int x = -4; x < 4; x++)
 			{
 				GenerateTerrain(&game->terrains[game->numTerrains++], x, z, random);
 			}
@@ -541,6 +540,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	game->vignette = LoadTexture("res/textures/vignette.png.bin", cmdBuffer);
 	game->roundCounter = LoadTexture("res/textures/counter.png.bin", cmdBuffer);
 	game->digits = LoadTexture("res/textures/digits.png.bin", cmdBuffer);
+	game->perlin = LoadTexture("res/textures/perlin.png.bin", cmdBuffer);
 
 	game->magicProjectileShader = CreateForwardGraphicsPipeline(
 		LoadGraphicsShader("res/shaders/entity/magic_projectile.vert.bin", "res/shaders/entity/magic_projectile.frag.bin"),
@@ -693,6 +693,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 
 #ifdef _DEBUG
 	AddHotReloadedShader("shaders/mesh.vert", "shaders/mesh.frag", game->renderer.defaultShader, game->renderer.geometryPipeline);
+	AddHotReloadedShader("shaders/entity/grass.vert", "shaders/entity/grass.frag", game->grassShader->pipelineInfo.shader, game->grassShader);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/shadow.frag", game->renderer.shadowShader, game->renderer.shadowPipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/blurh.frag", game->renderer.blurHShader, game->renderer.blurHPipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/blurv.frag", game->renderer.blurVShader, game->renderer.blurVPipeline);

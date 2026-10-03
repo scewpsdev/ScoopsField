@@ -255,6 +255,9 @@ bool FrustumCulling(const AABB& boundingBox, vec4 planes[6])
 	vec3 center = (boundingBox.min + boundingBox.max) * 0.5f;
 	vec3 extents = boundingBox.max - center;
 
+	if (extents.x * extents.y * extents.z == 0) // invalid bounding box
+		return true;
+
 	for (int i = 0; i < 6; i++)
 	{
 		float projectionRadius = dot(extents, abs(planes[i].xyz));
@@ -270,6 +273,9 @@ bool FrustumCulling(const Sphere& boundingSphere, vec4 planes[6])
 {
 	vec3 boundingSpherePos = boundingSphere.center;
 	float boundingSphereRadius = boundingSphere.radius;
+
+	if (boundingSphereRadius == 0) // invalid bounding sphere
+		return true;
 
 	for (int i = 0; i < 6; i++)
 	{
@@ -287,6 +293,9 @@ bool FrustumCulling(const Sphere& boundingSphere, mat4 transform, vec4 planes[6]
 	vec4 boundingSpherePos = (transform * vec4(boundingSphere.center, 1.0f));
 	vec3 scale = transform.scale();
 	float boundingSphereRadius = max(max(scale.x, scale.y), scale.z) * boundingSphere.radius;
+
+	if (boundingSphereRadius == 0) // invalid bounding sphere
+		return true;
 
 	for (int i = 0; i < 6; i++)
 	{

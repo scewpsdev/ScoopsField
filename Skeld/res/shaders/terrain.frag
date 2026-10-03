@@ -38,7 +38,8 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 void main()
 {
 	vec4 textureColor = texture(s_diffuse, v_texcoord);
-	textureColor.rgb *= vec3(0.5, 0.7, 0.3);
+	//textureColor.rgb *= vec3(0.5, 0.7, 0.3) * 0.5;
+	textureColor.rgb *= vec3(0.35, 0.5, 0.2) * 1.3 * 0.5;
 	//textureColor.rgb = SRGBToLinear(mix(vec3(1), textureColor.rgb, hasDiffuse));
 
 	//float roughness = mix(roughnessFactor, texture(s_roughness, v_texcoord).g, hasRoughness);

@@ -9,6 +9,7 @@
 
 
 #define PI 3.14159265359f
+#define SQRT2 1.41421356237f
 #define Deg2Rad (PI / 180.0f)
 #define Rad2Deg (180.0f / PI)
 
