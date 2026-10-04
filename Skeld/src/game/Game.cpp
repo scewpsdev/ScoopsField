@@ -194,10 +194,10 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 			float frontHeight = z > 0 ? terrainVertices[x + (z - 1) * TERRAIN_VERTICES_X] : sampleTerrainHeight(xx, zz - TERRAIN_TILE_SIZE);
 			float backHeight = z < TERRAIN_VERTICES_X - 1 ? terrainVertices[x + (z + 1) * TERRAIN_VERTICES_X] : sampleTerrainHeight(xx, zz + TERRAIN_TILE_SIZE);
 
-			float nx = (leftHeight - rightHeight) / TERRAIN_TILE_SIZE;
-			float nz = (frontHeight - backHeight) / TERRAIN_TILE_SIZE;
+			float nx = leftHeight - rightHeight;
+			float nz = frontHeight - backHeight;
 
-			terrainNormals[x + z * TERRAIN_VERTICES_X] = vec2(nx, nz).normalized();
+			terrainNormals[x + z * TERRAIN_VERTICES_X] = vec3(nx, TERRAIN_TILE_SIZE, nz).normalized().xz();
 		}
 	}
 	for (int z = 0; z < TERRAIN_TILES_X; z++)
@@ -268,7 +268,7 @@ static void GenerateGrassData(Random& random)
 		{
 			for (int x = 0; x < TERRAIN_TILES_X; x++)
 			{
-				int numGrassBlades = MAX_GRASS_BLADES / ipow(2, lod);
+				int numGrassBlades = MAX_GRASS_BLADES / ipow(4, lod);
 				for (int i = 0; i < numGrassBlades; i++)
 				{
 					float xx = x * TERRAIN_TILE_SIZE;
@@ -343,7 +343,7 @@ static void ResetGame(bool destroy, bool init)
 	{
 		game->gameTime = 0.0f;
 
-		//game->ambientSource = PlaySound(&game->ambientSound, 0.5f);
+		game->ambientSource = PlaySound(&game->ambientSound, 5);
 
 		game->cameraPosition = vec3(0, 0, 3);
 		game->cameraRotation = quat::Identity;
@@ -797,6 +797,9 @@ void GameUpdate()
 	if (app->keys[SDL_SCANCODE_ESCAPE] && !app->lastKeys[SDL_SCANCODE_ESCAPE])
 		game->mouseLocked = !game->mouseLocked;
 
+	if (app->keys[SDL_SCANCODE_F11] && !app->lastKeys[SDL_SCANCODE_F11])
+		SDL_SetWindowFullscreen(window, game->fullscreen = !game->fullscreen);
+
 	SDL_SetWindowRelativeMouseMode(window, game->mouseLocked);
 
 	UpdatePlayer(&game->player);
@@ -927,8 +930,8 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	//vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.1f) * vec3(1, 0, 0);
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -20 * 0.1f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.05f) * vec3(1, 0, 0);
+	//vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -20 * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
 	//sunDirection = vec3(0.5f, -1, -1).normalized();

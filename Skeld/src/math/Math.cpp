@@ -290,12 +290,12 @@ bool FrustumCulling(const Sphere& boundingSphere, vec4 planes[6])
 
 bool FrustumCulling(const Sphere& boundingSphere, mat4 transform, vec4 planes[6])
 {
+	if (boundingSphere.radius == 0) // invalid bounding sphere
+		return true;
+
 	vec4 boundingSpherePos = (transform * vec4(boundingSphere.center, 1.0f));
 	vec3 scale = transform.scale();
 	float boundingSphereRadius = max(max(scale.x, scale.y), scale.z) * boundingSphere.radius;
-
-	if (boundingSphereRadius == 0) // invalid bounding sphere
-		return true;
 
 	for (int i = 0; i < 6; i++)
 	{

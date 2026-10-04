@@ -114,7 +114,7 @@ float upsampleShadowBuffer(vec2 uv, float depth)
 	//getShadowSample(uv + 0.5 * vec2(-texel.x, texel.y), depth, texel, shadow, sum);
 	//getShadowSample(uv + 0.5 * vec2(texel.x, -texel.y), depth, texel, shadow, sum);
 
-	shadow = sum > 0 ? shadow / sum : 1;
+	shadow = sum > 0 ? shadow / sum : 0;
 
 	return shadow;
 }

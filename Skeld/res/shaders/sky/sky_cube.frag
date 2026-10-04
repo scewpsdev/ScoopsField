@@ -70,6 +70,25 @@ void main()
 	vec3 dir = reconstructView(v_texcoord, projectionInv, viewInv); // view space direction
 
 	vec3 color = sampleSkyViewLUT(dir);
+	color = max(color, vec3(0.5, 0.5, 1) * 0.0001);
+
+	// moon
+	//float moonIntensity = 3.0;
+	//vec3 moonColor = vec3(1) * moonIntensity;
+	vec3 toMoon = lightDirection;
+	//float moonSize = mix(0.0014, 0.001, max(dot(toMoon, vec3(0, 1, 0)), 0));
+	//float moonAlpha = smoothstep(1 - moonSize, 1, dot(dir, toMoon)) * smoothstep(-0.005, 0.002, dir.y);
+	//float shadowSize = moonSize * 1.05;
+	vec3 toMoonShadow = normalize(toMoon + vec3(-0.02, -0.01, 0));
+	//float shadowAlpha = smoothstep(1 - shadowSize, 1 - 0.5 * shadowSize, dot(dir, toMoonShadow)) * smoothstep(-0.005, 0.002, dir.y);
+	//moonAlpha = max(moonAlpha - shadowAlpha, 0);
+	//color = mix(color, moonColor, moonAlpha);
+
+	// moon glow
+	vec3 moonScatter = vec3(0.45, 0.55, 0.70) * 0.02;
+	float moonScatterSize = 0.1;
+	float moonScatterAlpha = pow(smoothstep(1 - 0.1, 1, dot(dir, toMoonShadow)), 10) * smoothstep(-0.005, 0.002, dir.y);
+	color += moonScatter * moonScatterAlpha;
 
 	vec4 cloudColor = clouds(cameraPosition, dir, lightDirection, 0, 2, 16);
 	color = mix(color, cloudColor.rgb, cloudColor.a);

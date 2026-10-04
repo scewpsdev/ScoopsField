@@ -141,9 +141,9 @@ int GetMouseScroll()
 
 void DebugTextEx(int x, int y, const char* txt, int len, uint32_t color, uint32_t bgcolor)
 {
-	//#ifdef _DEBUG
+#ifdef _DEBUG
 	DebugTextRendererSubmit(&app->debugTextRenderer, x, y, txt, len, color, bgcolor);
-	//#endif
+#endif
 }
 
 void DebugText(int x, int y, uint32_t color, uint32_t bgcolor, const char* fmt, ...)
@@ -222,7 +222,7 @@ void GUIPanel(int x, int y, Texture* texture)
 static void CompileResources()
 {
 #ifdef _DEBUG
-	int result = system("D:\\Dev\\Rainfall\\RainfallResourceCompiler\\bin\\x64\\Release\\RainfallResourceCompiler.exe " PROJECT_PATH "\\res res png hdr ogg vsh fsh csh glsl vert frag comp ttf rfs gltf glb");
+	int result = system("D:\\Dev\\Rainfall\\RainfallResourceCompiler\\bin\\x64\\Release\\RainfallResourceCompiler.exe " PROJECT_PATH "\\res res png hdr ogg vsh fsh csh glsl vert frag comp ttf rfs gltf glb --optimize");
 	//SDL_assert(result == 0);
 #endif
 }
@@ -324,10 +324,10 @@ static void InitAppState()
 
 	SDL_Log("SDL %s", SDL_GetRevision());
 
-	const char* title = "ScoopsField";
+	const char* title = "Grass";
 	int width = 1280;
 	int height = 720;
-	SDL_Window* window = SDL_CreateWindow(title, width, height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN /*| SDL_WINDOW_MAXIMIZED*/);
+	SDL_Window* window = SDL_CreateWindow(title, width, height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_MAXIMIZED);
 	if (!window)
 	{
 		SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Failed to create window: %s", SDL_GetError());

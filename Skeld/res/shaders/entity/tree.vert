@@ -30,22 +30,24 @@ void main()
 
 	// wind
 
+	float windStrength = 3.0;
+
 	float heightMask = max(a_position.y, 0) * 0.25;
 	heightMask = heightMask * heightMask;
 	vec3 windDirection = vec3(0.7, 0, 0.7);
 
 	float trunkWave = sin(u_time * 0.7 + (a_position.x + a_position.z) * 0.02);
-	worldPosition.xyz += windDirection * trunkWave * heightMask * 0.1;
+	worldPosition.xyz += windDirection * trunkWave * heightMask * 0.1 * windStrength;
 
 	float wave1 = sin(u_time * 1.5 + (a_position.x + a_position.z) * 0.5);
 	float wave2 = cos(u_time * 1.5 * 1.8 + (a_position.x - a_position.z) * 0.5 * 1.5);
 	float wind = wave1 * 0.7 + wave2 * 0.3;
 	float leafMask = min(a_position.x * a_position.x + a_position.z * a_position.z, 1);
-	worldPosition.xyz += windDirection * wind * heightMask * leafMask * 0.05;
+	worldPosition.xyz += windDirection * wind * heightMask * leafMask * 0.05 * windStrength;
 
 	float leafFlutter = sin(u_time * 10.0 + a_position.x * 5.0);
 	float flutterMask = min((a_position.x * a_position.x + a_position.z * a_position.z) * 0.2, 1);
-    worldPosition.xyz += leafFlutter * heightMask * flutterMask * 0.0025;
+    worldPosition.xyz += leafFlutter * heightMask * flutterMask * 0.0025 * windStrength;
 
 	gl_Position = u_projection * u_view * worldPosition;
 

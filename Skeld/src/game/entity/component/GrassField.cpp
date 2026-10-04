@@ -64,20 +64,20 @@ static float DistanceToTerrain(Terrain* terrain, vec3 position)
 void RenderGrassField(GrassField* grass)
 {
 	float distance = DistanceToTerrain(grass->terrain, game->cameraPosition);
-	float lodDistance = 0.5f * TERRAIN_SIZE;
+	float lodDistance = 0.75f * TERRAIN_SIZE;
 	int lod = (int)log2f(max(SDL_ceilf(distance / lodDistance), 1.0f));
 
 	if (lod <= MAX_GRASS_LOD)
 	{
-		int numGrassBlades = TERRAIN_TILES * MAX_GRASS_BLADES / ipow(2, lod);
+		int numGrassBlades = TERRAIN_TILES * MAX_GRASS_BLADES / ipow(4, lod);
 		int dataOffset = 0;
 		for (int i = 0; i < lod; i++)
-			dataOffset += TERRAIN_TILES * MAX_GRASS_BLADES / ipow(2, i);
+			dataOffset += TERRAIN_TILES * MAX_GRASS_BLADES / ipow(4, i);
 
 		//grass->material.vertexShaderData[0] = (float)lod;
 		//RenderInstancedModel(&game->renderer, grass->model, game->grassShader, game->grassShadowShader, &grass->material, game->grassInstances, numGrassBlades, ModelMatrix((Entity*)grass));
 
-		Mesh* mesh = lod == 0 ? &grass->model->meshes[0] : &grass->lodModel->meshes[0];
+		Mesh* mesh = lod == 0 ? &grass->model->meshes[0] : lod <= 2 ? &grass->lodModel->meshes[0] : &grass->lodModel2->meshes[0];
 		VertexBuffer* buffers[2] = {mesh->positionBuffer, game->grassInstances};
 		mat4 transform = ModelMatrix((Entity*)grass);
 		RenderMesh(&game->renderer,

@@ -6,8 +6,8 @@
 
 static void OnStep(Player* player)
 {
-	//PlaySound(&game->stepSound, (player->lastStepIdx % 2 * 2 - 1) * 0.2f, 0.5f);
-	PlaySound(&game->stepBareSound, (player->lastStepIdx % 2 * 2 - 1) * 0.2f, 0.5f);
+	PlaySound(&game->stepSound, (player->lastStepIdx % 2 * 2 - 1) * 0.2f, 0.5f);
+	//PlaySound(&game->stepBareSound, (player->lastStepIdx % 2 * 2 - 1) * 0.2f, 0.5f);
 }
 
 static void OnLand(Player* player)

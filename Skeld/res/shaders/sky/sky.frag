@@ -119,6 +119,7 @@ void main()
 	else
 	{
 		vec3 color = sampleSkyViewLUT(dir);
+		color = max(color, vec3(0.5, 0.5, 1) * 0.00003);
 
 		vec3 pos = cameraPosition + vec3(0, planetRadius, 0);
 		float height = length(pos);
@@ -133,6 +134,24 @@ void main()
 		float sunSize = mix(0.0014, 0.001, max(dot(toLight, vec3(0, 1, 0)), 0));
 		float sunAlpha = smoothstep(1 - sunSize, 1.0, dot(dir, toLight)) * smoothstep(-0.005, 0.002, dir.y);
 		color = mix(color, sunColor, sunAlpha);
+
+		// moon
+		float moonIntensity = 0.01;
+		vec3 moonColor = vec3(1) * moonIntensity;
+		vec3 toMoon = -toLight;
+		float moonSize = mix(0.0007, 0.0005, max(dot(toMoon, vec3(0, 1, 0)), 0));
+		float moonAlpha = smoothstep(1 - moonSize, 1, dot(dir, toMoon)) * smoothstep(-0.005, 0.002, dir.y);
+		//float shadowSize = moonSize * 1.05;
+		//vec3 toMoonShadow = normalize(toMoon + vec3(-0.02, -0.01, 0));
+		//float shadowAlpha = smoothstep(1 - shadowSize, 1 - 0.5 * shadowSize, dot(dir, toMoonShadow)) * smoothstep(-0.005, 0.002, dir.y);
+		//moonAlpha = max(moonAlpha - shadowAlpha, 0);
+		color = mix(color, moonColor, moonAlpha);
+
+		// moon glow
+		//vec3 moonScatter = vec3(0.45, 0.55, 0.70) * 0.0002;
+		//float moonScatterSize = 0.1;
+		//float moonScatterAlpha = pow(smoothstep(1 - 0.1, 1, dot(dir, toMoonShadow)), 10) * smoothstep(-0.005, 0.002, dir.y);
+		//color += moonScatter * moonScatterAlpha;
 
 		// clouds
 		float noise = fract(bluenoise(gl_FragCoord.xy) + frameIdx * 0.61803398875) - 0.5;

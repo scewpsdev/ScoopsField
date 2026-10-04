@@ -115,14 +115,14 @@ void main()
 	float curveAmount = heightPercent * hash12(bladePosition) * 0.5;
 	vec3 vertexPosition = rotateX(vec3(a_position, 0), curveAmount);
 
-	vertexPosition.x *= pow(2, u_lod);
+	vertexPosition.x *= 2 * pow(4, u_lod);
 
 	vertexPosition = rotateY(vertexPosition, rotation);
 
-	//float windNoise = textureLod(s_perlin, bladePosition * 0.02 + u_time * 0.1, 0).r;
+	// wind
 	vec2 worldxz = u_terrainPosition + bladePosition;
 	float windNoise1 = snoise(worldxz * 0.25 + u_time * 0.3);
-	float windNoise2 = snoise(worldxz * 0.25 + (u_time - 0.2) * 0.3);
+	float windNoise2 = snoise(worldxz * 0.25 + (u_time - 0.3) * 0.3);
 	float windNoise = mix(windNoise1, windNoise2, heightPercent2);
 	float windLean = remap(windNoise, -1, 1, 0, 1) * heightPercent;
 	float windDir = snoise(-worldxz * 0.02 + 0.02 * u_time) * pi;
@@ -150,18 +150,18 @@ void main()
 
 	vec3 normal = vec3(0, 0, 1);
 	normal = rotateX(normal, curveAmount);
-	float normalBend = remap(a_position.x, -0.05, 0.05, -0.3 * pi, 0.3 * pi);
+	float normalBend = remap(a_position.x, -0.05, 0.05, -0.2 * pi, 0.2 * pi);
 	normal = rotateY(normal, rotation + normalBend);
 
 	vec3 view = -u_view[2].xyz;
-	if (dot(view, normal) > 0) normal *= -1;
+	//if (dot(view, normal) > 0) normal *= -1;
 
 	normal = normalize(mix(normal, terrainNormal, heightPercent2 * 0.7));
 
 	vec4 viewSpaceNormal = u_viewSpaceBuffer > 0.5 ? u_view * vec4(normal, 0) : vec4(normal, 0);
 	v_normal = viewSpaceNormal.xyz;
 
-	float specular = heightPercent4 * 0.3;
+	float specular = heightPercent2 * 0.3;
 	v_roughness = 1 - specular;
 	//v_roughness = VdotN;
 
@@ -171,8 +171,6 @@ void main()
 
 	float ao = mix(0.5, 1.0, heightPercent);
 	v_color = color * ao;
-
-	// wind
 
 	/*
 	float heightMask = max(a_position.y, 0) * 0.25;

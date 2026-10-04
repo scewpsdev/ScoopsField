@@ -40,9 +40,9 @@ void main()
 	float metallic = 0; //mix(metallicFactor, texture(s_metallic, v_texcoord).b, hasMetallic);
 
 	// dont need this because we're flipping in view space in the vertex shader
-	//vec3 normal = gl_FrontFacing ? v_normal : v_normal;
+	vec3 normal = gl_FrontFacing ? v_normal : -v_normal;
 
-	out_normal = vec4(v_normal * 0.5 + 0.5, emissiveStrength);
+	out_normal = vec4(normal * 0.5 + 0.5, emissiveStrength);
 	out_color = v_color;
 	out_material = vec4(v_roughness, metallic, 0, 0);
 	out_emissive = vec4(linearToSRGB(emissiveColor), 0);

@@ -140,10 +140,10 @@ static void RecalculateNormals(Terrain* terrain, int x0, int z0, int x1, int z1)
 			float frontHeight = terrain->heights[x + (z - 1) * TERRAIN_VERTICES_X];
 			float backHeight = terrain->heights[x + (z + 1) * TERRAIN_VERTICES_X];
 
-			float nx = (leftHeight - rightHeight) / TERRAIN_TILE_SIZE;
-			float nz = (frontHeight - backHeight) / TERRAIN_TILE_SIZE;
+			float nx = leftHeight - rightHeight;
+			float nz = frontHeight - backHeight;
 
-			terrain->normals[x + z * TERRAIN_VERTICES_X] = vec2(nx, nz).normalized();
+			terrain->normals[x + z * TERRAIN_VERTICES_X] = vec3(nx, TERRAIN_TILE_SIZE, nz).normalized().xz();
 		}
 	}
 }

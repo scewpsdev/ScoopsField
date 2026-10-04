@@ -161,6 +161,7 @@ static int AddBlock(Item* item, const char* name, const char* animation, AttackT
 
 static void InitWeapons(ItemDatabase* items)
 {
+#if 0
 	// kings sword
 	{
 		Item* item = &items->items[ITEM_KINGS_SWORD];
@@ -202,6 +203,7 @@ static void InitWeapons(ItemDatabase* items)
 
 		item->weapon.riposteSecondaryAttack = AddAttack(item, "riposte_secondary", "attack4", ATTACK_PRIMARY, 1.0f, 14, 20, 29, 1);
 	}
+#endif
 	// axe
 	{
 		Item* item = &items->items[ITEM_AXE];
@@ -223,6 +225,7 @@ static void InitWeapons(ItemDatabase* items)
 		item->weapon.riposteSecondaryAttack = AddAttack(item, "riposte_secondary", "attack_riposte3", ATTACK_SECONDARY, 1.0f, 13, 27, 31, 0.6f, nullptr, "attack_secondary_1");
 		item->weapon.attacks[item->weapon.riposteSecondaryAttack].resetHitboxTime = 23 / 24.0f;
 	}
+#if 0
 	// shortbow
 	{
 		Item* item = &items->items[ITEM_SHORTBOW];
@@ -254,6 +257,7 @@ static void InitWeapons(ItemDatabase* items)
 		Item* item = &items->items[ITEM_ARROW];
 		InitWeapon(items, item, "arrow", false, 50, vec2(), DAMAGE_TYPE_NONE);
 	}
+#endif
 }
 
 static void InitShield(ItemDatabase* items, Item* item, const char* name, bool twoHanded)
@@ -287,6 +291,7 @@ static void InitShield(ItemDatabase* items, Item* item, const char* name, bool t
 
 static void InitShields(ItemDatabase* items)
 {
+#if 0
 	// wooden shield
 	{
 		Item* item = &items->items[ITEM_WOODEN_SHIELD];
@@ -296,6 +301,7 @@ static void InitShields(ItemDatabase* items)
 
 		AddBlock(item, "block", "block", ATTACK_PRIMARY, 1, 6);
 	}
+#endif
 }
 
 void InitItemDatabase(ItemDatabase* items, SDL_GPUCommandBuffer* cmdBuffer)

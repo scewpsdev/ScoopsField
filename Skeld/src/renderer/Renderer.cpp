@@ -729,7 +729,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 		// normal
 		renderer->terrainLayout[1].numAttributes = 1;
 		renderer->terrainLayout[1].attributes[0].location = 1;
-		renderer->terrainLayout[1].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+		renderer->terrainLayout[1].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
 	}
 
 	InitScreenQuad(&renderer->screenQuad, cmdBuffer);
@@ -1111,7 +1111,7 @@ static void RenderMesh(Renderer* renderer, Mesh* mesh, Material* material, Graph
 	data.indexCount = mesh->indexCount;
 	data.instanceCount = instanceCount;
 
-	if (instanceCount == 1)
+	if (!instanceBuffer)
 	{
 		data.boundingBox = mesh->boundingBox;
 		data.boundingSphere = mesh->boundingSphere;
@@ -1686,7 +1686,7 @@ static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov, flo
 	}
 }
 
-static void Fog(Renderer* renderer)
+static void Fog(Renderer* renderer, mat4 pvInv, vec3 cameraPosition, vec3 sunDirection)
 {
 	SDL_GPUColorTargetInfo colorTarget = {};
 	colorTarget.load_op = SDL_GPU_LOADOP_LOAD;
@@ -1697,7 +1697,28 @@ static void Fog(Renderer* renderer)
 
 	SDL_BindGPUGraphicsPipeline(renderPass, renderer->fogPipeline->pipeline);
 
-	RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, &renderer->hdrTarget->depthAttachment, &renderer->samplers[TEXTURE_SAMPLER_DEFAULT], cmdBuffer);
+	struct UniformData
+	{
+		mat4 projectionViewInv;
+		vec4 params;
+		vec4 params2;
+	};
+
+	UniformData uniforms = {};
+	uniforms.projectionViewInv = pvInv;
+	uniforms.params = vec4(cameraPosition, 0);
+	uniforms.params2 = vec4(sunDirection, 0);
+	SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
+
+	SDL_GPUTexture* textures[2];
+	textures[0] = renderer->hdrTarget->depthAttachment;
+	textures[1] = renderer->skyCubemap->colorAttachments[0];
+
+	SDL_GPUSampler* samplers[2];
+	samplers[0] = renderer->samplers[TEXTURE_SAMPLER_DEFAULT];
+	samplers[1] = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
+
+	RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 2, textures, samplers, cmdBuffer);
 
 	SDL_EndGPURenderPass(renderPass);
 }
@@ -1722,6 +1743,16 @@ static void Fog(Renderer* renderer)
 // [ ] mesh instancing
 // [ ] better pbr (convolution, specular cubemaps)
 
+static bool IsInstanced(MeshDrawData* mesh)
+{
+	for (int i = 0; i < mesh->numVertexBuffers; i++)
+	{
+		if (mesh->vertexBuffers[i]->layout.perInstance)
+			return true;
+	}
+	return false;
+}
+
 void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, float near, float fov, float aspect, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], vec3 sunDirection, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	GPU_SCOPE("Scene");
@@ -1743,21 +1774,20 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 			MeshDrawData* mesh = &renderer->meshes[i];
 			if (!mesh->shader)
 			{
-				if (mesh->instanceCount > 1 ? FrustumCulling(mesh->boundingBox, frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
+				bool inFrustum = IsInstanced(mesh) ? FrustumCulling(mesh->boundingBox, frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes);
+				if (inFrustum)
 					SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
 			}
 		}
 
-		for (int i = 0; i < renderer->meshes.size; i++)
+		SDL_BindGPUGraphicsPipeline(renderPass, renderer->terrainPipeline->pipeline);
+
+		for (int i = 0; i < renderer->terrains.size; i++)
 		{
-			MeshDrawData* mesh = &renderer->meshes[i];
-			if (mesh->shader)
+			MeshDrawData* mesh = &renderer->terrains[i];
+			if (FrustumCulling(mesh->boundingBox, frustumPlanes))
 			{
-				if (mesh->instanceCount > 1 ? FrustumCulling(mesh->boundingBox, frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-				{
-					SDL_BindGPUGraphicsPipeline(renderPass, mesh->shader->pipeline);
-					SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
-				}
+				SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
 			}
 		}
 
@@ -1769,14 +1799,21 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
 		}
 
-		SDL_BindGPUGraphicsPipeline(renderPass, renderer->terrainPipeline->pipeline);
-
-		for (int i = 0; i < renderer->terrains.size; i++)
+		for (int i = 0; i < renderer->meshes.size; i++)
 		{
-			MeshDrawData* mesh = &renderer->terrains[i];
-			if (FrustumCulling(mesh->boundingBox, frustumPlanes))
+			MeshDrawData* mesh = &renderer->meshes[i];
+			if (mesh->shader)
 			{
-				SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
+				if (mesh->instanceCount == 1)
+				{
+					int a = 5;
+				}
+				bool inFrustum = IsInstanced(mesh) ? FrustumCulling(mesh->boundingBox, frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes);
+				if (inFrustum)
+				{
+					SDL_BindGPUGraphicsPipeline(renderPass, mesh->shader->pipeline);
+					SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
+				}
 			}
 		}
 
@@ -1870,7 +1907,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 	AmbientOcclusion(renderer, projection, fov, near);
 
-	Fog(renderer);
+	Fog(renderer, pvInv, cameraPosition, sunDirection);
 
 	AutoExposure(renderer, renderer->hdrTarget->colorAttachments[0]);
 	Bloom(renderer, renderer->hdrTarget->colorAttachments[0]);
