@@ -63,6 +63,9 @@ static float DistanceToTerrain(Terrain* terrain, vec3 position)
 
 void RenderGrassField(GrassField* grass)
 {
+	if (!grass->terrain->visible)
+		return;
+
 	float distance = DistanceToTerrain(grass->terrain, game->cameraPosition);
 	float lodDistance = 0.75f * TERRAIN_SIZE;
 	int lod = (int)log2f(max(SDL_ceilf(distance / lodDistance), 1.0f));
@@ -78,7 +81,7 @@ void RenderGrassField(GrassField* grass)
 		//RenderInstancedModel(&game->renderer, grass->model, game->grassShader, game->grassShadowShader, &grass->material, game->grassInstances, numGrassBlades, ModelMatrix((Entity*)grass));
 
 		Mesh* mesh = lod == 0 ? &grass->model->meshes[0] : lod <= 2 ? &grass->lodModel->meshes[0] : &grass->lodModel2->meshes[0];
-		VertexBuffer* buffers[2] = {mesh->positionBuffer, game->grassInstances};
+		VertexBuffer* buffers[2] = { mesh->positionBuffer, game->grassInstances };
 		mat4 transform = ModelMatrix((Entity*)grass);
 		RenderMesh(&game->renderer,
 			buffers, 2,

@@ -121,7 +121,7 @@ static float simplexFbm(float x, float y, int octaves, float persistence, float 
 static float sampleTerrainHeight(float x, float z)
 {
 	float amplitude = 20.0f;
-	float frequency = 0.01f;
+	float frequency = 0.005f;
 	float height = simplexFbm(x * frequency, z * frequency, 4, 0.4f, 2);
 	height = SDL_powf(height * 0.5f + 0.5f, 2) * 2 - 1;
 	height *= amplitude;
@@ -136,7 +136,7 @@ static float sampleTerrainHeight(float x, float z)
 
 static float sampleTreeDensity(float x, float z)
 {
-	float frequency = 0.01f;
+	float frequency = 0.005f;
 	float value = simplexFbm(x * frequency + 12345, z * frequency, 3, 0.4f, 2);
 	value = max(value, 0.0f);
 
@@ -360,15 +360,31 @@ static void ResetGame(bool destroy, bool init)
 
 		// todo generate terrain
 		Random random = Random(12345);
-		for (int z = -4; z < 4; z++)
+		for (int z = -8; z < 8; z++)
 		{
-			for (int x = -4; x < 4; x++)
+			for (int x = -8; x < 8; x++)
 			{
 				GenerateTerrain(&game->terrains[game->numTerrains++], x, z, random);
 			}
 		}
 
 		GenerateGrassData(random);
+
+		{
+			VertexBufferLayout instanceLayout = {};
+			instanceLayout.numAttributes = 4;
+			instanceLayout.attributes[0].location = 5;
+			instanceLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+			instanceLayout.attributes[1].location = 6;
+			instanceLayout.attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+			instanceLayout.attributes[2].location = 7;
+			instanceLayout.attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+			instanceLayout.attributes[3].location = 8;
+			instanceLayout.attributes[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+			instanceLayout.perInstance = true;
+			game->treeInstances = CreateVertexBuffer(MAX_TREES, &instanceLayout, 0);
+			game->treeInstanceTransfer = CreateTransferBuffer(MAX_TREES * sizeof(mat4), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD);
+		}
 
 		LoadModel(&game->mapModel, "res/models/water_surface.glb.bin", false, cmdBuffer);
 
@@ -825,8 +841,8 @@ void GameUpdate()
 	game->cameraFov = cameraZoom ? 30.0f : 90.0f;
 	game->projection = mat4::Perspective(game->cameraFov * Deg2Rad, app->width / (float)app->height, game->cameraNear);
 	game->view = mat4::Rotate(game->cameraRotation.conjugated()) * mat4::Translate(-game->cameraPosition);
-	game->pv = game->projection * game->view;
-	GetFrustumPlanes(game->pv, game->frustumPlanes);
+	//game->pv = game->projection * game->view;
+	//GetFrustumPlanes(game->pv, game->frustumPlanes);
 
 	// TODO discard fragments in front of reflection probe volume
 
@@ -845,6 +861,18 @@ void GameUpdate()
 
 void GameRender()
 {
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 3).normalized(), -gameTime * 0.02f) * vec3(1, 0, 0);
+	//vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -20 * 0.1f) * vec3(1, 0, 0);
+	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
+	//sunDirection = vec3(-1, -0.025f, 0).normalized();
+	//sunDirection = vec3(0.5f, -1, -1).normalized();
+
+	mat4 pv = game->projection * game->view;
+	vec4 frustumPlanes[6];
+	GetFrustumPlanes(pv, frustumPlanes);
+
+	RendererBegin(&game->renderer, game->cameraPosition, game->cameraRotation, game->cameraNear, game->cameraFov, app->width / (float)app->height, game->projection, game->view, pv, frustumPlanes, sunDirection);
+
 	mat4 guiPV = mat4::Orthographic(0, (float)app->width, 0, (float)app->height, -1, 1);
 	BeginSpriteRenderer(&game->guiRenderer, guiPV);
 	BeginSpriteRenderer(&game->textRenderer, guiPV);
@@ -866,6 +894,39 @@ void GameRender()
 	for (int i = 0; i < game->numTerrains; i++)
 	{
 		RenderTerrain(&game->terrains[i]);
+	}
+
+	{
+		mat4* transforms = (mat4*)MapTransferBuffer(game->treeInstanceTransfer, true);
+		int numTransforms = 0;
+
+		Model* model = nullptr;
+		GraphicsPipeline* shader = nullptr, * shadowShader = nullptr;
+
+		for (int i = 0; i < game->numTerrains; i++)
+		{
+			Terrain* terrain = &game->terrains[i];
+			if (!terrain->visible)
+				continue;
+
+			for (int j = 0; j < terrain->numTrees; j++)
+			{
+				Tree* tree = terrain->trees[j];
+				transforms[numTransforms++] = tree->animatedTransform;
+
+				model = tree->model;
+				shader = tree->shader;
+				shadowShader = tree->shadowShader;
+			}
+		}
+		UnmapTransferBuffer(game->treeInstanceTransfer);
+
+		if (numTransforms > 0)
+		{
+			UpdateVertexBuffer(game->treeInstances, 0, numTransforms * sizeof(mat4), game->treeInstanceTransfer->buffer, true, cmdBuffer);
+
+			RenderInstancedModel(&game->renderer, model, shader, shadowShader, nullptr, game->treeInstances, numTransforms, mat4::Identity);
+		}
 	}
 
 	//RenderLight(&game->renderer, quat::FromAxisAngle(vec3::Up, 1 * 0.5f * PI) * vec3(2, 2, 0), vec3(1, 0.5f, 1) * 1);
@@ -930,13 +991,7 @@ void GameRender()
 
 void GameShowFrame(SDL_GPUCommandBuffer* cmdBuffer)
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -gameTime * 0.05f) * vec3(1, 0, 0);
-	//vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -20 * 0.1f) * vec3(1, 0, 0);
-	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
-	//sunDirection = vec3(-1, -0.025f, 0).normalized();
-	//sunDirection = vec3(0.5f, -1, -1).normalized();
-
-	RendererShow(&game->renderer, game->cameraPosition, game->cameraRotation, game->cameraNear, game->cameraFov, app->width / (float)app->height, game->projection, game->view, game->pv, game->frustumPlanes, sunDirection, swapchain, cmdBuffer);
+	RendererShow(&game->renderer, swapchain, cmdBuffer);
 
 	//DrawText(&game->textRenderer, 100, 100, "abcdefABCDEF", 12, game->font, 0xFFFF77FF);
 

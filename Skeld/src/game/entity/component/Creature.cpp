@@ -581,10 +581,10 @@ void UpdateCreature(Creature* creature)
 		}
 	}
 
-	if (creature->health <= 0 && !FrustumCulling(creature->model->boundingSphere, transform, game->frustumPlanes))
-	{
-		creature->removed = true;
-	}
+	//if (creature->health <= 0 && !FrustumCulling(creature->model->boundingSphere, transform, game->frustumPlanes))
+	//{
+	//	creature->removed = true;
+	//}
 }
 
 void RenderCreature(Creature* creature)

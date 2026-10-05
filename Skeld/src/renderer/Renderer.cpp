@@ -1013,6 +1013,23 @@ void ResizeRenderer(Renderer* renderer, int width, int height)
 	CreateBloomTargets(renderer, width / 2, height / 2);
 }
 
+void RendererBegin(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, float near, float fov, float aspect, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], vec3 sunDirection)
+{
+	renderer->cameraPosition = cameraPosition;
+	renderer->cameraRotation = cameraRotation;
+	renderer->near = near;
+	renderer->fov = fov;
+	renderer->aspect = aspect;
+	renderer->projection = projection;
+	renderer->view = view;
+	renderer->pv = pv;
+	renderer->projectionInv = projection.inverted();
+	renderer->viewInv = view.inverted();
+	renderer->pvInv = pv.inverted();
+	SDL_memcpy(renderer->frustumPlanes, frustumPlanes, sizeof(renderer->frustumPlanes));
+	renderer->sunDirection = sunDirection;
+}
+
 void RenderMesh(Renderer* renderer,
 	VertexBuffer* vertexBuffers[], int numVertexBuffers,
 	IndexBuffer* indexBuffer,
@@ -1236,7 +1253,7 @@ void RenderInstancedModel(Renderer* renderer, Model* model, GraphicsPipeline* sh
 	}
 }
 
-void RenderTerrain(Renderer* renderer, Terrain* terrain)
+bool RenderTerrain(Renderer* renderer, Terrain* terrain)
 {
 	uint32_t flags = MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP | MESH_DRAW_FLAG_RENDER_TO_REFLECTION;
 
@@ -1274,6 +1291,8 @@ void RenderTerrain(Renderer* renderer, Terrain* terrain)
 	data.flags = flags;
 
 	renderer->terrains.add(data);
+
+	return FrustumCulling(terrain->boundingBox, renderer->frustumPlanes);
 }
 
 void RenderLight(Renderer* renderer, vec3 position, vec3 color)
@@ -1753,13 +1772,9 @@ static bool IsInstanced(MeshDrawData* mesh)
 	return false;
 }
 
-void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, float near, float fov, float aspect, mat4 projection, mat4 view, mat4 pv, vec4 frustumPlanes[6], vec3 sunDirection, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
+void RendererShow(Renderer* renderer, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	GPU_SCOPE("Scene");
-
-	mat4 pvInv = pv.inverted();
-	mat4 projectionInv = projection.inverted();
-	mat4 viewInv = view.inverted();
 
 	// geometry pass
 	{
@@ -1774,9 +1789,9 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 			MeshDrawData* mesh = &renderer->meshes[i];
 			if (!mesh->shader)
 			{
-				bool inFrustum = IsInstanced(mesh) ? FrustumCulling(mesh->boundingBox, frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes);
+				bool inFrustum = IsInstanced(mesh) ? FrustumCulling(mesh->boundingBox, renderer->frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, renderer->frustumPlanes);
 				if (inFrustum)
-					SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
+					SubmitMesh(renderer, mesh, renderer->projection, renderer->view, renderer->pv, renderer->cameraPosition, renderer->sunDirection, true, renderPass, cmdBuffer);
 			}
 		}
 
@@ -1785,9 +1800,9 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		for (int i = 0; i < renderer->terrains.size; i++)
 		{
 			MeshDrawData* mesh = &renderer->terrains[i];
-			if (FrustumCulling(mesh->boundingBox, frustumPlanes))
+			if (FrustumCulling(mesh->boundingBox, renderer->frustumPlanes))
 			{
-				SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
+				SubmitMesh(renderer, mesh, renderer->projection, renderer->view, renderer->pv, renderer->cameraPosition, renderer->sunDirection, true, renderPass, cmdBuffer);
 			}
 		}
 
@@ -1796,7 +1811,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		for (int i = 0; i < renderer->animatedMeshes.size; i++)
 		{
 			MeshDrawData* mesh = &renderer->animatedMeshes[i];
-			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
+			SubmitMesh(renderer, mesh, renderer->projection, renderer->view, renderer->pv, renderer->cameraPosition, renderer->sunDirection, true, renderPass, cmdBuffer);
 		}
 
 		for (int i = 0; i < renderer->meshes.size; i++)
@@ -1808,11 +1823,11 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 				{
 					int a = 5;
 				}
-				bool inFrustum = IsInstanced(mesh) ? FrustumCulling(mesh->boundingBox, frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes);
+				bool inFrustum = IsInstanced(mesh) ? FrustumCulling(mesh->boundingBox, renderer->frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, renderer->frustumPlanes);
 				if (inFrustum)
 				{
 					SDL_BindGPUGraphicsPipeline(renderPass, mesh->shader->pipeline);
-					SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, true, renderPass, cmdBuffer);
+					SubmitMesh(renderer, mesh, renderer->projection, renderer->view, renderer->pv, renderer->cameraPosition, renderer->sunDirection, true, renderPass, cmdBuffer);
 				}
 			}
 		}
@@ -1820,13 +1835,13 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		SDL_EndGPURenderPass(renderPass);
 	}
 
-	ShadowMapping(renderer, cameraPosition, cameraRotation, near, fov, aspect, projection, view, viewInv, sunDirection, cmdBuffer);
+	ShadowMapping(renderer, renderer->cameraPosition, renderer->cameraRotation, renderer->near, renderer->fov, renderer->aspect, renderer->projection, renderer->view, renderer->viewInv, renderer->sunDirection, cmdBuffer);
 
-	UpdateSkyCubemap(renderer, cameraPosition, sunDirection, cmdBuffer);
+	UpdateSkyCubemap(renderer, renderer->cameraPosition, renderer->sunDirection, cmdBuffer);
 
-	UpdateReflectionProbes(renderer, sunDirection, cameraPosition, cmdBuffer);
+	UpdateReflectionProbes(renderer, renderer->sunDirection, renderer->cameraPosition, cmdBuffer);
 
-	RenderSky(renderer, projectionInv, viewInv, sunDirection, cmdBuffer);
+	RenderSky(renderer, renderer->projectionInv, renderer->viewInv, renderer->sunDirection, cmdBuffer);
 
 	// lighting pass
 	{
@@ -1853,7 +1868,7 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 			RenderScreenQuad(&renderer->screenQuad, 1, renderPass, 1, &renderer->gbuffer->depthAttachment, &renderer->samplers[TEXTURE_SAMPLER_DEFAULT], cmdBuffer);
 		}
 
-		Lighting(renderer, cameraPosition, near, projection, view, pv, projectionInv, viewInv, pvInv, frustumPlanes, sunDirection, renderPass, cmdBuffer);
+		Lighting(renderer, renderer->cameraPosition, renderer->near, renderer->projection, renderer->view, renderer->pv, renderer->projectionInv, renderer->viewInv, renderer->pvInv, renderer->frustumPlanes, renderer->sunDirection, renderPass, cmdBuffer);
 
 		// forward meshes
 		{
@@ -1872,8 +1887,8 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 				};
 
 				UniformData uniforms = {};
-				uniforms.projectionInv = projectionInv;
-				uniforms.viewInv = viewInv;
+				uniforms.projectionInv = renderer->projectionInv;
+				uniforms.viewInv = renderer->viewInv;
 
 				SDL_PushGPUFragmentUniformData(cmdBuffer, 0, &uniforms, sizeof(uniforms));
 
@@ -1897,17 +1912,17 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 
 				SDL_BindGPUGraphicsPipeline(renderPass, mesh->shader->pipeline);
 
-				if (!mesh->boundingSphere.radius || FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
-					SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, false, renderPass, cmdBuffer);
+				if (!mesh->boundingSphere.radius || FrustumCulling(mesh->boundingSphere, mesh->transform, renderer->frustumPlanes))
+					SubmitMesh(renderer, mesh, renderer->projection, renderer->view, renderer->pv, renderer->cameraPosition, renderer->sunDirection, false, renderPass, cmdBuffer);
 			}
 		}
 
 		SDL_EndGPURenderPass(renderPass);
 	}
 
-	AmbientOcclusion(renderer, projection, fov, near);
+	AmbientOcclusion(renderer, renderer->projection, renderer->fov, renderer->near);
 
-	Fog(renderer, pvInv, cameraPosition, sunDirection);
+	Fog(renderer, renderer->pvInv, renderer->cameraPosition, renderer->sunDirection);
 
 	AutoExposure(renderer, renderer->hdrTarget->colorAttachments[0]);
 	Bloom(renderer, renderer->hdrTarget->colorAttachments[0]);
@@ -1941,8 +1956,8 @@ void RendererShow(Renderer* renderer, vec3 cameraPosition, quat cameraRotation, 
 		SDL_EndGPURenderPass(renderPass);
 	}
 
-	renderer->lastProjection = projection;
-	renderer->lastView = view;
+	renderer->lastProjection = renderer->projection;
+	renderer->lastView = renderer->view;
 
 	renderer->meshes.clear();
 	renderer->animatedMeshes.clear();

@@ -32,7 +32,7 @@ void main()
     if (depth > 0)
     {
         float dist = 1.0 / depth;
-        float fog = exp(-dist * 0.00001);
+        float fog = exp(-dist * 0.0001);
         alpha = 1 - fog;
     }
 
@@ -40,7 +40,7 @@ void main()
 	vec3 view = normalize(cameraPosition - position); // world space view
 
     float fogBrightness = mix(1, 10, smoothstep(-0.1, 0.1, -sunDirection.y));
-    vec3 fogColor = textureLod(s_skyCube, vec3(0, 0, 1), 15).rgb * fogBrightness;
+    vec3 fogColor = textureLod(s_skyCube, vec3(0, 0, 1), 15).rgb; // * fogBrightness;
     
     out_color = vec4(fogColor, alpha);
 }

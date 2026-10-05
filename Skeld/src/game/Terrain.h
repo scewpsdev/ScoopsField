@@ -40,11 +40,11 @@ struct Terrain
 
 	Texture* texture;
 
-#define MAX_TREES 256
-	Tree* trees[MAX_TREES];
+#define MAX_TERRAIN_TREES 256
+	Tree* trees[MAX_TERRAIN_TREES];
 	int numTrees;
-	VertexBuffer* treeInstances;
-	TransferBuffer* treeInstanceTransfer;
+
+	bool visible;
 
 
 	float interpolateHeight(float localx, float localz);

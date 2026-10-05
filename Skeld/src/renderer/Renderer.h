@@ -105,7 +105,14 @@ struct Renderer
 {
 	int width, height;
 
+	vec3 cameraPosition;
+	quat cameraRotation;
+	float near, fov, aspect;
+	mat4 projection, view, pv;
+	mat4 projectionInv, viewInv, pvInv;
 	mat4 lastProjection, lastView;
+	vec4 frustumPlanes[6];
+	vec3 sunDirection;
 
 	RenderTarget* gbuffer;
 	RenderTarget* hdrTarget;
@@ -227,7 +234,7 @@ struct Renderer
 	List<MeshDrawData, MAX_MESH_DRAWS> meshes;
 #define MAX_ANIMATED_MESH_DRAWS 64
 	List<MeshDrawData, MAX_MESH_DRAWS> animatedMeshes;
-#define MAX_TERRAINS 64
+#define MAX_TERRAINS (16 * 16)
 	List<MeshDrawData, MAX_TERRAINS> terrains;
 #define MAX_FORWARD_MESH_DRAWS 64
 	List<MeshDrawData, MAX_FORWARD_MESH_DRAWS> forwardMeshes;
@@ -266,7 +273,7 @@ void RenderModel(Renderer* renderer, Model* model, AnimationState* animation, ma
 void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, AnimationState* animation, mat4 transform, bool isStatic = false, uint32_t extraFlags = 0);
 void RenderModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, AnimationState* animation, mat4 transform, bool isStatic, uint32_t extraFlags);
 void RenderInstancedModel(Renderer* renderer, Model* model, GraphicsPipeline* shader, GraphicsPipeline* shadowShader, Material* material, VertexBuffer* instanceBuffer, int instanceCount, mat4 transform);
-void RenderTerrain(Renderer* renderer, Terrain* terrain);
+bool RenderTerrain(Renderer* renderer, Terrain* terrain);
 void RenderLight(Renderer* renderer, vec3 position, vec3 color);
 void RenderReflectionProbe(Renderer* renderer, ReflectionProbe* probe);
 void UpdateReflectionProbe(Renderer* renderer, ReflectionProbe* probe);

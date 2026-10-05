@@ -41,8 +41,8 @@ struct GameState
 	float cameraNear /*, cameraFar*/;
 	float cameraFov;
 
-	mat4 projection, view, pv;
-	vec4 frustumPlanes[6];
+	mat4 projection, view; //, pv;
+	//vec4 frustumPlanes[6];
 
 	Renderer renderer;
 
@@ -66,8 +66,12 @@ struct GameState
 	Navmesh mapNavmesh;
 	RigidBody mapCollider;
 
-	Terrain terrains[64];
+	Terrain terrains[16 * 16];
 	int numTerrains;
+
+#define MAX_TREES 1024
+	VertexBuffer* treeInstances;
+	TransferBuffer* treeInstanceTransfer;
 
 #define MAX_ENTITIES 1024
 	Pool<Entity, MAX_ENTITIES> entities;

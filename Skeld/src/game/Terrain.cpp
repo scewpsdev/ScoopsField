@@ -48,20 +48,6 @@ void InitTerrain(Terrain* terrain, int tilex, int tilez, float* heights, vec2* n
 	terrain->normalmap = CreateTexture(&normalmapInfo);
 	SetTextureData(terrain->normalmap->handle, (const uint8_t*)terrain->normals, TERRAIN_VERTICES * sizeof(vec2), TERRAIN_VERTICES_X, TERRAIN_VERTICES_X, 1, cmdBuffer);
 
-	VertexBufferLayout instanceLayout = {};
-	instanceLayout.numAttributes = 4;
-	instanceLayout.attributes[0].location = 5;
-	instanceLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
-	instanceLayout.attributes[1].location = 6;
-	instanceLayout.attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
-	instanceLayout.attributes[2].location = 7;
-	instanceLayout.attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
-	instanceLayout.attributes[3].location = 8;
-	instanceLayout.attributes[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
-	instanceLayout.perInstance = true;
-	terrain->treeInstances = CreateVertexBuffer(MAX_TREES, &instanceLayout, 0);
-	terrain->treeInstanceTransfer = CreateTransferBuffer(MAX_TREES * sizeof(mat4), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD);
-
 	float minHeight = FLT_MAX, maxHeight = -FLT_MAX;
 	for (int i = 0; i < TERRAIN_VERTICES; i++)
 	{
@@ -293,20 +279,5 @@ float Terrain::getTileHeight(int gridx, int gridz)
 
 void RenderTerrain(Terrain* terrain)
 {
-	RenderTerrain(&game->renderer, terrain);
-
-	if (terrain->numTrees)
-	{
-		mat4* transforms = (mat4*)MapTransferBuffer(terrain->treeInstanceTransfer, true);
-		for (int i = 0; i < terrain->numTrees; i++)
-		{
-			Tree* tree = terrain->trees[i];
-			transforms[i] = tree->animatedTransform;
-		}
-		UnmapTransferBuffer(terrain->treeInstanceTransfer);
-
-		UpdateVertexBuffer(terrain->treeInstances, 0, terrain->numTrees * sizeof(mat4), terrain->treeInstanceTransfer->buffer, true, cmdBuffer);
-
-		RenderInstancedModel(&game->renderer, terrain->trees[0]->model, terrain->trees[0]->shader, terrain->trees[0]->shadowShader, nullptr, terrain->treeInstances, terrain->numTrees, mat4::Identity);
-	}
+	terrain->visible = RenderTerrain(&game->renderer, terrain);
 }

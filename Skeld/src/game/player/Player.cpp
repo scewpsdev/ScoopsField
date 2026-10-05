@@ -1526,7 +1526,7 @@ void RenderPlayer(Player* player)
 		}
 		else
 		{
-			GUIPanel(app->width / 2 - game->crosshair->info.width / 2, app->height / 2 - game->crosshair->info.height / 2, game->crosshair);
+			//GUIPanel(app->width / 2 - game->crosshair->info.width / 2, app->height / 2 - game->crosshair->info.height / 2, game->crosshair);
 		}
 	}
 

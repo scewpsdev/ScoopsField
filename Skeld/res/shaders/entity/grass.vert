@@ -71,19 +71,6 @@ float snoise(vec2 v)
 	  return 130.0 * dot(m, g);
 }
 
-// Cheap 2D value/gradient noise approximation
-float cheap_noise(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-	
-    // Smoothstep creates the smooth S-curve interpolation (3t^2 - 2t^3)
-    vec2 u = f * f * (3.0 - 2.0 * f);
-
-    // Mix (bilinear interpolation) between the 4 corners of the grid cell
-    return mix(mix(hash12(i + vec2(0.0, 0.0)), hash12(i + vec2(1.0, 0.0)), u.x),
-               mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x), u.y);
-}
-
 vec3 rotateX(vec3 p, float angle)
 {
 	float s = sin(angle);

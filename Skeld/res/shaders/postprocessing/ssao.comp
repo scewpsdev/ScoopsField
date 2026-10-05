@@ -171,7 +171,7 @@ void main()
 		{
 		    ao = computeAO(uv, position, normal);
 		}
-		else if (mip >= 0)
+		else if (mip >= ssaoLod)
 		{
 			float ao1 = computeAO(uv, position, normal);
 			float ao2 = upsample(uv, depth, normal);
