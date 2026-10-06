@@ -55,8 +55,8 @@ float calculateShadow(vec3 position, vec3 normal, vec3 toLight, int cascade, sam
 	vec3 projectedCoords = lightSpacePosition.xyz / lightSpacePosition.w;
 	vec2 sampleCoords = 0.5 * projectedCoords.xy * vec2(1, -1) + 0.5;
 
-	//if (sampleCoords.x < 0.0 || sampleCoords.x > 1.0 || sampleCoords.y < 0.0 || sampleCoords.y > 1.0)
-	//	return 1.0;
+	if (sampleCoords.x < 0.0 || sampleCoords.x > 1.0 || sampleCoords.y < 0.0 || sampleCoords.y > 1.0)
+		return 1.0;
 
 	ivec2 shadowMapSize = textureSize(shadowMap, 0);
 	
@@ -125,6 +125,11 @@ void main()
 		shadow = calculateShadow(position, normal, toLight, 1, s_shadowMap1, toLightSpace1);
 	else
 		shadow = calculateShadow(position, normal, toLight, 2, s_shadowMap2, toLightSpace2);
+
+	//float shadow0 = calculateShadow(position, normal, toLight, 0, s_shadowMap0, toLightSpace0);
+	//float shadow1 = calculateShadow(position, normal, toLight, 1, s_shadowMap1, toLightSpace1);
+	//float shadow2 = calculateShadow(position, normal, toLight, 2, s_shadowMap2, toLightSpace2);
+	//shadow = min(min(shadow0, shadow1), shadow2);
 		
 	out_color = vec4(shadow, 0, 0, 0);
 }

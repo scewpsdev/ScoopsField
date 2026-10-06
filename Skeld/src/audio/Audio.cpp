@@ -138,3 +138,8 @@ void SetSoundRelativeSpeed(uint32_t handle, float speed)
 {
 	audio->soloud->setRelativePlaySpeed(handle, speed);
 }
+
+void SetSoundLooping(uint32_t handle, bool looping)
+{
+	audio->soloud->setLooping(handle, looping);
+}

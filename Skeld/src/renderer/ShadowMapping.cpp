@@ -142,15 +142,31 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 	{
 		MeshDrawData* mesh = &renderer->meshes[i];
 		bool renderToShadowMap = mesh->flags & MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP;
-		if (!mesh->shadowShader && renderToShadowMap && FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes) )
+		if (!mesh->shadowShader && renderToShadowMap)
+		{
+			bool inFrustum = IsInstanced(mesh) ? FrustumCulling(mesh->boundingBox, renderer->frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, renderer->frustumPlanes);
+			if (inFrustum)
+				SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, false, renderPass, cmdBuffer);
+		}
+	}
+
+	SDL_BindGPUGraphicsPipeline(renderPass, renderer->terrainShadowPipeline->pipeline);
+
+	for (int i = 0; i < renderer->terrains.size; i++)
+	{
+		MeshDrawData* mesh = &renderer->terrains[i];
+		if (FrustumCulling(mesh->boundingBox, renderer->frustumPlanes))
+		{
 			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, false, renderPass, cmdBuffer);
+		}
 	}
 
 	for (int i = 0; i < renderer->meshes.size; i++)
 	{
 		MeshDrawData* mesh = &renderer->meshes[i];
 		bool renderToShadowMap = mesh->flags & MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP;
-		if (mesh->shadowShader && renderToShadowMap && FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes))
+		bool inFrustum = IsInstanced(mesh) ? FrustumCulling(mesh->boundingBox, renderer->frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, renderer->frustumPlanes);
+		if (mesh->shadowShader && renderToShadowMap && inFrustum)
 		{
 			SDL_BindGPUGraphicsPipeline(renderPass, mesh->shadowShader->pipeline);
 			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, false, renderPass, cmdBuffer);

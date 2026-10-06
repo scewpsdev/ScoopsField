@@ -3,20 +3,34 @@
 * TODO
 * [X] tree collider
 * [X] axe
-* [ ] simple inventory
+* [X] tree instancing
+* [X] terrain editing
+* [X] grass rendering
+* [X] day night cycle
+* [ ] grass coverage map
+* [ ] delete buffers and sample from textures
+* [ ] ground material map
+* [ ] shovel & digging
 * [ ] chopping trees
-* [ ] shovel
-* [ ] tree instancing
-* [ ] terrain editing
+* [ ] finish building elements
+* [ ] simple inventory
 * [ ] workbench
-* [ ] building elements
-* [ ] grass rendering
-* [ ] day night cycle
 * [ ] monsters
 * [ ] sword
 * [ ] atmospheric particles
 * [ ] tree wind sound
-* [ ] step sound
+* [ ] leaf particles
+* [ ] biomes
+*	[ ] plains
+*   [ ] desert
+*   [ ] oak forest
+*   [ ] birch forest
+*   [ ] deep forest
+*		[ ] mushroom huts
+*  [ ] better terrain generation
+*  [ ] caves
+*  [ ] ores
+*  [ ] structures
 *
 *
 * Game Loop
@@ -121,7 +135,7 @@ static float simplexFbm(float x, float y, int octaves, float persistence, float 
 static float sampleTerrainHeight(float x, float z)
 {
 	float amplitude = 20.0f;
-	float frequency = 0.005f;
+	float frequency = 0.01f;
 	float height = simplexFbm(x * frequency, z * frequency, 4, 0.4f, 2);
 	height = SDL_powf(height * 0.5f + 0.5f, 2) * 2 - 1;
 	height *= amplitude;
@@ -136,7 +150,7 @@ static float sampleTerrainHeight(float x, float z)
 
 static float sampleTreeDensity(float x, float z)
 {
-	float frequency = 0.005f;
+	float frequency = 0.01f;
 	float value = simplexFbm(x * frequency + 12345, z * frequency, 3, 0.4f, 2);
 	value = max(value, 0.0f);
 
@@ -344,6 +358,7 @@ static void ResetGame(bool destroy, bool init)
 		game->gameTime = 0.0f;
 
 		game->ambientSource = PlaySound(&game->ambientSound, 5);
+		SetSoundLooping(game->ambientSource, true);
 
 		game->cameraPosition = vec3(0, 0, 3);
 		game->cameraRotation = quat::Identity;
@@ -710,6 +725,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 #ifdef _DEBUG
 	AddHotReloadedShader("shaders/mesh.vert", "shaders/mesh.frag", game->renderer.defaultShader, game->renderer.geometryPipeline);
 	AddHotReloadedShader("shaders/entity/grass.vert", "shaders/entity/grass.frag", game->grassShader->pipelineInfo.shader, game->grassShader);
+	AddHotReloadedShader("shaders/entity/tree.vert", "shaders/entity/tree.frag", game->treeShader->pipelineInfo.shader, game->treeShader);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/shadow.frag", game->renderer.shadowShader, game->renderer.shadowPipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/blurh.frag", game->renderer.blurHShader, game->renderer.blurHPipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/blurv.frag", game->renderer.blurVShader, game->renderer.blurVPipeline);
@@ -838,7 +854,7 @@ void GameUpdate()
 
 	if (GetKeyDown(SDL_SCANCODE_C))
 		cameraZoom = !cameraZoom;
-	game->cameraFov = cameraZoom ? 30.0f : 90.0f;
+	game->cameraFov = cameraZoom ? 50.0f : 90.0f;
 	game->projection = mat4::Perspective(game->cameraFov * Deg2Rad, app->width / (float)app->height, game->cameraNear);
 	game->view = mat4::Rotate(game->cameraRotation.conjugated()) * mat4::Translate(-game->cameraPosition);
 	//game->pv = game->projection * game->view;
@@ -861,7 +877,7 @@ void GameUpdate()
 
 void GameRender()
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 3).normalized(), -gameTime * 0.02f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 3).normalized(), -gameTime * 0.01f) * vec3(1, 0, 0);
 	//vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -20 * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();

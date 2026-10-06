@@ -45,3 +45,4 @@ uint32_t PlaySound(Sound* sound, float pan, float volume);
 uint32_t PlaySound(Sound* sound, vec3 position, float volume = 1);
 void StopSound(uint32_t source);
 void SetSoundRelativeSpeed(uint32_t handle, float speed);
+void SetSoundLooping(uint32_t handle, bool looping);

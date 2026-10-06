@@ -26,6 +26,7 @@ void main()
 	mat4 model = i_transform; //mat4(i_transform0, i_transform1, i_transform2, i_transform3);
 
 	//mat4 model = u_viewSpaceBuffer > 0.5 ? inverse(u_view) * u_model : u_model;
+	vec3 worldOffset = model[3].xyz;
 	vec4 worldPosition = model * vec4(a_position, 1);
 
 	// wind
@@ -34,20 +35,22 @@ void main()
 
 	float heightMask = max(a_position.y, 0) * 0.25;
 	heightMask = heightMask * heightMask;
+	float leafMask = min(a_position.x * a_position.x + a_position.z * a_position.z, 1);
 	vec3 windDirection = vec3(0.7, 0, 0.7);
 
-	float trunkWave = sin(u_time * 0.7 + (a_position.x + a_position.z) * 0.02);
+	float trunkWave1 = sin(u_time * 0.7 + (worldOffset.x + worldOffset.z) * 1.0);
+	float trunkWave2 = sin((u_time - 2.0) * 0.7 + (worldOffset.x + worldOffset.z) * 1.0);
+	float trunkWave = mix(trunkWave1, trunkWave2, min(heightMask, 1) * leafMask);
 	worldPosition.xyz += windDirection * trunkWave * heightMask * 0.1 * windStrength;
 
-	float wave1 = sin(u_time * 1.5 + (a_position.x + a_position.z) * 0.5);
-	float wave2 = cos(u_time * 1.5 * 1.8 + (a_position.x - a_position.z) * 0.5 * 1.5);
-	float wind = wave1 * 0.7 + wave2 * 0.3;
-	float leafMask = min(a_position.x * a_position.x + a_position.z * a_position.z, 1);
-	worldPosition.xyz += windDirection * wind * heightMask * leafMask * 0.05 * windStrength;
+	//float wave1 = sin(u_time * 1.6 + (worldPosition.x + worldPosition.z) * 0.6);
+	//float wave2 = cos(u_time * 1.6 * 1.8 + (worldPosition.x - worldPosition.z) * 0.5 * 1.5);
+	//float wind = wave1 * 0.7 + wave2 * 0.3;
+	//worldPosition.xyz += windDirection * wind * heightMask * leafMask * 0.02 * windStrength;
 
-	float leafFlutter = sin(u_time * 10.0 + a_position.x * 5.0);
+	float leafFlutter = sin(u_time * 10.0 + (worldPosition.x + worldPosition.z) * 5.0);
 	float flutterMask = min((a_position.x * a_position.x + a_position.z * a_position.z) * 0.2, 1);
-    worldPosition.xyz += leafFlutter * heightMask * flutterMask * 0.0025 * windStrength;
+    worldPosition.xyz += leafFlutter * heightMask * flutterMask * 0.002 * windStrength;
 
 	gl_Position = u_projection * u_view * worldPosition;
 

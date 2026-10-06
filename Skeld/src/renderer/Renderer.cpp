@@ -208,6 +208,14 @@ static GraphicsPipeline* CreateTerrainPipeline(Renderer* renderer)
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
+static GraphicsPipeline* CreateTerrainShadowPipeline(Renderer* renderer)
+{
+	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->terrainShadowShader, renderer->shadowMaps[0], NUM_TERRAIN_BUFFER_LAYOUTS, renderer->terrainLayout);
+	pipelineInfo.compareOp = SDL_GPU_COMPAREOP_LESS;
+	pipelineInfo.depthClamp = true;
+	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
 static GraphicsPipeline* CreateShadowMapPipeline(Renderer* renderer)
 {
 	GraphicsPipelineInfo pipelineInfo = CreateGraphicsPipelineInfo(SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, renderer->depthShader, renderer->shadowMaps[0], NUM_MESH_BUFFER_LAYOUTS, renderer->meshLayout);
@@ -617,6 +625,16 @@ static void GetClosestReflectionProbes(Renderer* renderer, vec3 position, Reflec
 	}
 }
 
+static bool IsInstanced(MeshDrawData* mesh)
+{
+	for (int i = 0; i < mesh->numVertexBuffers; i++)
+	{
+		if (mesh->vertexBuffers[i]->layout.perInstance)
+			return true;
+	}
+	return false;
+}
+
 static SDL_GPUTexture* GetClosestEnvironment(Renderer* renderer)
 {
 	return renderer->skyCubemap->colorAttachments[0];
@@ -760,6 +778,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->defaultShader = LoadGraphicsShader("res/shaders/mesh.vert.bin", "res/shaders/mesh.frag.bin");
 	renderer->animatedShader = LoadGraphicsShader("res/shaders/mesh_animated.vert.bin", "res/shaders/mesh.frag.bin");
 	renderer->terrainShader = LoadGraphicsShader("res/shaders/terrain.vert.bin", "res/shaders/terrain.frag.bin");
+	renderer->terrainShadowShader = LoadGraphicsShader("res/shaders/terrain.vert.bin", "res/shaders/mesh_depth.frag.bin");
 	renderer->depthShader = LoadGraphicsShader("res/shaders/mesh.vert.bin", "res/shaders/mesh_depth.frag.bin");
 	renderer->animatedDepthShader = LoadGraphicsShader("res/shaders/mesh_animated.vert.bin", "res/shaders/mesh_depth.frag.bin");
 	renderer->shadowShader = LoadGraphicsShader("res/shaders/screenquad.vert.bin", "res/shaders/lighting/shadow.frag.bin");
@@ -799,6 +818,7 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 	renderer->geometryPipeline = CreateGeometryPipeline(renderer);
 	renderer->animatedPipeline = CreateAnimatedPipeline(renderer);
 	renderer->terrainPipeline = CreateTerrainPipeline(renderer);
+	renderer->terrainShadowPipeline = CreateTerrainShadowPipeline(renderer);
 	renderer->shadowMapPipeline = CreateShadowMapPipeline(renderer);
 	renderer->animatedShadowMapPipeline = CreateAnimatedShadowMapPipeline(renderer);
 	renderer->shadowPipeline = CreateShadowPipeline(renderer);
@@ -1762,16 +1782,6 @@ static void Fog(Renderer* renderer, mat4 pvInv, vec3 cameraPosition, vec3 sunDir
 // [ ] mesh instancing
 // [ ] better pbr (convolution, specular cubemaps)
 
-static bool IsInstanced(MeshDrawData* mesh)
-{
-	for (int i = 0; i < mesh->numVertexBuffers; i++)
-	{
-		if (mesh->vertexBuffers[i]->layout.perInstance)
-			return true;
-	}
-	return false;
-}
-
 void RendererShow(Renderer* renderer, SDL_GPUTexture* swapchain, SDL_GPUCommandBuffer* cmdBuffer)
 {
 	GPU_SCOPE("Scene");
@@ -1819,10 +1829,6 @@ void RendererShow(Renderer* renderer, SDL_GPUTexture* swapchain, SDL_GPUCommandB
 			MeshDrawData* mesh = &renderer->meshes[i];
 			if (mesh->shader)
 			{
-				if (mesh->instanceCount == 1)
-				{
-					int a = 5;
-				}
 				bool inFrustum = IsInstanced(mesh) ? FrustumCulling(mesh->boundingBox, renderer->frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, renderer->frustumPlanes);
 				if (inFrustum)
 				{

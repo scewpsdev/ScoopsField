@@ -32,7 +32,7 @@ void main()
     if (depth > 0)
     {
         float dist = 1.0 / depth;
-        float fog = exp(-dist * 0.0001);
+        float fog = exp(-dist * 0.00005);
         alpha = 1 - fog;
     }
 

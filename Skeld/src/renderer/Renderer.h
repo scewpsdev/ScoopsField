@@ -179,6 +179,7 @@ struct Renderer
 	Shader* defaultShader;
 	Shader* animatedShader;
 	Shader* terrainShader;
+	Shader* terrainShadowShader;
 	Shader* copyDepthShader;
 	Shader* reconstructNormalsShader;
 	Shader* directionalLightShader;
@@ -193,6 +194,7 @@ struct Renderer
 	GraphicsPipeline* geometryPipeline;
 	GraphicsPipeline* animatedPipeline;
 	GraphicsPipeline* terrainPipeline;
+	GraphicsPipeline* terrainShadowPipeline;
 	GraphicsPipeline* copyDepthPipeline;
 	GraphicsPipeline* copyDepthPipeline2;
 	GraphicsPipeline* directionalLightPipeline;
