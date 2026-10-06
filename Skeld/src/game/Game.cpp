@@ -164,9 +164,9 @@ static float sampleTreeDensity(float x, float z)
 
 static float sampleGrassDensity(float x, float z)
 {
-	float frequency = 0.01f;
+	float frequency = 0.04f;
 	float value = simplexFbm(x * frequency - 12345, z * frequency, 3, 0.4f, 2);
-	value = max(value, 0.0f);
+	value = clamp(value * 1.5f, 0, 1);
 
 	//float falloff = smoothstep(256.0f, 100.0f, vec3(x, 0, z).length());
 	//value *= falloff;
@@ -261,6 +261,24 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 
 	GrassField* grass = (GrassField*)CreateEntity();
 	InitGrassField(grass, terrain);
+
+	// generate grass coverage
+	for (int z = 0; z < TERRAIN_TILES_X; z++)
+	{
+		for (int x = 0; x < TERRAIN_TILES_X; x++)
+		{
+			float xx = worldx + x * TERRAIN_TILE_SIZE;
+			float zz = worldz + z * TERRAIN_TILE_SIZE;
+
+			float coverage = sampleGrassDensity(xx, zz);
+
+			if (terrain->heights[x + z * TERRAIN_VERTICES_X] < 0)
+				coverage = 0;
+
+			terrain->grassCoverage[x + z * TERRAIN_TILES_X] = min((uint8_t)(coverage * 256), 255);
+		}
+	}
+	UpdateGrassCoverageBuffer(terrain);
 }
 
 static void GenerateGrassData(Random& random)

@@ -17,11 +17,17 @@ void InitTerrain(Terrain* terrain, int tilex, int tilez, float* heights, vec2* n
 	terrain->normals = (vec2*)SDL_malloc(TERRAIN_VERTICES * sizeof(vec2));
 	SDL_memcpy(terrain->normals, normals, TERRAIN_VERTICES * sizeof(vec2));
 
-	terrain->heightBuffer = CreateVertexBuffer(TERRAIN_VERTICES, &game->renderer.terrainLayout[0], 0);
-	UpdateVertexBuffer(terrain->heightBuffer, 0, (const uint8_t*)heights, TERRAIN_VERTICES * sizeof(float), true, cmdBuffer);
+	terrain->grassCoverage = (uint8_t*)SDL_malloc(TERRAIN_TILES * sizeof(uint8_t));
+	SDL_memset(terrain->grassCoverage, 0xFF, TERRAIN_TILES * sizeof(uint8_t));
 
-	terrain->normalBuffer = CreateVertexBuffer(TERRAIN_VERTICES, &game->renderer.terrainLayout[1], 0);
-	UpdateVertexBuffer(terrain->normalBuffer, 0, (const uint8_t*)normals, TERRAIN_VERTICES * sizeof(vec2), true, cmdBuffer);
+	terrain->materials = (uint8_t*)SDL_malloc(TERRAIN_VERTICES * sizeof(uint8_t));
+	SDL_memset(terrain->materialMap, 0x1, TERRAIN_VERTICES * sizeof(uint8_t));
+
+	//terrain->heightBuffer = CreateVertexBuffer(TERRAIN_VERTICES, &game->renderer.terrainLayout[0], 0);
+	//UpdateVertexBuffer(terrain->heightBuffer, 0, (const uint8_t*)heights, TERRAIN_VERTICES * sizeof(float), true, cmdBuffer);
+
+	//terrain->normalBuffer = CreateVertexBuffer(TERRAIN_VERTICES, &game->renderer.terrainLayout[1], 0);
+	//UpdateVertexBuffer(terrain->normalBuffer, 0, (const uint8_t*)normals, TERRAIN_VERTICES * sizeof(vec2), true, cmdBuffer);
 
 	terrain->indexBuffer = CreateIndexBuffer(TERRAIN_TILES * 6, SDL_GPU_INDEXELEMENTSIZE_16BIT);
 	UpdateIndexBuffer(terrain->indexBuffer, 0, (const uint8_t*)indices, TERRAIN_TILES * 6 * sizeof(short), true, cmdBuffer);
@@ -47,6 +53,28 @@ void InitTerrain(Terrain* terrain, int tilex, int tilez, float* heights, vec2* n
 	normalmapInfo.numFaces = 1;
 	terrain->normalmap = CreateTexture(&normalmapInfo);
 	SetTextureData(terrain->normalmap->handle, (const uint8_t*)terrain->normals, TERRAIN_VERTICES * sizeof(vec2), TERRAIN_VERTICES_X, TERRAIN_VERTICES_X, 1, cmdBuffer);
+
+	TextureInfo grassCoverageMapInfo = {};
+	grassCoverageMapInfo.format = SDL_GPU_TEXTUREFORMAT_R8_UNORM;
+	grassCoverageMapInfo.width = TERRAIN_TILES_X;
+	grassCoverageMapInfo.height = TERRAIN_TILES_X;
+	grassCoverageMapInfo.depth = 1;
+	grassCoverageMapInfo.numMips = 1;
+	grassCoverageMapInfo.numLayers = 1;
+	grassCoverageMapInfo.numFaces = 1;
+	terrain->grassCoverageMap = CreateTexture(&grassCoverageMapInfo);
+	SetTextureData(terrain->grassCoverageMap->handle, (const uint8_t*)terrain->grassCoverage, TERRAIN_TILES * sizeof(uint8_t), TERRAIN_TILES_X, TERRAIN_TILES_X, 1, cmdBuffer);
+
+	TextureInfo materialMapInfo = {};
+	materialMapInfo.format = SDL_GPU_TEXTUREFORMAT_R8_UINT;
+	materialMapInfo.width = TERRAIN_VERTICES_X;
+	materialMapInfo.height = TERRAIN_VERTICES_X;
+	materialMapInfo.depth = 1;
+	materialMapInfo.numMips = 1;
+	materialMapInfo.numLayers = 1;
+	materialMapInfo.numFaces = 1;
+	terrain->materialMap = CreateTexture(&materialMapInfo);
+	SetTextureData(terrain->materialMap->handle, (const uint8_t*)terrain->materials, TERRAIN_VERTICES * sizeof(uint8_t), TERRAIN_VERTICES_X, TERRAIN_VERTICES_X, 1, cmdBuffer);
 
 	float minHeight = FLT_MAX, maxHeight = -FLT_MAX;
 	for (int i = 0; i < TERRAIN_VERTICES; i++)
@@ -79,8 +107,8 @@ void InitTerrain(Terrain* terrain, int tilex, int tilez, float* heights, vec2* n
 void DestroyTerrain(Terrain* terrain)
 {
 	DestroyRigidBody(&terrain->collider);
-	DestroyVertexBuffer(terrain->heightBuffer);
-	DestroyVertexBuffer(terrain->normalBuffer);
+	//DestroyVertexBuffer(terrain->heightBuffer);
+	//DestroyVertexBuffer(terrain->normalBuffer);
 	DestroyIndexBuffer(terrain->indexBuffer);
 	SDL_free(terrain->heights);
 	SDL_free(terrain->normals);
@@ -88,7 +116,7 @@ void DestroyTerrain(Terrain* terrain)
 
 static void UpdateVertexBuffer(Terrain* terrain)
 {
-	UpdateVertexBuffer(terrain->heightBuffer, 0, (const uint8_t*)terrain->heights, TERRAIN_VERTICES * sizeof(float), true, cmdBuffer);
+	//UpdateVertexBuffer(terrain->heightBuffer, 0, (const uint8_t*)terrain->heights, TERRAIN_VERTICES * sizeof(float), true, cmdBuffer);
 
 	SetTextureData(terrain->heightmap->handle, (const uint8_t*)terrain->heights, TERRAIN_VERTICES * sizeof(float), TERRAIN_VERTICES_X, TERRAIN_VERTICES_X, 1, cmdBuffer);
 
@@ -110,9 +138,19 @@ static void UpdateVertexBuffer(Terrain* terrain)
 
 static void UpdateNormalBuffer(Terrain* terrain)
 {
-	UpdateVertexBuffer(terrain->normalBuffer, 0, (const uint8_t*)terrain->normals, TERRAIN_VERTICES * sizeof(vec2), true, cmdBuffer);
+	//UpdateVertexBuffer(terrain->normalBuffer, 0, (const uint8_t*)terrain->normals, TERRAIN_VERTICES * sizeof(vec2), true, cmdBuffer);
 
 	SetTextureData(terrain->normalmap->handle, (const uint8_t*)terrain->normals, TERRAIN_VERTICES * sizeof(vec2), TERRAIN_VERTICES_X, TERRAIN_VERTICES_X, 1, cmdBuffer);
+}
+
+static void UpdateGrassCoverageBuffer(Terrain* terrain)
+{
+	SetTextureData(terrain->grassCoverageMap->handle, (const uint8_t*)terrain->grassCoverage, TERRAIN_TILES * sizeof(uint8_t), TERRAIN_TILES_X, TERRAIN_TILES_X, 1, cmdBuffer);
+}
+
+static void UpdateMaterialBuffer(Terrain* terrain)
+{
+	SetTextureData(terrain->materialMap->handle, (const uint8_t*)terrain->materials, TERRAIN_VERTICES * sizeof(uint8_t), TERRAIN_VERTICES_X, TERRAIN_VERTICES_X, 1, cmdBuffer);
 }
 
 static void RecalculateNormals(Terrain* terrain, int x0, int z0, int x1, int z1)

@@ -741,13 +741,13 @@ void InitRenderer(Renderer* renderer, int width, int height, SDL_GPUCommandBuffe
 		renderer->animatedLayout[3].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
 
 		// position
-		renderer->terrainLayout[0].numAttributes = 1;
-		renderer->terrainLayout[0].attributes[0].location = 0;
-		renderer->terrainLayout[0].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT;
+		//renderer->terrainLayout[0].numAttributes = 1;
+		//renderer->terrainLayout[0].attributes[0].location = 0;
+		//renderer->terrainLayout[0].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT;
 		// normal
-		renderer->terrainLayout[1].numAttributes = 1;
-		renderer->terrainLayout[1].attributes[0].location = 1;
-		renderer->terrainLayout[1].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+		//renderer->terrainLayout[1].numAttributes = 1;
+		//renderer->terrainLayout[1].attributes[0].location = 1;
+		//renderer->terrainLayout[1].attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
 	}
 
 	InitScreenQuad(&renderer->screenQuad, cmdBuffer);
@@ -1279,9 +1279,9 @@ bool RenderTerrain(Renderer* renderer, Terrain* terrain)
 
 	MeshDrawData data = {};
 
-	data.numVertexBuffers = 2;
-	data.vertexBuffers[0] = terrain->heightBuffer;
-	data.vertexBuffers[1] = terrain->normalBuffer;
+	//data.numVertexBuffers = 2;
+	//data.vertexBuffers[0] = terrain->heightBuffer;
+	//data.vertexBuffers[1] = terrain->normalBuffer;
 
 	data.indexBuffer = terrain->indexBuffer;
 
@@ -1298,11 +1298,22 @@ bool RenderTerrain(Renderer* renderer, Terrain* terrain)
 	//data.uniformData[3] = material->data3;
 	//data.uniformDataSize = sizeof(material->data0) * 4;
 
-	data.textures[0] = terrain->texture;
-	data.samplers[0] = TEXTURE_SAMPLER_LINEAR;
-	//SDL_memcpy(data.textures, material->textures, sizeof(material->textures));
-	//SDL_memcpy(data.samplers, material->samplers, sizeof(material->samplers));
-	data.numTextures = 1;
+	data.textures[0] = terrain->heightmap;
+	data.samplers[0] = TEXTURE_SAMPLER_CLAMPED;
+	data.vertexSampler[0] = true;
+
+	data.textures[1] = terrain->normalmap;
+	data.samplers[1] = TEXTURE_SAMPLER_CLAMPED;
+	data.vertexSampler[1] = true;
+
+	data.textures[2] = terrain->materialMap;
+	data.samplers[2] = TEXTURE_SAMPLER_CLAMPED;
+	data.vertexSampler[2] = true;
+
+	data.textures[3] = terrain->texture;
+	data.samplers[3] = TEXTURE_SAMPLER_LINEAR;
+
+	data.numTextures = 4;
 
 	//data.skeleton = skeleton;
 	data.transform = mat4::Translate(terrain->tilex * TERRAIN_SIZE, 0, terrain->tilez * TERRAIN_SIZE);

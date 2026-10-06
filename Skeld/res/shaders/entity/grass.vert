@@ -10,9 +10,10 @@ layout (location = 1) out vec3 v_color;
 layout (location = 2) out float v_roughness;
 
 
-layout(set = 0, binding = 0) uniform sampler2D s_heightmap;
-layout(set = 0, binding = 1) uniform sampler2D s_normalmap;
-layout(set = 0, binding = 2) uniform sampler2D s_perlin;
+layout (set = 0, binding = 0) uniform sampler2D s_heightmap;
+layout (set = 0, binding = 1) uniform sampler2D s_normalmap;
+layout (set = 0, binding = 2) uniform sampler2D s_coverage;
+layout (set = 0, binding = 3) uniform sampler2D s_perlin;
 
 layout(std140, set = 1, binding = 0) uniform UniformBlock {
     mat4 u_projectionViewModel;
@@ -32,7 +33,8 @@ layout(std140, set = 1, binding = 0) uniform UniformBlock {
 
 
 #define TILE_SIZE 2.0
-#define VERTICES 17
+#define TILES 16
+#define VERTICES (TILES + 1)
 
 
 float hash12(vec2 p) {
@@ -94,6 +96,9 @@ void main()
 	vec2 heightmapCoord = ((bladePosition / TILE_SIZE) + 0.5) / VERTICES;
 	float height = textureLod(s_heightmap, heightmapCoord, 0).x;
 
+	vec2 coverageCoord = bladePosition / TILE_SIZE / TILES;
+	float coverage = textureLod(s_coverage, coverageCoord, 0).x;
+
 	float heightPercent = a_position.y;
 	float heightPercent2 = heightPercent * heightPercent;
 	float heightPercent3 = heightPercent2 * heightPercent;
@@ -103,6 +108,7 @@ void main()
 	vec3 vertexPosition = rotateX(vec3(a_position, 0), curveAmount);
 
 	vertexPosition.x *= 2 * pow(4, u_lod);
+	vertexPosition *= scale * 0.7 * coverage;
 
 	vertexPosition = rotateY(vertexPosition, rotation);
 
@@ -117,8 +123,6 @@ void main()
 	vertexPosition = rotateY(vertexPosition, -windDir);
 	vertexPosition = rotateX(vertexPosition, windLean);
 	vertexPosition = rotateY(vertexPosition, windDir);
-
-	vertexPosition *= scale * 0.7;
 
 	// view space thiccen
 	/*

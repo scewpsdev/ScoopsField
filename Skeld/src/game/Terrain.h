@@ -26,12 +26,16 @@ struct Terrain
 
 	float* heights;
 	vec2* normals;
+	uint8_t* grassCoverage;
+	uint8_t* materials;
 
-	VertexBuffer* heightBuffer;
-	VertexBuffer* normalBuffer;
+	//VertexBuffer* heightBuffer;
+	//VertexBuffer* normalBuffer;
 	IndexBuffer* indexBuffer;
 	Texture* heightmap;
 	Texture* normalmap;
+	Texture* grassCoverageMap;
+	Texture* materialMap;
 
 	AABB boundingBox;
 	Sphere boundingSphere;

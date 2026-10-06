@@ -26,9 +26,14 @@ void InitGrassField(GrassField* grass, Terrain* terrain)
 	grass->material.vertexSampler[1] = true;
 	grass->material.numTextures++;
 
-	grass->material.textures[2] = game->perlin;
-	grass->material.samplers[2] = TEXTURE_SAMPLER_LINEAR;
+	grass->material.textures[2] = terrain->grassCoverageMap;
+	grass->material.samplers[2] = TEXTURE_SAMPLER_LINEAR_CLAMPED;
 	grass->material.vertexSampler[2] = true;
+	grass->material.numTextures++;
+
+	grass->material.textures[3] = game->perlin;
+	grass->material.samplers[3] = TEXTURE_SAMPLER_LINEAR;
+	grass->material.vertexSampler[3] = true;
 	grass->material.numTextures++;
 }
 

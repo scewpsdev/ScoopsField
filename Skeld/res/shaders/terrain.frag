@@ -4,6 +4,7 @@
 
 layout (location = 0) in vec3 v_normal;
 layout (location = 1) in vec2 v_texcoord;
+layout (location = 2) in vec4 v_materials;
 
 layout (location = 0) out vec4 out_normal;
 layout (location = 1) out vec3 out_color;
@@ -37,20 +38,25 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 
 void main()
 {
-	vec4 textureColor = texture(s_diffuse, v_texcoord);
-	//textureColor.rgb *= vec3(0.5, 0.7, 0.3) * 0.5;
-	textureColor.rgb *= vec3(0.35, 0.5, 0.2) * 1.3 * 0.5;
-	//textureColor.rgb = SRGBToLinear(mix(vec3(1), textureColor.rgb, hasDiffuse));
+	vec3 color0 = vec3(0.22525, 0.325, 0.13);
+	vec3 color1 = vec3(1, 0, 1);
+	vec3 color2 = vec3(1, 0, 1);
+	vec3 color3 = vec3(1, 0, 1);
 
-	//float roughness = mix(roughnessFactor, texture(s_roughness, v_texcoord).g, hasRoughness);
-	//float metallic = mix(metallicFactor, texture(s_metallic, v_texcoord).b, hasMetallic);
+	vec4 textureColor0 = texture(s_diffuse, v_texcoord);
 
-	//out_normal = vec4(normalize(v_normal) * 0.5 + 0.5, emissiveStrength);
-	out_normal = vec4(normalize(v_normal) * 0.5 + 0.5, 0);
-	//out_color = linearToSRGB(textureColor.rgb * materialColor);
-	out_color = textureColor.rgb;
-	//out_material = vec4(roughness, metallic, 0, 0);
-	out_material = vec4(1, 0, 0, 0);
-	//out_emissive = vec4(linearToSRGB(emissiveColor), 0);
-	out_emissive = vec4(0);
+	vec3 color = v_materials.x * color0 + v_materials.y * color1 + v_materials.z * color2 + v_materials.w * color3;
+	vec4 textureColor = textureColor0;
+	// maybe alpha blend overlays on top?
+	// textureColor = mix(textureColor, textureColor4, textureColor4.a);
+
+	float roughness = 1;
+	float metallic = 0;
+	vec3 emissiveColor = vec3(0);
+	float emissiveStrength = 0;
+
+	out_normal = vec4(normalize(v_normal) * 0.5 + 0.5, emissiveStrength);
+	out_color = textureColor.rgb * color.rgb;
+	out_material = vec4(roughness, metallic, 0, 0);
+	out_emissive = vec4(linearToSRGB(emissiveColor), 0);
 }
