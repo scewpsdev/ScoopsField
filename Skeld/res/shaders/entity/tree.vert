@@ -55,6 +55,7 @@ void main()
 	gl_Position = u_projection * u_view * worldPosition;
 
 	vec4 viewSpaceNormal = model * vec4(a_normal, 0);
+	if (u_viewSpaceBuffer > 0.5) viewSpaceNormal = u_view * viewSpaceNormal;
 
 	v_normal = viewSpaceNormal.xyz;
 	v_texcoord = a_texcoord;

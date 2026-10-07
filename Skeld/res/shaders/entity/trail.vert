@@ -14,6 +14,10 @@ layout(std140, set = 1, binding = 0) uniform UniformBlock {
 	mat4 u_view;
 	mat4 u_projection;
 	mat4 u_model;
+	vec4 params;
+
+#define u_time params.x
+#define u_viewSpaceBuffer params.y
 };
 
 

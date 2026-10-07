@@ -21,7 +21,7 @@ void InitTerrain(Terrain* terrain, int tilex, int tilez, float* heights, vec2* n
 	SDL_memset(terrain->grassCoverage, 0xFF, TERRAIN_TILES * sizeof(uint8_t));
 
 	terrain->materials = (uint8_t*)SDL_malloc(TERRAIN_VERTICES * sizeof(uint8_t));
-	SDL_memset(terrain->materialMap, 0x1, TERRAIN_VERTICES * sizeof(uint8_t));
+	SDL_memset(terrain->materials, 0x1, TERRAIN_VERTICES * sizeof(uint8_t));
 
 	//terrain->heightBuffer = CreateVertexBuffer(TERRAIN_VERTICES, &game->renderer.terrainLayout[0], 0);
 	//UpdateVertexBuffer(terrain->heightBuffer, 0, (const uint8_t*)heights, TERRAIN_VERTICES * sizeof(float), true, cmdBuffer);
@@ -99,7 +99,8 @@ void InitTerrain(Terrain* terrain, int tilex, int tilez, float* heights, vec2* n
 	}
 	AddHeightFieldCollider(&terrain->collider, TERRAIN_VERTICES_X, TERRAIN_VERTICES_X, heightField, 0.1f, TERRAIN_TILE_SIZE, vec3(0), quat::Identity, ENTITY_FILTER_DEFAULT | ENTITY_FILTER_TERRAIN, ENTITY_FILTER_DEFAULT);
 
-	terrain->texture = GetTexture("textures/grass_diffuse.png");
+	terrain->grassTexture = GetTexture("textures/grass_diffuse.png");
+	terrain->dirtTexture = GetTexture("textures/dirt_diffuse.png");
 
 	terrain->numTrees = 0;
 }
@@ -229,49 +230,101 @@ void Terrain::dig(int gridx, int gridz)
 	Terrain* leftback = GetTerrainAtGridPosition(tilex - 1, tilez + 1);
 	Terrain* rightback = GetTerrainAtGridPosition(tilex + 1, tilez + 1);
 
-	if (x0 == 0 && (newHeight < h0 || newHeight < h2) && left)
+	if (x0 == 0 && left)
 	{
-		left->heights[TERRAIN_TILES_X + z0 * TERRAIN_VERTICES_X] = fh0;
-		left->heights[TERRAIN_TILES_X + z1 * TERRAIN_VERTICES_X] = fh2;
-		UpdateVertexBuffer(left);
+		if (newHeight < h0 || newHeight < h2)
+		{
+			left->heights[TERRAIN_TILES_X + z0 * TERRAIN_VERTICES_X] = fh0;
+			left->heights[TERRAIN_TILES_X + z1 * TERRAIN_VERTICES_X] = fh2;
+			UpdateVertexBuffer(left);
+		}
+
+		left->materials[TERRAIN_TILES_X + z0 * TERRAIN_VERTICES_X] = TERRAIN_MATERIAL_DIRT;
+		left->materials[TERRAIN_TILES_X + z1 * TERRAIN_VERTICES_X] = TERRAIN_MATERIAL_DIRT;
+		UpdateMaterialBuffer(left);
 	}
-	if (x1 == TERRAIN_TILES_X && (newHeight < h1 || newHeight < h3) && right)
+	if (x1 == TERRAIN_TILES_X && right)
 	{
-		right->heights[0 + z0 * TERRAIN_VERTICES_X] = fh1;
-		right->heights[0 + z1 * TERRAIN_VERTICES_X] = fh3;
-		UpdateVertexBuffer(right);
+		if (newHeight < h1 || newHeight < h3)
+		{
+			right->heights[0 + z0 * TERRAIN_VERTICES_X] = fh1;
+			right->heights[0 + z1 * TERRAIN_VERTICES_X] = fh3;
+			UpdateVertexBuffer(right);
+		}
+
+		right->materials[0 + z0 * TERRAIN_VERTICES_X] = TERRAIN_MATERIAL_DIRT;
+		right->materials[0 + z1 * TERRAIN_VERTICES_X] = TERRAIN_MATERIAL_DIRT;
+		UpdateMaterialBuffer(right);
 	}
-	if (z0 == 0 && (newHeight < h0 || newHeight < h1) && front)
+	if (z0 == 0 && front)
 	{
-		front->heights[x0 + TERRAIN_TILES_X * TERRAIN_VERTICES_X] = fh0;
-		front->heights[x1 + TERRAIN_TILES_X * TERRAIN_VERTICES_X] = fh1;
-		UpdateVertexBuffer(front);
+		if (newHeight < h0 || newHeight < h1)
+		{
+			front->heights[x0 + TERRAIN_TILES_X * TERRAIN_VERTICES_X] = fh0;
+			front->heights[x1 + TERRAIN_TILES_X * TERRAIN_VERTICES_X] = fh1;
+			UpdateVertexBuffer(front);
+		}
+
+		front->materials[x0 + TERRAIN_TILES_X * TERRAIN_VERTICES_X] = TERRAIN_MATERIAL_DIRT;
+		front->materials[x1 + TERRAIN_TILES_X * TERRAIN_VERTICES_X] = TERRAIN_MATERIAL_DIRT;
+		UpdateMaterialBuffer(front);
 	}
-	if (z1 == TERRAIN_TILES_X && (newHeight < h2 || newHeight < h3) && back)
+	if (z1 == TERRAIN_TILES_X && back)
 	{
-		back->heights[x0 + 0 * TERRAIN_VERTICES_X] = fh2;
-		back->heights[x1 + 0 * TERRAIN_VERTICES_X] = fh3;
-		UpdateVertexBuffer(back);
+		if (newHeight < h2 || newHeight < h3)
+		{
+			back->heights[x0 + 0 * TERRAIN_VERTICES_X] = fh2;
+			back->heights[x1 + 0 * TERRAIN_VERTICES_X] = fh3;
+			UpdateVertexBuffer(back);
+		}
+
+		back->materials[x0 + 0 * TERRAIN_VERTICES_X] = TERRAIN_MATERIAL_DIRT;
+		back->materials[x1 + 0 * TERRAIN_VERTICES_X] = TERRAIN_MATERIAL_DIRT;
+		UpdateMaterialBuffer(back);
 	}
-	if (x0 == 0 && z0 == 0 && newHeight < h0 && leftfront)
+	if (x0 == 0 && z0 == 0 && leftfront)
 	{
-		leftfront->heights[TERRAIN_TILES_X + TERRAIN_TILES_X * TERRAIN_VERTICES_X] = fh0;
-		UpdateVertexBuffer(leftfront);
+		if (newHeight < h0)
+		{
+			leftfront->heights[TERRAIN_TILES_X + TERRAIN_TILES_X * TERRAIN_VERTICES_X] = fh0;
+			UpdateVertexBuffer(leftfront);
+		}
+
+		leftfront->materials[TERRAIN_TILES_X + TERRAIN_TILES_X * TERRAIN_VERTICES_X] = TERRAIN_MATERIAL_DIRT;
+		UpdateMaterialBuffer(leftfront);
 	}
-	if (x1 == TERRAIN_TILES_X && z0 == 0 && newHeight < h1 && rightfront)
+	if (x1 == TERRAIN_TILES_X && z0 == 0 && rightfront)
 	{
-		rightfront->heights[0 + TERRAIN_TILES_X * TERRAIN_VERTICES_X] = fh1;
-		UpdateVertexBuffer(rightfront);
+		if (newHeight < h1)
+		{
+			rightfront->heights[0 + TERRAIN_TILES_X * TERRAIN_VERTICES_X] = fh1;
+			UpdateVertexBuffer(rightfront);
+		}
+
+		rightfront->materials[0 + TERRAIN_TILES_X * TERRAIN_VERTICES_X] = TERRAIN_MATERIAL_DIRT;
+		UpdateMaterialBuffer(rightfront);
 	}
-	if (x0 == 0 && z1 == TERRAIN_TILES_X && newHeight < h2 && leftback)
+	if (x0 == 0 && z1 == TERRAIN_TILES_X && leftback)
 	{
-		leftback->heights[TERRAIN_TILES_X + 0 * TERRAIN_VERTICES_X] = fh2;
-		UpdateVertexBuffer(leftback);
+		if (newHeight < h2)
+		{
+			leftback->heights[TERRAIN_TILES_X + 0 * TERRAIN_VERTICES_X] = fh2;
+			UpdateVertexBuffer(leftback);
+		}
+
+		leftback->materials[TERRAIN_TILES_X + 0 * TERRAIN_VERTICES_X] = TERRAIN_MATERIAL_DIRT;
+		UpdateMaterialBuffer(leftback);
 	}
-	if (x1 == TERRAIN_TILES_X && z1 == TERRAIN_TILES_X && newHeight < h3 && rightback)
+	if (x1 == TERRAIN_TILES_X && z1 == TERRAIN_TILES_X && rightback)
 	{
-		rightback->heights[0 + 0 * TERRAIN_VERTICES_X] = fh3;
-		UpdateVertexBuffer(rightback);
+		if (newHeight < h3)
+		{
+			rightback->heights[0 + 0 * TERRAIN_VERTICES_X] = fh3;
+			UpdateVertexBuffer(rightback);
+		}
+
+		rightback->materials[0 + 0 * TERRAIN_VERTICES_X] = TERRAIN_MATERIAL_DIRT;
+		UpdateMaterialBuffer(rightback);
 	}
 
 	v0 = fh0;
@@ -291,6 +344,15 @@ void Terrain::dig(int gridx, int gridz)
 		RecalculateNormals(this, nx0, nz0, nx1, nz1);
 		UpdateNormalBuffer(this);
 	}
+
+	grassCoverage[gridx + gridz * TERRAIN_TILES_X] = 0;
+	UpdateGrassCoverageBuffer(this);
+
+	materials[x0 + z0 * TERRAIN_VERTICES_X] = TERRAIN_MATERIAL_DIRT;
+	materials[x1 + z0 * TERRAIN_VERTICES_X] = TERRAIN_MATERIAL_DIRT;
+	materials[x0 + z1 * TERRAIN_VERTICES_X] = TERRAIN_MATERIAL_DIRT;
+	materials[x1 + z1 * TERRAIN_VERTICES_X] = TERRAIN_MATERIAL_DIRT;
+	UpdateMaterialBuffer(this);
 }
 
 float Terrain::getTileHeight(int gridx, int gridz)

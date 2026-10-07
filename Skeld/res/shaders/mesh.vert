@@ -13,6 +13,10 @@ layout(std140, set = 1, binding = 0) uniform UniformBlock {
 	mat4 u_view;
 	mat4 u_projection;
 	mat4 u_model;
+	vec4 params;
+
+#define u_time params.x
+#define viewSpaceBuffer params.y
 };
 
 
@@ -21,6 +25,7 @@ void main()
 	gl_Position = u_projectionViewModel * vec4(a_position, 1);
 
 	vec4 viewSpaceNormal = u_model * vec4(a_normal, 0);
+	if (viewSpaceBuffer > 0.5) viewSpaceNormal = u_view * viewSpaceNormal;
 
 	v_normal = viewSpaceNormal.xyz;
 	v_texcoord = a_texcoord;

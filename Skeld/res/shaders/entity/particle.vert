@@ -18,6 +18,10 @@ layout(std140, set = 1, binding = 0) uniform UniformBlock {
 	mat4 u_view;
 	mat4 u_projection;
 	mat4 u_model;
+	vec4 params;
+
+#define u_time params.x
+#define u_viewSpaceBuffer params.y
 };
 
 
@@ -34,6 +38,7 @@ void main()
 
 	vec3 normal = normalize(vec3(vertexPosition, 0.5));
 	vec4 worldNormal = u_model * vec4(normal, 0);
+	if (u_viewSpaceBuffer > 0.5) worldNormal = u_view * worldNormal;
 
 	gl_Position = u_projection * viewSpacePosition;
 

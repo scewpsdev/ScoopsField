@@ -108,7 +108,7 @@ void main()
 	vec3 vertexPosition = rotateX(vec3(a_position, 0), curveAmount);
 
 	vertexPosition.x *= 2 * pow(4, u_lod);
-	vertexPosition *= scale * 0.7 * coverage;
+	vertexPosition *= scale * coverage * 0.7;
 
 	vertexPosition = rotateY(vertexPosition, rotation);
 

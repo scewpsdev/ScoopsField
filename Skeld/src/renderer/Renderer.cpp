@@ -1310,10 +1310,13 @@ bool RenderTerrain(Renderer* renderer, Terrain* terrain)
 	data.samplers[2] = TEXTURE_SAMPLER_CLAMPED;
 	data.vertexSampler[2] = true;
 
-	data.textures[3] = terrain->texture;
+	data.textures[3] = terrain->grassTexture;
 	data.samplers[3] = TEXTURE_SAMPLER_LINEAR;
 
-	data.numTextures = 4;
+	data.textures[4] = terrain->dirtTexture;
+	data.samplers[4] = TEXTURE_SAMPLER_LINEAR;
+
+	data.numTextures = 5;
 
 	//data.skeleton = skeleton;
 	data.transform = mat4::Translate(terrain->tilex * TERRAIN_SIZE, 0, terrain->tilez * TERRAIN_SIZE);
@@ -1416,7 +1419,7 @@ static void SubmitMesh(Renderer* renderer,
 		uniforms.projectionViewModel = pv * mesh->transform;
 		uniforms.view = view;
 		uniforms.projection = projection;
-		uniforms.model = viewSpaceBuffer ? view * mesh->transform : mesh->transform;
+		uniforms.model = mesh->transform;
 		uniforms.params = vec4(gameTime, viewSpaceBuffer ? 1.0f : 0.0f, 0, 0);
 
 		SDL_PushGPUVertexUniformData(cmdBuffer, 0, data, mesh->vertexUniformDataSize + sizeof(UniformData));

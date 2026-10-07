@@ -209,7 +209,28 @@ static void InitWeapons(ItemDatabase* items)
 		Item* item = &items->items[ITEM_AXE];
 		InitWeapon(items, item, "axe", false, 50, vec2(0.1f, 0.3f), DAMAGE_TYPE_SLASH);
 
-		item->equipSound = &items->equipSwordSound;
+		item->equipSound = &items->equipLightSound;
+
+		AddAttack(item, "attack_primary_1", "attack1", ATTACK_PRIMARY, 1.0f, 8, 16, 22, 1, "attack_primary_2", "attack_secondary_2");
+		AddAttack(item, "attack_primary_2", "attack2", ATTACK_PRIMARY, 1.0f, 8, 16, 22, 1, "attack_primary_1");
+
+		AddAttack(item, "attack_secondary_1", "attack3", ATTACK_SECONDARY, 1.0f, 10, 14, 23, 1, "attack_primary_2", "attack_secondary_2");
+		AddAttack(item, "attack_secondary_2", "attack4", ATTACK_SECONDARY, 1.0f, 8, 14, 24, 1, nullptr, "attack_secondary_1");
+
+		item->weapon.runningAttack = AddAttack(item, "attack_running", "attack_running", ATTACK_PRIMARY, 1.0f, 15, 22, 28, 1);
+
+		AddBlock(item, "block", "block", ATTACK_OFFHAND_PRIMARY, 1, 6);
+
+		item->weapon.riposteAttack = AddAttack(item, "riposte", "attack_riposte", ATTACK_PRIMARY, 1.0f, 13, 17, 25, 1);
+		item->weapon.riposteSecondaryAttack = AddAttack(item, "riposte_secondary", "attack_riposte3", ATTACK_SECONDARY, 1.0f, 13, 27, 31, 0.6f, nullptr, "attack_secondary_1");
+		item->weapon.attacks[item->weapon.riposteSecondaryAttack].resetHitboxTime = 23 / 24.0f;
+	}
+	// shovel
+	{
+		Item* item = &items->items[ITEM_SHOVEL];
+		InitWeapon(items, item, "shovel", false, 50, vec2(0.1f, 0.3f), DAMAGE_TYPE_SLASH);
+
+		item->equipSound = &items->equipLightSound;
 
 		AddAttack(item, "attack_primary_1", "attack1", ATTACK_PRIMARY, 1.0f, 8, 16, 22, 1, "attack_primary_2", "attack_secondary_2");
 		AddAttack(item, "attack_primary_2", "attack2", ATTACK_PRIMARY, 1.0f, 8, 16, 22, 1, "attack_primary_1");

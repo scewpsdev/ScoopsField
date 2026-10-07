@@ -1453,7 +1453,7 @@ void RenderPlayer(Player* player)
 
 	if (Item* rightWeapon = GetRightWeapon(player))
 	{
-		RenderModel(&game->renderer, &rightWeapon->model, nullptr, mat4::Transform(game->cameraPosition, game->cameraRotation) * player->weaponTransform * mat4::Rotate(vec3::Up, PI));
+		RenderModel(&game->renderer, &rightWeapon->model, nullptr, mat4::Transform(game->cameraPosition, game->cameraRotation) * player->weaponTransform);
 	}
 
 	if (player->hoveredTile != ivec2(69, 420))
@@ -1526,7 +1526,7 @@ void RenderPlayer(Player* player)
 		}
 		else
 		{
-			//GUIPanel(app->width / 2 - game->crosshair->info.width / 2, app->height / 2 - game->crosshair->info.height / 2, game->crosshair);
+			GUIPanel(app->width / 2 - game->crosshair->info.width / 2, app->height / 2 - game->crosshair->info.height / 2, game->crosshair);
 		}
 	}
 

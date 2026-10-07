@@ -16,6 +16,10 @@ layout(std140, set = 1, binding = 0) uniform UniformBlock {
 	mat4 u_projection;
 	mat4 u_model;
 	mat4 u_boneTransforms[64];
+	vec4 params;
+
+#define u_time params.x
+#define viewSpaceBuffer params.y
 };
 
 
@@ -40,6 +44,7 @@ void main()
 
 	vec4 animatedNormal = boneTransform * vec4(a_normal, 0);
 	vec4 viewSpaceNormal = u_model * animatedNormal;
+	if (viewSpaceBuffer > 0.5) viewSpaceNormal = u_view * viewSpaceNormal;
 
 	v_normal = viewSpaceNormal.xyz;
 	v_texcoord = a_texcoord;

@@ -20,6 +20,14 @@ struct VertexBuffer;
 struct IndexBuffer;
 struct Texture;
 
+enum TerrainMaterial : uint8_t
+{
+	TERRAIN_MATERIAL_NONE = 0,
+
+	TERRAIN_MATERIAL_GRASS = 1 << 0,
+	TERRAIN_MATERIAL_DIRT = 1 << 1,
+};
+
 struct Terrain
 {
 	int tilex, tilez;
@@ -42,7 +50,8 @@ struct Terrain
 
 	RigidBody collider;
 
-	Texture* texture;
+	Texture* grassTexture;
+	Texture* dirtTexture;
 
 #define MAX_TERRAIN_TREES 256
 	Tree* trees[MAX_TERRAIN_TREES];

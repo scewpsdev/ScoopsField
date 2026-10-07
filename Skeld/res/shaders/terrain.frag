@@ -12,9 +12,8 @@ layout (location = 2) out vec4 out_material;
 layout (location = 3) out vec4 out_emissive;
 
 
-layout(set = 2, binding = 0) uniform sampler2D s_diffuse;
-layout(set = 2, binding = 1) uniform sampler2D s_roughness;
-layout(set = 2, binding = 2) uniform sampler2D s_metallic;
+layout (set = 2, binding = 0) uniform sampler2D s_texture0;
+layout (set = 2, binding = 1) uniform sampler2D s_texture1;
 
 /*
 layout(set = 3, binding = 0) uniform UniformBlock {
@@ -39,14 +38,15 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 void main()
 {
 	vec3 color0 = vec3(0.22525, 0.325, 0.13);
-	vec3 color1 = vec3(1, 0, 1);
+	vec3 color1 = vec3(0.13, 0.1, 0.07);
 	vec3 color2 = vec3(1, 0, 1);
 	vec3 color3 = vec3(1, 0, 1);
 
-	vec4 textureColor0 = texture(s_diffuse, v_texcoord);
+	vec4 textureColor0 = texture(s_texture0, v_texcoord);
+	vec4 textureColor1 = texture(s_texture1, v_texcoord);
 
 	vec3 color = v_materials.x * color0 + v_materials.y * color1 + v_materials.z * color2 + v_materials.w * color3;
-	vec4 textureColor = textureColor0;
+	vec4 textureColor = v_materials.x * textureColor0 + v_materials.y * textureColor1;
 	// maybe alpha blend overlays on top?
 	// textureColor = mix(textureColor, textureColor4, textureColor4.a);
 

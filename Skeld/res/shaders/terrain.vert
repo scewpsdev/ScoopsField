@@ -16,6 +16,10 @@ layout(std140, set = 1, binding = 0) uniform UniformBlock {
 	mat4 u_view;
 	mat4 u_projection;
 	mat4 u_model;
+	vec4 params;
+
+#define u_time params.x
+#define viewSpaceBuffer params.y
 };
 
 #define TILE_SIZE 2.0
@@ -33,7 +37,8 @@ void main()
 
 	vec3 normal = textureLod(s_normalmap, heightmapCoord, 0).xyz;
 	normal = normalize(vec3(normal.x, 1, normal.y));
-	vec4 viewSpaceNormal = u_model * vec4(normal, 0);
+	vec4 viewSpaceNormal = vec4(normal, 0);
+	if (viewSpaceBuffer > 0.5) viewSpaceNormal = u_view * viewSpaceNormal;
 	v_normal = viewSpaceNormal.xyz;
 
 	uint material = textureLod(s_materialmap, heightmapCoord, 0).r;
@@ -45,7 +50,8 @@ void main()
 	);
 	v_materials = materialWeights;
 
-	vec2 texcoord = position.xz / 5;
+	vec3 worldPosition = u_model[3].xyz + position;
+	vec2 texcoord = worldPosition.xz / 5;
 	v_texcoord = texcoord;
 
 	gl_Position = u_projectionViewModel * vec4(position, 1);

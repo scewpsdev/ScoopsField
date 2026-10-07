@@ -33,7 +33,7 @@ struct GraphicsState
 #define MAX_SHADERS 256
 	Pool<Shader, MAX_SHADERS> shaders;
 
-#define MAX_TEXTURES 1024
+#define MAX_TEXTURES 2048
 	Pool<Texture, MAX_TEXTURES> textures;
 
 #define MAX_RENDER_TARGETS 256

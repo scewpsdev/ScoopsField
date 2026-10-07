@@ -7,9 +7,9 @@
 * [X] terrain editing
 * [X] grass rendering
 * [X] day night cycle
-* [ ] grass coverage map
-* [ ] delete buffers and sample from textures
-* [ ] ground material map
+* [X] grass coverage map
+* [X] delete buffers and sample from textures
+* [X] ground material map
 * [ ] shovel & digging
 * [ ] chopping trees
 * [ ] finish building elements
@@ -129,7 +129,73 @@ static float simplexFbm(float x, float y, int octaves, float persistence, float 
 
 		x += 123.456f;
 	}
+	return result;
+}
+
+static float simplexFbmNormalized(float x, float y, int octaves, float persistence, float lacunarity)
+{
+	float result = 0;
+	float sum = 0;
+	float amplitude = 1;
+	float frequency = 1;
+	for (int i = 0; i < octaves; i++)
+	{
+		result += Simplex2f(x * frequency, y * frequency) * amplitude;
+		sum += amplitude;
+		amplitude *= persistence;
+		frequency *= lacunarity;
+
+		x += 123.456f;
+	}
 	return result / sum;
+}
+
+static float sampleTerrainHeightPlains(float x, float z)
+{
+	float amplitude = 20.0f;
+	float frequency = 0.01f;
+	float height = simplexFbmNormalized(x * frequency, z * frequency, 4, 0.4f, 2);
+	height = SDL_powf(height * 0.5f + 0.5f, 2) * 2 - 1;
+	height *= amplitude;
+
+	height += 0.95f * amplitude;
+
+	float falloff = smoothstep(ISLAND_SIZE, 0.4f * ISLAND_SIZE, vec3(x, 0, z).length());
+	height = mix(-10.0f, height, falloff);
+
+	return height;
+}
+
+static float sampleTreeDensityPlains(float x, float z)
+{
+	float frequency = 0.01f;
+	float value = simplexFbm(x * frequency + 12345, z * frequency, 3, 0.4f, 2);
+	value = max(value, 0.0f);
+
+	//float falloff = smoothstep(256.0f, 100.0f, vec3(x, 0, z).length());
+	//value *= falloff;
+
+	value *= 0.05f;
+
+	return value;
+}
+
+static float sampleGrassDensityPlains(float x, float z, float height, vec3 normal)
+{
+	float frequency = 0.05f;
+	float value = simplexFbm(x * frequency - 12345, z * frequency, 3, 0.4f, 2);
+	value = max(value, 0.0f);
+
+	value = 1;
+
+	value *= smoothstep(0.2f, 1, height);
+
+	//float falloff = smoothstep(256.0f, 100.0f, vec3(x, 0, z).length());
+	//value *= falloff;
+
+	//value *= 0.05f;
+
+	return value;
 }
 
 static float sampleTerrainHeight(float x, float z)
@@ -162,11 +228,16 @@ static float sampleTreeDensity(float x, float z)
 	return value;
 }
 
-static float sampleGrassDensity(float x, float z)
+static float sampleGrassDensity(float x, float z, float height, vec3 normal)
 {
-	float frequency = 0.04f;
+	float frequency = 0.05f;
 	float value = simplexFbm(x * frequency - 12345, z * frequency, 3, 0.4f, 2);
-	value = clamp(value * 1.5f, 0, 1);
+	value = clamp((value + 0.8f) * 2, 0, 1);
+
+	value *= smoothstep(0.2f, 1, height) * smoothstep(15, 5, height);
+	value *= smoothstep(0.75f, 0.8f, dot(normal, vec3::Up));
+
+	value = smoothstep(0, 0.5f, value);
 
 	//float falloff = smoothstep(256.0f, 100.0f, vec3(x, 0, z).length());
 	//value *= falloff;
@@ -191,7 +262,7 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 			float xx = worldx + x * TERRAIN_TILE_SIZE;
 			float zz = worldz + z * TERRAIN_TILE_SIZE;
 
-			float height = sampleTerrainHeight(xx, zz);
+			float height = sampleTerrainHeightPlains(xx, zz);
 
 			terrainVertices[x + z * TERRAIN_VERTICES_X] = height;
 		}
@@ -203,10 +274,10 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 			float xx = worldx + x * TERRAIN_TILE_SIZE;
 			float zz = worldz + z * TERRAIN_TILE_SIZE;
 
-			float leftHeight = x > 0 ? terrainVertices[x - 1 + z * TERRAIN_VERTICES_X] : sampleTerrainHeight(xx - TERRAIN_TILE_SIZE, zz);
-			float rightHeight = x < TERRAIN_VERTICES_X - 1 ? terrainVertices[x + 1 + z * TERRAIN_VERTICES_X] : sampleTerrainHeight(xx + TERRAIN_TILE_SIZE, zz);
-			float frontHeight = z > 0 ? terrainVertices[x + (z - 1) * TERRAIN_VERTICES_X] : sampleTerrainHeight(xx, zz - TERRAIN_TILE_SIZE);
-			float backHeight = z < TERRAIN_VERTICES_X - 1 ? terrainVertices[x + (z + 1) * TERRAIN_VERTICES_X] : sampleTerrainHeight(xx, zz + TERRAIN_TILE_SIZE);
+			float leftHeight = x > 0 ? terrainVertices[x - 1 + z * TERRAIN_VERTICES_X] : sampleTerrainHeightPlains(xx - TERRAIN_TILE_SIZE, zz);
+			float rightHeight = x < TERRAIN_VERTICES_X - 1 ? terrainVertices[x + 1 + z * TERRAIN_VERTICES_X] : sampleTerrainHeightPlains(xx + TERRAIN_TILE_SIZE, zz);
+			float frontHeight = z > 0 ? terrainVertices[x + (z - 1) * TERRAIN_VERTICES_X] : sampleTerrainHeightPlains(xx, zz - TERRAIN_TILE_SIZE);
+			float backHeight = z < TERRAIN_VERTICES_X - 1 ? terrainVertices[x + (z + 1) * TERRAIN_VERTICES_X] : sampleTerrainHeightPlains(xx, zz + TERRAIN_TILE_SIZE);
 
 			float nx = leftHeight - rightHeight;
 			float nz = frontHeight - backHeight;
@@ -240,7 +311,7 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 			if (terrain->heights[x + z * TERRAIN_VERTICES_X] < 0)
 				continue;
 
-			float treeChance = sampleTreeDensity(xx, zz);
+			float treeChance = sampleTreeDensityPlains(xx, zz);
 			if (random.nextFloat() < treeChance)
 			{
 				SDL_assert(terrain->numTrees < MAX_TREES);
@@ -270,12 +341,14 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 			float xx = worldx + x * TERRAIN_TILE_SIZE;
 			float zz = worldz + z * TERRAIN_TILE_SIZE;
 
-			float coverage = sampleGrassDensity(xx, zz);
+			float height = terrain->heights[x + z * TERRAIN_VERTICES_X];
 
-			if (terrain->heights[x + z * TERRAIN_VERTICES_X] < 0)
-				coverage = 0;
+			vec3 normal = vec3(terrain->normals[x + z * TERRAIN_VERTICES_X], 0);
+			normal = vec3(normal.x, 1, normal.y).normalized();
 
-			terrain->grassCoverage[x + z * TERRAIN_TILES_X] = min((uint8_t)(coverage * 256), 255);
+			float coverage = sampleGrassDensityPlains(xx, zz, height, normal);
+
+			terrain->grassCoverage[x + z * TERRAIN_TILES_X] = (uint8_t)min((int)(coverage * 256), 255);
 		}
 	}
 	UpdateGrassCoverageBuffer(terrain);
@@ -478,6 +551,7 @@ static void ResetGame(bool destroy, bool init)
 		InitPlayer(&game->player, cmdBuffer, game->playerSpawn.translation(), game->playerSpawn.rotation().getAngle());
 
 		InitItemEntity((ItemEntity*)CreateEntity(), GetItem(ITEM_AXE), vec3(0, 12, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
+		InitItemEntity((ItemEntity*)CreateEntity(), GetItem(ITEM_SHOVEL), vec3(2, 12, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
 
 		//InitKnight((Creature*)CreateEntity(), vec3(0, 0, -5), 0);
 		//InitKnight((Creature*)CreateEntity(), vec3(-4, 0, -5), 0);
@@ -895,7 +969,7 @@ void GameUpdate()
 
 void GameRender()
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 3).normalized(), -gameTime * 0.01f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 3).normalized(), -(gameTime + 20) * 0.01f) * vec3(1, 0, 0);
 	//vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -20 * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
