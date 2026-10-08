@@ -249,7 +249,8 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 	player->stamina = 1.0f;
 	player->exhausted = false;
 
-	//SetRightWeapon(player, 0, GetItem(ITEM_AXE));
+	SetRightWeapon(player, 0, GetItem(ITEM_AXE));
+	SetRightWeapon(player, 1, GetItem(ITEM_SHOVEL));
 	//SetLeftWeapon(player, 0, GetItem(ITEM_WOODEN_SHIELD));
 	//SetRightWeapon(player, 1, GetItem(ITEM_DARKWOOD_STAFF));
 	//SetRightWeapon(player, 2, GetItem(ITEM_SHORTBOW));
@@ -653,13 +654,14 @@ static void UpdateAttacks(Player* player)
 				currentAction->type != ACTION_TYPE_ATTACK || currentAction->elapsedTime >= 0.5f * currentAction->duration || currentAction->followUpCancelTime && currentAction->elapsedTime >= 0.4f * currentAction->followUpCancelTime
 				);
 
-		if ((GetMouseButton(SDL_BUTTON_LEFT) || GetMouseScroll() > 0) && rightWeapon && (!currentAction || currentAction->elapsedTime >= currentAction->followUpCancelTime))
+		if ((GetMouseButton(SDL_BUTTON_LEFT) || GetMouseScroll() > 0) && rightWeapon && (!currentAction /*|| currentAction->elapsedTime >= currentAction->followUpCancelTime*/))
 		{
 			Attack* nextAttack = nullptr;
 			int attackIdx = 0;
 
 			AttackType type = GetMouseButton(SDL_BUTTON_LEFT) ? ATTACK_PRIMARY : ATTACK_SECONDARY;
 
+			/*
 			if (currentAction && currentAction->type == ACTION_TYPE_ATTACK && currentAction->attack.weapon == rightWeapon &&
 				(type == ATTACK_PRIMARY && currentAction->attack.attack->followUp || type == ATTACK_SECONDARY && currentAction->attack.attack->followUpSecondary))
 			{
@@ -694,11 +696,14 @@ static void UpdateAttacks(Player* player)
 						CancelAction(player->actions, *player);
 				}
 			}
+			*/
 
-			if (nextAttack)
+			//if (nextAttack)
 			{
 				Action action;
-				InitAttackAction(&action, rightWeapon, true, nextAttack, attackIdx, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT);
+				//InitAttackAction(&action, rightWeapon, true, nextAttack, attackIdx, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT);
+				ItemActionType actionType = rightWeapon == &game->items.items[ITEM_AXE] ? ITEM_ACTION_AXE : ITEM_ACTION_DIG;
+				InitAttackAction(&action, rightWeapon, actionType, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT);
 				QueueAction(player->actions, action, *player);
 			}
 		}
@@ -712,9 +717,9 @@ static void UpdateAttacks(Player* player)
 
 				int attackIdx = 0;
 
-				Action action;
-				InitAttackAction(&action, rightWeapon, true, nextAttack, attackIdx, SDL_BUTTON_RIGHT, SDL_BUTTON_LEFT);
-				QueueAction(player->actions, action, *player);
+				//Action action;
+				//InitAttackAction(&action, rightWeapon, true, nextAttack, attackIdx, SDL_BUTTON_RIGHT, SDL_BUTTON_LEFT);
+				//QueueAction(player->actions, action, *player);
 			}
 		}
 
@@ -761,9 +766,9 @@ static void UpdateAttacks(Player* player)
 
 			if (nextAttack)
 			{
-				Action action;
-				InitAttackAction(&action, leftWeapon, false, nextAttack, attackIdx, SDL_BUTTON_RIGHT, SDL_BUTTON_LEFT);
-				QueueAction(player->actions, action, *player);
+				//Action action;
+				//InitAttackAction(&action, leftWeapon, false, nextAttack, attackIdx, SDL_BUTTON_RIGHT, SDL_BUTTON_LEFT);
+				//QueueAction(player->actions, action, *player);
 			}
 		}
 		else if (GetMouseButtonDown(SDL_BUTTON_LEFT) && !rightWeapon)
@@ -911,27 +916,21 @@ void UpdatePlayer(Player* player)
 		}
 	}
 
-	player->hoveredTile = ivec2(69, 420);
+	player->isHoveringTile = false;
+	PhysicsHit hit = {};
+	if (Raycast(game->cameraPosition, game->cameraRotation.forward(), 5, &hit, 1, ENTITY_FILTER_TERRAIN))
+	{
+		int gridx = (int)SDL_floorf(hit.position.x / TERRAIN_TILE_SIZE);
+		int gridz = (int)SDL_floorf(hit.position.z / TERRAIN_TILE_SIZE);
+		player->hoveredTile = ivec2(gridx, gridz);
+		player->isHoveringTile = true;
+	}
+
 	if (GetRightWeapon(player))
 		UpdateAttacks(player);
 	else
 	{
-		PhysicsHit hit = {};
-		if (Raycast(game->cameraPosition, game->cameraRotation.forward(), 5, &hit, 1, ENTITY_FILTER_TERRAIN))
-		{
-			int gridx = (int)SDL_floorf(hit.position.x / TERRAIN_TILE_SIZE);
-			int gridz = (int)SDL_floorf(hit.position.z / TERRAIN_TILE_SIZE);
-			player->hoveredTile = ivec2(gridx, gridz);
-		}
-
-		if (GetMouseButtonDown(SDL_BUTTON_LEFT) && player->hoveredTile != ivec2(69, 420))
-		{
-			if (Terrain* terrain = GetTerrainAtPosition(hit.position))
-			{
-				terrain->dig(player->hoveredTile.x - terrain->tilex * TERRAIN_TILES_X, player->hoveredTile.y - terrain->tilez * TERRAIN_TILES_X);
-			}
-		}
-		if (GetMouseButtonDown(SDL_BUTTON_RIGHT) && player->hoveredTile != ivec2(69, 420))
+		if (GetMouseButtonDown(SDL_BUTTON_RIGHT) && player->isHoveringTile)
 		{
 			if (Terrain* terrain = GetTerrainAtPosition(hit.position))
 			{
@@ -1456,7 +1455,7 @@ void RenderPlayer(Player* player)
 		RenderModel(&game->renderer, &rightWeapon->model, nullptr, mat4::Transform(game->cameraPosition, game->cameraRotation) * player->weaponTransform);
 	}
 
-	if (player->hoveredTile != ivec2(69, 420))
+	if (player->isHoveringTile)
 	{
 		if (Terrain* terrain = GetTerrainAtPosition(vec3(player->hoveredTile.x * TERRAIN_TILE_SIZE, 0, player->hoveredTile.y * TERRAIN_TILE_SIZE)))
 		{

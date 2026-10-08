@@ -140,6 +140,7 @@ struct Player : EntityBase
 
 	Entity* interactTarget;
 	ivec2 hoveredTile;
+	bool isHoveringTile;
 
 	Item* blockItem;
 	bool parry;

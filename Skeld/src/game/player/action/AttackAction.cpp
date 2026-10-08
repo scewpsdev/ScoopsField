@@ -15,14 +15,19 @@
 #define HIT_FREEZE_DURATION 0.1f
 
 
-void InitAttackAction(Action* action, Item* weapon, bool right, Attack* attack, int attackIdx, uint32_t button, uint32_t cancelButton)
+void InitAttackAction(Action* action, Item* weapon, ItemActionType actionType, uint32_t button, uint32_t cancelButton)
 {
 	InitAction(action, ACTION_TYPE_ATTACK);
 
 	action->duration = 1.0f;
 	action->controlWeaponTransform = true;
 
-	AddActionSound(action, &game->swingSound, 0.4f * action->duration, 0.5f, 1, 0);
+	action->attack.actionType = actionType;
+
+	if (actionType == ITEM_ACTION_AXE)
+	{
+		AddActionSound(action, &game->swingSound, 0.4f * action->duration, 0.5f, 1, 0);
+	}
 
 	/*
 	if (right)
@@ -93,8 +98,8 @@ void InitAttackAction(Action* action, Item* weapon, bool right, Attack* attack, 
 	//action->rootMotion = true;
 
 	action->attack.weapon = weapon;
-	action->attack.attack = attack;
-	action->attack.attackIdx = attackIdx;
+	//action->attack.attack = attack;
+	//action->attack.attackIdx = attackIdx;
 
 	action->attack.button = button;
 	action->attack.cancelButton = cancelButton;
@@ -127,6 +132,7 @@ void StartAttackAction(Action* action, Player* player)
 
 void StopAttackAction(Action* action, Player* player)
 {
+	/*
 	if (action->attack.attack->bowDraw && !action->attack.cancelled)
 	{
 		float power = min(action->elapsedTime / action->followUpCancelTime, 1.0f);
@@ -136,6 +142,7 @@ void StopAttackAction(Action* action, Player* player)
 		ClearQueuedAction(player->actions);
 		QueueAction(player->actions, shootAction, *player);
 	}
+	*/
 
 	player->blockItem = nullptr;
 	player->parry = false;
@@ -167,74 +174,123 @@ void UpdateAttackAction(Action* action, Player* player)
 
 	//player->parry = action->elapsedTime >= action->attack.attack->parryWindow.x && action->elapsedTime <= action->attack.attack->parryWindow.y;
 
-	//mat4 weaponTransform = GetRightWeaponTransform(player);
-	quat weaponRotation = quat::FromAxisAngle(vec3::Right, -0.45f * PI) * quat::FromAxisAngle(vec3::Up, 0.5f * PI);
+	// do anim thingies
 	float range = 1.0f;
-	vec3 weaponTranslation = vec3(0, 0, -range + action->attack.weapon->weapon.damageRange.y);
-	mat4 weaponTransform = mat4::Transform(weaponTranslation, weaponRotation);
-	float tilt = 30;
-	float angle = action->elapsedTime / action->duration;
-	if (action->attack.lastHitReflect)
+	if (action->attack.actionType == ITEM_ACTION_AXE)
 	{
-		angle = -(angle - 0.5f);
-		angle *= 0.2f;
-		//angle = sign(angle) * SDL_powf(SDL_fabsf(angle) * 2, 0.5f) / 2;
-		angle += 0.5f;
+		quat weaponRotation = quat::FromAxisAngle(vec3::Right, -0.45f * PI) * quat::FromAxisAngle(vec3::Up, 0.5f * PI);
+		vec3 weaponTranslation = vec3(0, 0, -range + action->attack.weapon->weapon.damageRange.y);
+		mat4 weaponTransform = mat4::Transform(weaponTranslation, weaponRotation);
+		float tilt = 30;
+		float angle = action->elapsedTime / action->duration;
+		if (action->attack.lastHitReflect)
+		{
+			angle = -(angle - 0.5f);
+			angle *= 0.2f;
+			//angle = sign(angle) * SDL_powf(SDL_fabsf(angle) * 2, 0.5f) / 2;
+			angle += 0.5f;
 
-		tilt = -20;
+			tilt = -20;
+		}
+		angle = smoothstep(0.3f, 0.7f, angle);
+		angle = (angle - 0.5f) * PI;
+		weaponTransform = mat4::Rotate(vec3::Up, angle) * weaponTransform;
+		weaponTransform = mat4::Rotate(vec3::Back, tilt * Deg2Rad) * weaponTransform;
+		weaponTransform = mat4::Translate(0, -0.1f, 0) * weaponTransform;
+		action->weaponTransform = weaponTransform;
 	}
-	angle = smoothstep(0.3f, 0.7f, angle);
-	angle = (angle - 0.5f) * PI;
-	weaponTransform = mat4::Rotate(vec3::Up, angle) * weaponTransform;
-	weaponTransform = mat4::Rotate(vec3::Back, tilt * Deg2Rad) * weaponTransform;
-	weaponTransform = mat4::Translate(0, -0.1f, 0) * weaponTransform;
-	action->weaponTransform = weaponTransform;
+	else if (action->attack.actionType == ITEM_ACTION_DIG)
+	{
+		quat weaponRotation = quat::FromAxisAngle(vec3::Right, -0.5f * PI) * quat::FromAxisAngle(vec3::Up, 0.5f * PI);
+		float progress = action->elapsedTime / action->duration;
+		vec3 weaponTranslation = vec3(0, -0.3f, -range + action->attack.weapon->weapon.damageRange.y + max(1 - 2 * progress, 0.0f) * range);
+		mat4 weaponTransform = mat4::Transform(weaponTranslation, weaponRotation);
+		/*
+		float tilt = 30;
+		float angle = action->elapsedTime / action->duration;
+		if (action->attack.lastHitReflect)
+		{
+			angle = -(angle - 0.5f);
+			angle *= 0.2f;
+			//angle = sign(angle) * SDL_powf(SDL_fabsf(angle) * 2, 0.5f) / 2;
+			angle += 0.5f;
+
+			tilt = -20;
+		}
+		angle = smoothstep(0.3f, 0.7f, angle);
+		angle = (angle - 0.5f) * PI;
+		weaponTransform = mat4::Rotate(vec3::Up, angle) * weaponTransform;
+		weaponTransform = mat4::Rotate(vec3::Back, tilt * Deg2Rad) * weaponTransform;
+		weaponTransform = mat4::Translate(0, -0.1f, 0) * weaponTransform;
+		*/
+		action->weaponTransform = weaponTransform;
+	}
 
 	if (action->elapsedTime / action->duration >= 0.5f && !action->attack.didRaycast)
 	{
 		action->attack.didRaycast = true;
 
-		PhysicsHit hits[16];
-		int numHits = Raycast(game->cameraPosition, game->cameraRotation.forward(), range, hits, 16, ENTITY_FILTER_ENEMY_HITBOX);
-		for (int i = 0; i < numHits; i++)
+		// do choppy
+		if (action->attack.actionType == ITEM_ACTION_AXE)
 		{
-			PhysicsHit* hit = &hits[i];
-			Entity* hitEntity = (Entity*)hit->body->userPtr;
-
-			if (!action->attack.hitEntities.contains(hitEntity))
+			PhysicsHit hits[16];
+			int numHits = Raycast(game->cameraPosition, game->cameraRotation.forward(), range, hits, 16, ENTITY_FILTER_ENEMY_HITBOX);
+			for (int i = 0; i < numHits; i++)
 			{
-				HitParams params = {};
-				params.damage = action->attack.weapon->weapon.damage * action->attack.attack->damageMultiplier;
-				params.damageType = action->attack.attack->damageType;
-				params.position = hit->position;
-				params.body = hit->body;
-				//params.force = (tip - action->attack.lastHitboxTip).normalized() * 0.1f;
-				params.force = game->cameraRotation.left();
+				PhysicsHit* hit = &hits[i];
+				Entity* hitEntity = (Entity*)hit->body->userPtr;
 
-				if (HitEntity(hitEntity, &params, (Entity*)player))
+				if (!action->attack.hitEntities.contains(hitEntity))
 				{
-					action->attack.lastHitTime = gameTime;
+					HitParams params = {};
+					params.damage = 10; //action->attack.weapon->weapon.damage * action->attack.attack->damageMultiplier;
+					//params.damageType = action->attack.attack->damageType;
+					params.position = hit->position;
+					params.body = hit->body;
+					//params.force = (tip - action->attack.lastHitboxTip).normalized() * 0.1f;
+					params.force = game->cameraRotation.left();
 
-					if (params.wasBlocked)
+					if (HitEntity(hitEntity, &params, (Entity*)player))
 					{
-						action->attack.lastHitReflect = true;
+						action->attack.lastHitTime = gameTime;
 
-						action->attack.trail->destroyOnCollapse = true;
-						action->attack.trail = nullptr;
+						if (params.wasBlocked)
+						{
+							action->attack.lastHitReflect = true;
+
+							action->attack.trail->destroyOnCollapse = true;
+							action->attack.trail = nullptr;
+						}
+
+						//game->points += 10;
+
+						//PlaySound(&game->hitSlashSound, hit->position);
 					}
 
-					//game->points += 10;
-
-					//PlaySound(&game->hitSlashSound, hit->position);
+					action->attack.hitEntities.add(hitEntity);
 				}
+			}
+		}
+		else if (action->attack.actionType == ITEM_ACTION_DIG)
+		{
+			PhysicsHit hit = {};
+			if (Raycast(game->cameraPosition, game->cameraRotation.forward(), 5, &hit, 1, ENTITY_FILTER_TERRAIN))
+			{
+				int gridx = (int)SDL_floorf(hit.position.x / TERRAIN_TILE_SIZE);
+				int gridz = (int)SDL_floorf(hit.position.z / TERRAIN_TILE_SIZE);
 
-				action->attack.hitEntities.add(hitEntity);
+				if (Terrain* terrain = GetTerrainAtPosition(hit.position))
+				{
+					terrain->dig(gridx - terrain->tilex * TERRAIN_TILES_X, gridz - terrain->tilez * TERRAIN_TILES_X);
+
+					PlaySound(&game->digSound, 0, 1);
+				}
 			}
 		}
 	}
 
 	mat4 cameraTransform = mat4::Transform(game->cameraPosition, game->cameraRotation);
-	vec3 mid = cameraTransform * (weaponTransform.translation() + weaponTransform.rotation().up() * 0.5f * action->attack.weapon->weapon.damageRange.y);
+	vec3 mid = cameraTransform * (action->weaponTransform.translation() + action->weaponTransform.rotation().up() * 0.5f * action->attack.weapon->weapon.damageRange.y);
 
 	if (!action->attack.trail && !action->attack.lastHitTime)
 	{
@@ -249,7 +305,7 @@ void UpdateAttackAction(Action* action, Player* player)
 	if (action->attack.trail)
 	{
 		action->attack.trail->position = mid;
-		action->attack.trail->rotation = (cameraTransform * weaponTransform).rotation() * quat::FromAxisAngle(vec3::Up, PI) * quat::FromAxisAngle(vec3::Back, 0.5f * PI);
+		action->attack.trail->rotation = (cameraTransform * action->weaponTransform).rotation() * quat::FromAxisAngle(vec3::Up, PI) * quat::FromAxisAngle(vec3::Back, 0.5f * PI);
 		action->attack.trail->width = action->attack.weapon->weapon.damageRange.y;
 	}
 
@@ -343,12 +399,15 @@ void UpdateAttackAction(Action* action, Player* player)
 	action->attack.lastHitboxTip = tip;
 	*/
 
+	/*
 	if (action->attack.attack->resetHitboxTime && action->elapsedTime >= action->attack.attack->resetHitboxTime && !action->attack.resetHitbox)
 	{
 		action->attack.hitEntities.clear();
 		action->attack.resetHitbox = true;
 	}
+	*/
 
+	/*
 	if (action->attack.attack->projectileCast && action->elapsedTime >= action->attack.attack->projectileCastTime && !action->attack.projectile)
 	{
 		Projectile* projectile = (Projectile*)PoolAlloc(&game->entities);
@@ -356,6 +415,7 @@ void UpdateAttackAction(Action* action, Player* player)
 		InitMagicProjectile(projectile, game->cameraPosition, game->cameraRotation.forward(), transform, (Entity*)player);
 		action->attack.projectile = projectile;
 	}
+	*/
 
 	if (action->attack.projectile && action->attack.projectile->trail)
 		BendTrailEnd(action->attack.projectile->trail, (GetRightWeaponTransform(player) * mat4::Translate(action->attack.weapon->weapon.castOffset)).translation(), 2);

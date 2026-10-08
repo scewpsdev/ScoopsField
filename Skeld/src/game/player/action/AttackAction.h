@@ -13,11 +13,20 @@ struct Action;
 struct Player;
 struct Trail;
 
+enum ItemActionType
+{
+	ITEM_ACTION_NULL = 0,
+
+	ITEM_ACTION_AXE,
+	ITEM_ACTION_DIG,
+};
+
 struct AttackAction
 {
 	Item* weapon;
 	Attack* attack;
 	int attackIdx;
+	ItemActionType actionType;
 
 	uint32_t button;
 	uint32_t cancelButton;
@@ -39,7 +48,7 @@ struct AttackAction
 };
 
 
-void InitAttackAction(Action* action, Item* weapon, bool right, Attack* attack, int attackIdx, uint32_t button, uint32_t cancelButton);
+void InitAttackAction(Action* action, Item* weapon, ItemActionType actionType, uint32_t button, uint32_t cancelButton);
 void StartAttackAction(Action* action, Player* player);
 void StopAttackAction(Action* action, Player* player);
 void UpdateAttackAction(Action* action, Player* player);

@@ -651,6 +651,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	LoadSound(&game->hitShieldSound, "res/sounds/hit/hit_shield.ogg.bin");
 	LoadSound(&game->hitShieldParrySound, "res/sounds/hit/hit_shield_parry.ogg.bin");
 	LoadSounds(&game->hitWoodSound, "sounds/hit/hit_wood", 1);
+	LoadSounds(&game->digSound, "sounds/step/step_dirt", 6);
 	LoadSounds(&game->stepBareSound, "sounds/step/step_bare", 3);
 	LoadSound(&game->jumpBareSound, "res/sounds/step/jump_bare.ogg.bin");
 	LoadSounds(&game->landBareSound, "sounds/step/land_bare", 3);
