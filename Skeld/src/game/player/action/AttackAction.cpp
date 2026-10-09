@@ -19,14 +19,18 @@ void InitAttackAction(Action* action, Item* weapon, ItemActionType actionType, u
 {
 	InitAction(action, ACTION_TYPE_ATTACK);
 
-	action->duration = 1.0f;
 	action->controlWeaponTransform = true;
 
 	action->attack.actionType = actionType;
 
 	if (actionType == ITEM_ACTION_AXE)
 	{
+		action->duration = 1.0f;
 		AddActionSound(action, &game->swingSound, 0.4f * action->duration, 0.5f, 1, 0);
+	}
+	else if (actionType == ITEM_ACTION_DIG)
+	{
+		action->duration = 0.7f;
 	}
 
 	/*
@@ -203,7 +207,8 @@ void UpdateAttackAction(Action* action, Player* player)
 	{
 		quat weaponRotation = quat::FromAxisAngle(vec3::Right, -0.5f * PI) * quat::FromAxisAngle(vec3::Up, 0.5f * PI);
 		float progress = action->elapsedTime / action->duration;
-		vec3 weaponTranslation = vec3(0, -0.3f, -range + action->attack.weapon->weapon.damageRange.y + max(1 - 2 * progress, 0.0f) * range);
+		float translationZ = progress < 0.5f ? remap(progress, 0, 0.5f, 1, 0.2f) : remap(progress, 0.5f, 1, 0.2f, 0);
+		vec3 weaponTranslation = vec3(0, -0.3f, -range + action->attack.weapon->weapon.damageRange.y + translationZ);
 		mat4 weaponTransform = mat4::Transform(weaponTranslation, weaponRotation);
 		/*
 		float tilt = 30;
