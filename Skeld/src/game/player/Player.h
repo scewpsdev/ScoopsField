@@ -114,7 +114,7 @@ struct Player : EntityBase
 	vec3 viewBobLookSwayAnim;
 	int lastStepIdx;
 
-#define NUM_LOADOUTS 3
+#define NUM_LOADOUTS 7
 	Item* rightWeapons[NUM_LOADOUTS];
 	Item* leftWeapons[NUM_LOADOUTS];
 	int currentLoadout;
@@ -141,6 +141,8 @@ struct Player : EntityBase
 	Entity* interactTarget;
 	ivec2 hoveredTile;
 	bool isHoveringTile;
+	ivec4 nextBuildPosition;
+	float lastBuildTime;
 
 	Item* blockItem;
 	bool parry;

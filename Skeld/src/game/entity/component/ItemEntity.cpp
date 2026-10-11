@@ -18,7 +18,7 @@ void InitItemEntity(ItemEntity* item, Item* actualItem, vec3 position, quat rota
 
 	InitRigidBody(&item->body, RIGID_BODY_DYNAMIC, item->position, rotation, item);
 
-	AABB boundingBox = item->item->model.boundingBox;
+	AABB boundingBox = item->item->model->boundingBox;
 	vec3 size = boundingBox.max - boundingBox.min;
 	vec3 center = (boundingBox.min + boundingBox.max) * 0.5f;
 	size = max(size, vec3(0.02f));
@@ -60,5 +60,5 @@ void UpdateItemEntity(ItemEntity* item)
 
 void RenderItemEntity(ItemEntity* item)
 {
-	RenderModel(&game->renderer, &item->item->model, nullptr, ModelMatrix((Entity*)item));
+	RenderModel(&game->renderer, item->item->model, nullptr, ModelMatrix((Entity*)item));
 }

@@ -2033,7 +2033,7 @@ GraphicsPipeline* CreateDeferredShadowGraphicsPipeline(Renderer* renderer, const
 	return CreateGraphicsPipeline(&pipelineInfo);
 }
 
-GraphicsPipeline* CreateForwardGraphicsPipeline(Shader* shader, VertexBufferLayout* vertexLayouts, int numVertexLayouts, SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, bool additive)
+GraphicsPipeline* CreateForwardGraphicsPipeline(Shader* shader, int numVertexLayouts, VertexBufferLayout* vertexLayouts, SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, bool additive)
 {
 	SDL_GPUTextureFormat colorAttachmentFormat = SDL_GPU_TEXTUREFORMAT_R11G11B10_UFLOAT;
 	SDL_GPUTextureFormat depthAttachmentFormat = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
@@ -2063,6 +2063,12 @@ GraphicsPipeline* CreateForwardGraphicsPipeline(Shader* shader, VertexBufferLayo
 	}
 
 	return CreateGraphicsPipeline(&pipelineInfo);
+}
+
+GraphicsPipeline* CreateForwardGraphicsPipeline(Renderer* renderer, const char* vertex, const char* fragment, bool additive)
+{
+	Shader* shader = LoadGraphicsShader(vertex, fragment);
+	return CreateForwardGraphicsPipeline(shader, NUM_MESH_BUFFER_LAYOUTS, renderer->meshLayout, SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_BACK, additive);
 }
 
 bool IsForward(GraphicsPipeline* pipeline)

@@ -21,7 +21,7 @@ float calculateTargetExposure()
 	float targetExposure = pow(0.18 / luminance, 0.7);
 
 	float minExposure = 0.1;
-	float maxExposure = 100;
+	float maxExposure = 300;
 	return clamp(targetExposure, minExposure, maxExposure);
 }
 

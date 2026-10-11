@@ -16,27 +16,27 @@ void InitParryAction(Action* action, Item* weapon, int side)
 	if (side == 0)
 	{
 		action->rightAnimName = "parry";
-		action->rightAnimMoveset = &weapon->moveset;
+		action->rightAnimMoveset = weapon->moveset;
 		action->rightAnimBlendDuration = 0.0f;
 
 		if (weapon->twoHanded)
 		{
 			action->leftAnimName = "parry";
-			action->leftAnimMoveset = &weapon->moveset;
+			action->leftAnimMoveset = weapon->moveset;
 			action->leftAnimBlendDuration = 0.0f;
 		}
 	}
 	else
 	{
 		action->leftAnimName = "parry";
-		action->leftAnimMoveset = &weapon->moveset;
+		action->leftAnimMoveset = weapon->moveset;
 		action->leftAnimBlendDuration = 0.0f;
 		action->leftAnimMirror = true;
 
 		if (weapon->twoHanded)
 		{
 			action->rightAnimName = "parry";
-			action->rightAnimMoveset = &weapon->moveset;
+			action->rightAnimMoveset = weapon->moveset;
 			action->rightAnimBlendDuration = 0.0f;
 			action->rightAnimMirror = true;
 		}

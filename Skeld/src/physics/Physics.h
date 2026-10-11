@@ -23,6 +23,7 @@ struct PhysicsErrorCallback : physx::PxErrorCallback
 
 struct RigidBody;
 struct Mesh;
+struct Shape;
 
 struct PhysicsState
 {
@@ -48,6 +49,7 @@ struct PhysicsHit
 	vec3 position;
 	vec3 normal;
 	bool trigger;
+	Shape* shape;
 	RigidBody* body;
 };
 
@@ -67,3 +69,18 @@ int OverlapSphere(const vec3& position, float radius, PhysicsHit* hits, int maxH
 bool OverlapSphere(vec3 position, float radius, uint32_t filterMask);
 int SweepSphere(float radius, const vec3& position, const vec3& direction, float maxDistance, PhysicsHit* hits, int maxHits, uint32_t filterMask);
 bool SweepSphere(float radius, const vec3& position, const vec3& direction, float maxDistance, uint32_t filterMask);
+
+inline PhysicsHit* GetClosestHit(int numHits, PhysicsHit* hits)
+{
+	float closestDistance = FLT_MAX;
+	PhysicsHit* closestHit = nullptr;
+	for (int i = 0; i < numHits; i++)
+	{
+		if (hits[i].distance < closestDistance)
+		{
+			closestDistance = hits[i].distance;
+			closestHit = &hits[i];
+		}
+	}
+	return closestHit;
+}

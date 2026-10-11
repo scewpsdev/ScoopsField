@@ -10,12 +10,12 @@ void InitStaggerAction(Action* action, Item* weapon)
 	InitAction(action, ACTION_TYPE_STAGGER);
 
 	action->rightAnimName = "block";
-	action->rightAnimMoveset = &weapon->moveset;
+	action->rightAnimMoveset = weapon->moveset;
 
 	if (weapon->twoHanded)
 	{
 		action->leftAnimName = "block";
-		action->leftAnimMoveset = &weapon->moveset;
+		action->leftAnimMoveset = weapon->moveset;
 	}
 
 	action->moveSpeed = 0.5f;

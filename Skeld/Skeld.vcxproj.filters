@@ -246,7 +246,7 @@
     <ClCompile Include="src\game\entity\component\Tree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game\entity\component\WoodFloor.cpp">
+    <ClCompile Include="src\game\entity\component\BuildElement.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\game\entity\component\GrassField.cpp">
@@ -572,7 +572,7 @@
     <ClInclude Include="src\game\entity\component\Tree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\game\entity\component\WoodFloor.h">
+    <ClInclude Include="src\game\entity\component\BuildElement.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Core.h">
@@ -648,5 +648,8 @@
     <None Include="res\shaders\postprocessing\fog.frag" />
     <None Include="res\shaders\entity\grass.frag" />
     <None Include="res\shaders\entity\grass.vert" />
+    <None Include="res\shaders\entity\grass.shader" />
+    <None Include="res\shaders\entity\preview.vert" />
+    <None Include="res\shaders\entity\preview.frag" />
   </ItemGroup>
 </Project>

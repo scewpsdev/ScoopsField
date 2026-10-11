@@ -6,13 +6,14 @@
 #define HEALTH_REGEN_HIT_DELAY 5.0f
 #define HIT_RECOVERY_DURATION 0.25f
 #define STEP_FREQUENCY 0.4f
-#define PLAYER_REACH 2.5f
+#define PLAYER_REACH 3.0f
 #define CAMERA_HEIGHT 1.49f
 #define CAMERA_HEIGHT_DUCKED 0.94f
 #define CONTROLLER_HEIGHT 1.7f
 #define CONTROLLER_HEIGHT_DUCKED (CONTROLLER_HEIGHT + (CAMERA_HEIGHT_DUCKED - CAMERA_HEIGHT))
 //#define CAMERA_HEIGHT_DUCKED (CAMERA_HEIGHT - (CONTROLLER_HEIGHT - CONTROLLER_HEIGHT_DUCKED))
 #define DEFAULT_WEAPON_TRANSFORM mat4::Translate(0.3f, -0.2f, -0.3f)
+#define BUILD_COOLDOWN 0.5f
 
 
 Action* GetCurrentAction(Player* player)
@@ -26,7 +27,7 @@ static void SetRightWeapon(Player* player, int loadout, Item* weapon)
 	{
 		Item* lastWeapon = player->rightWeapons[loadout];
 
-		if (lastWeapon && lastWeapon->model.numAnimations)
+		if (lastWeapon && lastWeapon->model->numAnimations)
 			DestroyAnimationState(&player->rightWeaponAnim);
 
 		player->rightWeapons[loadout] = weapon;
@@ -35,8 +36,8 @@ static void SetRightWeapon(Player* player, int loadout, Item* weapon)
 		{
 			if (weapon)
 			{
-				if (weapon->model.numAnimations)
-					InitAnimationState(&player->rightWeaponAnim, &weapon->model);
+				if (weapon->model->numAnimations)
+					InitAnimationState(&player->rightWeaponAnim, weapon->model);
 
 				Action action;
 				InitEquipAction(&action, weapon, nullptr);
@@ -58,7 +59,7 @@ static void SetLeftWeapon(Player* player, int loadout, Item* weapon)
 	{
 		Item* lastWeapon = player->leftWeapons[loadout];
 
-		if (lastWeapon && lastWeapon->model.numAnimations)
+		if (lastWeapon && lastWeapon->model->numAnimations)
 			DestroyAnimationState(&player->leftWeaponAnim);
 
 		player->leftWeapons[loadout] = weapon;
@@ -69,8 +70,8 @@ static void SetLeftWeapon(Player* player, int loadout, Item* weapon)
 			{
 				//if (lastWeapon->model.numAnimations)
 				//	DestroyAnimationState(&player->leftWeaponAnim);
-				if (weapon->model.numAnimations)
-					InitAnimationState(&player->leftWeaponAnim, &weapon->model);
+				if (weapon->model->numAnimations)
+					InitAnimationState(&player->leftWeaponAnim, weapon->model);
 
 				Action action;
 				InitEquipAction(&action, nullptr, weapon);
@@ -159,17 +160,17 @@ void SwitchLoadout(Player* player, int loadout)
 	{
 		if (player->rightWeapons[loadout])
 		{
-			if (player->rightWeapons[player->currentLoadout] && player->rightWeapons[player->currentLoadout]->model.numAnimations)
+			if (player->rightWeapons[player->currentLoadout] && player->rightWeapons[player->currentLoadout]->model->numAnimations)
 				DestroyAnimationState(&player->rightWeaponAnim);
-			if (player->rightWeapons[loadout]->model.numAnimations)
-				InitAnimationState(&player->rightWeaponAnim, &player->rightWeapons[loadout]->model);
+			if (player->rightWeapons[loadout]->model->numAnimations)
+				InitAnimationState(&player->rightWeaponAnim, player->rightWeapons[loadout]->model);
 		}
 		if (player->leftWeapons[loadout])
 		{
-			if (player->leftWeapons[player->currentLoadout] && player->leftWeapons[player->currentLoadout]->model.numAnimations)
+			if (player->leftWeapons[player->currentLoadout] && player->leftWeapons[player->currentLoadout]->model->numAnimations)
 				DestroyAnimationState(&player->leftWeaponAnim);
-			if (player->leftWeapons[loadout]->model.numAnimations)
-				InitAnimationState(&player->leftWeaponAnim, &player->leftWeapons[loadout]->model);
+			if (player->leftWeapons[loadout]->model->numAnimations)
+				InitAnimationState(&player->leftWeaponAnim, player->leftWeapons[loadout]->model);
 		}
 
 		if (player->rightWeapons[loadout] || player->leftWeapons[loadout])
@@ -249,8 +250,10 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 	player->stamina = 1.0f;
 	player->exhausted = false;
 
-	SetRightWeapon(player, 0, GetItem(ITEM_AXE));
-	SetRightWeapon(player, 1, GetItem(ITEM_SHOVEL));
+	SetRightWeapon(player, 0, GetItem(ITEM_WOOD_FLOOR));
+	SetRightWeapon(player, 1, GetItem(ITEM_WOOD_WALL));
+	SetRightWeapon(player, 2, GetItem(ITEM_SHOVEL));
+	SetRightWeapon(player, 3, GetItem(ITEM_AXE));
 	//SetLeftWeapon(player, 0, GetItem(ITEM_WOODEN_SHIELD));
 	//SetRightWeapon(player, 1, GetItem(ITEM_DARKWOOD_STAFF));
 	//SetRightWeapon(player, 2, GetItem(ITEM_SHORTBOW));
@@ -264,9 +267,9 @@ void DestroyPlayer(Player* player)
 	DestroyAnimationState(&player->anim);
 	DestroyAnimationState(&player->bodyAnim);
 
-	if (player->rightWeapons[player->currentLoadout] && player->rightWeapons[player->currentLoadout]->model.numAnimations)
+	if (player->rightWeapons[player->currentLoadout] && player->rightWeapons[player->currentLoadout]->model->numAnimations)
 		DestroyAnimationState(&player->rightWeaponAnim);
-	if (player->leftWeapons[player->currentLoadout] && player->leftWeapons[player->currentLoadout]->model.numAnimations)
+	if (player->leftWeapons[player->currentLoadout] && player->leftWeapons[player->currentLoadout]->model->numAnimations)
 		DestroyAnimationState(&player->leftWeaponAnim);
 
 	//DestroyModel(player->model);
@@ -654,7 +657,7 @@ static void UpdateAttacks(Player* player)
 				currentAction->type != ACTION_TYPE_ATTACK || currentAction->elapsedTime >= 0.5f * currentAction->duration || currentAction->followUpCancelTime && currentAction->elapsedTime >= 0.4f * currentAction->followUpCancelTime
 				);
 
-		if ((GetMouseButton(SDL_BUTTON_LEFT) || GetMouseScroll() > 0) && rightWeapon && (!currentAction /*|| currentAction->elapsedTime >= currentAction->followUpCancelTime*/))
+		if ((GetMouseButton(SDL_BUTTON_LEFT) || GetMouseScroll() > 0) && rightWeapon && (!currentAction /*|| currentAction->elapsedTime >= currentAction->followUpCancelTime*/ || GetMouseButtonDown(SDL_BUTTON_LEFT)))
 		{
 			Attack* nextAttack = nullptr;
 			int attackIdx = 0;
@@ -699,12 +702,24 @@ static void UpdateAttacks(Player* player)
 			*/
 
 			//if (nextAttack)
+			if (rightWeapon->kind == ITEM_KIND_WEAPON)
 			{
 				Action action;
 				//InitAttackAction(&action, rightWeapon, true, nextAttack, attackIdx, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT);
 				ItemActionType actionType = rightWeapon == &game->items.items[ITEM_AXE] ? ITEM_ACTION_AXE : ITEM_ACTION_DIG;
 				InitAttackAction(&action, rightWeapon, actionType, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT);
 				QueueAction(player->actions, action, *player);
+			}
+			else if (rightWeapon->kind == ITEM_KIND_BUILD_ELEMENT)
+			{
+				if (!player->lastBuildTime || gameTime - player->lastBuildTime >= BUILD_COOLDOWN || GetMouseButtonDown(SDL_BUTTON_LEFT))
+				{
+					if (player->nextBuildPosition.y != INT32_MIN)
+					{
+						InitBuildElement((BuildElement*)CreateEntity(), player->nextBuildPosition, (BuildElementType)rightWeapon->buildElement.elementType);
+					}
+					player->lastBuildTime = gameTime;
+				}
 			}
 		}
 		else if (GetMouseButtonDown(SDL_BUTTON_RIGHT) && !leftWeapon)
@@ -789,6 +804,13 @@ static void UpdateAttacks(Player* player)
 			*/
 		}
 	}
+}
+
+static ivec3 RotateNormal(ivec3 normal, quat rotation)
+{
+	vec3 fn = normal;
+	fn = rotation * fn;
+	return (ivec3)round(fn);
 }
 
 void UpdatePlayer(Player* player)
@@ -918,7 +940,7 @@ void UpdatePlayer(Player* player)
 
 	player->isHoveringTile = false;
 	PhysicsHit hit = {};
-	if (Raycast(game->cameraPosition, game->cameraRotation.forward(), 5, &hit, 1, ENTITY_FILTER_TERRAIN))
+	if (Raycast(game->cameraPosition, game->cameraRotation.forward(), PLAYER_REACH, &hit, 1, ENTITY_FILTER_TERRAIN))
 	{
 		int gridx = (int)SDL_floorf(hit.position.x / TERRAIN_TILE_SIZE);
 		int gridz = (int)SDL_floorf(hit.position.z / TERRAIN_TILE_SIZE);
@@ -926,22 +948,53 @@ void UpdatePlayer(Player* player)
 		player->isHoveringTile = true;
 	}
 
-	if (GetRightWeapon(player))
-		UpdateAttacks(player);
-	else
+	player->nextBuildPosition = ivec4(0, INT32_MIN, 0, 0);
+	Item* rightWeapon = GetRightWeapon(player);
+	if (rightWeapon->kind == ITEM_KIND_BUILD_ELEMENT)
 	{
-		if (GetMouseButtonDown(SDL_BUTTON_RIGHT) && player->isHoveringTile)
-		{
-			if (Terrain* terrain = GetTerrainAtPosition(hit.position))
-			{
-				float xx = player->hoveredTile.x * TERRAIN_TILE_SIZE;
-				float zz = player->hoveredTile.y * TERRAIN_TILE_SIZE;
-				float height = terrain->getTileHeight(player->hoveredTile.x - terrain->tilex * TERRAIN_TILES_X, player->hoveredTile.y - terrain->tilez * TERRAIN_TILES_X);
+		uint32_t flags = rightWeapon->buildElement.elementType == BUILD_ELEMENT_TYPE_FLOOR ? ENTITY_FILTER_BUILD_SNAP_FLOOR : ENTITY_FILTER_BUILD_SNAP_WALL;
 
-				InitWoodFloor((WoodFloor*)CreateEntity(), vec3(xx, height, zz));
+		PhysicsHit hits[16];
+		if (int numHits = Raycast(game->cameraPosition, game->cameraRotation.forward(), PLAYER_REACH, hits, 16, flags))
+		{
+			PhysicsHit* hit = GetClosestHit(numHits, hits);
+			Entity* entity = (Entity*)hit->body->userPtr;
+			SDL_assert(entity->type == ENTITY_TYPE_BUILD_ELEMENT);
+
+			BuildElement* element = (BuildElement*)hit->body->userPtr;
+			if (SnapPosition* snapPosition = GetSnapPosition(element, hit->shape))
+			{
+				ivec3 normal = snapPosition->normal;
+				// 2 special cases
+				if (rightWeapon->buildElement.elementType == BUILD_ELEMENT_TYPE_FLOOR && element->elementType == BUILD_ELEMENT_TYPE_WALL)
+				{
+					if (normal.y == 1)
+						normal.z = 1;
+					else if (normal.y == -1)
+					{
+						normal.y = 0;
+						normal.z = 1;
+					}
+				}
+				ivec3 newTile = element->tile + RotateNormal(normal, element->rotation) * ivec3(1, TERRAIN_STEPS_PER_UNIT, 1);
+				player->nextBuildPosition = ivec4(newTile, snapPosition->rotation);
+			}
+		}
+		else if (player->isHoveringTile)
+		{
+			if (Terrain* terrain = GetTerrainAtTile(player->hoveredTile.x, player->hoveredTile.y))
+			{
+				int height = terrain->getTileMaxHeight(player->hoveredTile.x - terrain->tilex * TERRAIN_TILES_X, player->hoveredTile.y - terrain->tilez * TERRAIN_TILES_X);
+				ivec3 tile = ivec3(player->hoveredTile.x, height, player->hoveredTile.y);
+				vec3 playerDirection = quat::FromAxisAngle(vec3::Up, player->yaw) * vec3(0, 0, -1);
+				int rotation = abs(playerDirection.z) > abs(playerDirection.x) ? (playerDirection.z < 0 ? 0 : 2) : (playerDirection.x > 0 ? 1 : 3);
+				player->nextBuildPosition = ivec4(tile, rotation);
 			}
 		}
 	}
+
+	if (GetRightWeapon(player))
+		UpdateAttacks(player);
 
 	mat4 weaponViewBob = CalculateViewBobbing(player, 0);
 	mat4 dstWeaponTransform = DEFAULT_WEAPON_TRANSFORM;
@@ -962,6 +1015,7 @@ void UpdatePlayer(Player* player)
 
 	AnimateModel(player->model, &player->anim, moveAnimation, nullptr, nullptr);
 
+#if 0
 	AnimationPlayback* bodyMoveAnimation = nullptr;
 
 	if (player->grounded)
@@ -1021,13 +1075,13 @@ void UpdatePlayer(Player* player)
 
 	if (rightApparentWeapon)
 	{
-		rightAnimation = GetAnimationByName(&rightApparentWeapon->moveset, "idle");
+		rightAnimation = GetAnimationByName(rightApparentWeapon->moveset, "idle");
 		SDL_assert(rightAnimation);
 	}
 
 	if (leftApparentWeapon)
 	{
-		leftAnimation = GetAnimationByName(&leftApparentWeapon->moveset, "idle");
+		leftAnimation = GetAnimationByName(leftApparentWeapon->moveset, "idle");
 		leftAnimationMirror = leftApparentWeapon != rightApparentWeapon;
 		SDL_assert(leftAnimation);
 	}
@@ -1294,46 +1348,47 @@ void UpdatePlayer(Player* player)
 		weaponLeftTransform = neckTransform * mat4::Rotate(vec3::AxisX, -player->pitch * 0.5f) * neckTransform.inverted() * weaponLeftTransform;
 		*/
 	}
+#endif
 
 	UpdateRootMotion(player);
 
-	Item* rightWeapon = GetRightWeapon(player);
+	//Item* rightWeapon = GetRightWeapon(player);
 	Item* leftWeapon = GetLeftWeapon(player);
 
-	if (rightWeapon && rightWeapon->model.numAnimations)
+	if (rightWeapon && rightWeapon->model->numAnimations)
 	{
 		Action* currentAction = GetCurrentAction(player);
 		if (currentAction && currentAction->rightItemAnimName)
 		{
 			currentAction->rightWeaponAnim.timer += deltaTime;
-			AnimateModel(&rightWeapon->model, &player->rightWeaponAnim, &currentAction->rightWeaponAnim, nullptr, nullptr);
+			AnimateModel(rightWeapon->model, &player->rightWeaponAnim, &currentAction->rightWeaponAnim, nullptr, nullptr);
 		}
-		else if (Animation* defaultAnim = GetAnimationByName(&rightWeapon->model, "item_default"))
+		else if (Animation* defaultAnim = GetAnimationByName(rightWeapon->model, "item_default"))
 		{
-			AnimateModel(&rightWeapon->model, &player->rightWeaponAnim, defaultAnim, gameTime, true, false, nullptr, nullptr);
+			AnimateModel(rightWeapon->model, &player->rightWeaponAnim, defaultAnim, gameTime, true, false, nullptr, nullptr);
 		}
 
-		ApplyAnimationToSkeleton(&rightWeapon->model, &player->rightWeaponAnim);
+		ApplyAnimationToSkeleton(rightWeapon->model, &player->rightWeaponAnim);
 	}
 
-	if (leftWeapon && leftWeapon->model.numAnimations)
+	if (leftWeapon && leftWeapon->model->numAnimations)
 	{
 		Action* currentAction = GetCurrentAction(player);
 		if (currentAction && currentAction->leftItemAnimName)
 		{
 			currentAction->leftWeaponAnim.timer += deltaTime;
-			AnimateModel(&leftWeapon->model, &player->leftWeaponAnim, &currentAction->leftWeaponAnim, nullptr, nullptr);
+			AnimateModel(leftWeapon->model, &player->leftWeaponAnim, &currentAction->leftWeaponAnim, nullptr, nullptr);
 		}
-		else if (Animation* defaultAnim = GetAnimationByName(&leftWeapon->model, "item_default"))
+		else if (Animation* defaultAnim = GetAnimationByName(leftWeapon->model, "item_default"))
 		{
-			AnimateModel(&leftWeapon->model, &player->leftWeaponAnim, defaultAnim, gameTime, true, false, nullptr, nullptr);
+			AnimateModel(leftWeapon->model, &player->leftWeaponAnim, defaultAnim, gameTime, true, false, nullptr, nullptr);
 		}
 
-		ApplyAnimationToSkeleton(&leftWeapon->model, &player->leftWeaponAnim);
+		ApplyAnimationToSkeleton(leftWeapon->model, &player->leftWeaponAnim);
 	}
 
-	ApplyAnimationToSkeleton(player->model, &player->anim);
-	ApplyAnimationToSkeleton(player->bodyModel, &player->bodyAnim);
+	//ApplyAnimationToSkeleton(player->model, &player->anim);
+	//ApplyAnimationToSkeleton(player->bodyModel, &player->bodyAnim);
 
 	if (GetKeyDown(SDL_SCANCODE_F5))
 		player->cameraMode = player->cameraMode == CAMERA_MODE_FIRST_PERSON ? CAMERA_MODE_FREE : CAMERA_MODE_FIRST_PERSON;
@@ -1343,7 +1398,8 @@ void UpdatePlayer(Player* player)
 		if (!(GetCurrentAction(player) && GetCurrentAction(player)->fullBodyAnim))
 		{
 			//game->cameraPosition = player->position + vec3::Up * player->cameraHeight;
-			game->cameraPosition = player->position + quat::FromAxisAngle(vec3::Up, player->rotation + PI) * (GetNodeTransform(&player->bodyAnim, player->neckNode).translation());
+			//game->cameraPosition = player->position + quat::FromAxisAngle(vec3::Up, player->rotation + PI) * (GetNodeTransform(&player->bodyAnim, player->neckNode).translation());
+			game->cameraPosition = player->position + vec3(0, player->cameraHeight, 0); // quat::FromAxisAngle(vec3::Up, player->rotation + PI) * (GetNodeTransform(&player->bodyAnim, player->neckNode).translation());
 
 			game->cameraRotation = quat::FromAxisAngle(vec3::Up, player->yaw) * quat::FromAxisAngle(vec3::Right, player->pitch);
 		}
@@ -1452,9 +1508,46 @@ void RenderPlayer(Player* player)
 
 	if (Item* rightWeapon = GetRightWeapon(player))
 	{
-		RenderModel(&game->renderer, &rightWeapon->model, nullptr, mat4::Transform(game->cameraPosition, game->cameraRotation) * player->weaponTransform);
+		mat4 weaponTransform = mat4::Transform(game->cameraPosition, game->cameraRotation) * player->weaponTransform;
+		if (rightWeapon->handScale != 0)
+			weaponTransform = weaponTransform * mat4::Scale(rightWeapon->handScale);
+		RenderModel(&game->renderer, rightWeapon->model, nullptr, weaponTransform);
+
+		if (rightWeapon->kind == ITEM_KIND_BUILD_ELEMENT && player->nextBuildPosition.y != INT32_MIN)
+		{
+			RenderModel(&game->renderer, rightWeapon->model, game->previewShader, nullptr,
+				mat4::Translate(player->nextBuildPosition.xyz * vec3(TERRAIN_TILE_SIZE, TERRAIN_STEP_HEIGHT, TERRAIN_TILE_SIZE)) *
+				mat4::Translate(0.5f * TERRAIN_TILE_SIZE, 0, 0.5f * TERRAIN_TILE_SIZE) *
+				mat4::Rotate(vec3::Up, -player->nextBuildPosition.w * PI * 0.5f) *
+				mat4::Scale(TERRAIN_TILE_SIZE * 0.999f));
+		}
+		else if (player->isHoveringTile)
+		{
+			Terrain* terrain = GetTerrainAtPosition(vec3(player->hoveredTile.x * TERRAIN_TILE_SIZE, 0, player->hoveredTile.y * TERRAIN_TILE_SIZE));
+
+			int x0 = player->hoveredTile.x - terrain->tilex * TERRAIN_TILES_X;
+			int z0 = player->hoveredTile.y - terrain->tilez * TERRAIN_TILES_X;
+			int x1 = player->hoveredTile.x + 1 - terrain->tilex * TERRAIN_TILES_X;
+			int z1 = player->hoveredTile.y + 1 - terrain->tilez * TERRAIN_TILES_X;
+
+			float h0 = terrain->heights[x0 + z0 * TERRAIN_VERTICES_X];
+			float h1 = terrain->heights[x1 + z0 * TERRAIN_VERTICES_X];
+			float h2 = terrain->heights[x0 + z1 * TERRAIN_VERTICES_X];
+			float h3 = terrain->heights[x1 + z1 * TERRAIN_VERTICES_X];
+
+			vec3 p0 = vec3(player->hoveredTile.x * TERRAIN_TILE_SIZE, h0, player->hoveredTile.y * TERRAIN_TILE_SIZE);
+			vec3 p1 = vec3((player->hoveredTile.x + 1) * TERRAIN_TILE_SIZE, h1, player->hoveredTile.y * TERRAIN_TILE_SIZE);
+			vec3 p2 = vec3(player->hoveredTile.x * TERRAIN_TILE_SIZE, h2, (player->hoveredTile.y + 1) * TERRAIN_TILE_SIZE);
+			vec3 p3 = vec3((player->hoveredTile.x + 1) * TERRAIN_TILE_SIZE, h3, (player->hoveredTile.y + 1) * TERRAIN_TILE_SIZE);
+
+			RenderModel(&game->renderer, &game->cube, mat4::Translate(p0) * mat4::Scale(0.1f), false);
+			RenderModel(&game->renderer, &game->cube, mat4::Translate(p1) * mat4::Scale(0.1f), false);
+			RenderModel(&game->renderer, &game->cube, mat4::Translate(p2) * mat4::Scale(0.1f), false);
+			RenderModel(&game->renderer, &game->cube, mat4::Translate(p3) * mat4::Scale(0.1f), false);
+		}
 	}
 
+	/*
 	if (player->isHoveringTile)
 	{
 		if (Terrain* terrain = GetTerrainAtPosition(vec3(player->hoveredTile.x * TERRAIN_TILE_SIZE, 0, player->hoveredTile.y * TERRAIN_TILE_SIZE)))
@@ -1480,6 +1573,7 @@ void RenderPlayer(Player* player)
 			RenderModel(&game->renderer, &game->cube, mat4::Translate(p3) * mat4::Scale(0.1f), false);
 		}
 	}
+	*/
 
 	// exhaustion vignette
 	{

@@ -355,7 +355,7 @@ void Terrain::dig(int gridx, int gridz)
 	UpdateMaterialBuffer(this);
 }
 
-float Terrain::getTileHeight(int gridx, int gridz)
+int Terrain::getTileMaxHeight(int gridx, int gridz)
 {
 	int x0 = gridx;
 	int x1 = gridx + 1;
@@ -374,7 +374,7 @@ float Terrain::getTileHeight(int gridx, int gridz)
 
 	int maxHeight = max(max(h0, h1), max(h2, h3));
 
-	return maxHeight / 2.0f;
+	return maxHeight;
 }
 
 void RenderTerrain(Terrain* terrain)

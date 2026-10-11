@@ -8,6 +8,8 @@ layout (location = 1) in vec4 i_blade;
 layout (location = 0) out vec3 v_normal;
 layout (location = 1) out vec3 v_color;
 layout (location = 2) out float v_roughness;
+layout (location = 3) out vec3 v_terrainNormal;
+layout (location = 4) out float v_heightPercent2;
 
 
 layout (set = 0, binding = 0) uniform sampler2D s_heightmap;
@@ -140,14 +142,17 @@ void main()
 	terrainNormal = normalize(vec3(terrainNormal.x, 1, terrainNormal.y));
 
 	vec3 normal = vec3(0, 0, 1);
-	normal = rotateX(normal, curveAmount);
 	float normalBend = remap(a_position.x, -0.05, 0.05, -0.2 * pi, 0.2 * pi);
-	normal = rotateY(normal, rotation + normalBend);
+	normal = rotateY(normal, normalBend);
+	normal = rotateX(normal, curveAmount);
+	normal = rotateY(normal, rotation);
+
+	normal = rotateY(normal, -windDir);
+	normal = rotateX(normal, windLean);
+	normal = rotateY(normal, windDir);
 
 	vec3 view = -u_view[2].xyz;
 	//if (dot(view, normal) > 0) normal *= -1;
-
-	normal = normalize(mix(normal, terrainNormal, heightPercent2 * 0.7));
 
 	vec4 viewSpaceNormal = u_viewSpaceBuffer > 0.5 ? u_view * vec4(normal, 0) : vec4(normal, 0);
 	v_normal = viewSpaceNormal.xyz;
@@ -162,6 +167,9 @@ void main()
 
 	float ao = mix(0.5, 1.0, heightPercent);
 	v_color = color * ao;
+
+	v_terrainNormal = u_viewSpaceBuffer > 0.5 ? (u_view * vec4(terrainNormal, 0)).xyz : terrainNormal;
+	v_heightPercent2 = heightPercent2;
 
 	/*
 	float heightMask = max(a_position.y, 0) * 0.25;

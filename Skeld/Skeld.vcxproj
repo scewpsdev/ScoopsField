@@ -40,13 +40,13 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -189,7 +189,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="src\game\entity\component\WoodFloor.cpp">
+    <ClCompile Include="src\game\entity\component\BuildElement.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -320,7 +320,7 @@
     <ClInclude Include="src\game\entity\component\RestingSpot.h" />
     <ClInclude Include="src\game\entity\component\Sconce.h" />
     <ClInclude Include="src\game\entity\component\Tree.h" />
-    <ClInclude Include="src\game\entity\component\WoodFloor.h" />
+    <ClInclude Include="src\game\entity\component\BuildElement.h" />
     <ClInclude Include="src\game\entity\EntityBase.h" />
     <ClInclude Include="src\game\entity\component\Trail.h" />
     <ClInclude Include="src\game\Navmesh.h" />
@@ -432,11 +432,14 @@
     <None Include="res\shaders\common.glsl" />
     <None Include="res\shaders\copy_depth.frag" />
     <None Include="res\shaders\entity\grass.frag" />
+    <None Include="res\shaders\entity\grass.shader" />
     <None Include="res\shaders\entity\grass.vert" />
     <None Include="res\shaders\entity\magic_projectile.frag" />
     <None Include="res\shaders\entity\magic_projectile.vert" />
     <None Include="res\shaders\entity\particle.frag" />
     <None Include="res\shaders\entity\particle.vert" />
+    <None Include="res\shaders\entity\preview.frag" />
+    <None Include="res\shaders\entity\preview.vert" />
     <None Include="res\shaders\entity\trail.frag" />
     <None Include="res\shaders\entity\trail.vert" />
     <None Include="res\shaders\depth_downsample.frag" />

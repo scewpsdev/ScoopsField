@@ -21,7 +21,7 @@ struct vec2
 	float angle() const;
 	vec2 rotate(float angle) const;
 
-	operator ivec2() const;
+	explicit operator ivec2() const;
 
 	vec2 operator-() const;
 
@@ -105,7 +105,7 @@ struct vec3
 	vec3& operator*=(float f);
 	vec3& operator/=(float f);
 
-	operator ivec3() const;
+	explicit operator ivec3() const;
 
 	static const vec3 Zero;
 	static const vec3 One;
@@ -282,6 +282,11 @@ struct ivec4
 };
 
 
+ivec2 operator+(ivec2 a, ivec2 b);
+ivec2 operator-(ivec2 a, ivec2 b);
+ivec2 operator*(ivec2 a, ivec2 b);
+ivec2 operator/(ivec2 a, ivec2 b);
+
 vec2 operator+(vec2 a, vec2 b);
 vec2 operator-(vec2 a, vec2 b);
 vec2 operator*(vec2 a, vec2 b);
@@ -325,6 +330,11 @@ vec3 operator+(float a, vec3 b);
 vec3 operator-(float a, vec3 b);
 vec3 operator*(float a, vec3 b);
 vec3 operator/(float a, vec3 b);
+
+vec3 operator+(ivec3 a, vec3 b);
+vec3 operator-(ivec3 a, vec3 b);
+vec3 operator*(ivec3 a, vec3 b);
+vec3 operator/(ivec3 a, vec3 b);
 
 bool operator==(const vec3& a, const vec3& b);
 
@@ -371,6 +381,8 @@ vec3 cross(const vec3& a, const vec3& b);
 ivec3 abs(const ivec3& v);
 vec3 abs(const vec3& v);
 vec2 abs(const vec2& v);
+
+vec3 round(const vec3& v);
 
 vec2 min(const vec2& a, const vec2& b);
 vec2 max(const vec2& a, const vec2& b);

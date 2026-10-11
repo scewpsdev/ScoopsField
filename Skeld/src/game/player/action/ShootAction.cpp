@@ -12,13 +12,13 @@ void InitShootAction(Action* action, Item* weapon, float power)
 	InitAction(action, ACTION_TYPE_SHOOT);
 
 	action->rightAnimName = "shoot";
-	action->rightAnimMoveset = &weapon->moveset;
+	action->rightAnimMoveset = weapon->moveset;
 	action->rightAnimBlendDuration = 0.0f;
 
 	if (weapon->twoHanded)
 	{
 		action->leftAnimName = "shoot";
-		action->leftAnimMoveset = &weapon->moveset;
+		action->leftAnimMoveset = weapon->moveset;
 		action->leftAnimBlendDuration = 0.0f;
 	}
 

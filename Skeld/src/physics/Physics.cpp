@@ -91,7 +91,7 @@ bool InitPhysics(PhysicsState* physics)
 		return false;
 	}
 
-//#if _DEBUG
+	//#if _DEBUG
 	physics->pvd = PxCreatePvd(*physics->foundation);
 	if (physics->pvd)
 	{
@@ -105,7 +105,7 @@ bool InitPhysics(PhysicsState* physics)
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_CUSTOM, "Failed to initialize PVD instance");
 	}
-//#endif
+	//#endif
 
 	PxTolerancesScale scale;
 	bool trackAllocations = false;
@@ -194,6 +194,18 @@ void EndPhysicsFrame(PhysicsState* physics)
 	}
 }
 
+static int GetShapeID(PxRigidActor* actor, PxShape* shape)
+{
+	PxShape* shapes[16];
+	int numShapes = (int)actor->getShapes(shapes, 16);
+	for (int i = 0; i < numShapes; i++)
+	{
+		if (shapes[i] == shape)
+			return i;
+	}
+	return -1;
+}
+
 int Raycast(const vec3& origin, const vec3& direction, float distance, PhysicsHit* hits, int maxHits, uint32_t filterMask)
 {
 	PxQueryFilterData filterData = PxQueryFilterData(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC);
@@ -209,6 +221,7 @@ int Raycast(const vec3& origin, const vec3& direction, float distance, PhysicsHi
 			hits[i].position = FromPxVector(hit->position);
 			hits[i].normal = FromPxVector(hit->normal);
 			hits[i].trigger = hit->shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
+			hits[i].shape = (Shape*)hit->shape;
 			hits[i].body = (RigidBody*)hit->actor->userData;
 		}
 	}
@@ -253,6 +266,7 @@ int OverlapBox(vec3 position, vec3 size, PhysicsHit* hits, int maxHits, uint32_t
 			hits[i].position = vec3::Zero;
 			hits[i].normal = vec3::Zero;
 			hits[i].trigger = hit->shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
+			hits[i].shape = (Shape*)hit->shape;
 			hits[i].body = (RigidBody*)hit->actor->userData;
 		}
 	}
@@ -285,6 +299,7 @@ int OverlapSphere(const vec3& position, float radius, PhysicsHit* hits, int maxH
 			hits[i].position = vec3::Zero;
 			hits[i].normal = vec3::Zero;
 			hits[i].trigger = hit->shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE;
+			hits[i].shape = (Shape*)hit->shape;
 			hits[i].body = (RigidBody*)hit->actor->userData;
 		}
 	}
@@ -328,6 +343,7 @@ static int Sweep(const PxGeometry& geometry, const vec3& position, const quat& r
 			hits[i].position = FromPxVector(hit->position);
 			hits[i].normal = FromPxVector(hit->normal);
 			hits[i].trigger = hit->shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE ? 1 : 0;
+			hits[i].shape = (Shape*)hit->shape;
 			hits[i].body = (RigidBody*)hit->actor->userData;
 		}
 	}

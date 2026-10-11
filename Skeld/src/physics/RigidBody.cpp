@@ -150,7 +150,7 @@ void DestroyRigidBody(RigidBody* body)
 	}
 }
 
-static void AddShape(PxRigidActor* actor, const PxGeometry& geometry, uint32_t filterGroup, uint32_t filterMask, const vec3& position, const quat& rotation, bool dynamic, bool trigger)
+static Shape* AddShape(PxRigidActor* actor, const PxGeometry& geometry, uint32_t filterGroup, uint32_t filterMask, const vec3& position, const quat& rotation, bool dynamic, bool trigger)
 {
 	//SDL_assert(!(dynamic && trigger));
 
@@ -180,11 +180,13 @@ static void AddShape(PxRigidActor* actor, const PxGeometry& geometry, uint32_t f
 		bool result = PxRigidBodyExt::updateMassAndInertia(*(PxRigidBody*)actor, density);
 		SDL_assert(result);
 	}
+
+	return (Shape*)shape;
 }
 
-void AddBoxCollider(RigidBody* body, const vec3& size, const vec3& position, const quat& rotation, uint32_t filterGroup, uint32_t filterMask, bool trigger)
+Shape* AddBoxCollider(RigidBody* body, const vec3& size, const vec3& position, const quat& rotation, uint32_t filterGroup, uint32_t filterMask, bool trigger)
 {
-	AddShape(body->actor, PxBoxGeometry(PxVector(size * 0.5f)), filterGroup, filterMask, position, rotation, body->type == RIGID_BODY_DYNAMIC, trigger);
+	return AddShape(body->actor, PxBoxGeometry(PxVector(size * 0.5f)), filterGroup, filterMask, position, rotation, body->type == RIGID_BODY_DYNAMIC, trigger);
 }
 
 void AddSphereCollider(RigidBody* body, float radius, const vec3& position, uint32_t filterGroup, uint32_t filterMask, bool trigger)
@@ -292,6 +294,12 @@ void AddHeightFieldCollider(RigidBody* body, int width, int height, PxHeightFiel
 	PxHeightField* heightField = physics->physics->createHeightField(readBuffer);
 
 	AddShape(body->actor, PxHeightFieldGeometry(heightField, (PxMeshGeometryFlags)0, heightScale, tileSize, tileSize), filterGroup, filterMask, position, rotation, false, false);
+}
+
+void RemoveCollider(RigidBody* body, Shape* shape)
+{
+	PxShape* pxShape = (PxShape*)shape;
+	body->actor->detachShape(*pxShape);
 }
 
 void RemoveColliders(RigidBody* body)

@@ -468,12 +468,32 @@ ivec4::ivec4(const ivec3& xyz, int w)
 {
 }
 
+ivec2 operator+(ivec2 a, ivec2 b)
+{
+	return ivec2(a.x + b.x, a.y + b.y);
+}
+
+ivec2 operator-(ivec2 a, ivec2 b)
+{
+	return ivec2(a.x - b.x, a.y - b.y);
+}
+
+ivec2 operator*(ivec2 a, ivec2 b)
+{
+	return ivec2(a.x * b.x, a.y * b.y);
+}
+
+ivec2 operator/(ivec2 a, ivec2 b)
+{
+	return ivec2(a.x / b.x, a.y / b.y);
+}
+
 vec2 operator+(vec2 a, vec2 b)
 {
 	return vec2(a.x + b.x, a.y + b.y);
 }
 
-vec2 operator-(vec2  a, vec2  b)
+vec2 operator-(vec2  a, vec2 b)
 {
 	return vec2(a.x - b.x, a.y - b.y);
 }
@@ -631,6 +651,26 @@ vec3 operator*(float a, vec3 b)
 vec3 operator/(float a, vec3 b)
 {
 	return vec3(a / b.x, a / b.y, a / b.z);
+}
+
+vec3 operator+(ivec3 a, vec3 b)
+{
+	return vec3(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+
+vec3 operator-(ivec3 a, vec3 b)
+{
+	return vec3(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+vec3 operator*(ivec3 a, vec3 b)
+{
+	return vec3(a.x * b.x, a.y * b.y, a.z * b.z);
+}
+
+vec3 operator/(ivec3 a, vec3 b)
+{
+	return vec3(a.x / b.x, a.y / b.y, a.z / b.z);
 }
 
 bool operator==(const vec3& a, const vec3& b)
@@ -821,6 +861,11 @@ vec3 abs(const vec3& v)
 vec2 abs(const vec2& v)
 {
 	return vec2(SDL_fabsf(v.x), SDL_fabsf(v.y));
+}
+
+vec3 round(const vec3& v)
+{
+	return vec3(SDL_roundf(v.x), SDL_roundf(v.y), SDL_roundf(v.z));
 }
 
 vec2 min(const vec2& a, const vec2& b)

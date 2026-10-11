@@ -39,18 +39,21 @@ struct RigidBody
 	void* userPtr;
 };
 
+struct Shape;
+
 
 void InitRigidBody(RigidBody* body, RigidBodyType type, const vec3& position, const quat& rotation, void* userPtr);
 void InitRigidBody(RigidBody* body, Articulation* articulation, RigidBody* parent, bool sphericalJoint, mat4 linkTransform, void* userPtr);
 void DestroyRigidBody(RigidBody* body);
 
-void AddBoxCollider(RigidBody* body, const vec3& size, const vec3& position, const quat& rotation, uint32_t filterGroup, uint32_t filterMask, bool trigger);
+Shape* AddBoxCollider(RigidBody* body, const vec3& size, const vec3& position, const quat& rotation, uint32_t filterGroup, uint32_t filterMask, bool trigger);
 void AddSphereCollider(RigidBody* body, float radius, const vec3& position, uint32_t filterGroup, uint32_t filterMask, bool trigger);
 void AddCapsuleCollider(RigidBody* body, float radius, float height, const vec3& position, const quat& rotation, uint32_t filterGroup, uint32_t filterMask, bool trigger);
 void AddMeshCollider(RigidBody* body, physx::PxTriangleMesh* mesh, const vec3& position, const quat& rotation, const vec3& scale, uint32_t filterGroup, uint32_t filterMask, bool trigger);
 void AddModelCollider(RigidBody* body, struct Model* model, const vec3& position, const quat& rotation, const vec3& scale, uint32_t filterGroup, uint32_t filterMask, bool trigger);
 void AddConvexMeshCollider(RigidBody* body, physx::PxConvexMesh* mesh, const vec3& position, const quat& rotation, const vec3& scale, uint32_t filterGroup, uint32_t filterMask, bool trigger);
 void AddHeightFieldCollider(RigidBody* body, int width, int height, physx::PxHeightFieldSample* heights, float heightScale, float tileSize, vec3 position, quat rotation, uint32_t filterGroup, uint32_t filterMask);
+void RemoveCollider(RigidBody* body, Shape* shape);
 void RemoveColliders(RigidBody* body);
 void CopyColliders(RigidBody* dst, RigidBody* src, uint32_t filterGroup, uint32_t filterMask);
 

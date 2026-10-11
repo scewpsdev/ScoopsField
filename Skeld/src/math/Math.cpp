@@ -30,7 +30,7 @@ int idivfloor(int a, int b)
 	int r = a % b;
 	// If remainder != 0 and signs differ, round down
 	if ((r != 0) && ((a ^ b) < 0))
-		q -= 1;
+		q--;
 	return q;
 }
 

@@ -16,7 +16,7 @@ void InitUnequipAction(Action* action, Item* weapon, int dstLoadout)
 	SDL_assert(weapon);
 
 	action->rightAnimName = "unequip";
-	action->rightAnimMoveset = &weapon->moveset;
+	action->rightAnimMoveset = weapon->moveset;
 	action->rightAnimBlendDuration = 0.0f;
 	action->overrideRightWeapon = true;
 	action->rightWeapon = weapon;
@@ -24,7 +24,7 @@ void InitUnequipAction(Action* action, Item* weapon, int dstLoadout)
 	if (weapon->twoHanded)
 	{
 		action->leftAnimName = "unequip";
-		action->leftAnimMoveset = &weapon->moveset;
+		action->leftAnimMoveset = weapon->moveset;
 		action->leftAnimBlendDuration = 0.0f;
 		//action->overrideLeftWeapon = true;
 		//action->leftWeapon = weapon;

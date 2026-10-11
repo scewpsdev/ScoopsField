@@ -42,8 +42,8 @@ void main()
 	vec3 color2 = vec3(1, 0, 1);
 	vec3 color3 = vec3(1, 0, 1);
 
-	vec4 textureColor0 = texture(s_texture0, v_texcoord);
-	vec4 textureColor1 = texture(s_texture1, v_texcoord);
+	vec4 textureColor0 = SRGBToLinear(texture(s_texture0, v_texcoord));
+	vec4 textureColor1 = SRGBToLinear(texture(s_texture1, v_texcoord));
 
 	vec3 color = v_materials.x * color0 + v_materials.y * color1 + v_materials.z * color2 + v_materials.w * color3;
 	vec4 textureColor = v_materials.x * textureColor0 + v_materials.y * textureColor1;

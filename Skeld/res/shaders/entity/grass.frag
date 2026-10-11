@@ -5,6 +5,8 @@
 layout (location = 0) in vec3 v_normal;
 layout (location = 1) in vec3 v_color;
 layout (location = 2) in float v_roughness;
+layout (location = 3) in vec3 v_terrainNormal;
+layout (location = 4) in float v_heightPercent2;
 
 layout (location = 0) out vec4 out_normal;
 layout (location = 1) out vec3 out_color;
@@ -42,8 +44,10 @@ void main()
 	// dont need this because we're flipping in view space in the vertex shader
 	vec3 normal = gl_FrontFacing ? v_normal : -v_normal;
 
+	normal = normalize(mix(normal, v_terrainNormal, v_heightPercent2 * 0.7));
+
 	out_normal = vec4(normal * 0.5 + 0.5, emissiveStrength);
-	out_color = v_color;
+	out_color = v_color; //vec3(normal * 0.5 + 0.5);
 	out_material = vec4(v_roughness, metallic, 0, 0);
 	out_emissive = vec4(linearToSRGB(emissiveColor), 0);
 }

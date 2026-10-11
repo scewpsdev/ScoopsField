@@ -106,7 +106,7 @@ Entity* CreateEntity()
 #include "entity/component/Sconce.cpp"
 #include "entity/component/Elevator.cpp"
 #include "entity/component/Tree.cpp"
-#include "entity/component/WoodFloor.cpp"
+#include "entity/component/BuildElement.cpp"
 #include "entity/component/GrassField.cpp"
 #include "Terrain.cpp"
 #include "entity/Entity.cpp"
@@ -404,6 +404,13 @@ Terrain* GetTerrainAtGridPosition(int x, int z)
 	return nullptr;
 }
 
+Terrain* GetTerrainAtTile(int x, int z)
+{
+	int tilex = idivfloor(x, TERRAIN_TILES_X);
+	int tilez = idivfloor(z, TERRAIN_TILES_X);
+	return GetTerrainAtGridPosition(tilex, tilez);
+}
+
 Terrain* GetTerrainAtPosition(vec3 position)
 {
 	int tilex = (int)SDL_floorf(position.x / TERRAIN_SIZE);
@@ -668,16 +675,16 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 
 	game->magicProjectileShader = CreateForwardGraphicsPipeline(
 		LoadGraphicsShader("res/shaders/entity/magic_projectile.vert.bin", "res/shaders/entity/magic_projectile.frag.bin"),
-		game->renderer.meshLayout, NUM_MESH_BUFFER_LAYOUTS, SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_NONE, false);
+		NUM_MESH_BUFFER_LAYOUTS, game->renderer.meshLayout, SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, SDL_GPU_CULLMODE_NONE, false);
 
 	VertexBufferLayout trailLayout = {};
 	InitTrailVertexLayout(&trailLayout);
 	game->trailShader = CreateForwardGraphicsPipeline(
 		LoadGraphicsShader("res/shaders/entity/trail.vert.bin", "res/shaders/entity/trail.frag.bin"),
-		&trailLayout, 1, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_NONE, false);
+		1, &trailLayout, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_NONE, false);
 	game->trailAdditiveShader = CreateForwardGraphicsPipeline(
 		LoadGraphicsShader("res/shaders/entity/trail.vert.bin", "res/shaders/entity/trail.frag.bin"),
-		&trailLayout, 1, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_NONE, true);
+		1, &trailLayout, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_NONE, true);
 
 	GraphicsPipelineInfo treeShaderInfo = CreateDeferredGraphicsPipelineInfo(&game->renderer, "res/shaders/entity/tree.vert.bin", "res/shaders/entity/tree.frag.bin");
 	treeShaderInfo.attributes[treeShaderInfo.numAttributes++] = {
@@ -805,18 +812,21 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	};
 	game->grassShadowShader = CreateGraphicsPipeline(&grassShadowShaderInfo);
 
+	game->previewShader = CreateForwardGraphicsPipeline(&game->renderer, "res/shaders/entity/preview.vert.bin", "res/shaders/entity/preview.frag.bin", false);
+
 	VertexBufferLayout particleLayouts[6];
 	particleLayouts[0] = game->particles.quad->layout;
 	InitParticleInstanceBufferLayouts(&particleLayouts[1]);
 	Shader* particleShader = LoadGraphicsShader("res/shaders/entity/particle.vert.bin", "res/shaders/entity/particle.frag.bin");
-	game->particleShader = CreateForwardGraphicsPipeline(particleShader, particleLayouts, 6, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, false);
-	game->particleAdditiveShader = CreateForwardGraphicsPipeline(particleShader, particleLayouts, 6, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, true);
+	game->particleShader = CreateForwardGraphicsPipeline(particleShader, 6, particleLayouts, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, false);
+	game->particleAdditiveShader = CreateForwardGraphicsPipeline(particleShader, 6, particleLayouts, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, true);
 
 	LoadFont("default", "fonts/libre-baskerville.regular.ttf");
 	game->font = GetFont("default", 20);
 
 #ifdef _DEBUG
 	AddHotReloadedShader("shaders/mesh.vert", "shaders/mesh.frag", game->renderer.defaultShader, game->renderer.geometryPipeline);
+	AddHotReloadedShader("shaders/terrain.vert", "shaders/terrain.frag", game->renderer.defaultShader, game->renderer.geometryPipeline);
 	AddHotReloadedShader("shaders/entity/grass.vert", "shaders/entity/grass.frag", game->grassShader->pipelineInfo.shader, game->grassShader);
 	AddHotReloadedShader("shaders/entity/tree.vert", "shaders/entity/tree.frag", game->treeShader->pipelineInfo.shader, game->treeShader);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/shadow.frag", game->renderer.shadowShader, game->renderer.shadowPipeline);
@@ -970,7 +980,7 @@ void GameUpdate()
 
 void GameRender()
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 3).normalized(), -(gameTime + 20) * 0.01f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 3).normalized(), -(/*gameTime +*/ 20) * 0.01f) * vec3(1, 0, 0);
 	//vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -20 * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();

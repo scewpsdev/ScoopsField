@@ -73,7 +73,7 @@ struct GameState
 	VertexBuffer* treeInstances;
 	TransferBuffer* treeInstanceTransfer;
 
-#define MAX_ENTITIES 1024
+#define MAX_ENTITIES 2048
 	Pool<Entity, MAX_ENTITIES> entities;
 
 	ParticleSystem particles;
@@ -116,6 +116,7 @@ struct GameState
 	GraphicsPipeline* treeShadowShader;
 	GraphicsPipeline* grassShader;
 	GraphicsPipeline* grassShadowShader;
+	GraphicsPipeline* previewShader;
 
 	GrassBladeData* grassBlades;
 	int numGrassBlades;
@@ -137,4 +138,5 @@ extern float deltaTime;
 Entity* CreateEntity();
 
 Terrain* GetTerrainAtGridPosition(int x, int z);
+Terrain* GetTerrainAtTile(int x, int z);
 Terrain* GetTerrainAtPosition(vec3 position);

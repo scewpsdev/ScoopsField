@@ -3,15 +3,17 @@
 
 static void InitWeapon(ItemDatabase* items, Item* item, const char* name, bool twoHanded, int damage, vec2 damageRange, DamageType damageType)
 {
+	item->kind = ITEM_KIND_WEAPON;
+
 	item->twoHanded = twoHanded;
 
 	char modelPath[256];
-	SDL_snprintf(modelPath, 256, "res/items/%s/%s.glb.bin", name, name);
-	LoadModel(&item->model, modelPath, false, cmdBuffer);
+	SDL_snprintf(modelPath, 256, "items/%s/%s.glb", name, name);
+	item->model = GetModel(modelPath);
 
 	char movesetPath[256];
-	SDL_snprintf(movesetPath, 256, "res/items/%s/%s_moveset.glb.bin", name, name);
-	LoadModel(&item->moveset, movesetPath, false, cmdBuffer);
+	SDL_snprintf(movesetPath, 256, "items/%s/%s_moveset.glb", name, name);
+	item->moveset = GetModel(movesetPath);
 
 	item->equipSound = &items->equipLightSound;
 	item->flipLeftHand = false;
@@ -30,15 +32,17 @@ static void InitWeapon(ItemDatabase* items, Item* item, const char* name, bool t
 
 static void InitStaff(ItemDatabase* items, Item* item, const char* name, bool twoHanded, vec3 castOffset, DamageType damageType)
 {
+	item->kind = ITEM_KIND_WEAPON;
+
 	item->twoHanded = twoHanded;
 
 	char modelPath[256];
-	SDL_snprintf(modelPath, 256, "res/items/%s/%s.glb.bin", name, name);
-	LoadModel(&item->model, modelPath, false, cmdBuffer);
+	SDL_snprintf(modelPath, 256, "items/%s/%s.glb", name, name);
+	item->model = GetModel(modelPath);
 
 	char movesetPath[256];
-	SDL_snprintf(movesetPath, 256, "res/items/%s/%s_moveset.glb.bin", name, name);
-	LoadModel(&item->moveset, movesetPath, false, cmdBuffer);
+	SDL_snprintf(movesetPath, 256, "items/%s/%s_moveset.glb", name, name);
+	item->moveset = GetModel(movesetPath);
 
 	item->equipSound = &items->equipLightSound;
 
@@ -110,7 +114,7 @@ static int AddBowDraw(Item* item, const char* name, const char* animation, float
 	attack->damageType = item->weapon.damageType;
 	attack->staminaCost = 0.1f;
 	attack->followUp = nullptr;
-	attack->followUpCancelTime = GetAnimationByName(&item->moveset, animation)->duration;
+	attack->followUpCancelTime = GetAnimationByName(item->moveset, animation)->duration;
 	attack->stance = true;
 	attack->bowDraw = true;
 	attack->twoHanded = true;
@@ -134,7 +138,7 @@ static int AddCast(Item* item, const char* name, const char* animation, float an
 	attack->damageType = item->weapon.damageType;
 	attack->staminaCost = 0.1f;
 	attack->followUp = nullptr;
-	attack->followUpCancelTime = GetAnimationByName(&item->moveset, animation)->duration;
+	attack->followUpCancelTime = GetAnimationByName(item->moveset, animation)->duration;
 	attack->projectileCast = true;
 	attack->projectileCastTime = castTime;
 	attack->twoHanded = item->twoHanded;
@@ -157,6 +161,19 @@ static int AddBlock(Item* item, const char* name, const char* animation, AttackT
 	attack->twoHanded = item->twoHanded;
 
 	return attackID;
+}
+
+static void InitBuildElement(ItemDatabase* items, Item* item, const char* name, BuildElementType elementType)
+{
+	item->kind = ITEM_KIND_BUILD_ELEMENT;
+
+	char modelPath[256];
+	SDL_snprintf(modelPath, 256, "entities/build_element/%s/%s.glb", name, name);
+	item->model = GetModel(modelPath);
+	item->equipSound = &items->equipLightSound;
+	item->handScale = 0.2f;
+
+	item->buildElement.elementType = elementType;
 }
 
 static void InitWeapons(ItemDatabase* items)
@@ -246,6 +263,16 @@ static void InitWeapons(ItemDatabase* items)
 		item->weapon.riposteSecondaryAttack = AddAttack(item, "riposte_secondary", "attack_riposte3", ATTACK_SECONDARY, 1.0f, 13, 27, 31, 0.6f, nullptr, "attack_secondary_1");
 		item->weapon.attacks[item->weapon.riposteSecondaryAttack].resetHitboxTime = 23 / 24.0f;
 	}
+	// wood floor
+	{
+		Item* item = &items->items[ITEM_WOOD_FLOOR];
+		InitBuildElement(items, item, "wood_floor", BUILD_ELEMENT_TYPE_FLOOR);
+	}
+	// wood wall
+	{
+		Item* item = &items->items[ITEM_WOOD_WALL];
+		InitBuildElement(items, item, "wood_wall", BUILD_ELEMENT_TYPE_WALL);
+	}
 #if 0
 	// shortbow
 	{
@@ -283,18 +310,22 @@ static void InitWeapons(ItemDatabase* items)
 
 static void InitShield(ItemDatabase* items, Item* item, const char* name, bool twoHanded)
 {
+	item->kind = ITEM_KIND_SHIELD;
+
 	item->twoHanded = twoHanded;
 
 	char modelPath[256];
 	SDL_snprintf(modelPath, 256, "res/items/%s/%s.glb.bin", name, name);
-	if (!LoadModel(&item->model, modelPath, false, cmdBuffer))
+	item->model = GetModel(modelPath);
+	if (!item->model)
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to read item model %s", modelPath);
 	}
 
 	char movesetPath[256];
 	SDL_snprintf(movesetPath, 256, "res/items/%s/%s_moveset.glb.bin", name, name);
-	if (!LoadModel(&item->moveset, movesetPath, false, cmdBuffer))
+	item->moveset = GetModel(movesetPath);
+	if (!item->moveset)
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to read item moveset %s", movesetPath);
 	}
@@ -349,8 +380,8 @@ void DestroyItemDatabase(ItemDatabase* items)
 	for (int i = ITEM_NONE + 1; i < ITEM_LAST; i++)
 	{
 		Item* item = &items->items[i];
-		DestroyModel(&item->model);
-		DestroyModel(&item->moveset);
+		//DestroyModel(&item->model);
+		//DestroyModel(&item->moveset);
 	}
 
 	DestroySound(&items->equipLightSound);

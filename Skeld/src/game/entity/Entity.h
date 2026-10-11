@@ -15,7 +15,7 @@
 #include "component/Sconce.h"
 #include "component/Elevator.h"
 #include "component/Tree.h"
-#include "component/WoodFloor.h"
+#include "component/BuildElement.h"
 #include "component/GrassField.h"
 
 
@@ -29,6 +29,10 @@ enum EntityPhysicsFilter
 	ENTITY_FILTER_INTERACTABLE = 1 << 5,
 	ENTITY_FILTER_RAGDOLL = 1 << 6,
 	ENTITY_FILTER_TERRAIN = 1 << 7,
+	ENTITY_FILTER_BUILD_SNAP_FLOOR = 1 << 8,
+	ENTITY_FILTER_BUILD_SNAP_WALL = 1 << 9,
+
+	ENTITY_FILTER_BUILD_SNAP_BOTH = ENTITY_FILTER_BUILD_SNAP_FLOOR | ENTITY_FILTER_BUILD_SNAP_WALL,
 };
 
 struct HitParams

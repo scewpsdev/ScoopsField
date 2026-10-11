@@ -22,7 +22,19 @@ enum ItemType
 
 	ITEM_ARROW,
 
+	ITEM_WOOD_FLOOR,
+	ITEM_WOOD_WALL,
+
 	ITEM_LAST
+};
+
+enum ItemKind
+{
+	ITEM_KIND_NONE = 0,
+
+	ITEM_KIND_WEAPON,
+	ITEM_KIND_SHIELD,
+	ITEM_KIND_BUILD_ELEMENT,
 };
 
 enum DamageType
@@ -120,16 +132,24 @@ struct Weapon
 	Sound* parrySound, * blockSound;
 };
 
+struct BuildElementItem
+{
+	int elementType;
+};
+
 struct Item
 {
-	Model model;
-	Model moveset;
+	ItemKind kind;
+	Model* model;
+	Model* moveset;
 	bool twoHanded;
 	bool flipLeftHand;
 	Sound* equipSound;
+	float handScale;
 
 	union {
 		Weapon weapon;
+		BuildElementItem buildElement;
 	};
 };
 

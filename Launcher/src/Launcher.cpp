@@ -10,7 +10,7 @@
 #include "utils/HashMap.h"
 
 
-#define GAME_NAME "ScoopsField"
+#define GAME_NAME "Skeld"
 
 #define GAME_CODE_DLL GAME_NAME ".dll"
 
@@ -38,10 +38,10 @@ SDL_Time GetWriteTime(const char* path)
 	}
 }
 
-static SDL_SharedObject* LoadGameCode(AppInit_t* init, AppDestroy_t* destroy, AppIterate_t* iterate, AppReload_t* reload)
+static SDL_SharedObject* LoadGameCode(int iteration, AppInit_t* init, AppDestroy_t* destroy, AppIterate_t* iterate, AppReload_t* reload)
 {
 	char tmpPath[256];
-	SDL_snprintf(tmpPath, 256, GAME_NAME "-%llu.dll", SDL_GetPerformanceCounter());
+	SDL_snprintf(tmpPath, 256, GAME_NAME "-%d.dll", iteration);
 	bool copySuccessful = false;
 	for (int i = 0; i < 50; i++)
 	{
@@ -51,7 +51,7 @@ static SDL_SharedObject* LoadGameCode(AppInit_t* init, AppDestroy_t* destroy, Ap
 			break;
 		}
 		Sleep(100);
-		SDL_Log("retrying");
+		SDL_Log("Couldn't copy game code dll, retrying...");
 	}
 	if (!copySuccessful)
 	{
@@ -113,7 +113,9 @@ int main(int argc, char** argv)
 	AppIterate_t appIterate = nullptr;
 	AppReload_t appReload = nullptr;
 
-	SDL_SharedObject* gameCode = LoadGameCode(&appInit, &appDestroy, &appIterate, &appReload);
+	int gameCodeIteration = 0;
+
+	SDL_SharedObject* gameCode = LoadGameCode(gameCodeIteration, &appInit, &appDestroy, &appIterate, &appReload);
 	if (!gameCode)
 		return 1;
 
@@ -142,7 +144,7 @@ int main(int argc, char** argv)
 			SDL_Log("Reloading game code\n");
 
 			//SDL_UnloadObject(gameCode);
-			if (SDL_SharedObject* newGameCode = LoadGameCode(&appInit, &appDestroy, &appIterate, &appReload))
+			if (SDL_SharedObject* newGameCode = LoadGameCode(++gameCodeIteration, &appInit, &appDestroy, &appIterate, &appReload))
 				gameCode = newGameCode;
 
 			appReload(memory);
@@ -164,7 +166,6 @@ int main(int argc, char** argv)
 
 	free(memory);
 
-	system("del " GAME_NAME "-*.pdb");
 	system("del " GAME_NAME "-*.dll");
 
 	return 0;

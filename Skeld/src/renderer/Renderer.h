@@ -285,5 +285,6 @@ GraphicsPipelineInfo CreateDeferredGraphicsPipelineInfo(Renderer* renderer, cons
 GraphicsPipeline* CreateDeferredGraphicsPipeline(Renderer* renderer, const char* vertex, const char* fragment);
 GraphicsPipelineInfo CreateDeferredShadowGraphicsPipelineInfo(Renderer* renderer, const char* vertex);
 GraphicsPipeline* CreateDeferredShadowGraphicsPipeline(Renderer* renderer, const char* vertex);
-GraphicsPipeline* CreateForwardGraphicsPipeline(Shader* shader, VertexBufferLayout* vertexLayouts, int numVertexLayouts, SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, bool additive);
+GraphicsPipeline* CreateForwardGraphicsPipeline(Shader* shader, int numVertexLayouts, VertexBufferLayout* vertexLayouts, SDL_GPUPrimitiveType primitiveType, SDL_GPUCullMode cullMode, bool additive);
+GraphicsPipeline* CreateForwardGraphicsPipeline(Renderer* renderer, const char* vertex, const char* fragment, bool additive);
 bool IsForward(GraphicsPipeline* pipeline);

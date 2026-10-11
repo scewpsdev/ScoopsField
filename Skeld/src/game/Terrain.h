@@ -13,6 +13,8 @@
 #define TERRAIN_VERTICES_X (TERRAIN_TILES_X + 1)
 #define TERRAIN_VERTICES (TERRAIN_VERTICES_X * TERRAIN_VERTICES_X)
 #define TERRAIN_TILE_SIZE 2.0f
+#define TERRAIN_STEPS_PER_UNIT 4
+#define TERRAIN_STEP_HEIGHT (TERRAIN_TILE_SIZE / TERRAIN_STEPS_PER_UNIT)
 #define TERRAIN_SIZE (TERRAIN_TILES_X * TERRAIN_TILE_SIZE)
 
 
@@ -62,7 +64,7 @@ struct Terrain
 
 	float interpolateHeight(float localx, float localz);
 	void dig(int gridx, int gridz);
-	float getTileHeight(int gridx, int gridz);
+	int getTileMaxHeight(int gridx, int gridz);
 };
 
 
