@@ -142,6 +142,7 @@ struct Player : EntityBase
 	ivec2 hoveredTile;
 	bool isHoveringTile;
 	ivec4 nextBuildPosition;
+	bool hasNextBuildPosition;
 	float lastBuildTime;
 
 	Item* blockItem;

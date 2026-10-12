@@ -273,6 +273,11 @@ static void InitWeapons(ItemDatabase* items)
 		Item* item = &items->items[ITEM_WOOD_WALL];
 		InitBuildElement(items, item, "wood_wall", BUILD_ELEMENT_TYPE_WALL);
 	}
+	// wood stairs
+	{
+		Item* item = &items->items[ITEM_WOOD_STAIRS];
+		InitBuildElement(items, item, "wood_stairs", BUILD_ELEMENT_TYPE_STAIRS);
+	}
 #if 0
 	// shortbow
 	{

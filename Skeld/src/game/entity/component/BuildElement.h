@@ -21,6 +21,7 @@ enum BuildElementType
 
 	BUILD_ELEMENT_TYPE_FLOOR,
 	BUILD_ELEMENT_TYPE_WALL,
+	BUILD_ELEMENT_TYPE_STAIRS,
 
 	BUILD_ELEMENT_TYPE_COUNT
 };
@@ -35,7 +36,7 @@ struct BuildElement : EntityBase
 {
 	BuildElementType elementType;
 	SnapType snapType;
-	ivec3 tile;
+	ivec4 tile;
 
 	RigidBody collider;
 

@@ -252,8 +252,9 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 
 	SetRightWeapon(player, 0, GetItem(ITEM_WOOD_FLOOR));
 	SetRightWeapon(player, 1, GetItem(ITEM_WOOD_WALL));
-	SetRightWeapon(player, 2, GetItem(ITEM_SHOVEL));
-	SetRightWeapon(player, 3, GetItem(ITEM_AXE));
+	SetRightWeapon(player, 2, GetItem(ITEM_WOOD_STAIRS));
+	SetRightWeapon(player, 3, GetItem(ITEM_SHOVEL));
+	SetRightWeapon(player, 4, GetItem(ITEM_AXE));
 	//SetLeftWeapon(player, 0, GetItem(ITEM_WOODEN_SHIELD));
 	//SetRightWeapon(player, 1, GetItem(ITEM_DARKWOOD_STAFF));
 	//SetRightWeapon(player, 2, GetItem(ITEM_SHORTBOW));
@@ -714,7 +715,7 @@ static void UpdateAttacks(Player* player)
 			{
 				if (!player->lastBuildTime || gameTime - player->lastBuildTime >= BUILD_COOLDOWN || GetMouseButtonDown(SDL_BUTTON_LEFT))
 				{
-					if (player->nextBuildPosition.y != INT32_MIN)
+					if (player->hasNextBuildPosition)
 					{
 						InitBuildElement((BuildElement*)CreateEntity(), player->nextBuildPosition, (BuildElementType)rightWeapon->buildElement.elementType);
 					}
@@ -948,7 +949,7 @@ void UpdatePlayer(Player* player)
 		player->isHoveringTile = true;
 	}
 
-	player->nextBuildPosition = ivec4(0, INT32_MIN, 0, 0);
+	player->hasNextBuildPosition = false;
 	Item* rightWeapon = GetRightWeapon(player);
 	if (rightWeapon->kind == ITEM_KIND_BUILD_ELEMENT)
 	{
@@ -976,8 +977,9 @@ void UpdatePlayer(Player* player)
 						normal.z = 1;
 					}
 				}
-				ivec3 newTile = element->tile + RotateNormal(normal, element->rotation) * ivec3(1, TERRAIN_STEPS_PER_UNIT, 1);
-				player->nextBuildPosition = ivec4(newTile, snapPosition->rotation);
+				ivec3 newTile = element->tile.xyz + RotateNormal(normal, element->rotation);
+				player->nextBuildPosition = ivec4(newTile, (element->tile.w + snapPosition->rotation) % 4);
+				player->hasNextBuildPosition = true;
 			}
 		}
 		else if (player->isHoveringTile)
@@ -989,6 +991,7 @@ void UpdatePlayer(Player* player)
 				vec3 playerDirection = quat::FromAxisAngle(vec3::Up, player->yaw) * vec3(0, 0, -1);
 				int rotation = abs(playerDirection.z) > abs(playerDirection.x) ? (playerDirection.z < 0 ? 0 : 2) : (playerDirection.x > 0 ? 1 : 3);
 				player->nextBuildPosition = ivec4(tile, rotation);
+				player->hasNextBuildPosition = true;
 			}
 		}
 	}
@@ -1513,7 +1516,7 @@ void RenderPlayer(Player* player)
 			weaponTransform = weaponTransform * mat4::Scale(rightWeapon->handScale);
 		RenderModel(&game->renderer, rightWeapon->model, nullptr, weaponTransform);
 
-		if (rightWeapon->kind == ITEM_KIND_BUILD_ELEMENT && player->nextBuildPosition.y != INT32_MIN)
+		if (rightWeapon->kind == ITEM_KIND_BUILD_ELEMENT && player->hasNextBuildPosition)
 		{
 			RenderModel(&game->renderer, rightWeapon->model, game->previewShader, nullptr,
 				mat4::Translate(player->nextBuildPosition.xyz * vec3(TERRAIN_TILE_SIZE, TERRAIN_STEP_HEIGHT, TERRAIN_TILE_SIZE)) *
