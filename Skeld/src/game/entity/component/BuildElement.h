@@ -49,7 +49,7 @@ void InitBuildElement(BuildElement* element, ivec4 tile, BuildElementType elemen
 void DestroyBuildElement(BuildElement* element);
 
 SnapPosition* GetSnapPosition(BuildElement* element, Shape* shape);
-void RemoveSnapPosition(BuildElement* element, Shape* shape);
+void RemoveSnapPosition(BuildElement* element, Shape* shape, uint32_t flag);
 
 void UpdateBuildElement(BuildElement* element);
 void RenderBuildElement(BuildElement* element);

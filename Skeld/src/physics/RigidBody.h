@@ -55,6 +55,7 @@ void AddConvexMeshCollider(RigidBody* body, physx::PxConvexMesh* mesh, const vec
 void AddHeightFieldCollider(RigidBody* body, int width, int height, physx::PxHeightFieldSample* heights, float heightScale, float tileSize, vec3 position, quat rotation, uint32_t filterGroup, uint32_t filterMask);
 void RemoveCollider(RigidBody* body, Shape* shape);
 void RemoveColliders(RigidBody* body);
+uint32_t RemoveColliderFilterGroup(Shape* shape, uint32_t group);
 void CopyColliders(RigidBody* dst, RigidBody* src, uint32_t filterGroup, uint32_t filterMask);
 
 void GetRigidBodyTransform(RigidBody* body, vec3* position, quat* rotation);

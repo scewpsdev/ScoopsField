@@ -8,7 +8,7 @@ void InitBuildElement(BuildElement* element, ivec4 tile, BuildElementType elemen
 	element->elementType = elementType;
 	element->snapType = elementType == BUILD_ELEMENT_TYPE_WALL || elementType == BUILD_ELEMENT_TYPE_STAIRS ? SNAP_TYPE_ROTATE_ALONG : SNAP_TYPE_DEFAULT;
 
-	element->tile = tile;
+	element->tile = element->snapType == SNAP_TYPE_ROTATE_ALONG ? tile : ivec4(tile.xyz, 0);
 	element->position = (tile.xyz + vec3(0.5f, 0, 0.5f)) * vec3(TERRAIN_TILE_SIZE, TERRAIN_STEP_HEIGHT, TERRAIN_TILE_SIZE);
 	element->rotation = element->snapType == SNAP_TYPE_ROTATE_ALONG ? quat::FromAxisAngle(vec3::Up, -tile.w * PI * 0.5f) : quat::Identity;
 
@@ -42,7 +42,7 @@ void InitBuildElement(BuildElement* element, ivec4 tile, BuildElementType elemen
 
 			if (overlapElement && overlapElement->elementType == element->elementType)
 			{
-				RemoveSnapPosition(overlapElement, hit.shape);
+				RemoveSnapPosition(overlapElement, hit.shape, ENTITY_FILTER_BUILD_SNAP_FLOOR);
 				element->snapPositions[i].shape = nullptr;
 			}
 			else
@@ -79,7 +79,7 @@ void InitBuildElement(BuildElement* element, ivec4 tile, BuildElementType elemen
 
 			if (overlapElement && overlapElement->elementType == element->elementType)
 			{
-				RemoveSnapPosition(overlapElement, hit.shape);
+				RemoveSnapPosition(overlapElement, hit.shape, ENTITY_FILTER_BUILD_SNAP_WALL);
 				element->snapPositions[i].shape = nullptr;
 			}
 			else
@@ -92,21 +92,21 @@ void InitBuildElement(BuildElement* element, ivec4 tile, BuildElementType elemen
 	{
 		element->model = GetModel("entities/build_element/wood_stairs/wood_stairs.glb");
 
-		float stairsAngle = SDL_atan2f(3, 4);
-		float stairsHeight = 0.75f;
+		float stairsAngle = SDL_atan2f(2, 4);
+		float stairsHeight = 0.5f;
 		float stairsLength = SDL_sqrtf(1 * 1 + stairsHeight * stairsHeight);
 
-		AddBoxCollider(&element->collider, vec3(TERRAIN_TILE_SIZE, TERRAIN_TILE_SIZE * 0.05f, TERRAIN_TILE_SIZE * stairsLength), vec3(0, 0.5f * stairsHeight, 0), quat::FromAxisAngle(vec3::Right, stairsAngle), ENTITY_FILTER_DEFAULT, ENTITY_FILTER_DEFAULT, false);
+		AddBoxCollider(&element->collider, vec3(TERRAIN_TILE_SIZE, TERRAIN_TILE_SIZE * 0.05f, TERRAIN_TILE_SIZE * stairsLength), vec3(0, 0.5f * stairsHeight * TERRAIN_TILE_SIZE, 0), quat::FromAxisAngle(vec3::Right, stairsAngle), ENTITY_FILTER_DEFAULT, ENTITY_FILTER_DEFAULT, false);
 
-		element->numSnapPositions = 2;
-		element->snapPositions[0] = { .rotation = 0, .normal = ivec3(0, TERRAIN_STEPS_PER_UNIT - 1, -1), .flags = ENTITY_FILTER_BUILD_SNAP_ALL };
-		//element->snapPositions[1] = { .rotation = 1, .normal = ivec3(1, 0, 0), .flags = ENTITY_FILTER_BUILD_SNAP_BOTH };
-		element->snapPositions[1] = { .rotation = 0, .normal = ivec3(0, 0, 1), .flags = ENTITY_FILTER_BUILD_SNAP_ALL };
-		//element->snapPositions[3] = { .rotation = 3, .normal = ivec3(-1, 0, 0), .flags = ENTITY_FILTER_BUILD_SNAP_BOTH };
+		element->numSnapPositions = 4;
+		element->snapPositions[0] = { .rotation = 0, .normal = ivec3(0, 2, -1), .flags = ENTITY_FILTER_BUILD_SNAP_ALL };
+		element->snapPositions[1] = { .rotation = 0, .normal = ivec3(1, 0, 0), .flags = ENTITY_FILTER_BUILD_SNAP_STAIRS };
+		element->snapPositions[2] = { .rotation = 0, .normal = ivec3(0, 0, 1), .flags = ENTITY_FILTER_BUILD_SNAP_ALL };
+		element->snapPositions[3] = { .rotation = 0, .normal = ivec3(-1, 0, 0), .flags = ENTITY_FILTER_BUILD_SNAP_STAIRS };
 
 		for (int i = 0; i < element->numSnapPositions; i++)
 		{
-			vec3 samplePosition = element->position + element->rotation * element->snapPositions[i].normal * 0.5f * vec3(TERRAIN_TILE_SIZE, TERRAIN_STEP_HEIGHT, TERRAIN_TILE_SIZE);
+			vec3 samplePosition = element->position + vec3(0, stairsHeight * 0.5f * TERRAIN_TILE_SIZE, 0) + element->rotation * element->snapPositions[i].normal * vec3(1, 0, 1) * 0.5f * vec3(TERRAIN_TILE_SIZE, TERRAIN_STEP_HEIGHT, TERRAIN_TILE_SIZE) + vec3(0, -stairsHeight * 0.5f * TERRAIN_TILE_SIZE * element->snapPositions[i].normal.z, 0);
 			BuildElement* overlapElement = nullptr;
 
 			PhysicsHit hit = {};
@@ -120,12 +120,12 @@ void InitBuildElement(BuildElement* element, ivec4 tile, BuildElementType elemen
 
 			if (overlapElement && overlapElement->elementType == element->elementType)
 			{
-				RemoveSnapPosition(overlapElement, hit.shape);
+				RemoveSnapPosition(overlapElement, hit.shape, ENTITY_FILTER_BUILD_SNAP_STAIRS);
 				element->snapPositions[i].shape = nullptr;
 			}
 			else
 			{
-				element->snapPositions[i].shape = AddBoxCollider(&element->collider, vec3(0.5f * SQRT2, 0.2f, 0.5f * SQRT2) * TERRAIN_TILE_SIZE, element->snapPositions[i].normal * 0.5f * vec3(TERRAIN_TILE_SIZE, TERRAIN_STEP_HEIGHT, TERRAIN_TILE_SIZE), quat::FromAxisAngle(vec3::Up, PI * 0.25f), element->snapPositions[i].flags, 0, true);
+				element->snapPositions[i].shape = AddBoxCollider(&element->collider, vec3(0.5f * SQRT2, 0.2f, 0.5f * SQRT2) * TERRAIN_TILE_SIZE, vec3(0, stairsHeight * 0.5f * TERRAIN_TILE_SIZE, 0) + element->snapPositions[i].normal * vec3(1, 0, 1) * 0.5f * vec3(TERRAIN_TILE_SIZE, TERRAIN_STEP_HEIGHT, TERRAIN_TILE_SIZE) + vec3(0, -stairsHeight * 0.5f * TERRAIN_TILE_SIZE * element->snapPositions[i].normal.z, 0), quat::FromAxisAngle(vec3::Right, stairsAngle) * quat::FromAxisAngle(vec3::Up, PI * 0.25f), element->snapPositions[i].flags, 0, true);
 			}
 		}
 	}
@@ -150,13 +150,18 @@ SnapPosition* GetSnapPosition(BuildElement* element, Shape* shape)
 	return nullptr;
 }
 
-void RemoveSnapPosition(BuildElement* element, Shape* shape)
+void RemoveSnapPosition(BuildElement* element, Shape* shape, uint32_t flag)
 {
 	SnapPosition* snapPosition = GetSnapPosition(element, shape);
-	SDL_assert(snapPosition);
-	snapPosition->shape = nullptr;
 
-	RemoveCollider(&element->collider, shape);
+	uint32_t newFlags = RemoveColliderFilterGroup(shape, flag);
+	if (newFlags == 0)
+	{
+		SDL_assert(snapPosition);
+		snapPosition->shape = nullptr;
+
+		RemoveCollider(&element->collider, shape);
+	}
 }
 
 void UpdateBuildElement(BuildElement* element)

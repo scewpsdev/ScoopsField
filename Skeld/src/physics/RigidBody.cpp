@@ -302,6 +302,15 @@ void RemoveCollider(RigidBody* body, Shape* shape)
 	body->actor->detachShape(*pxShape);
 }
 
+uint32_t RemoveColliderFilterGroup(Shape* shape, uint32_t group)
+{
+	PxShape* pxShape = (PxShape*)shape;
+	PxFilterData filterData = pxShape->getQueryFilterData();
+	filterData.word0 = filterData.word0 & ~group;
+	pxShape->setQueryFilterData(filterData);
+	return filterData.word0;
+}
+
 void RemoveColliders(RigidBody* body)
 {
 	uint32_t numShapes = body->actor->getNbShapes();

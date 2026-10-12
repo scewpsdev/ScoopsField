@@ -953,7 +953,10 @@ void UpdatePlayer(Player* player)
 	Item* rightWeapon = GetRightWeapon(player);
 	if (rightWeapon->kind == ITEM_KIND_BUILD_ELEMENT)
 	{
-		uint32_t flags = rightWeapon->buildElement.elementType == BUILD_ELEMENT_TYPE_FLOOR ? ENTITY_FILTER_BUILD_SNAP_FLOOR : ENTITY_FILTER_BUILD_SNAP_WALL;
+		uint32_t flags = 
+			rightWeapon->buildElement.elementType == BUILD_ELEMENT_TYPE_FLOOR ? ENTITY_FILTER_BUILD_SNAP_FLOOR : 
+			rightWeapon->buildElement.elementType == BUILD_ELEMENT_TYPE_WALL ? ENTITY_FILTER_BUILD_SNAP_WALL :
+			ENTITY_FILTER_BUILD_SNAP_STAIRS;
 
 		PhysicsHit hits[16];
 		if (int numHits = Raycast(game->cameraPosition, game->cameraRotation.forward(), PLAYER_REACH, hits, 16, flags))
