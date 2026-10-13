@@ -31,7 +31,7 @@ void main()
 
     if (depth > 0)
     {
-        float fogDensity = 0.0001;
+        float fogDensity = 0.00005;
         float dist = 1.0 / depth;
         float fog = exp(-dist * fogDensity);
         alpha = 1 - fog;

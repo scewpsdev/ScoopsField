@@ -44,10 +44,12 @@ void main()
 	// dont need this because we're flipping in view space in the vertex shader
 	vec3 normal = gl_FrontFacing ? v_normal : -v_normal;
 
-	normal = normalize(mix(normal, v_terrainNormal, v_heightPercent2 * 0.7));
+	normal = mix(normal, v_terrainNormal, 1 - v_heightPercent2);
+	normal = mix(normal, v_terrainNormal, v_heightPercent2);
+	normal = normalize(normal);
 
 	out_normal = vec4(normal * 0.5 + 0.5, emissiveStrength);
-	out_color = v_color; //vec3(normal * 0.5 + 0.5);
+	out_color = linearToSRGB(v_color); //vec3(normal * 0.5 + 0.5);
 	out_material = vec4(v_roughness, metallic, 0, 0);
 	out_emissive = vec4(linearToSRGB(emissiveColor), 0);
 }

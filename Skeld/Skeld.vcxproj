@@ -40,13 +40,13 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -431,6 +431,8 @@
     <None Include="res\shaders\clear_buffer.comp" />
     <None Include="res\shaders\common.glsl" />
     <None Include="res\shaders\copy_depth.frag" />
+    <None Include="res\shaders\entity\build_element.frag" />
+    <None Include="res\shaders\entity\build_element.vert" />
     <None Include="res\shaders\entity\grass.frag" />
     <None Include="res\shaders\entity\grass.shader" />
     <None Include="res\shaders\entity\grass.vert" />

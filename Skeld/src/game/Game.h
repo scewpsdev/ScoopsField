@@ -117,6 +117,7 @@ struct GameState
 	GraphicsPipeline* grassShader;
 	GraphicsPipeline* grassShadowShader;
 	GraphicsPipeline* previewShader;
+	GraphicsPipeline* buildElementShader;
 
 	GrassBladeData* grassBlades;
 	int numGrassBlades;

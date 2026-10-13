@@ -23,7 +23,6 @@ layout(std140, set = 3, binding = 0) uniform UniformBlock {
 vec3 pointLight(vec3 position, vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, vec3 lightPosition, vec3 lightColor)
 {
 	vec3 f0 = mix(vec3(0.04), albedo, metallic);
-	vec3 fLambert = albedo / PI;
 
 	// Per light radiance
 	vec3 toLight = lightPosition - position;
@@ -45,9 +44,13 @@ vec3 pointLight(vec3 position, vec3 normal, vec3 view, vec3 albedo, float roughn
 	vec3 kd = (1.0 - ks) * (1.0 - metallic);
 
 	float ndotwi = max(dot(wi, normal), 0.0);
-	float shadow = 1.0; // Shadow mapping
 
-	vec3 s = (specular + fLambert * kd) * radiance * ndotwi * shadow;
+	vec3 fLambert = albedo / PI;
+	vec3 diffuse = fLambert * kd;
+	return fLambert * radiance * ndotwi;
+
+	float shadow = 1.0; // Shadow mapping
+	vec3 s = (specular + diffuse) * radiance * ndotwi * shadow;
 
 	return s;
 }

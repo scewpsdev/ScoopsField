@@ -188,11 +188,11 @@ static float sampleTreeDensityPlains(float x, float z)
 
 static float sampleGrassDensityPlains(float x, float z, float height, vec3 normal)
 {
-	float frequency = 0.05f;
-	float value = simplexFbm(x * frequency - 12345, z * frequency, 3, 0.4f, 2);
-	value = max(value, 0.0f);
+	float frequency = 0.02f;
+	float value = simplexFbmNormalized(x * frequency - 12345, z * frequency, 5, 0.4f, 2);
+	value = clamp(value + 0.8f, 0, 1);
 
-	value = 1;
+	//value = 1;
 
 	value *= smoothstep(0.2f, 1, height);
 
@@ -817,6 +817,8 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 
 	game->previewShader = CreateForwardGraphicsPipeline(&game->renderer, "res/shaders/entity/preview.vert.bin", "res/shaders/entity/preview.frag.bin", false);
 
+	game->buildElementShader = CreateDeferredGraphicsPipeline(&game->renderer, "res/shaders/entity/build_element.vert.bin", "res/shaders/entity/build_element.frag.bin");
+
 	VertexBufferLayout particleLayouts[6];
 	particleLayouts[0] = game->particles.quad->layout;
 	InitParticleInstanceBufferLayouts(&particleLayouts[1]);
@@ -832,6 +834,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddHotReloadedShader("shaders/terrain.vert", "shaders/terrain.frag", game->renderer.defaultShader, game->renderer.geometryPipeline);
 	AddHotReloadedShader("shaders/entity/grass.vert", "shaders/entity/grass.frag", game->grassShader->pipelineInfo.shader, game->grassShader);
 	AddHotReloadedShader("shaders/entity/tree.vert", "shaders/entity/tree.frag", game->treeShader->pipelineInfo.shader, game->treeShader);
+	AddHotReloadedShader("shaders/entity/build_element.vert", "shaders/entity/build_element.frag", game->buildElementShader->pipelineInfo.shader, game->buildElementShader);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/lighting/shadow.frag", game->renderer.shadowShader, game->renderer.shadowPipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/blurh.frag", game->renderer.blurHShader, game->renderer.blurHPipeline);
 	AddHotReloadedShader("shaders/screenquad.vert", "shaders/blurv.frag", game->renderer.blurVShader, game->renderer.blurVPipeline);
@@ -995,7 +998,7 @@ void GameUpdate()
 
 void GameRender()
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 3).normalized(), -(/*gameTime +*/ 20) * 0.01f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 3).normalized(), -(/*gameTime +*/ 50) * 0.01f) * vec3(1, 0, 0);
 	//vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -20 * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();
@@ -1042,8 +1045,8 @@ void GameRender()
 		for (int i = 0; i < game->numTerrains; i++)
 		{
 			Terrain* terrain = &game->terrains[i];
-			if (!terrain->visible)
-				continue;
+			//if (!terrain->visible)
+			//	continue;
 
 			for (int j = 0; j < terrain->entities.size; j++)
 			{

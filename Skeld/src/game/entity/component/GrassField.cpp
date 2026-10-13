@@ -72,20 +72,21 @@ void RenderGrassField(GrassField* grass)
 		return;
 
 	float distance = DistanceToTerrain(grass->terrain, game->cameraPosition);
-	float lodDistance = 0.75f * TERRAIN_SIZE;
-	int lod = (int)log2f(max(SDL_ceilf(distance / lodDistance), 1.0f));
+	float lodDistance = 0.5f * TERRAIN_SIZE;
+	float lod = min(log2f(max(/*SDL_ceilf*/(distance / lodDistance), 1.0f)), (float)MAX_GRASS_LOD);
+	int ilod = (int)lod;
 
-	if (lod <= MAX_GRASS_LOD)
+	if (ilod <= MAX_GRASS_LOD)
 	{
-		int numGrassBlades = TERRAIN_TILES * MAX_GRASS_BLADES / ipow(4, lod);
+		int numGrassBlades = TERRAIN_TILES * MAX_GRASS_BLADES / ipow(4, ilod);
 		int dataOffset = 0;
-		for (int i = 0; i < lod; i++)
+		for (int i = 0; i < ilod; i++)
 			dataOffset += TERRAIN_TILES * MAX_GRASS_BLADES / ipow(4, i);
 
 		//grass->material.vertexShaderData[0] = (float)lod;
 		//RenderInstancedModel(&game->renderer, grass->model, game->grassShader, game->grassShadowShader, &grass->material, game->grassInstances, numGrassBlades, ModelMatrix((Entity*)grass));
 
-		Mesh* mesh = lod == 0 ? &grass->model->meshes[0] : lod <= 2 ? &grass->lodModel->meshes[0] : &grass->lodModel2->meshes[0];
+		Mesh* mesh = ilod == 0 ? &grass->model->meshes[0] : ilod <= 2 ? &grass->lodModel->meshes[0] : &grass->lodModel2->meshes[0];
 		VertexBuffer* buffers[2] = { mesh->positionBuffer, game->grassInstances };
 		mat4 transform = ModelMatrix((Entity*)grass);
 		RenderMesh(&game->renderer,
@@ -94,7 +95,7 @@ void RenderGrassField(GrassField* grass)
 			mesh->vertexCount, numGrassBlades,
 			0, 0, dataOffset,
 			grass->terrain->boundingBox, grass->terrain->boundingSphere,
-			nullptr, 0, vec4(grass->terrain->tilex * TERRAIN_SIZE, grass->terrain->tilez * TERRAIN_SIZE, (float)lod, 0), sizeof(vec4),
+			nullptr, 0, vec4(grass->terrain->tilex * TERRAIN_SIZE, grass->terrain->tilez * TERRAIN_SIZE, lod, 0), sizeof(vec4),
 			grass->material.textures, grass->material.samplers, grass->material.vertexSampler, grass->material.numTextures,
 			game->grassShader, game->grassShadowShader,
 			transform, 0);

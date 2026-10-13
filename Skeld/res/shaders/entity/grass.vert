@@ -39,6 +39,9 @@ layout(std140, set = 1, binding = 0) uniform UniformBlock {
 #define VERTICES (TILES + 1)
 
 
+vec3 grassColor = SRGBToLinear(vec3(0.27451, 0.43137, 0.20784));
+
+
 float hash12(vec2 p) {
     return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453123);
 }
@@ -110,7 +113,7 @@ void main()
 	vec3 vertexPosition = rotateX(vec3(a_position, 0), curveAmount);
 
 	vertexPosition.x *= 2 * pow(4, u_lod);
-	vertexPosition *= scale * coverage * 0.7;
+	vertexPosition *= scale * coverage;
 
 	vertexPosition = rotateY(vertexPosition, rotation);
 
@@ -137,6 +140,10 @@ void main()
 	*/
 
 	vec3 position = vec3(bladePosition.x, height, bladePosition.y) + vertexPosition;
+	float lodTransition = fract(u_lod);
+	float lodDensity = mix(1, 0.25, lodTransition);
+	float removeChance = 1 - lodDensity;
+	position.z = mix(position.z, 10000, hash12(-bladePosition) < removeChance ? 1 : 0);
 
 	vec3 terrainNormal = textureLod(s_normalmap, heightmapCoord, 0).xyz;
 	terrainNormal = normalize(vec3(terrainNormal.x, 1, terrainNormal.y));
@@ -161,12 +168,13 @@ void main()
 	v_roughness = 1 - specular;
 	//v_roughness = VdotN;
 
-	vec3 bottomColor = vec3(0.35, 0.5, 0.2) * 1.3;
+	vec3 bottomColor = grassColor; //vec3(0.35, 0.5, 0.2) * 1.3;
 	vec3 topColor = vec3(0.4, 0.4, 0.3);
-	vec3 color = mix(bottomColor, topColor, heightPercent4);
+	vec3 color = mix(bottomColor, topColor, pow(heightPercent * coverage * 1.0, 8));
 
 	float ao = mix(0.5, 1.0, heightPercent);
-	v_color = color * ao;
+	color *= ao;
+	v_color = color;
 
 	v_terrainNormal = u_viewSpaceBuffer > 0.5 ? (u_view * vec4(terrainNormal, 0)).xyz : terrainNormal;
 	v_heightPercent2 = heightPercent2;

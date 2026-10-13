@@ -381,7 +381,7 @@ void RenderTerrain(Terrain* terrain)
 {
 	terrain->visible = RenderTerrain(&game->renderer, terrain);
 
-	if (terrain->visible)
+	//if (terrain->visible)
 	{
 		for (int i = 0; i < terrain->entities.size; i++)
 		{

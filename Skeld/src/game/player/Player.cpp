@@ -1466,7 +1466,7 @@ void UpdatePlayer(Player* player)
 
 		if (delta.lengthSquared() > 0)
 		{
-			float speed = (GetKey(SDL_SCANCODE_LSHIFT) ? 50 : GetKey(SDL_SCANCODE_LALT) ? 1 : 5) * player->walkSpeed;
+			float speed = (GetKey(SDL_SCANCODE_LSHIFT) ? 10 : GetKey(SDL_SCANCODE_LALT) ? 0.5f : 2) * player->walkSpeed;
 			vec3 velocity = delta.normalized() * speed;
 			vec3 displacement = velocity * deltaTime;
 			game->cameraPosition += displacement;

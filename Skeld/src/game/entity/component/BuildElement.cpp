@@ -188,7 +188,7 @@ void UpdateBuildElement(BuildElement* element)
 
 void RenderBuildElement(BuildElement* element)
 {
-	RenderModel(&game->renderer, element->model, mat4::Translate(element->position) * mat4::Rotate(element->rotation) * mat4::Scale(TERRAIN_TILE_SIZE), true);
+	RenderModel(&game->renderer, element->model, game->buildElementShader, nullptr, mat4::Translate(element->position) * mat4::Rotate(element->rotation) * mat4::Scale(TERRAIN_TILE_SIZE), true);
 
 	for (int i = 0; i < element->numSnapPositions; i++)
 	{

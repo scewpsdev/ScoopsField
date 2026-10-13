@@ -42,6 +42,7 @@ vec3 environmentLight(vec3 normal, vec3 view, vec3 albedo, float roughness, floa
 	vec3 irradiance = sampleEnvironmentIrradiance(normal, environmentMap);
 
 	vec3 diffuse = irradiance * albedo;
+	return diffuse;
 
 	vec3 f0 = mix(vec3(0.04), albedo, metallic);
 	vec3 ks = fresnel2(max(dot(normal, view), 0.0), f0, roughness);

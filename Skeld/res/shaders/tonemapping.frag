@@ -119,6 +119,38 @@ vec3 bloom(vec3 color)
 	return color * bloomStrength * (1.0 - exp(-RGBToLuminance(color) * bloomFalloff));
 }
 
+vec3 complementaryCurve(vec3 color, float lowerCurve, float upperCurve, float whitePoint)
+{
+	vec3 lower = pow(color, vec3(lowerCurve));
+	vec3 upper = pow(lower, vec3(upperCurve));
+	return upper / (upper * (1 / pow(vec3(whitePoint), vec3(upperCurve))) + 1);
+}
+
+vec3 complementaryTonemap(vec3 color)
+{
+#define TM_WHITE_CURVE 1
+#define TM_UPPER_CURVE 1
+#define TM_LOWER_CURVE 1
+#define TM_SATURATION 1
+#define TM_VIBRANCE 0
+#define TM_COLOR_TINT vec3(1)
+
+	color *= 2;
+
+	color = complementaryCurve(color, TM_LOWER_CURVE, TM_UPPER_CURVE, TM_WHITE_CURVE);
+
+	float maxChannel = max(max(color.r, color.g), color.b);
+	float minChannel = min(min(color.r, color.g), color.b);
+	float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+
+	float saturationMask = maxChannel - minChannel;
+	color = mix(vec3(luma), color, TM_SATURATION + TM_VIBRANCE * (1 - saturationMask));
+
+	color *= TM_COLOR_TINT;
+
+	return clamp(color, 0, 1);
+}
+
 void main()
 {
 	vec3 color = texture(s_hdrFrame, v_texcoord).rgb;
@@ -127,14 +159,16 @@ void main()
 	float exposure = texture(s_exposureBuffer, vec2(0.5)).r;
 	color *= exposure;
 
-	color = mix(color, bloom, 0.04);
+	color = mix(color, bloom, 0.02);
 
 	//color += bloom(texture(s_bloom, v_texcoord).rgb);
 	//color *= exposure;
 
 	//color = linearToSRGB(color);
 
-	color = acesFitted(color * 2);
+	//color = acesFitted(color);
+	color = complementaryTonemap(color);
+
 	//color = ACESFilm(color);
 	//color = color / (color + 1);
 	//color = ToneMapFilmic_Hejl2015(color, 10);

@@ -55,6 +55,8 @@ vec3 directionalLight(vec3 normal, vec3 view, vec3 albedo, float roughness, floa
 	vec3 lambert = albedo / PI;
 	vec3 diffuse = kD * lambert;
 
+	return lambert * lightColor * NdotL;
+
 	vec3 radiance = lightColor;
 	vec3 lighting = (diffuse + specular) * radiance * NdotL;
 

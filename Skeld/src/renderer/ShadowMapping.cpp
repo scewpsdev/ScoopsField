@@ -107,6 +107,8 @@ static void CalculateShadowMatricesForCascade(vec3 position, quat rotation, floa
 	vec3 localMin = vec3(-0.5f * size);
 	vec3 localMax = vec3(0.5f * size);
 
+	//localMax.z += 100;
+
 	float texelsPerUnit = resolution / size;
 	center *= texelsPerUnit;
 	center.xy = floor(center.xy);
@@ -144,7 +146,7 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 		bool renderToShadowMap = mesh->flags & MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP;
 		if (!mesh->shadowShader && renderToShadowMap)
 		{
-			bool inFrustum = IsInstanced(mesh) ? FrustumCulling(mesh->boundingBox, renderer->frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, renderer->frustumPlanes);
+			bool inFrustum = IsInstanced(mesh) ? FrustumCulling(mesh->boundingBox, frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes);
 			if (inFrustum)
 				SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, false, renderPass, cmdBuffer);
 		}
@@ -155,7 +157,7 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 	for (int i = 0; i < renderer->terrains.size; i++)
 	{
 		MeshDrawData* mesh = &renderer->terrains[i];
-		if (FrustumCulling(mesh->boundingBox, renderer->frustumPlanes))
+		if (FrustumCulling(mesh->boundingBox, frustumPlanes))
 		{
 			SubmitMesh(renderer, mesh, projection, view, pv, cameraPosition, sunDirection, false, renderPass, cmdBuffer);
 		}
@@ -165,7 +167,7 @@ static void RenderShadowMapGeometry(Renderer* renderer, SDL_GPURenderPass* rende
 	{
 		MeshDrawData* mesh = &renderer->meshes[i];
 		bool renderToShadowMap = mesh->flags & MESH_DRAW_FLAG_RENDER_TO_SHADOWMAP;
-		bool inFrustum = IsInstanced(mesh) ? FrustumCulling(mesh->boundingBox, renderer->frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, renderer->frustumPlanes);
+		bool inFrustum = IsInstanced(mesh) ? FrustumCulling(mesh->boundingBox, frustumPlanes) : FrustumCulling(mesh->boundingSphere, mesh->transform, frustumPlanes);
 		if (mesh->shadowShader && renderToShadowMap && inFrustum)
 		{
 			SDL_BindGPUGraphicsPipeline(renderPass, mesh->shadowShader->pipeline);

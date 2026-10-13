@@ -651,5 +651,7 @@
     <None Include="res\shaders\entity\grass.shader" />
     <None Include="res\shaders\entity\preview.vert" />
     <None Include="res\shaders\entity\preview.frag" />
+    <None Include="res\shaders\entity\build_element.vert" />
+    <None Include="res\shaders\entity\build_element.frag" />
   </ItemGroup>
 </Project>
