@@ -102,7 +102,7 @@ void InitTerrain(Terrain* terrain, int tilex, int tilez, float* heights, vec2* n
 	terrain->grassTexture = GetTexture("textures/grass_diffuse.png");
 	terrain->dirtTexture = GetTexture("textures/dirt_diffuse.png");
 
-	terrain->numTrees = 0;
+	InitList(&terrain->entities);
 }
 
 void DestroyTerrain(Terrain* terrain)
@@ -380,4 +380,15 @@ int Terrain::getTileMaxHeight(int gridx, int gridz)
 void RenderTerrain(Terrain* terrain)
 {
 	terrain->visible = RenderTerrain(&game->renderer, terrain);
+
+	if (terrain->visible)
+	{
+		for (int i = 0; i < terrain->entities.size; i++)
+		{
+			if (terrain->entities[i])
+			{
+				RenderEntity(terrain->entities[i]);
+			}
+		}
+	}
 }

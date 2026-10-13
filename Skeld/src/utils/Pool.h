@@ -13,6 +13,49 @@ struct Pool
 
 	int freeList[CAPACITY];
 	int freeHead;
+
+
+	void clear()
+	{
+		size = 0;
+		SDL_memset(occupied, 0, sizeof(occupied));
+
+		for (int i = 0; i < CAPACITY - 1; i++)
+			freeList[i] = i + 1;
+
+		freeList[CAPACITY - 1] = -1;
+		freeHead = 0;
+	}
+
+	T* add()
+	{
+		if (freeHead == -1)
+			return nullptr;
+
+		int idx = freeHead;
+		freeHead = freeList[idx];
+		size++;
+		occupied[idx] = true;
+		T* element = &data[idx];
+		SDL_memset(element, 0, sizeof(T));
+		return element;
+	}
+
+	void add(T value)
+	{
+		T* element = add();
+		SDL_assert(element);
+		*element = value;
+	}
+
+	void remove(T* element)
+	{
+		int idx = (int)(element - &data[0]);
+		occupied[idx] = false;
+		freeList[idx] = freeHead;
+		freeHead = idx;
+		size--;
+	}
 };
 
 

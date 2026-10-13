@@ -163,7 +163,7 @@ static int AddBlock(Item* item, const char* name, const char* animation, AttackT
 	return attackID;
 }
 
-static void InitBuildElement(ItemDatabase* items, Item* item, const char* name, BuildElementType elementType)
+static void InitBuildElement(ItemDatabase* items, Item* item, const char* name, BuildElementType elementType, BuildElementVariant variant)
 {
 	item->kind = ITEM_KIND_BUILD_ELEMENT;
 
@@ -174,6 +174,7 @@ static void InitBuildElement(ItemDatabase* items, Item* item, const char* name, 
 	item->handScale = 0.2f;
 
 	item->buildElement.elementType = elementType;
+	item->buildElement.variant = variant;
 }
 
 static void InitWeapons(ItemDatabase* items)
@@ -266,17 +267,27 @@ static void InitWeapons(ItemDatabase* items)
 	// wood floor
 	{
 		Item* item = &items->items[ITEM_WOOD_FLOOR];
-		InitBuildElement(items, item, "wood_floor", BUILD_ELEMENT_TYPE_FLOOR);
-	}
-	// wood wall
-	{
-		Item* item = &items->items[ITEM_WOOD_WALL];
-		InitBuildElement(items, item, "wood_wall", BUILD_ELEMENT_TYPE_WALL);
+		InitBuildElement(items, item, "wood_floor", BUILD_ELEMENT_TYPE_FLOOR, BUILD_ELEMENT_VARIANT_WOOD_FLOOR);
 	}
 	// wood stairs
 	{
 		Item* item = &items->items[ITEM_WOOD_STAIRS];
-		InitBuildElement(items, item, "wood_stairs", BUILD_ELEMENT_TYPE_STAIRS);
+		InitBuildElement(items, item, "wood_stairs", BUILD_ELEMENT_TYPE_STAIRS, BUILD_ELEMENT_VARIANT_WOOD_STAIRS);
+	}
+	// wood wall
+	{
+		Item* item = &items->items[ITEM_WOOD_WALL];
+		InitBuildElement(items, item, "wood_wall", BUILD_ELEMENT_TYPE_WALL, BUILD_ELEMENT_VARIANT_WOOD_WALL);
+	}
+	// wood door
+	{
+		Item* item = &items->items[ITEM_WOOD_DOOR];
+		InitBuildElement(items, item, "wood_door", BUILD_ELEMENT_TYPE_WALL, BUILD_ELEMENT_VARIANT_WOOD_DOOR);
+	}
+	// wood door
+	{
+		Item* item = &items->items[ITEM_WOOD_WINDOW];
+		InitBuildElement(items, item, "wood_window", BUILD_ELEMENT_TYPE_WALL, BUILD_ELEMENT_VARIANT_WOOD_WINDOW);
 	}
 #if 0
 	// shortbow

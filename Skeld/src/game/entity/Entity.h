@@ -55,6 +55,7 @@ struct Entity
 		struct {
 			EntityType type;
 			bool removed;
+			Terrain* terrain;
 
 #define MAX_DESTROY_CALLBACKS 16
 			Entity* destroyCallbacks[MAX_DESTROY_CALLBACKS];

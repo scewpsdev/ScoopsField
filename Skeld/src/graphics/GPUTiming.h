@@ -26,7 +26,7 @@
 
 #define GPU_TIMER_MAX_QUERIES 128
 #define GPU_TIMER_MAX_LABELS  64
-#define GPU_TIMER_FRAMES      3
+#define GPU_TIMER_FRAMES      4
 
 
 struct GpuTimerNode

@@ -61,5 +61,5 @@ void UpdateTree(Tree* tree)
 
 void RenderTree(Tree* tree)
 {
-	//RenderModel(&game->renderer, tree->model, tree->shader, tree->shadowShader, nullptr, transform, true, 0);
+	//RenderModel(&game->renderer, tree->model, tree->shader, tree->shadowShader, nullptr, ModelMatrix((Entity*)tree), true, 0);
 }

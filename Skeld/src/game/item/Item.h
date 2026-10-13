@@ -25,6 +25,8 @@ enum ItemType
 	ITEM_WOOD_FLOOR,
 	ITEM_WOOD_WALL,
 	ITEM_WOOD_STAIRS,
+	ITEM_WOOD_DOOR,
+	ITEM_WOOD_WINDOW,
 
 	ITEM_LAST
 };
@@ -136,6 +138,7 @@ struct Weapon
 struct BuildElementItem
 {
 	int elementType;
+	int variant;
 };
 
 struct Item

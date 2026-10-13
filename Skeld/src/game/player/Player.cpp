@@ -7,7 +7,7 @@
 #define HIT_RECOVERY_DURATION 0.25f
 #define STEP_FREQUENCY 0.4f
 #define PLAYER_REACH 3.0f
-#define CAMERA_HEIGHT 1.49f
+#define CAMERA_HEIGHT 1.29f
 #define CAMERA_HEIGHT_DUCKED 0.94f
 #define CONTROLLER_HEIGHT 1.7f
 #define CONTROLLER_HEIGHT_DUCKED (CONTROLLER_HEIGHT + (CAMERA_HEIGHT_DUCKED - CAMERA_HEIGHT))
@@ -253,8 +253,10 @@ void InitPlayer(Player* player, SDL_GPUCommandBuffer* cmdBuffer, vec3 position, 
 	SetRightWeapon(player, 0, GetItem(ITEM_WOOD_FLOOR));
 	SetRightWeapon(player, 1, GetItem(ITEM_WOOD_WALL));
 	SetRightWeapon(player, 2, GetItem(ITEM_WOOD_STAIRS));
-	SetRightWeapon(player, 3, GetItem(ITEM_SHOVEL));
-	SetRightWeapon(player, 4, GetItem(ITEM_AXE));
+	SetRightWeapon(player, 3, GetItem(ITEM_WOOD_DOOR));
+	SetRightWeapon(player, 4, GetItem(ITEM_WOOD_WINDOW));
+	SetRightWeapon(player, 5, GetItem(ITEM_SHOVEL));
+	SetRightWeapon(player, 6, GetItem(ITEM_AXE));
 	//SetLeftWeapon(player, 0, GetItem(ITEM_WOODEN_SHIELD));
 	//SetRightWeapon(player, 1, GetItem(ITEM_DARKWOOD_STAFF));
 	//SetRightWeapon(player, 2, GetItem(ITEM_SHORTBOW));
@@ -717,7 +719,7 @@ static void UpdateAttacks(Player* player)
 				{
 					if (player->hasNextBuildPosition)
 					{
-						InitBuildElement((BuildElement*)CreateEntity(), player->nextBuildPosition, (BuildElementType)rightWeapon->buildElement.elementType);
+						InitBuildElement((BuildElement*)CreateEntity(), player->nextBuildPosition, (BuildElementType)rightWeapon->buildElement.elementType, (BuildElementVariant)rightWeapon->buildElement.variant);
 					}
 					player->lastBuildTime = gameTime;
 				}

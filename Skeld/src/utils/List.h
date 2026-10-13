@@ -38,8 +38,7 @@ struct List
 	void removeAt(int idx)
 	{
 		SDL_assert(idx >= 0 && idx < size);
-		for (int i = idx; i < size - 1; i++)
-			buffer[i] = buffer[i + 1];
+		buffer[idx] = buffer[size - 1];
 		size--;
 	}
 

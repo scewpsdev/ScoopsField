@@ -55,9 +55,8 @@ struct Terrain
 	Texture* grassTexture;
 	Texture* dirtTexture;
 
-#define MAX_TERRAIN_TREES 256
-	Tree* trees[MAX_TERRAIN_TREES];
-	int numTrees;
+#define MAX_TERRAIN_ENTITIES 512
+	List<Entity*, MAX_TERRAIN_ENTITIES> entities;
 
 	bool visible;
 

@@ -93,6 +93,12 @@ Entity* CreateEntity()
 	return entity;
 }
 
+template<typename T>
+T* CreateEntity()
+{
+	return (T*)CreateEntity();
+}
+
 
 #include "item/Item.cpp"
 #include "particle/ParticleSystem.cpp"
@@ -314,8 +320,6 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 			float treeChance = sampleTreeDensityPlains(xx, zz);
 			if (random.nextFloat() < treeChance)
 			{
-				SDL_assert(terrain->numTrees < MAX_TREES);
-
 				vec2 offset = vec2(random.nextFloat(), random.nextFloat()) * TERRAIN_TILE_SIZE;
 				vec3 position = vec3(xx + offset.x, 0, zz + offset.y);
 				float height = terrain->interpolateHeight(position.x - worldx, position.z - worldz);
@@ -323,14 +327,13 @@ static void GenerateTerrain(Terrain* terrain, int tilex, int tilez, Random& rand
 				float rotation = random.nextFloat() * 2 * PI;
 				float scale = mix(0.8f, 1.6f, random.nextFloat());
 
-				Tree* tree = (Tree*)CreateEntity();
+				Tree* tree = CreateEntity<Tree>();
 				InitTree(tree, position, rotation, scale);
-				terrain->trees[terrain->numTrees++] = tree;
 			}
 		}
 	}
 
-	GrassField* grass = (GrassField*)CreateEntity();
+	GrassField* grass = CreateEntity<GrassField>();
 	InitGrassField(grass, terrain);
 
 	// generate grass coverage
@@ -557,8 +560,8 @@ static void ResetGame(bool destroy, bool init)
 
 		InitPlayer(&game->player, cmdBuffer, game->playerSpawn.translation(), game->playerSpawn.rotation().getAngle());
 
-		InitItemEntity((ItemEntity*)CreateEntity(), GetItem(ITEM_AXE), vec3(0, 12, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
-		InitItemEntity((ItemEntity*)CreateEntity(), GetItem(ITEM_SHOVEL), vec3(2, 12, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
+		InitItemEntity(CreateEntity<ItemEntity>(), GetItem(ITEM_AXE), vec3(0, 12, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
+		InitItemEntity(CreateEntity<ItemEntity>(), GetItem(ITEM_SHOVEL), vec3(2, 12, -2), quat::FromAxisAngle(vec3(1, 1, 1).normalized(), 13242));
 
 		//InitKnight((Creature*)CreateEntity(), vec3(0, 0, -5), 0);
 		//InitKnight((Creature*)CreateEntity(), vec3(-4, 0, -5), 0);
@@ -944,11 +947,23 @@ void GameUpdate()
 		if (game->entities.occupied[i])
 		{
 			Entity* entity = &game->entities.data[i];
+			if (!entity->terrain)
+			{
+				int gridx = (int)SDL_floorf(entity->position.x / TERRAIN_SIZE);
+				int gridz = (int)SDL_floorf(entity->position.z / TERRAIN_SIZE);
+				Terrain* terrain = GetTerrainAtGridPosition(gridx, gridz);
+				SDL_assert(terrain);
+				terrain->entities.add(entity);
+				entity->terrain = terrain;
+			}
+
 			UpdateEntity(entity);
+
 			if (entity->removed || entity->position.y < -200)
 			{
+				entity->terrain->entities.remove(entity);
 				DestroyEntity(entity);
-				PoolRelease(&game->entities, entity);
+				game->entities.remove(entity);
 			}
 		}
 	}
@@ -998,6 +1013,7 @@ void GameRender()
 
 	RenderPlayer(&game->player);
 
+	/*
 	for (int i = 0; i < game->entities.capacity; i++)
 	{
 		if (game->entities.occupied[i])
@@ -1005,6 +1021,7 @@ void GameRender()
 			RenderEntity(&game->entities.data[i]);
 		}
 	}
+	*/
 
 	RenderParticleSystem(&game->particles);
 
@@ -1028,14 +1045,18 @@ void GameRender()
 			if (!terrain->visible)
 				continue;
 
-			for (int j = 0; j < terrain->numTrees; j++)
+			for (int j = 0; j < terrain->entities.size; j++)
 			{
-				Tree* tree = terrain->trees[j];
-				transforms[numTransforms++] = tree->animatedTransform;
+				Entity* entity = terrain->entities[j];
+				if (entity->type == ENTITY_TYPE_TREE)
+				{
+					Tree* tree = &entity->tree;
+					transforms[numTransforms++] = tree->animatedTransform;
 
-				model = tree->model;
-				shader = tree->shader;
-				shadowShader = tree->shadowShader;
+					model = tree->model;
+					shader = tree->shader;
+					shadowShader = tree->shadowShader;
+				}
 			}
 		}
 		UnmapTransferBuffer(game->treeInstanceTransfer);

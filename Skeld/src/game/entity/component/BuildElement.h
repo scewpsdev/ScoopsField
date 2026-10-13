@@ -20,10 +20,21 @@ enum BuildElementType
 	BUILD_ELEMENT_TYPE_NONE = 0,
 
 	BUILD_ELEMENT_TYPE_FLOOR,
-	BUILD_ELEMENT_TYPE_WALL,
 	BUILD_ELEMENT_TYPE_STAIRS,
+	BUILD_ELEMENT_TYPE_WALL,
 
 	BUILD_ELEMENT_TYPE_COUNT
+};
+
+enum BuildElementVariant
+{
+	BUILD_ELEMENT_VARIANT_WOOD_FLOOR,
+
+	BUILD_ELEMENT_VARIANT_WOOD_STAIRS,
+
+	BUILD_ELEMENT_VARIANT_WOOD_WALL,
+	BUILD_ELEMENT_VARIANT_WOOD_DOOR,
+	BUILD_ELEMENT_VARIANT_WOOD_WINDOW,
 };
 
 enum SnapType
@@ -35,6 +46,7 @@ enum SnapType
 struct BuildElement : EntityBase
 {
 	BuildElementType elementType;
+	BuildElementVariant variant;
 	SnapType snapType;
 	ivec4 tile;
 
@@ -45,7 +57,7 @@ struct BuildElement : EntityBase
 };
 
 
-void InitBuildElement(BuildElement* element, ivec4 tile, BuildElementType elementType);
+void InitBuildElement(BuildElement* element, ivec4 tile, BuildElementType elementType, BuildElementVariant variant);
 void DestroyBuildElement(BuildElement* element);
 
 SnapPosition* GetSnapPosition(BuildElement* element, Shape* shape);

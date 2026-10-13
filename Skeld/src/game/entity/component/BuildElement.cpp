@@ -1,12 +1,13 @@
 #include "BuildElement.h"
 
 
-void InitBuildElement(BuildElement* element, ivec4 tile, BuildElementType elementType)
+void InitBuildElement(BuildElement* element, ivec4 tile, BuildElementType elementType, BuildElementVariant variant)
 {
 	InitEntity((Entity*)element, ENTITY_TYPE_BUILD_ELEMENT);
 
 	element->elementType = elementType;
-	element->snapType = elementType == BUILD_ELEMENT_TYPE_WALL || elementType == BUILD_ELEMENT_TYPE_STAIRS ? SNAP_TYPE_ROTATE_ALONG : SNAP_TYPE_DEFAULT;
+	element->variant = variant;
+	element->snapType = elementType == BUILD_ELEMENT_TYPE_FLOOR ? SNAP_TYPE_DEFAULT : SNAP_TYPE_ROTATE_ALONG;
 
 	element->tile = element->snapType == SNAP_TYPE_ROTATE_ALONG ? tile : ivec4(tile.xyz, 0);
 	element->position = (tile.xyz + vec3(0.5f, 0, 0.5f)) * vec3(TERRAIN_TILE_SIZE, TERRAIN_STEP_HEIGHT, TERRAIN_TILE_SIZE);
@@ -53,9 +54,26 @@ void InitBuildElement(BuildElement* element, ivec4 tile, BuildElementType elemen
 	}
 	else if (elementType == BUILD_ELEMENT_TYPE_WALL)
 	{
-		element->model = GetModel("entities/build_element/wood_wall/wood_wall.glb");
+		if (variant == BUILD_ELEMENT_VARIANT_WOOD_WALL)
+		{
+			element->model = GetModel("entities/build_element/wood_wall/wood_wall.glb");
 
-		AddBoxCollider(&element->collider, vec3(TERRAIN_TILE_SIZE, TERRAIN_TILE_SIZE, TERRAIN_TILE_SIZE * 0.05f), vec3(0, 0.5f * TERRAIN_TILE_SIZE, 0.5f * TERRAIN_TILE_SIZE), quat::Identity, ENTITY_FILTER_DEFAULT, ENTITY_FILTER_DEFAULT, false);
+			AddBoxCollider(&element->collider, vec3(TERRAIN_TILE_SIZE, TERRAIN_TILE_SIZE, TERRAIN_TILE_SIZE * 0.05f), vec3(0, 0.5f * TERRAIN_TILE_SIZE, 0.5f * TERRAIN_TILE_SIZE), quat::Identity, ENTITY_FILTER_DEFAULT, ENTITY_FILTER_DEFAULT, false);
+		}
+		else if (variant == BUILD_ELEMENT_VARIANT_WOOD_DOOR)
+		{
+			element->model = GetModel("entities/build_element/wood_door/wood_door.glb");
+
+			AddBoxCollider(&element->collider, vec3(TERRAIN_TILE_SIZE * 0.2f, TERRAIN_TILE_SIZE, TERRAIN_TILE_SIZE * 0.05f), vec3(-0.4f * TERRAIN_TILE_SIZE, 0.5f * TERRAIN_TILE_SIZE, 0.5f * TERRAIN_TILE_SIZE), quat::Identity, ENTITY_FILTER_DEFAULT, ENTITY_FILTER_DEFAULT, false);
+			AddBoxCollider(&element->collider, vec3(TERRAIN_TILE_SIZE * 0.2f, TERRAIN_TILE_SIZE, TERRAIN_TILE_SIZE * 0.05f), vec3(0.4f * TERRAIN_TILE_SIZE, 0.5f * TERRAIN_TILE_SIZE, 0.5f * TERRAIN_TILE_SIZE), quat::Identity, ENTITY_FILTER_DEFAULT, ENTITY_FILTER_DEFAULT, false);
+			AddBoxCollider(&element->collider, vec3(TERRAIN_TILE_SIZE * 0.6f, TERRAIN_TILE_SIZE * 0.05f, TERRAIN_TILE_SIZE * 0.05f), vec3(0, 0.975f * TERRAIN_TILE_SIZE, 0.5f * TERRAIN_TILE_SIZE), quat::Identity, ENTITY_FILTER_DEFAULT, ENTITY_FILTER_DEFAULT, false);
+		}
+		else if (variant == BUILD_ELEMENT_VARIANT_WOOD_WINDOW)
+		{
+			element->model = GetModel("entities/build_element/wood_window/wood_window.glb");
+
+			AddBoxCollider(&element->collider, vec3(TERRAIN_TILE_SIZE, TERRAIN_TILE_SIZE * 0.5f, TERRAIN_TILE_SIZE * 0.05f), vec3(0, 0.25f * TERRAIN_TILE_SIZE, 0.5f * TERRAIN_TILE_SIZE), quat::Identity, ENTITY_FILTER_DEFAULT, ENTITY_FILTER_DEFAULT, false);
+		}
 
 		element->numSnapPositions = 4;
 		element->snapPositions[0] = { .rotation = 0, .normal = ivec3(0, -TERRAIN_STEPS_PER_UNIT, 0), .flags = ENTITY_FILTER_BUILD_SNAP_ALL };
