@@ -7,6 +7,7 @@ layout (location = 1) in vec3 v_color;
 layout (location = 2) in float v_roughness;
 layout (location = 3) in vec3 v_terrainNormal;
 layout (location = 4) in float v_heightPercent2;
+layout (location = 5) in vec3 v_position;
 
 layout (location = 0) out vec4 out_normal;
 layout (location = 1) out vec3 out_color;
@@ -14,25 +15,15 @@ layout (location = 2) out vec4 out_material;
 layout (location = 3) out vec4 out_emissive;
 
 
-layout(set = 2, binding = 0) uniform sampler2D s_diffuse;
-layout(set = 2, binding = 1) uniform sampler2D s_roughness;
-layout(set = 2, binding = 2) uniform sampler2D s_metallic;
+layout(set = 2, binding = 0) uniform sampler2D s_sunColor;
 
 layout(set = 3, binding = 0) uniform UniformBlock {
-	vec4 materialData0;
-	vec4 materialData1;
-	vec4 materialData2;
-	vec4 materialData3;
+	vec4 params;
+	vec4 sunDirection;
+	vec4 pointLightPositions[4];
+	vec4 pointLightColors[4];
 
-#define hasDiffuse materialData0.x
-#define hasRoughness materialData0.y
-#define hasMetallic materialData0.z
-
-#define materialColor materialData1.rgb
-#define emissiveColor materialData2.rgb
-#define emissiveStrength materialData2.a
-#define roughnessFactor materialData3.r
-#define metallicFactor materialData3.g
+#define cameraPosition params.xyz
 };
 
 
@@ -48,8 +39,8 @@ void main()
 	normal = mix(normal, v_terrainNormal, v_heightPercent2);
 	normal = normalize(normal);
 
-	out_normal = vec4(normal * 0.5 + 0.5, emissiveStrength);
+	out_normal = vec4(normal * 0.5 + 0.5, 0);
 	out_color = linearToSRGB(v_color); //vec3(normal * 0.5 + 0.5);
-	out_material = vec4(v_roughness, metallic, 0, 0);
-	out_emissive = vec4(linearToSRGB(emissiveColor), 0);
+	out_material = vec4(v_roughness, metallic, 1, 0);
+	out_emissive = vec4(0);
 }

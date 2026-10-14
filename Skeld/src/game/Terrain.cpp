@@ -113,6 +113,12 @@ void DestroyTerrain(Terrain* terrain)
 	DestroyIndexBuffer(terrain->indexBuffer);
 	SDL_free(terrain->heights);
 	SDL_free(terrain->normals);
+	SDL_free(terrain->grassCoverage);
+	SDL_free(terrain->materials);
+	DestroyTexture(terrain->heightmap);
+	DestroyTexture(terrain->normalmap);
+	DestroyTexture(terrain->grassCoverageMap);
+	DestroyTexture(terrain->materialMap);
 }
 
 static void UpdateVertexBuffer(Terrain* terrain)

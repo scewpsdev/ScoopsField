@@ -22,8 +22,11 @@ layout(set = 3, binding = 0) uniform UniformBlock {
 };
 
 
+vec3 foliageColor = vec3(1, 1, 0);
+
+
 // Directional light indirect specular lighting
-vec3 directionalLight(vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, vec3 lightDirection, vec3 lightColor)
+vec3 directionalLight(vec3 normal, vec3 view, vec3 albedo, float roughness, float metallic, float isFoliage, vec3 lightDirection, vec3 lightColor)
 {
 	vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
@@ -55,7 +58,15 @@ vec3 directionalLight(vec3 normal, vec3 view, vec3 albedo, float roughness, floa
 	vec3 lambert = albedo / PI;
 	vec3 diffuse = kD * lambert;
 
-	return lambert * lightColor * NdotL;
+	float wrapFactor = 0.2;
+	float wrappedLambert = clamp((NdotL + wrapFactor) / (1 + wrapFactor), 0, 1);
+
+	float backLight = max(dot(view, lightDirection), 0);
+	float sss = pow(backLight, 5) * isFoliage;
+	sss *= sss * 1.5;
+	//sss *= 0.5;
+
+	return lambert * lightColor * (wrappedLambert + sss * foliageColor);
 
 	vec3 radiance = lightColor;
 	vec3 lighting = (diffuse + specular) * radiance * NdotL;
@@ -136,10 +147,11 @@ void main()
 	vec4 material = texture(s_material, v_texcoord);
 	float roughness = material.r;
 	float metallic = material.g;
+	float isFoliage = material.b;
 
 	vec3 sunColor = texture(s_sunColor, vec2(0.5)).rgb;
 
-	vec3 radiance = directionalLight(normal, view, albedo, roughness, metallic, sunDirection, sunColor);
+	vec3 radiance = directionalLight(normal, view, albedo, roughness, metallic, isFoliage, sunDirection, sunColor);
 
 	radiance *= upsampleShadowBuffer(v_texcoord, depth);
 		

@@ -70,7 +70,7 @@ void main()
 	vec3 dir = reconstructView(v_texcoord, projectionInv, viewInv); // view space direction
 
 	vec3 color = sampleSkyViewLUT(dir);
-	color = max(color, vec3(0.2, 0.2, 1) * 0.0005);
+	color = max(color, vec3(0.03) * 0.0005);
 
 	// moon
 	//float moonIntensity = 3.0;

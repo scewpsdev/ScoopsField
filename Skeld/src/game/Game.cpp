@@ -443,6 +443,12 @@ static void ResetGame(bool destroy, bool init)
 		}
 		ClearPool(&game->entities);
 
+		for (int i = 0; i < game->numTerrains; i++)
+		{
+			DestroyTerrain(&game->terrains[i]);
+		}
+		game->numTerrains = 0;
+
 		for (int i = 0; i < game->numReflectionProbes; i++)
 		{
 			DestroyReflectionProbe(&game->reflectionProbes[i]);
@@ -450,7 +456,7 @@ static void ResetGame(bool destroy, bool init)
 		game->numReflectionProbes = 0;
 
 		DestroyModel(&game->mapModel);
-		DestroyRigidBody(&game->mapCollider);
+		//DestroyRigidBody(&game->mapCollider);
 	}
 
 
@@ -475,31 +481,15 @@ static void ResetGame(bool destroy, bool init)
 		InitPool(&game->entities);
 
 		// todo generate terrain
-		Random random = Random(12345);
+		uint32_t seed = 12345;
+		Random random = {};
+		InitRandom(&random, seed);
 		for (int z = -8; z < 8; z++)
 		{
 			for (int x = -8; x < 8; x++)
 			{
 				GenerateTerrain(&game->terrains[game->numTerrains++], x, z, random);
 			}
-		}
-
-		GenerateGrassData(random);
-
-		{
-			VertexBufferLayout instanceLayout = {};
-			instanceLayout.numAttributes = 4;
-			instanceLayout.attributes[0].location = 5;
-			instanceLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
-			instanceLayout.attributes[1].location = 6;
-			instanceLayout.attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
-			instanceLayout.attributes[2].location = 7;
-			instanceLayout.attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
-			instanceLayout.attributes[3].location = 8;
-			instanceLayout.attributes[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
-			instanceLayout.perInstance = true;
-			game->treeInstances = CreateVertexBuffer(MAX_TREES, &instanceLayout, 0);
-			game->treeInstanceTransfer = CreateTransferBuffer(MAX_TREES * sizeof(mat4), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD);
 		}
 
 		LoadModel(&game->mapModel, "res/models/water_surface.glb.bin", false, cmdBuffer);
@@ -826,6 +816,26 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	game->particleShader = CreateForwardGraphicsPipeline(particleShader, 6, particleLayouts, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, false);
 	game->particleAdditiveShader = CreateForwardGraphicsPipeline(particleShader, 6, particleLayouts, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, SDL_GPU_CULLMODE_BACK, true);
 
+	{
+		VertexBufferLayout instanceLayout = {};
+		instanceLayout.numAttributes = 4;
+		instanceLayout.attributes[0].location = 5;
+		instanceLayout.attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+		instanceLayout.attributes[1].location = 6;
+		instanceLayout.attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+		instanceLayout.attributes[2].location = 7;
+		instanceLayout.attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+		instanceLayout.attributes[3].location = 8;
+		instanceLayout.attributes[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+		instanceLayout.perInstance = true;
+		game->treeInstances = CreateVertexBuffer(MAX_TREES, &instanceLayout, 0);
+		game->treeInstanceTransfer = CreateTransferBuffer(MAX_TREES * sizeof(mat4), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD);
+	}
+
+	Random random = {};
+	InitRandom(&random, 12345);
+	GenerateGrassData(random);
+
 	LoadFont("default", "fonts/libre-baskerville.regular.ttf");
 	game->font = GetFont("default", 20);
 
@@ -998,7 +1008,7 @@ void GameUpdate()
 
 void GameRender()
 {
-	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 3).normalized(), -(/*gameTime +*/ 50) * 0.01f) * vec3(1, 0, 0);
+	vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 3).normalized(), -(gameTime + 50) * 0.02f) * vec3(1, 0, 0);
 	//vec3 sunDirection = quat::FromAxisAngle(vec3(0, 1, 2).normalized(), -20 * 0.1f) * vec3(1, 0, 0);
 	//sunDirection.y = -fabsf(sunDirection.y - 0.2f) + 0.2f;
 	//sunDirection = vec3(-1, -0.025f, 0).normalized();

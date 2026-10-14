@@ -1427,10 +1427,10 @@ static void SubmitMesh(Renderer* renderer,
 
 	if (mesh->uniformData)
 	{
-		SDL_GPUTextureSamplerBinding fragmentSamplers[MAX_MATERIAL_TEXTURES + 2] = {};
+		SDL_GPUTextureSamplerBinding fragmentSamplers[MAX_MATERIAL_TEXTURES + 4] = {};
 		int numFragmentSamplers = 0;
 
-		SDL_GPUTextureSamplerBinding vertexSamplers[MAX_MATERIAL_TEXTURES + 2] = {};
+		SDL_GPUTextureSamplerBinding vertexSamplers[MAX_MATERIAL_TEXTURES + 4] = {};
 		int numVertexSamplers = 0;
 
 		for (int i = 0; i < mesh->numTextures; i++)
@@ -1451,7 +1451,7 @@ static void SubmitMesh(Renderer* renderer,
 
 		if (mesh->flags & MESH_DRAW_FLAG_SHADER_EXTRA_UNIFORMS)
 		{
-			SDL_assert(mesh->shader && IsForward(mesh->shader));
+			SDL_assert(mesh->shader /*&& IsForward(mesh->shader)*/);
 
 			struct UniformData
 			{
@@ -1487,7 +1487,7 @@ static void SubmitMesh(Renderer* renderer,
 
 		if (mesh->flags & MESH_DRAW_FLAG_SHADER_ENVIRONMENT_MAP)
 		{
-			SDL_assert(mesh->shader && IsForward(mesh->shader));
+			SDL_assert(mesh->shader /*&& IsForward(mesh->shader)*/);
 
 			fragmentSamplers[numFragmentSamplers].texture = GetClosestEnvironment(renderer);
 			fragmentSamplers[numFragmentSamplers].sampler = renderer->samplers[TEXTURE_SAMPLER_LINEAR];
@@ -1855,9 +1855,9 @@ void RendererShow(Renderer* renderer, SDL_GPUTexture* swapchain, SDL_GPUCommandB
 		SDL_EndGPURenderPass(renderPass);
 	}
 
-	ShadowMapping(renderer, renderer->cameraPosition, renderer->cameraRotation, renderer->near, renderer->fov, renderer->aspect, renderer->projection, renderer->view, renderer->viewInv, renderer->sunDirection, cmdBuffer);
-
 	UpdateSkyCubemap(renderer, renderer->cameraPosition, renderer->sunDirection, cmdBuffer);
+
+	ShadowMapping(renderer, renderer->cameraPosition, renderer->cameraRotation, renderer->near, renderer->fov, renderer->aspect, renderer->projection, renderer->view, renderer->viewInv, renderer->sunDirection, cmdBuffer);
 
 	UpdateReflectionProbes(renderer, renderer->sunDirection, renderer->cameraPosition, cmdBuffer);
 
@@ -1940,7 +1940,7 @@ void RendererShow(Renderer* renderer, SDL_GPUTexture* swapchain, SDL_GPUCommandB
 		SDL_EndGPURenderPass(renderPass);
 	}
 
-	AmbientOcclusion(renderer, renderer->projection, renderer->fov, renderer->near);
+	//AmbientOcclusion(renderer, renderer->projection, renderer->fov, renderer->near);
 
 	Fog(renderer, renderer->pvInv, renderer->cameraPosition, renderer->sunDirection);
 

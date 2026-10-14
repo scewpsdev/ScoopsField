@@ -119,7 +119,7 @@ void main()
 	else
 	{
 		vec3 color = sampleSkyViewLUT(dir);
-		color = max(color, vec3(0.5, 0.5, 1) * 0.00005);
+		//color = max(color, vec3(0.5, 0.5, 1) * 0.00005);
 
 		vec3 pos = cameraPosition + vec3(0, planetRadius, 0);
 		float height = length(pos);

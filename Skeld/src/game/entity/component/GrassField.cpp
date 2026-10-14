@@ -30,11 +30,6 @@ void InitGrassField(GrassField* grass, Terrain* terrain)
 	grass->material.samplers[2] = TEXTURE_SAMPLER_LINEAR_CLAMPED;
 	grass->material.vertexSampler[2] = true;
 	grass->material.numTextures++;
-
-	grass->material.textures[3] = game->perlin;
-	grass->material.samplers[3] = TEXTURE_SAMPLER_LINEAR;
-	grass->material.vertexSampler[3] = true;
-	grass->material.numTextures++;
 }
 
 void DestroyGrassField(GrassField* grass)
@@ -98,6 +93,6 @@ void RenderGrassField(GrassField* grass)
 			nullptr, 0, vec4(grass->terrain->tilex * TERRAIN_SIZE, grass->terrain->tilez * TERRAIN_SIZE, lod, 0), sizeof(vec4),
 			grass->material.textures, grass->material.samplers, grass->material.vertexSampler, grass->material.numTextures,
 			game->grassShader, game->grassShadowShader,
-			transform, 0);
+			transform, MESH_DRAW_FLAG_SHADER_EXTRA_UNIFORMS);
 	}
 }

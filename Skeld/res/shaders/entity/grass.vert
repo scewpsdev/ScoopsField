@@ -10,12 +10,12 @@ layout (location = 1) out vec3 v_color;
 layout (location = 2) out float v_roughness;
 layout (location = 3) out vec3 v_terrainNormal;
 layout (location = 4) out float v_heightPercent2;
+layout (location = 5) out vec3 v_position;
 
 
 layout (set = 0, binding = 0) uniform sampler2D s_heightmap;
 layout (set = 0, binding = 1) uniform sampler2D s_normalmap;
 layout (set = 0, binding = 2) uniform sampler2D s_coverage;
-layout (set = 0, binding = 3) uniform sampler2D s_perlin;
 
 layout(std140, set = 1, binding = 0) uniform UniformBlock {
     mat4 u_projectionViewModel;
@@ -198,5 +198,8 @@ void main()
     worldPosition.xyz += leafFlutter * heightMask * flutterMask * 0.0025;
 	*/
 
-	gl_Position = u_projectionViewModel * vec4(position, 1);
+	vec4 worldPosition = u_model * vec4(position, 1);
+	v_position = worldPosition.xyz;
+
+	gl_Position = u_projection * u_view * worldPosition;
 }
