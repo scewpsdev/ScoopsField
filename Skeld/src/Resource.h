@@ -65,7 +65,7 @@ struct ResourceState
 	int numFileWatchers;
 
 	void* directoryChangedHandle;
-#define MAX_RESOURCE_WATCHERS 32
+#define MAX_RESOURCE_WATCHERS 64
 	ResourceWatcher resourceWatchers[MAX_RESOURCE_WATCHERS];
 	int numResourceWatchers;
 };

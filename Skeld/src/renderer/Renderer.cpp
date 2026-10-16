@@ -1607,7 +1607,7 @@ static void AmbientOcclusion(Renderer* renderer, mat4 projection, float fov, flo
 		}
 	}
 
-	int lod = 2;
+	int lod = 0;
 
 	// ssao
 	{
@@ -1940,7 +1940,7 @@ void RendererShow(Renderer* renderer, SDL_GPUTexture* swapchain, SDL_GPUCommandB
 		SDL_EndGPURenderPass(renderPass);
 	}
 
-	//AmbientOcclusion(renderer, renderer->projection, renderer->fov, renderer->near);
+	AmbientOcclusion(renderer, renderer->projection, renderer->fov, renderer->near);
 
 	Fog(renderer, renderer->pvInv, renderer->cameraPosition, renderer->sunDirection);
 

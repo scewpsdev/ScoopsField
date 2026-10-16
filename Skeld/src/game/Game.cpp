@@ -160,7 +160,7 @@ static float sampleTerrainHeightPlains(float x, float z)
 {
 	float amplitude = 20.0f;
 	float frequency = 0.01f;
-	float height = simplexFbmNormalized(x * frequency, z * frequency, 4, 0.4f, 2);
+	float height = simplexFbmNormalized(x * frequency, z * frequency, 6, 0.4f, 2);
 	height = SDL_powf(height * 0.5f + 0.5f, 2) * 2 - 1;
 	height *= amplitude;
 
@@ -868,6 +868,7 @@ void GameInit(SDL_GPUCommandBuffer* cmdBuffer)
 	AddHotReloadedShader("shaders/entity/particle.vert", "shaders/entity/particle.frag", game->particleShader->pipelineInfo.shader, game->particleShader);
 	AddHotReloadedComputeShader("shaders/postprocessing/ssao.comp", nullptr, game->renderer.ssaoShader);
 	AddHotReloadedComputeShader("shaders/postprocessing/ssao_blur.comp", nullptr, game->renderer.ssaoBlurShader);
+	AddHotReloadedShader("shaders/screenquad.vert", "shaders/postprocessing/ssao_composite.frag", game->renderer.ssaoCompositeShader, game->renderer.ssaoCompositePipeline);
 	AddHotReloadedComputeShader("shaders/postprocessing/bloom_downsample.comp", nullptr, game->renderer.bloomDownsampleShader);
 	AddHotReloadedComputeShader("shaders/postprocessing/bloom_upsample.comp", nullptr, game->renderer.bloomUpsampleShader);
 	AddHotReloadedComputeShader("shaders/lighting/specular_convolute.comp", nullptr, game->renderer.specularConvoluteShader);
